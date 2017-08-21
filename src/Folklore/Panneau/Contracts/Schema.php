@@ -12,7 +12,7 @@ interface Schema
 
     public function getFieldsNames();
 
-    public function getFieldSchema($name);
+    public function getSchemaForField($name);
 
     public function setModel($model);
 

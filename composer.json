@@ -22,7 +22,9 @@
   "require": {
     "php": ">=5.5.9",
     "illuminate/support": "5.1.*|5.2.*|5.3.*|5.4.*",
-    "guzzlehttp/guzzle": "5.3|~6.0"
+    "guzzlehttp/guzzle": "5.3|~6.0",
+    "spatie/eloquent-sortable": "^3.3",
+    "folklore/laravel-mediatheque": "v1.x-dev"
   },
   "require-dev": {
     "fzaninotto/faker": "~1.4",
@@ -49,5 +51,6 @@
       "Folklore\\Panneau": "src/"
     }
   },
-  "minimum-stability": "stable"
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }

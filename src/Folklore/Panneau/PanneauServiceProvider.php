@@ -35,11 +35,11 @@ class PanneauServiceProvider extends BaseServiceProvider
         $langPath = __DIR__ . '/../../resources/lang/';
 
         // Merge files
-        $this->mergeConfigFrom($configPath, 'Panneau');
+        $this->mergeConfigFrom($configPath, 'panneau');
 
         // Publish
         $this->publishes([
-            $configPath => config_path('Panneau.php')
+            $configPath => config_path('panneau.php')
         ], 'config');
 
         $this->publishes([

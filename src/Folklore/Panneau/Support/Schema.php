@@ -50,7 +50,7 @@ class Schema implements SchemaContract
         $this->model = $model;
     }
 
-    public function getFieldSchema($name)
+    public function getSchemaForField($name)
     {
         $method = 'get'.studly_case($name).'Schema';
         if (method_exists($this, $method)) {
@@ -68,7 +68,7 @@ class Schema implements SchemaContract
             if (is_numeric($name)) {
                 $name = $schema;
             }
-            $schemas[$name] = $this->getFieldSchema($name);
+            $schemas[$name] = $this->getSchemaForField($name);
         }
         return $schemas;
     }

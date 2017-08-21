@@ -7,11 +7,11 @@ namespace Folklore\Panneau\Support\Traits;
 use Folklore\Panneau\Validators\JsonSchemaValidator;
 use Folklore\Panneau\Exceptions\JsonSchemaException;
 
-trait HasSchema
+trait HasFieldsSchema
 {
-    public static function bootHasSchema()
+    public static function bootHasFieldsSchema()
     {
-        static::observe(HasSchemaObserver::class);
+        static::observe(HasFieldsSchemaObserver::class);
     }
 
     public static function schemas()
@@ -63,7 +63,7 @@ trait HasSchema
         return $def;
     }*/
 
-    public function validateAndExtractJsonSchemas()
+    public function validateAndExtractFieldsSchemas()
     {
         $schemas = $this->getSchema();
         if (empty($schemas)) {

@@ -5,7 +5,7 @@ namespace Folklore\Panneau\Validators;
 use JsonSchema\Validator;
 use JsonSchema\Constraints\Constraint;
 
-class JsonSchemaValidator
+class FieldsSchemaValidator
 {
     public static function validateAgainstSchema($schema, $data)
     {

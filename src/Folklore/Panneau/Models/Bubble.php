@@ -6,17 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
-use Folklore\Panneau\Support\Interfaces\HasSchema as HasSchemaInterface;
-use Folklore\Panneau\Support\Traits\HasSchema;
+use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
+use Folklore\Panneau\Support\Traits\HasFieldsSchema;
 use \Exception;
 
 class Bubble extends Model implements
     Sortable,
-    HasSchemaInterface
+    HasFieldsSchemaInterface
 {
     use SoftDeletes;
     use SortableTrait;
-    use HasSchema;
+    use HasFieldsSchema;
 
     protected $table = 'bubbles';
 

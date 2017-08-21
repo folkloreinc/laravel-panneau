@@ -8,19 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
-use Folklore\Panneau\Support\Interfaces\HasJsonSchema as HasJsonSchemaInterface;
-use Folklore\Panneau\Support\Traits\HasJsonSchema;
-use Folklore\Panneau\Models\Observers\HasJsonSchemaObserver;
+use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
+use Folklore\Panneau\Support\Traits\HasFieldsSchema;
+use Folklore\Panneau\Models\Observers\HasFieldsSchemaObserver;
 use Folklore\Panneau\Models\Block;
 use \Exception;
 
 class Page extends Model implements
     Sortable,
-    HasJsonSchemaInterface
+    HasFieldsSchemaInterface
 {
     use SoftDeletes;
     use SortableTrait;
-    use HasJsonSchema;
+    use HasFieldsSchema;
 
     protected $table = 'pages';
 
@@ -163,7 +163,7 @@ class Page extends Model implements
 
     public static function boot()
     {
-        static::observe(HasJsonSchemaObserver::class);
+        static::observe(HasFieldsSchemaObserver::class);
 
         static::saved(function ($page) {
             if (!empty($page->data) && !empty($page->data->blocks)) {
