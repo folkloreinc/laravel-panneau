@@ -22,17 +22,17 @@ class Schema implements SchemaContract
             $fields = array_merge($fields, $this->fields($fields));
         }
 
-        return $properties;
+        return $fields;
     }
 
     public function getFieldsNames()
     {
         $names = [];
-        $fields = $this->getFieldsNames();
+        $fields = $this->getFields();
         foreach ($fields as $name => $schema) {
             $names[] = is_numeric($name) ? $schema : $name;
         }
-        return $name;
+        return $names;
     }
 
     public function setFields($fields)
@@ -40,14 +40,23 @@ class Schema implements SchemaContract
         $this->fields = $fields;
     }
 
-    public function addField($name, $schema)
+    public function addField($name, $schema = null)
     {
-        $this->fields[$name] = $schema;
+        if (is_null($schema)) {
+            $this->fields[] = $name;
+        } else {
+            $this->fields[$name] = $schema;
+        }
     }
 
     public function setModel($model)
     {
         $this->model = $model;
+    }
+
+    public function getModel()
+    {
+        return $this->model;
     }
 
     public function getSchemaForField($name)

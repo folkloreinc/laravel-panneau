@@ -80,6 +80,7 @@ class HasFieldsSchemaTest extends TestCase
      * @test
      * @covers ::addSchema
      * @covers ::getSchema
+     * @covers ::setSchemaNameColumn
      *
      */
     public function testGetSchemaFromColumn()
@@ -88,6 +89,11 @@ class HasFieldsSchemaTest extends TestCase
         $modelClass = get_class($model);
         $modelClass::addSchema('test', \BubbleTestSchema::class);
         $model->type = 'test';
+        $schema = $model->getSchema();
+        $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
+
+        $model->setSchemaNameColumn('schema');
+        $model->schema = 'test';
         $schema = $model->getSchema();
         $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
     }
