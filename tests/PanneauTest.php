@@ -48,11 +48,11 @@ class PanneauTest extends TestCase
      */
     public function testAddSchemaWithNamespace()
     {
-        $this->panneau->addSchema('test', \BubbleTestSchema::class, \Folklore\Panneau\Contracts\Page::class);
-        $schemas = $this->panneau->schemas(\Folklore\Panneau\Contracts\Page::class);
+        $this->panneau->addSchema('test', \BubbleTestSchema::class, \Folklore\Panneau\Models\Page::class);
+        $schemas = $this->panneau->schemas(\Folklore\Panneau\Models\Page::class);
         $this->assertArrayHasKey('test', $schemas);
         $this->assertInstanceOf(\BubbleTestSchema::class, $schemas['test']);
-        $schema = $this->panneau->schema('test', \Folklore\Panneau\Contracts\Page::class);
+        $schema = $this->panneau->schema('test', \Folklore\Panneau\Models\Page::class);
         $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
     }
 
@@ -94,8 +94,8 @@ class PanneauTest extends TestCase
         $this->panneau->addSchemas([
             'test1' => \BubbleTestSchema::class,
             'test2' => \BubbleTestSchema::class,
-        ], \Folklore\Panneau\Contracts\Page::class);
-        $schemas = $this->panneau->schemas(\Folklore\Panneau\Contracts\Page::class);
+        ], \Folklore\Panneau\Models\Page::class);
+        $schemas = $this->panneau->schemas(\Folklore\Panneau\Models\Page::class);
         $this->assertArrayHasKey('test1', $schemas);
         $this->assertArrayHasKey('test2', $schemas);
         $this->assertInstanceOf(\BubbleTestSchema::class, $schemas['test1']);

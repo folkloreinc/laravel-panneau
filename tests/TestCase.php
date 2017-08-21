@@ -13,7 +13,16 @@ class TestCase extends BaseTestCase
      */
     protected function getEnvironmentSetUp($app)
     {
-        $app->instance('path.public', __DIR__.'/fixture');
+        // Path
+        $app->instance('path.app', __DIR__.'/fixture');
+
+        // Database
+        $app['config']->set('database.default', 'testbench');
+        $app['config']->set('database.connections.testbench', [
+            'driver'   => 'sqlite',
+            'database' => ':memory:',
+            'prefix'   => '',
+        ]);
     }
 
     protected function getPackageProviders($app)

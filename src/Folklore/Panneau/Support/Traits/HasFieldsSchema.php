@@ -19,17 +19,29 @@ trait HasFieldsSchema
         return app('panneau')->schemas(static::class);
     }
 
-    public static function schema($name)
+    public static function schema($name = 'default')
     {
         return app('panneau')->schema($name, static::class);
+    }
+
+    public static function addSchema($name, $schema)
+    {
+        return app('panneau')->addSchema($name, $schema, static::class);
+    }
+
+    public static function addSchemas($schemas)
+    {
+        return app('panneau')->addSchemas($schemas, static::class);
     }
 
     public function getSchema()
     {
         if (method_exists($this, 'getSchemaName')) {
             $name = $this->getSchemaName();
-        } else {
+        } elseif (isset($this->type)) {
             $name = $this->type;
+        } elseif (isset($this->type)) {
+            $name = 'default';
         }
 
         $schema = static::schema($name);
