@@ -28,7 +28,7 @@ class NestedResourcesController extends BaseController
 
     public function getResourcesMap()
     {
-        return $this->resourcesMap ?? null;
+        return $this->resourcesMap ? $this->resourcesMap : null;
     }
 
     protected function getTypeDefinition($type)
@@ -61,7 +61,7 @@ class NestedResourcesController extends BaseController
     protected function recursiveStore($data, $type, $returnWithRelations = false, $recursionPath = '', &$jsonSchemaErrors = [])
     {
         $typeDef = $this->getTypeDefinition($type);
-        $id = $data[$typeDef['idField']] ?? null;
+        $id = array_get($data, $typeDef['idField'], null);
         $class = app($typeDef['model']);
         if ($id) {
             $model = $class::findOrFail($id);
@@ -69,7 +69,7 @@ class NestedResourcesController extends BaseController
             $model = new $class();
         }
 
-        $relations = $typeDef['relations'] ?? null;
+        $relations = isset($typeDef['relations']) ? $typeDef['relations'] : null;
         foreach ($data as $key => $value) {
             if ($relations && !array_key_exists($key, $relations)) {
                 $model->{$key} = $value;
@@ -88,7 +88,7 @@ class NestedResourcesController extends BaseController
         if ($relations) {
             foreach ($relations as $key => $value) {
                 $relationDef = $this->getRelationDefinition($type, $key);
-                $relationData = $data[$key] ?? null;
+                $relationData = isset($data[$key]) ? $data[$key] : null;
                 $model->{$key}()->detach();
                 if (!empty($relationData)) {
                     if (is_assoc($relationData)) {
@@ -98,7 +98,7 @@ class NestedResourcesController extends BaseController
                         $relationModel = $this->recursiveStore($rel, $value['ref'], false, $recursionPath.$key.'.'.$index.'.', $jsonSchemaErrors);
                         $model->{$key}()->attach($relationModel, array_merge(
                             ['order' => $index],
-                            $value['pivotAttributes'] ?? []
+                            array_get($value, 'pivotAttributes', [])
                         ));
                     }
                 }

@@ -106,9 +106,9 @@ trait HasFieldsSchema
             foreach ($schemas as $field => $schema) {
                 foreach ($schema['properties'] as $prop => $value) {
                     if ('get'.ucfirst($prop).'Attribute' === $name) {
-                        return $this->{$field}->{$prop} ?? null;
+                        return isset($this->{$field}->{$prop}) ? $this->{$field}->{$prop} : null;
                     } elseif ('set'.ucfirst($prop).'Attribute' === $name) {
-                        $this->{$field}->{$prop} = $arguments[0] ?? null;
+                        $this->{$field}->{$prop} = array_get($arguments, 0, null);
                         return;
                     }
                 }
