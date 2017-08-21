@@ -1,6 +1,6 @@
 <?php
 
-class PanneauTestCase extends TestCase
+class PanneauTest extends TestCase
 {
     public function setUp()
     {
