@@ -2,6 +2,7 @@
 
 namespace Folklore\Panneau;
 
+use Illuminate\Container\Container;
 use Folklore\Panneau\Contracts\Bubble as BubbleContract;
 use Folklore\Panneau\Contracts\Schema as SchemaContract;
 use Exception;
@@ -45,6 +46,10 @@ class Panneau
     {
         if (is_null($namespace)) {
             $namespace = BubbleContract::class;
+        }
+
+        if ($namespace === '*') {
+            return $this->schemas;
         }
 
         if (!isset($this->schemas[$namespace])) {
