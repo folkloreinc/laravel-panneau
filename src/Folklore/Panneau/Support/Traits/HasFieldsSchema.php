@@ -9,6 +9,8 @@ use Folklore\Panneau\Exceptions\JsonSchemaException;
 
 trait HasFieldsSchema
 {
+    protected $schemaNameColumn = 'type';
+
     public static function bootHasFieldsSchema()
     {
         static::observe(HasFieldsSchemaObserver::class);
@@ -36,17 +38,24 @@ trait HasFieldsSchema
 
     public function getSchema()
     {
+        $schemaNameColumn = method_exists($this, 'getSchemaNameColumn') ?
+            $this->getSchemaNameColumn() : $this->schemaNameColumn;
         if (method_exists($this, 'getSchemaName')) {
             $name = $this->getSchemaName();
-        } elseif (isset($this->type)) {
-            $name = $this->type;
-        } elseif (isset($this->type)) {
+        } elseif (isset($this->{$schemaNameColumn})) {
+            $name = $this->{$schemaNameColumn};
+        } else {
             $name = 'default';
         }
 
         $schema = static::schema($name);
-        $schema->setModel($model);
+        $schema->setModel($this);
         return $schema;
+    }
+
+    public function setSchemaNameColumn($column)
+    {
+        $this->schemaNameColumn = $column;
     }
 
     /*protected function getSchemasForValidation()

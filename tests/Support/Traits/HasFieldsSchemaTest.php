@@ -1,5 +1,7 @@
 <?php
 
+use Folklore\Panneau\Contracts\Bubble as BubbleContract;
+
 /**
  * @coversDefaultClass Folklore\Panneau\Support\Traits\HasFieldsSchema
  */
@@ -11,13 +13,7 @@ class HasFieldsSchemaTest extends TestCase
     {
         parent::setUp();
 
-        $this->model = new TestModel();
         TestModel::addSchema('default', \BubbleTestSchema::class);
-    }
-
-    protected function getEnvironmentSetUp($app)
-    {
-        parent::getEnvironmentSetUp($app);
     }
 
     /**
@@ -52,6 +48,7 @@ class HasFieldsSchemaTest extends TestCase
      * Test getting schema with name
      *
      * @test
+     * @covers ::addSchema
      * @covers ::schema
      *
      */
@@ -61,5 +58,72 @@ class HasFieldsSchemaTest extends TestCase
         $schemas = TestModel::schemas();
         $schema = TestModel::schema('test');
         $this->assertEquals($schemas['test'], $schema);
+    }
+
+    /**
+     * Test getting the default schema from model
+     *
+     * @test
+     * @covers ::getSchema
+     *
+     */
+    public function testGetDefaultSchema()
+    {
+        $model = app(BubbleContract::class);
+        $schema = $model->getSchema();
+        $this->assertInstanceOf(config('panneau.schemas.'.BubbleContract::class.'.default'), $schema);
+    }
+
+    /**
+     * Test getting the schema from the default column model
+     *
+     * @test
+     * @covers ::addSchema
+     * @covers ::getSchema
+     *
+     */
+    public function testGetSchemaFromColumn()
+    {
+        $model = app(BubbleContract::class);
+        $modelClass = get_class($model);
+        $modelClass::addSchema('test', \BubbleTestSchema::class);
+        $model->type = 'test';
+        $schema = $model->getSchema();
+        $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
+    }
+
+    /**
+     * Test getting the schema from the column method
+     *
+     * @test
+     * @covers ::addSchema
+     * @covers ::getSchema
+     *
+     */
+    public function testGetSchemaFromColumnMethod()
+    {
+        $model = new TestColumnModel();
+        $modelClass = get_class($model);
+        $modelClass::addSchema('test', \BubbleTestSchema::class);
+        $model->schema = 'test';
+        $schema = $model->getSchema();
+        $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
+    }
+
+    /**
+     * Test getting the schema from a method
+     *
+     * @test
+     * @covers ::addSchema
+     * @covers ::getSchema
+     *
+     */
+    public function testGetSchemaFromMethod()
+    {
+        $model = new TestModel();
+        $modelClass = get_class($model);
+        $modelClass::addSchema('test', \BubbleTestSchema::class);
+        $schema = $model->getSchema();
+        $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
     }
 }
