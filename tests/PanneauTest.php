@@ -11,7 +11,6 @@ class PanneauTestCase extends TestCase
      * Test the constructor
      *
      * @test
-     * @covers ::__construct
      */
     public function testConstruct()
     {

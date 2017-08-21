@@ -4,7 +4,7 @@ namespace Folklore\Panneau\Schemas;
 
 use Folklore\Panneau\Support\Schema;
 
-class Bubble extends Schema
+class Block extends Schema
 {
     public function properties()
     {

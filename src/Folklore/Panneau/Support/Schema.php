@@ -1,6 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Schemas;
+namespace Folklore\Panneau\Support;
 
 use Folklore\Panneau\Contracts\Schema as SchemaContract;
 

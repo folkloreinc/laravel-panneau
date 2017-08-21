@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Mediatheque\Contracts;
+namespace Folklore\Panneau\Contracts;
 
 interface Page
 {

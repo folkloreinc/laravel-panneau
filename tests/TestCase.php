@@ -26,7 +26,7 @@ class TestCase extends BaseTestCase
     protected function getPackageAliases($app)
     {
         return [
-
+            'Panneau' => \Folklore\Panneau\Support\Facades\Panneau::class,
         ];
     }
 }
