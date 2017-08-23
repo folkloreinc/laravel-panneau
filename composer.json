@@ -24,7 +24,8 @@
     "illuminate/support": "5.1.*|5.2.*|5.3.*|5.4.*",
     "guzzlehttp/guzzle": "5.3|~6.0",
     "spatie/eloquent-sortable": "^2.0|^3.0",
-    "folklore/laravel-mediatheque": "v1.x-dev"
+    "folklore/laravel-mediatheque": "v1.x-dev",
+    "justinrainbow/json-schema": "^5.2"
   },
   "require-dev": {
     "fzaninotto/faker": "~1.4",

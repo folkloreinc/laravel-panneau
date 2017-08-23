@@ -2,14 +2,19 @@
 
 namespace Folklore\Panneau\Schemas;
 
-use Folklore\Panneau\Support\Schema;
+use Folklore\Panneau\Support\FieldsSchema;
 
-class Bubble extends Schema
+class Bubble extends FieldsSchema
 {
-    public function properties()
+    protected function fields()
     {
         return [
-
+            'data'
         ];
+    }
+
+    protected function getDataSchema()
+    {
+        return \Folklore\Panneau\Schemas\Fields\BubbleData::class;
     }
 }

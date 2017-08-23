@@ -4,7 +4,6 @@ namespace Folklore\Panneau\Models;
 
 use Lang;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
@@ -174,9 +173,9 @@ class Page extends Model implements
                 // Manually detach all then attach one by one instead of using sync(),
                 // which does not allow for duplicate IDs.
                 // @see https://laracasts.com/discuss/channels/eloquent/belongstomany-and-wanted-duplicates
-                $page->__blocks()->detach();
+                $page->blocks()->detach();
                 foreach ($blocks as $key => $item) {
-                    $page->__blocks()->attach($item, ['order' => $key]);
+                    $page->blocks()->attach($item, ['order' => $key]);
                 }
             }
         });
@@ -216,10 +215,6 @@ class Page extends Model implements
      */
     public function children()
     {
-        return $this->__children()->with('children', 'blocks')->ordered();
-    }
-    public function __children()
-    {
         return $this->hasMany(self::class, 'parent_id');
     }
 
@@ -232,21 +227,6 @@ class Page extends Model implements
     }
 
     public function blocks()
-    {
-        return $this->__blocks()->with('blocks')->orderBy('order')->wherePivot('relation', 'blocks');
-    }
-
-    public function __blocks()
-    {
-        return $this->belongsToMany(Block::class, 'pages_blocks_pivot', 'page_id', 'block_id');
-    }
-
-    public function carrousel()
-    {
-        return $this->__blocks()->with('blocks')->wherePivot('relation', 'carrousel');
-    }
-
-    public function __carrousel()
     {
         return $this->belongsToMany(Block::class, 'pages_blocks_pivot', 'page_id', 'block_id');
     }

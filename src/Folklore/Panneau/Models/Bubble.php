@@ -2,7 +2,6 @@
 
 namespace Folklore\Panneau\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
@@ -21,7 +20,6 @@ class Bubble extends Model implements
     protected $table = 'bubbles';
 
     protected $hidden = [
-        'data',
         'created_at',
         'updated_at',
         'deleted_at',

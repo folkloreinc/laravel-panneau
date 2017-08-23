@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Schemas;
 
-use Folklore\Panneau\Support\Schema;
+use Folklore\Panneau\Support\FieldsSchema;
 
-class Page extends Schema
+class Page extends FieldsSchema
 {
     protected function fields()
     {

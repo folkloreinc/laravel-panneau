@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreatePagesTable extends Migration
+class CreatePanneauBlocksTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,23 +13,20 @@ class CreatePagesTable extends Migration
      */
     public function up()
     {
-        Schema::create('pages', function (Blueprint $table) {
+        Schema::create(config('panneau.table_prefix').'blocks', function (Blueprint $table) {
             // Standard columns
             $table->increments('id');
             $table->json('data')->nullable();
 
             // Generated columns
             $table->string('type')->nullable()->storedAs('data->>"$.type"');
-            $table->string('slug')->nullable()->storedAs('data->>"$.slug"');
-            $table->integer('parent_id')->nullable()->storedAs('data->"$.parent"');
-            $table->integer('order')->nullable()->storedAs('data->"$.order"');
 
             // Laravel features
             $table->timestamps();
             $table->softDeletes();
 
             // Indexes
-            $table->unique('slug');
+            $table->index('type');
         });
     }
 
@@ -40,6 +37,6 @@ class CreatePagesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('pages');
+        Schema::dropIfExists(config('panneau.table_prefix').'blocks');
     }
 }

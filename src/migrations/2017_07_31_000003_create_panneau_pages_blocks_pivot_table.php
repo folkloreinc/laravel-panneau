@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreatePagesBlocksPivotTable extends Migration
+class CreatePanneauPagesBlocksPivotTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,15 +13,17 @@ class CreatePagesBlocksPivotTable extends Migration
      */
     public function up()
     {
-        Schema::create('pages_blocks_pivot', function (Blueprint $table) {
+        Schema::create(config('panneau.table_prefix').'pages_blocks_pivot', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('page_id')->unsigned();
             $table->integer('block_id')->unsigned();
+            $table->string('name')->nullable();
             $table->integer('order')->default(0);
 
             $table->index('block_id');
             $table->index('page_id');
             $table->index('order');
+            $table->index('name');
         });
     }
 
@@ -32,6 +34,6 @@ class CreatePagesBlocksPivotTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('pages_blocks_pivot');
+        Schema::dropIfExists(config('panneau.table_prefix').'pages_blocks_pivot');
     }
 }

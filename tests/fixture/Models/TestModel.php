@@ -27,7 +27,7 @@ class TestModel extends Model implements HasFieldsSchemaInterface
         'type' => 'string',
     ];
 
-    protected function getSchemaName()
+    public function getSchemaName()
     {
         return 'test';
     }

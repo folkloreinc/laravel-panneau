@@ -1,10 +1,9 @@
 <?php namespace Folklore\Panneau;
 
-use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Illuminate\Support\ServiceProvider;
 
-class PanneauServiceProvider extends BaseServiceProvider
+class PanneauServiceProvider extends ServiceProvider
 {
-
     /**
      * Indicates if loading of the provider is deferred.
      *
@@ -25,17 +24,23 @@ class PanneauServiceProvider extends BaseServiceProvider
     public function boot()
     {
         $this->bootPublishes();
+
+        $this->bootValidator();
     }
 
     public function bootPublishes()
     {
-        // Config file path
+        // Paths
         $configPath = __DIR__ . '/../../config/config.php';
+        $migrationsPath = __DIR__ . '/../../migrations/';
         $viewsPath = __DIR__ . '/../../resources/views/';
         $langPath = __DIR__ . '/../../resources/lang/';
 
-        // Merge files
+        // Config
         $this->mergeConfigFrom($configPath, 'panneau');
+
+        // Migrations
+        $this->loadMigrationsFrom($migrationsPath);
 
         // Publish
         $this->publishes([
@@ -49,6 +54,14 @@ class PanneauServiceProvider extends BaseServiceProvider
         $this->publishes([
             $langPath => base_path('resources/lang/vendor/folklore/laravel-panneau')
         ], 'lang');
+    }
+
+    public function bootValidator()
+    {
+        $this->app['validator']->extend(
+            'fields_schema',
+            \Folklore\Panneau\Contracts\SchemaValidator::class.'@validate'
+        );
     }
 
     /**
@@ -89,6 +102,12 @@ class PanneauServiceProvider extends BaseServiceProvider
         $this->app->bind(
             \Folklore\Panneau\Contracts\Schema::class,
             \Folklore\Panneau\Support\Schema::class
+        );
+
+        // Validator
+        $this->app->bind(
+            \Folklore\Panneau\Contracts\SchemaValidator::class,
+            \Folklore\Panneau\Validators\SchemaValidator::class
         );
     }
 

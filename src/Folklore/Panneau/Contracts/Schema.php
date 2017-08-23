@@ -4,17 +4,17 @@ namespace Folklore\Panneau\Contracts;
 
 interface Schema
 {
-    public function setFields($fields);
+    public function getType();
 
-    public function addField($name, $schema);
+    public function setType($type);
 
-    public function getFields();
+    public function getProperties();
 
-    public function getFieldsNames();
+    public function setProperties($properties);
 
-    public function getSchemaForField($name);
+    public function getAttributes();
 
-    public function setModel($model);
+    public function setAttributes($attributes);
 
     public function toArray();
 }

@@ -2,7 +2,6 @@
 
 namespace Folklore\Panneau\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
 use Folklore\Panneau\Support\Traits\HasFieldsSchema;
@@ -148,9 +147,9 @@ class Block extends Model implements
                 // Manually detach all then attach one by one instead of using sync(),
                 // which does not allow for duplicate IDs.
                 // @see https://laracasts.com/discuss/channels/eloquent/belongstomany-and-wanted-duplicates
-                $block->__blocks()->detach();
+                $block->blocks()->detach();
                 foreach ($blocks as $key => $item) {
-                    $block->__blocks()->attach($item, ['order' => $key]);
+                    $block->blocks()->attach($item, ['order' => $key]);
                 }
             }
         });
@@ -187,18 +186,10 @@ class Block extends Model implements
 
     public function blocks()
     {
-        return $this->__blocks()->with('blocks')->orderBy('order');
-    }
-    public function __blocks()
-    {
         return $this->belongsToMany(self::class, 'blocks_blocks_pivot', 'parent_block_id', 'block_id');
     }
 
     public function pages()
-    {
-        return $this->__pages()->with('pages');
-    }
-    public function __pages()
     {
         return $this->belongsToMany(Page::class, 'pages_blocks_pivot', 'block_id', 'page_id');
     }

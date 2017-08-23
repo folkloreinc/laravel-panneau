@@ -4,12 +4,13 @@ namespace Folklore\Panneau\Exceptions;
 
 use \RuntimeException;
 
-class JsonSchemaException extends RuntimeException
+class SchemaValidationException extends RuntimeException
 {
     protected $schemaErrors;
 
-    public function __construct($schemaErrors) {
-        parent::__construct('Error(s) while validating the JSON content: '.$this->getDetailedMessage($schemaErrors));
+    public function __construct($schemaErrors)
+    {
+        parent::__construct('Error(s) while validating the schema: '.$this->getDetailedMessage($schemaErrors));
         $this->schemaErrors = $schemaErrors;
     }
 
@@ -22,8 +23,9 @@ class JsonSchemaException extends RuntimeException
     {
         $msg = '';
         foreach ($schemaErrors as $key => $value) {
-            if (!empty($msg)) $msg .= ' | ';
-
+            if (!empty($msg)) {
+                $msg .= ' | ';
+            }
             if (is_string($value)) {
                 $msg .= '"'.$key.'":'.$value;
             } else {
