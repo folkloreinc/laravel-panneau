@@ -6,10 +6,10 @@ use Folklore\Panneau\Support\FieldsSchema;
 
 class Block extends FieldsSchema
 {
-    public function properties()
+    protected function fields()
     {
         return [
-
+            'data' => \Folklore\Panneau\Schemas\Fields\BlockData::class,
         ];
     }
 }

@@ -16,4 +16,10 @@ return [
         ],
     ],
 
+    'route_prefix' => 'panneau',
+
+    'route_namespace' => 'Folklore\Panneau\Http\Controllers',
+
+    'route_middleware' => ['api']
+
 ];

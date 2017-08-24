@@ -3,6 +3,7 @@
 namespace Folklore\Panneau\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 
 abstract class ResourceController extends Controller
 {
@@ -65,11 +66,20 @@ abstract class ResourceController extends Controller
         return $request->all();
     }
 
+    protected function getResourceView($view, $data = [])
+    {
+        return view('panneau::resource.'.$view, $data);
+    }
+
     protected function getItems(Request $request)
     {
         $query = $this->getResourceQueryBuilder();
 
-        if ($this->shouldPaginate()) {
+        if (method_exists($this, 'buildQueryFromRequest')) {
+            $this->buildQueryFromRequest($query, $request);
+        }
+
+        if ($this->shouldPaginate($request)) {
             $page = $this->getPageFromRequest($request);
             $resultsPerPage = $this->getResulsPerPage($request);
             return $query->paginate($resultsPerPage, ['*'], $this->pageInputName, $page);
@@ -94,10 +104,14 @@ abstract class ResourceController extends Controller
         $items = $this->getItems($request);
 
         if ($request->wantsJson()) {
-            return $this->shouldPaginate() && !$this->shouldReturnPagination() ? $items->getCollection() : $items;
+            return $this->shouldPaginate($request) && !$this->shouldReturnPagination($request) ?
+                $items->getCollection() : $items;
         }
 
-        return $this->getResourceView('index');
+        return $this->getResourceView('index', [
+            'items' => $items,
+            'shouldPaginate' => $this->shouldPaginate($request),
+        ]);
     }
 
     /**
@@ -199,6 +213,14 @@ abstract class ResourceController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $model = $this->getItem($id, $request);
+        $data = $model->toArray();
+        $model->delete();
+
+        if ($request->wantsJson()) {
+            return $data;
+        }
+
+        return redirect()->action(static::class.'@index');
     }
 }

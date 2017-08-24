@@ -26,11 +26,14 @@ class PanneauServiceProvider extends ServiceProvider
         $this->bootPublishes();
 
         $this->bootValidator();
+
+        $this->mapRoutes();
     }
 
     public function bootPublishes()
     {
         // Paths
+        $routesPath = __DIR__ . '/../../routes/';
         $configPath = __DIR__ . '/../../config/config.php';
         $migrationsPath = __DIR__ . '/../../migrations/';
         $viewsPath = __DIR__ . '/../../resources/views/';
@@ -42,17 +45,24 @@ class PanneauServiceProvider extends ServiceProvider
         // Migrations
         $this->loadMigrationsFrom($migrationsPath);
 
+        // Views
+        $this->loadViewsFrom($viewsPath, 'panneau');
+
         // Publish
         $this->publishes([
             $configPath => config_path('panneau.php')
         ], 'config');
 
         $this->publishes([
-            $viewsPath => base_path('resources/views/vendor/folklore/laravel-panneau')
+            $routesPath => base_path('routes')
+        ], 'routes');
+
+        $this->publishes([
+            $viewsPath => base_path('resources/views/vendor/panneau')
         ], 'views');
 
         $this->publishes([
-            $langPath => base_path('resources/lang/vendor/folklore/laravel-panneau')
+            $langPath => base_path('resources/lang/vendor/panneau')
         ], 'lang');
     }
 
@@ -62,6 +72,16 @@ class PanneauServiceProvider extends ServiceProvider
             'fields_schema',
             \Folklore\Panneau\Contracts\SchemaValidator::class.'@validate'
         );
+    }
+
+    public function mapRoutes()
+    {
+        if (! $this->app->routesAreCached()) {
+            $router = $this->getRouter();
+            $routesPath = is_file(base_path('routes/panneau.php')) ?
+                base_path('routes/panneau.php') : (__DIR__ . '/../../routes/panneau.php');
+            require $routesPath;
+        }
     }
 
     /**

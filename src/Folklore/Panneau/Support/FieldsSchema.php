@@ -9,20 +9,20 @@ class FieldsSchema extends Schema implements FieldsSchemaContract
 {
     protected $fields = [];
 
-    public function __construct($schema = [])
+    public function setSchema($schema = [])
     {
-        parent::__construct($schema);
+        parent::setSchema($schema);
         $this->fields = array_get($schema, 'fields', []);
     }
 
     public function getFields()
     {
-        $fields = isset($this->fields) ? $this->fields : [];
-        if (method_exists($this, 'fields')) {
-            $fields = array_merge($fields, $this->fields($fields));
-        }
+        return $this->getSchemaAttribute('fields');
+    }
 
-        return $fields;
+    public function setFields($value)
+    {
+        return $this->setSchemaAttribute('fields', $value);
     }
 
     public function getFieldsNames()
@@ -33,11 +33,6 @@ class FieldsSchema extends Schema implements FieldsSchemaContract
             $names[] = is_numeric($name) ? $schema : $name;
         }
         return $names;
-    }
-
-    public function setFields($fields)
-    {
-        $this->fields = $fields;
     }
 
     public function addField($name, $schema = null)

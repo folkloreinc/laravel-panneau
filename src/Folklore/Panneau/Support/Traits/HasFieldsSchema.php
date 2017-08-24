@@ -77,7 +77,10 @@ trait HasFieldsSchema
         $data = (object)$this->toArray();
         $fields = $schema->getFieldsNames();
         foreach ($fields as $field) {
-            if ($this->hasCast($field) && $this->getCastType($field) === 'object' && is_array($data->{$field})) {
+            if ($this->hasCast($field) &&
+                $this->getCastType($field) === 'object' &&
+                isset($data->{$field}) && is_array($data->{$field})
+            ) {
                 $data->{$field} = (object)$data->{$field};
             }
         }

@@ -13,8 +13,11 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     protected $name;
     protected $type;
     protected $properties;
-    protected $items;
     protected $required;
+    protected $default;
+    protected $items;
+    protected $enum;
+    protected $schemaAttributes = ['type', 'properties', 'required', 'default', 'items', 'enum'];
     protected $attributes;
 
     public function __construct($schema = [])
@@ -24,11 +27,10 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
 
     public function setSchema($schema)
     {
-        $this->type = array_get($schema, 'type', 'object');
-        $this->properties = array_get($schema, 'properties');
-        $this->items = array_get($schema, 'items');
-        $this->required = array_get($schema, 'required');
-        $this->attributes = array_except($schema, ['type', 'properties', 'items', 'required']);
+        foreach ($this->schemaAttributes as $attribute) {
+            $this->{$attribute} = array_get($schema, $attribute);
+        }
+        $this->attributes = array_except($schema, $this->schemaAttributes);
     }
 
     public function getName()
@@ -37,16 +39,6 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         $defaultType = $class !== self::class ? class_basename($class) : $this->type;
         $defaultName = isset($this->name) ? $this->name : $defaultType;
         return method_exists($this, 'name') ? $this->name() : $defaultName;
-    }
-
-    public function getType()
-    {
-        return method_exists($this, 'type') ? $this->type() : $this->type;
-    }
-
-    public function setType($type)
-    {
-        $this->type = $type;
     }
 
     public function getProperties()
@@ -72,9 +64,9 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         return $propertiesResolved;
     }
 
-    public function setProperties($properties)
+    public function setProperties($value)
     {
-        $this->properties = $properties;
+        return $this->setSchemaAttribute('properties', $value);
     }
 
     public function getItems()
@@ -99,39 +91,74 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         return $itemsResolved;
     }
 
-    public function setItems($items)
+    public function setItems($value)
     {
-        $this->items = $items;
+        return $this->setSchemaAttribute('items', $value);
+    }
+
+    public function getType()
+    {
+        return $this->getSchemaAttribute('type');
+    }
+
+    public function setType($value)
+    {
+        return $this->setSchemaAttribute('type', $value);
+    }
+
+    public function getDefault()
+    {
+        return $this->getSchemaAttribute('default');
+    }
+
+    public function setDefault($value)
+    {
+        return $this->setSchemaAttribute('default', $value);
     }
 
     public function getRequired()
     {
-        $required = isset($this->required) ? $this->required : [];
-        if (method_exists($this, 'required')) {
-            $required = array_merge($required, $this->required($required));
-        }
-
-        return $required;
+        return $this->getSchemaAttribute('required');
     }
 
-    public function setRequired($required)
+    public function setRequired($value)
     {
-        $this->required = $required;
+        return $this->setSchemaAttribute('required', $value);
+    }
+
+    public function getEnum()
+    {
+        return $this->getSchemaAttribute('enum');
+    }
+
+    public function setEnum($value)
+    {
+        return $this->setSchemaAttribute('enum', $value);
     }
 
     public function getAttributes()
     {
-        $attributes = isset($this->attributes) ? $this->attributes : [];
-        if (method_exists($this, 'attributes')) {
-            $attributes = array_merge($attributes, $this->attributes($attributes));
-        }
-
-        return $attributes;
+        return $this->getSchemaAttribute('attributes');
     }
 
-    public function setAttributes($attributes)
+    public function setAttributes($value)
     {
-        $this->attributes = $attributes;
+        return $this->setSchemaAttribute('attributes', $value);
+    }
+
+    protected function getSchemaAttribute($key)
+    {
+        $value = isset($this->{$key}) ? $this->{$key} : null;
+        if (method_exists($this, $key)) {
+            $value = $this->{$key}($value);
+        }
+
+        return $value;
+    }
+
+    protected function setSchemaAttribute($key, $value)
+    {
+        $this->{$key} = $value;
     }
 
     public function getStructure($path = null)
@@ -172,14 +199,22 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
 
     public function toArray()
     {
-        $name = $this->getName();
         $type = $this->getType();
-        
+        $name = $this->getName();
+
         $schema = [
             'name' => $name,
-            'type' => $type,
-            'required' => $this->getRequired(),
         ];
+
+        foreach ($this->schemaAttributes as $attribute) {
+            if (in_array($attribute, ['properties', 'items'])) {
+                $value = $this->{'get'.studly_case($attribute)}();
+                if (isset($value)) {
+                    $schema[$attribute] = $value;
+                }
+            }
+        }
+
         if ($type === 'object') {
             $properties = $this->getProperties();
             $schema['properties'] = [];
@@ -190,7 +225,9 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
             $items = $this->getItems();
             $schema['items'] = $items instanceof Arrayable ? $items->toArray() : $items;
         }
+
         $attributes = $this->getAttributes();
+
         return array_merge($schema, $attributes);
     }
 
@@ -304,5 +341,27 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     public function __unset($key)
     {
         unset($this->attributes[$key]);
+    }
+
+    /**
+     * Dynamically call schema attributes accessors
+     *
+     * @param  string  $key
+     * @return void
+     */
+    public function __call($method, $parameters)
+    {
+        $accessorMethods = [];
+        $mutatorsMethods = [];
+        foreach ($this->schemaAttributes as $attribute) {
+            $methodAttribute = studly_case($attribute);
+            if ($method === 'get'.$methodAttribute) {
+                return $this->getSchemaAttribute($attribute);
+                break;
+            } elseif ($method === 'set'.$methodAttribute) {
+                return $this->setSchemaAttribute($attribute, $parameters[0]);
+                break;
+            }
+        }
     }
 }
