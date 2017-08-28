@@ -46,6 +46,11 @@
       "Folklore\\Panneau": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-0": {
+      "Folklore\\Mediatheque": "../laravel-mediatheque/src/"
+    }
+  },
   "minimum-stability": "dev",
   "prefer-stable": true
 }

@@ -11,7 +11,7 @@ use Illuminate\Contracts\Support\Arrayable;
 class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, SchemaContract
 {
     protected $name;
-    protected $type;
+    protected $type = 'object';
     protected $properties;
     protected $required;
     protected $default;
@@ -28,7 +28,9 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     public function setSchema($schema)
     {
         foreach ($this->schemaAttributes as $attribute) {
-            $this->{$attribute} = array_get($schema, $attribute);
+            if (isset($schema[$attribute])) {
+                $this->{$attribute} = $schema[$attribute];
+            }
         }
         $this->attributes = array_except($schema, $this->schemaAttributes);
     }
@@ -43,6 +45,9 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
 
     public function getProperties()
     {
+        if ($this->getType() !== 'object') {
+            return null;
+        }
         $properties = isset($this->properties) ? $this->properties : [];
         if (method_exists($this, 'properties')) {
             $properties = array_merge($properties, $this->properties($properties));
@@ -52,7 +57,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         foreach ($properties as $name => $value) {
             if (is_string($value)) {
                 $propertiesResolved[$name] = app($value);
-            } elseif (is_array($value) && in_array(array_get($value, 'type'), ['array', 'object'])) {
+            } elseif (is_array($value)) {
                 $property = app(SchemaContract::class);
                 $property->setSchema($value);
                 $propertiesResolved[$name] = $property;
@@ -71,6 +76,10 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
 
     public function getItems()
     {
+        if ($this->getType() !== 'array') {
+            return null;
+        }
+
         if (method_exists($this, 'items')) {
             $items = $this->items();
         } else {
@@ -79,7 +88,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
 
         if (is_string($items)) {
             return app($items);
-        } elseif (isset($items['type'])) {
+        } elseif (is_array($items) && isset($items['type'])) {
             return $items;
         }
 
@@ -202,26 +211,31 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         $type = $this->getType();
         $name = $this->getName();
 
-        $schema = [
-            'name' => $name,
-        ];
+        $schema = [];
+        if ($name !== $type) {
+            $schema['name'] = $name;
+        }
 
         foreach ($this->schemaAttributes as $attribute) {
-            if (in_array($attribute, ['properties', 'items'])) {
+            if (method_exists($this, 'get'.studly_case($attribute))) {
                 $value = $this->{'get'.studly_case($attribute)}();
-                if (isset($value)) {
-                    $schema[$attribute] = $value;
-                }
+            } elseif (isset($this->{$attribute})) {
+                $value = $this->{$attribute};
+            }
+            if (isset($value)) {
+                $schema[$attribute] = $value;
             }
         }
 
-        if ($type === 'object') {
+        if (isset($schema['properties'])) {
             $properties = $this->getProperties();
             $schema['properties'] = [];
             foreach ($properties as $name => $value) {
                 $schema['properties'][$name] = $value instanceof Arrayable ? $value->toArray() : $value;
             }
-        } elseif ($type === 'array') {
+        }
+
+        if (isset($schema['items'])) {
             $items = $this->getItems();
             $schema['items'] = $items instanceof Arrayable ? $items->toArray() : $items;
         }
@@ -229,6 +243,11 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         $attributes = $this->getAttributes();
 
         return array_merge($schema, $attributes);
+    }
+
+    public function toObject()
+    {
+        return json_decode(json_encode($this->toArray()));
     }
 
     /**

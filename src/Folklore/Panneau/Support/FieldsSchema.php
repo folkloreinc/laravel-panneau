@@ -2,22 +2,46 @@
 
 namespace Folklore\Panneau\Support;
 
+use Folklore\Panneau\Contracts\Schema as SchemaContract;
 use Folklore\Panneau\Contracts\FieldsSchema as FieldsSchemaContract;
 use Illuminate\Contracts\Support\Arrayable;
 
 class FieldsSchema extends Schema implements FieldsSchemaContract
 {
     protected $fields = [];
+    protected $type = 'object';
 
     public function setSchema($schema = [])
     {
         parent::setSchema($schema);
         $this->fields = array_get($schema, 'fields', []);
+        if (isset($this->attributes['fields'])) {
+            unset($this->attributes['fields']);
+        }
     }
 
     public function getFields()
     {
-        return $this->getSchemaAttribute('fields');
+        $fields = $this->getSchemaAttribute('fields');
+
+        $fieldsResolved = [];
+        foreach ($fields as $name => $value) {
+            if (is_numeric($name)) {
+                $fieldsResolved[] = $value;
+                continue;
+            }
+            if (is_string($value)) {
+                $fieldsResolved[$name] = app($value);
+            } elseif (is_array($value)) {
+                $field = app(SchemaContract::class);
+                $field->setSchema($value);
+                $fieldsResolved[$name] = $field;
+            } else {
+                $fieldsResolved[$name] = $value;
+            }
+        }
+
+        return $fieldsResolved;
     }
 
     public function setFields($value)

@@ -33,6 +33,8 @@ class SchemaTest extends TestCase
         ];
         $this->schema->setProperties($data);
         $returnedData = $this->schema->getProperties();
-        $this->assertEquals($data, $returnedData);
+        $this->assertArrayHasKey('data', $returnedData);
+        $this->assertInstanceOf(Schema::class, $returnedData['data']);
+        $this->assertEquals($data['data']['type'], $returnedData['data']['type']);
     }
 }

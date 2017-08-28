@@ -18,9 +18,21 @@ trait HasFieldsSchema
 
     protected $originalFieldValue = [];
 
+    protected static $defaultSchema = 'default';
+
     public static function bootHasFieldsSchema()
     {
         static::observe(HasFieldsSchemaObserver::class);
+    }
+
+    public static function setDefaultSchema($schema)
+    {
+        self::$defaultSchema = $schema;
+    }
+
+    public static function getDefaultSchema()
+    {
+        return self::$defaultSchema;
     }
 
     public static function schemas()
@@ -28,8 +40,14 @@ trait HasFieldsSchema
         return app('panneau')->schemas(static::class);
     }
 
-    public static function schema($name = 'default')
+    public static function schema($name = null)
     {
+        if (is_null($name)) {
+            $name = self::getDefaultSchema();
+            if (!is_string($name)) {
+                return $name;
+            }
+        }
         return app('panneau')->schema($name, static::class);
     }
 
@@ -47,7 +65,7 @@ trait HasFieldsSchema
     {
         $columnName = method_exists($this, 'getSchemaNameColumn') ?
             $this->getSchemaNameColumn() : $this->schemaNameColumn;
-        return isset($this->{$columnName}) ? $this->{$columnName} : 'default';
+        return isset($this->{$columnName}) ? $this->{$columnName} : self::getDefaultSchema();
     }
 
     public function getSchema()
@@ -57,6 +75,9 @@ trait HasFieldsSchema
         }
 
         $name = $this->getSchemaName();
+        if (!is_string($name)) {
+            return $name;
+        }
         return static::schema($name);
     }
 
@@ -123,13 +144,27 @@ trait HasFieldsSchema
 
     protected function setFieldValueDot($data, $path, $value)
     {
-        $dataIsObject = is_object($data);
-        $newData = $dataIsObject ? json_decode(json_encode($data), true) : $data;
-        array_set($newData, $path, $value);
-        if ($dataIsObject) {
-            $newData = json_decode(json_encode($newData));
+        $segments = explode('.', $path);
+        $segment = array_shift($segments);
+        if (sizeof($segments)) {
+            if (is_object($data) && isset($data->{$segment})) {
+                $nextData = $data->{$segment};
+            } elseif (is_array($data) && isset($data[$segment])) {
+                $nextData = $data[$segment];
+            }
+            if (!isset($nextData)) {
+                $nextData = is_numeric($segments[0]) ? [] : new StdClass();
+            }
+            $value = $this->setFieldValueDot($nextData, implode('.', $segments), $value);
         }
-        return $newData;
+
+        if (is_object($data)) {
+            $data->{$segment} = $value;
+        } elseif (is_array($data)) {
+            $data[$segment] = $value;
+        }
+
+        return $data;
     }
 
     protected function getFieldOriginalValue($key = null)
@@ -183,6 +218,7 @@ trait HasFieldsSchema
     {
         $schema = $this->getSchema();
         $structure = $schema->getStructure();
+
         $fields = new FieldsCollection();
         foreach ($structure as $path => $field) {
             $pathParts = explode('.', $path);
@@ -260,14 +296,15 @@ trait HasFieldsSchema
                 $attribute->value = $value;
                 $this->fieldsCollection($key, $value)
                     ->eachPath(function ($path, $key, $field) use ($attribute) {
+                        $fullPath = $attribute->key.'.'.$path;
                         $value = $attribute->value;
                         $schema = $field->schema;
                         $fieldValue = $this->getFieldValue($path, $value);
                         $getMethod = 'get'.studly_case($field->type).'Field';
                         if (method_exists($this, $getMethod)) {
-                            $returnValue = $this->{$getMethod}($path, $fieldValue, $value, $field);
+                            $returnValue = $this->{$getMethod}($fullPath, $fieldValue, $value, $field);
                         } elseif (is_object($schema) && method_exists($schema, 'getField')) {
-                            $returnValue = $schema->getField($path, $fieldValue, $value, $field, $this);
+                            $returnValue = $schema->getField($fullPath, $fieldValue, $value, $field, $this);
                         }
                         if (isset($returnValue)) {
                             $attribute->value = $this->setFieldValueDot($attribute->value, $path, $returnValue);
@@ -295,8 +332,9 @@ trait HasFieldsSchema
      */
     public function setRawAttributes(array $attributes, $sync = false)
     {
-        $preparedAttributes = $this->prepareFieldsInAttributes($attributes);
-        return parent::setRawAttributes($preparedAttributes, $sync);
+        $return = parent::setRawAttributes($attributes, $sync);
+        $this->attributes = $this->prepareFieldsInAttributes($this->attributes);
+        return $return;
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 
+use Folklore\Panneau\Support\Schema;
 use Folklore\Panneau\Support\FieldsSchema;
 
 /**
@@ -65,12 +66,13 @@ class FieldsSchemaTest extends TestCase
         $returnedFields = $this->schema->getFields();
         $this->assertEquals(['data'], $returnedFields);
 
-        $this->schema->addField('metadata', [
-            'test' => true
-        ]);
+        $field = [
+            'test' => 'test'
+        ];
+        $this->schema->addField('metadata', $field);
         $returnedFields = $this->schema->getFields();
-        $this->assertEquals(['data', 'metadata' => [
-            'test' => true
-        ]], $returnedFields);
+        $this->assertArrayHasKey('metadata', $returnedFields);
+        $this->assertInstanceOf(Schema::class, $returnedFields['metadata']);
+        $this->assertEquals($field['test'], $returnedFields['metadata']['test']);
     }
 }

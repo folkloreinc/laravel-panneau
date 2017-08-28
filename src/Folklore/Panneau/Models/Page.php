@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
+use Folklore\Mediatheque\Support\Traits\HasMedias;
 use Folklore\Panneau\Support\Traits\HasFieldsSchema;
+use Folklore\Panneau\Support\Traits\HasMediasFields;
 use Folklore\Panneau\Contracts\Page as PageContract;
 use Folklore\Panneau\Contracts\Block as BlockContract;
 
@@ -17,6 +19,8 @@ class Page extends Model implements
     use SoftDeletes;
     use SortableTrait;
     use HasFieldsSchema;
+    use HasMediasFields;
+    use HasMedias;
 
     protected $table = 'pages';
 

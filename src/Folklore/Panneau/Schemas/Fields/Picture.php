@@ -12,12 +12,6 @@ class Picture extends Schema
             'id' => [
                 'type' => 'integer'
             ],
-            'tags' => [
-                'type' => 'array',
-                'items' => [
-                    'type' => 'string'
-                ]
-            ]
         ];
     }
 }
