@@ -6,9 +6,10 @@ use Folklore\Panneau\Observers\HasFieldsSchemaObserver;
 use Folklore\Panneau\Validators\SchemaValidator;
 use Folklore\Panneau\Exceptions\SchemaValidationException;
 use Folklore\Panneau\Support\FieldsCollection;
+use Folklore\Panneau\Support\FieldValue;
+use Folklore\Panneau\Support\Utils;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Fluent;
-use Folklore\Panneau\Support\Utils;
 use StdClass;
 
 trait HasFieldsSchema
@@ -132,7 +133,7 @@ trait HasFieldsSchema
 
     protected function getFieldPathValue($path, $data = null)
     {
-        $data = !is_null($data) ? $data : $this;
+        $data = !is_null($data) ? $data : $this->fieldsAttributes;
         return Utils::getPath($data, $path);
     }
 
@@ -145,7 +146,8 @@ trait HasFieldsSchema
         }
 
         $field = array_shift($keyParts);
-        $this->{$field} = Utils::setPath($this->{$field}, implode('.', $keyParts), $value);
+        $this->fieldsAttributes[$field]->set(implode('.', $keyParts), $value);
+        //$this->{$field} = Utils::setPath($this->{$field}, implode('.', $keyParts), $value);
         return $this;
     }
 
@@ -231,6 +233,7 @@ trait HasFieldsSchema
                 $data->{$field} = $this->{$field};
             }
         }
+        $data = json_decode(json_encode($data));
 
         $validator = app(\Folklore\Panneau\Contracts\SchemaValidator::class);
         if (!$validator->validateSchema($data, $schema)) {
@@ -255,6 +258,14 @@ trait HasFieldsSchema
                     $this->setFieldPathValue($path, $returnValue);
                 }
             });
+
+        foreach ($this->fieldsAttributes as $key => $value) {
+            if ($this->isJsonCastable($key)) {
+                $this->attributes[$key] = $value->toJSON();
+            } else {
+                $this->attributes[$key] = $value->getValue();
+            }
+        }
     }
 
     public function saveFields()
@@ -273,6 +284,7 @@ trait HasFieldsSchema
             });
 
         $this->clearFieldOriginalValue();
+        $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
     }
 
     /**
@@ -293,32 +305,37 @@ trait HasFieldsSchema
                 $value = $this->castAttribute($key, $value);
             }
 
-            $attribute = new StdClass();
-            $attribute->key = $key;
-            $attribute->value = $value;
+            $fieldValue = new FieldValue($value);
+
+            // $attribute = new StdClass();
+            // $attribute->key = $key;
+            // $attribute->value = $value;
             $this->fieldsCollection($key, $value)
-                ->eachPath(function ($path, $key, $field) use ($attribute) {
-                    $fullPath = $attribute->key.'.'.$path;
-                    $value = $attribute->value;
+                // ->eachPath(function ($path, $key, $field) use ($attribute) {
+                ->eachPath(function ($path, $key, $field) use ($key, $fieldValue) {
+                    // $fullPath = $attribute->key.'.'.$path;
+                    // $value = $attribute->value;
+                    $fullPath = $key.'.'.$path;
                     $schema = $field->schema;
-                    $fieldValue = $this->getFieldPathValue($path, $value);
+                    //$fieldValue = $this->getFieldPathValue($path, $value);
+                    $value = $fieldValue->get($path);
                     $getMethod = 'get'.studly_case($field->type).'Field';
                     if (method_exists($this, $getMethod)) {
-                        $returnValue = $this->{$getMethod}($fullPath, $fieldValue, $value, $field);
+                        $returnValue = $this->{$getMethod}($fullPath, $value, $fieldValue, $field);
                     } elseif (is_object($schema) && method_exists($schema, 'getField')) {
-                        $returnValue = $schema->getField($fullPath, $fieldValue, $value, $field, $this);
+                        $returnValue = $schema->getField($fullPath, $value, $fieldValue, $field, $this);
                     }
                     if (isset($returnValue)) {
-                        $attribute->value = Utils::setPath($attribute->value, $path, $returnValue);
+                        $fieldValue->set($path, $returnValue);
+                        //$attribute->value = Utils::setPath($attribute->value, $path, $returnValue);
                     }
                 });
-            $value = $attribute->value;
 
             // if ($this->isJsonCastable($key)) {
             //     $value = $this->castAttributeAsJson($key, $value);
             // }
 
-            $newAttributes[$key] = $value;
+            $newAttributes[$key] = $fieldValue;
         }
 
         return $newAttributes;
@@ -398,7 +415,7 @@ trait HasFieldsSchema
     public function setAttribute($key, $value)
     {
         if ($this->attributeHasSchema($key)) {
-            array_set($this->fieldsAttributes, $key, is_object($value) ? clone $value : $value);
+            array_set($this->fieldsAttributes, $key, new FieldValue($value));
         }
         return parent::setAttribute($key, $value);
     }

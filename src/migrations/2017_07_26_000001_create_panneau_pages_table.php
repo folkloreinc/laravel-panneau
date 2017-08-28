@@ -16,20 +16,19 @@ class CreatePanneauPagesTable extends Migration
         Schema::create(config('panneau.table_prefix').'pages', function (Blueprint $table) {
             // Standard columns
             $table->increments('id');
+            $table->string('type')->nullable()/*->storedAs('data->>"$.type"')*/;
+            $table->string('handle')->nullable()/*->storedAs('data->>"$.slug"')*/;
+            $table->integer('parent_id')->nullable()/*->storedAs('data->"$.parent"')*/;
+            $table->integer('order')->nullable()/*->storedAs('data->"$.order"')*/;
             $table->json('data')->nullable();
 
-            // Generated columns
-            $table->string('type')->nullable()->storedAs('data->>"$.type"');
-            $table->string('slug')->nullable()->storedAs('data->>"$.slug"');
-            $table->integer('parent_id')->nullable()->storedAs('data->"$.parent"');
-            $table->integer('order')->nullable()->storedAs('data->"$.order"');
-
             // Laravel features
-            $table->timestamps();
             $table->softDeletes();
+            $table->timestamps();
 
             // Indexes
-            $table->unique('slug');
+            $table->index('handle');
+            $table->index('type');
         });
     }
 

@@ -1,15 +1,23 @@
 <?php
 
-namespace Folklore\Panneau\Schemas\Fields;
+namespace Folklore\Panneau\Schemas;
 
 use Folklore\Panneau\Support\Schema;
+use Folklore\Panneau\Schemas\Fields\TextLocale;
 
 class PageData extends Schema
 {
     protected function properties()
     {
         return [
-            'parent' => [
+            'slug' => new TextLocale([
+                'label' => 'Slug',
+            ]),
+            'title' => new TextLocale([
+                'label' => 'Title',
+            ]),
+            
+            /*'parent' => [
                 'type' => 'integer',
                 'title' => 'Parent',
                 'required' => false,
@@ -18,15 +26,6 @@ class PageData extends Schema
                 'type' => 'string',
                 'title' => 'Layout',
                 'enum' => ['home', 'hub', 'text', 'info', 'gallery', 'large', 'media'],
-            ],
-            'title' => [
-                'type' => 'string',
-                'title' => 'Title',
-                'required' => true,
-            ],
-            'slug' => [
-                'type' => 'string',
-                'title' => 'Slug',
             ],
             'subtitle' => [
                 'type' => 'string',
@@ -58,7 +57,7 @@ class PageData extends Schema
                 'items' => [
                     'type' => 'string'
                 ],
-            ],
+            ],*/
         ];
     }
 }

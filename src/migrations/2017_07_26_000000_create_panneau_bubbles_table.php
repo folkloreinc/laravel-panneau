@@ -16,20 +16,18 @@ class CreatePanneauBubblesTable extends Migration
         Schema::create(config('panneau.table_prefix').'bubbles', function (Blueprint $table) {
             // Standard columns
             $table->increments('id');
+            $table->string('type')->nullable();
+            $table->string('handle')->nullable();
+            $table->integer('parent_id')->nullable();
+            $table->integer('order')->nullable();
             $table->json('data')->nullable();
 
-            // Generated columns
-            $table->string('type')->nullable()->storedAs('data->>"$.type"');
-            $table->string('slug')->nullable()->storedAs('data->>"$.slug"');
-            $table->integer('parent_id')->nullable()->storedAs('data->"$.parent"');
-            $table->integer('order')->nullable()->storedAs('data->"$.order"');
-
             // Laravel features
-            $table->timestamps();
             $table->softDeletes();
+            $table->timestamps();
 
             // Indexes
-            $table->unique('slug');
+            $table->index('handle');
         });
     }
 

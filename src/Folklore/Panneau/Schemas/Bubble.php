@@ -9,7 +9,7 @@ class Bubble extends FieldsSchema
     protected function fields()
     {
         return [
-            'data' => \Folklore\Panneau\Schemas\Fields\BubbleData::class,
+            'data' => \Folklore\Panneau\Schemas\BubbleData::class,
         ];
     }
 }

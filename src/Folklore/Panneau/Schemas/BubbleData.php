@@ -1,6 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Schemas\Fields;
+namespace Folklore\Panneau\Schemas;
 
 use Folklore\Panneau\Support\Schema;
 

@@ -44,11 +44,15 @@ class Block extends Model implements
 
     public function blocks()
     {
-        return $this->belongsToMany(BlockContract::class, 'blocks_blocks_pivot', 'parent_block_id', 'block_id');
+        $class = get_class(app(BlockContract::class));
+        $table = config('panneau.table_prefix').'blocks_blocks_pivot';
+        return $this->belongsToMany($class, $table, 'parent_block_id', 'block_id');
     }
 
     public function pages()
     {
-        return $this->belongsToMany(PageContract::class, 'pages_blocks_pivot', 'block_id', 'page_id');
+        $class = get_class(app(PageContract::class));
+        $table = config('panneau.table_prefix').'pages_blocks_pivot';
+        return $this->belongsToMany($class, $table, 'block_id', 'page_id');
     }
 }

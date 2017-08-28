@@ -52,7 +52,8 @@ class Page extends Model implements
      */
     public function children()
     {
-        return $this->hasMany(PageContract::class, 'parent_id');
+        $class = get_class(app(PageContract::class));
+        return $this->hasMany($class, 'parent_id');
     }
 
     /**
@@ -60,11 +61,14 @@ class Page extends Model implements
      */
     public function parent()
     {
-        return $this->belongsTo(PageContract::class);
+        $class = get_class(app(PageContract::class));
+        return $this->belongsTo($class);
     }
 
     public function blocks()
     {
-        return $this->belongsToMany(BlockContract::class, 'pages_blocks_pivot', 'page_id', 'block_id');
+        $class = get_class(app(BlockContract::class));
+        $table = config('panneau.table_prefix').'pages_blocks_pivot';
+        return $this->belongsToMany($class, $table, 'page_id', 'block_id');
     }
 }

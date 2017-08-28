@@ -9,7 +9,7 @@ class Page extends FieldsSchema
     protected function fields()
     {
         return [
-            'data' => \Folklore\Panneau\Schemas\Fields\PageData::class,
+            'data' => \Folklore\Panneau\Schemas\PageData::class,
         ];
     }
 }

@@ -16,14 +16,12 @@ class CreatePanneauBlocksTable extends Migration
         Schema::create(config('panneau.table_prefix').'blocks', function (Blueprint $table) {
             // Standard columns
             $table->increments('id');
+            $table->string('type')->nullable();
             $table->json('data')->nullable();
 
-            // Generated columns
-            $table->string('type')->nullable()->storedAs('data->>"$.type"');
-
             // Laravel features
-            $table->timestamps();
             $table->softDeletes();
+            $table->timestamps();
 
             // Indexes
             $table->index('type');

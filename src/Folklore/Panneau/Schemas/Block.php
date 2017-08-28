@@ -9,7 +9,7 @@ class Block extends FieldsSchema
     protected function fields()
     {
         return [
-            'data' => \Folklore\Panneau\Schemas\Fields\BlockData::class,
+            'data' => \Folklore\Panneau\Schemas\BlockData::class,
         ];
     }
 }
