@@ -43,6 +43,13 @@ class BubbleTest extends TestCase
         ]);
     }
 
+    public function tearDown()
+    {
+        parent::tearDown();
+
+        Bubble::setDefaultSchema(null);
+    }
+
     /**
      * Test with invalid data
      *
@@ -89,13 +96,14 @@ class BubbleTest extends TestCase
         $picture = new Picture();
         $picture->setOriginalFile(__DIR__.'/../fixture/picture.jpg');
         $picture->save();
+        $pictureData = $picture->toArray();
 
         $data = json_decode(json_encode([
             'title' => [
                 'en' => 'Test'
             ],
             'pictures' => [
-                $picture->toArray()
+                $pictureData
             ]
         ]));
 
@@ -107,6 +115,9 @@ class BubbleTest extends TestCase
 
         $model = Bubble::with('pictures')->find($model->id);
         $this->assertEquals($data->title, $model->data->title);
-        $this->assertEquals($data->pictures[0]->id, $model->data->pictures[0]->id);
+        $this->assertEquals(
+            array_only($pictureData, ['id']),
+            array_only($model->data->pictures[0]->toArray(), ['id'])
+        );
     }
 }

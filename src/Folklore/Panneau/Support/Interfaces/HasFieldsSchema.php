@@ -22,7 +22,7 @@ interface HasFieldsSchema
 
     public function saveFields();
 
-    public function prepareFieldsInAttributes(array $attributes);
+    public function getFieldsFromAttributes(array $attributes);
 
     public function attributeHasSchema($key);
 }

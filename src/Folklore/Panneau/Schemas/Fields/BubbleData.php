@@ -12,9 +12,4 @@ class BubbleData extends Schema
             'title' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
         ];
     }
-
-    protected function required()
-    {
-        return ['title'];
-    }
 }

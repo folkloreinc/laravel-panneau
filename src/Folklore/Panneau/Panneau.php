@@ -76,6 +76,14 @@ class Panneau
         return $this->getSchemaAsObject($schema);
     }
 
+    public function hasSchema($name, $namespace = null)
+    {
+        if (is_null($namespace)) {
+            $namespace = get_class($this->container->make(BubbleContract::class));
+        }
+        return isset($this->schemas[$namespace][$name]);
+    }
+
     protected function getSchemaAsObject($schema)
     {
         if (is_string($schema)) {
