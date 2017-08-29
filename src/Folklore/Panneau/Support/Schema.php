@@ -12,13 +12,14 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
 {
     protected $name;
     protected $type = 'object';
+    protected $nullable = true;
     protected $properties;
     protected $required;
     protected $default;
     protected $items;
     protected $enum;
     protected $attributes;
-    protected $schemaAttributes = ['type', 'properties', 'required', 'default', 'items', 'enum', 'appends'];
+    protected $schemaAttributes = ['nullable', 'type', 'properties', 'required', 'default', 'items', 'enum', 'appends'];
 
     public function __construct($schema = [])
     {
@@ -246,10 +247,13 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
 
     public function toArray()
     {
+        $nullable = $this->getNullable();
         $type = $this->getType();
         $name = $this->getName();
 
-        $schema = [];
+        $schema = [
+            'type' => $nullable ? ['null', $type] : $type,
+        ];
         if ($name !== $type) {
             $schema['name'] = $name;
         }
@@ -260,7 +264,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
             } elseif (isset($this->{$attribute})) {
                 $value = $this->{$attribute};
             }
-            if (isset($value)) {
+            if (isset($value) && !isset($schema[$attribute])) {
                 $schema[$attribute] = $value;
             }
         }

@@ -48,6 +48,10 @@ class Block extends Model implements
         'id'
     ];
 
+    protected $fillable = [
+        'data',
+    ];
+
     public function blocks()
     {
         $class = get_class(app(BlockContract::class));

@@ -91,12 +91,13 @@ abstract class ResourceController extends Controller
     protected function getItem($id, Request $request)
     {
         $query = $this->getResourceQueryBuilder();
-        return $query->findOrFail($id);
+        return $query->findOrFail($id)->first();
     }
 
     /**
      * Display a listing of the resource.
      *
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request)
@@ -117,6 +118,7 @@ abstract class ResourceController extends Controller
     /**
      * Show the form for creating a new resource.
      *
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function create(Request $request)
@@ -148,6 +150,7 @@ abstract class ResourceController extends Controller
     /**
      * Display the specified resource.
      *
+     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
@@ -167,10 +170,11 @@ abstract class ResourceController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
+     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
         $item = $this->getItem($id, $request);
 
@@ -199,7 +203,7 @@ abstract class ResourceController extends Controller
         $model->save();
 
         if ($request->wantsJson()) {
-            return $model;
+            return $this->getItem($id, $request);
         }
 
         return redirect()->action(static::class.'@show', [$model->id]);
@@ -208,10 +212,11 @@ abstract class ResourceController extends Controller
     /**
      * Remove the specified resource from storage.
      *
+     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $model = $this->getItem($id, $request);
         $data = $model->toArray();

@@ -46,10 +46,12 @@ class Page extends Model implements
         'id'
     ];
 
+    protected $fillable = [
+        'data',
+    ];
+
     protected $casts = [
         'data' => 'object',
-        'slug' => 'string',
-        'parent_id' => 'integer',
         'order' => 'integer'
     ];
 

@@ -37,6 +37,10 @@ class Bubble extends Model implements
         'id'
     ];
 
+    protected $fillable = [
+        'data',
+    ];
+
     protected $casts = [
         'data' => 'object',
         'type' => 'string',

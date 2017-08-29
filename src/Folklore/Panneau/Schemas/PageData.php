@@ -5,6 +5,7 @@ namespace Folklore\Panneau\Schemas;
 use Folklore\Panneau\Support\Schema;
 use Folklore\Panneau\Schemas\Fields\TextLocale;
 use Folklore\Panneau\Schemas\Fields\Page;
+use Folklore\Panneau\Schemas\Fields\Blocks;
 
 class PageData extends Schema
 {
@@ -20,6 +21,10 @@ class PageData extends Schema
 
             'parent' => new Page([
                 'label' => 'Parent',
+            ]),
+
+            'blocks' => new Blocks([
+                'label' => 'Blocks',
             ]),
 
             /*'parent' => [
@@ -72,6 +77,7 @@ class PageData extends Schema
         return [
             'slug' => 'slug.'.$locale,
             'title' => 'title.'.$locale,
+            'parent' => 'parent',
         ];
     }
 }

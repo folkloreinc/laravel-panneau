@@ -92,6 +92,13 @@ trait HasFieldsSchema
     {
         $this->fieldsAttributes = new FieldValue();
         parent::__construct($attributes);
+        $this->appends[] = 'fieldsSchema';
+    }
+
+    protected function getFieldsSchemaAttribute()
+    {
+        $schema = $this->getSchema();
+        return !is_null($schema) ? $schema->toArray() : null;
     }
 
     public function getSchemaName()
@@ -108,15 +115,7 @@ trait HasFieldsSchema
         }
 
         $name = $this->getSchemaName();
-        $defaultSchemaName = static::getDefaultSchemaName();
-        $defaultSchema = static::getDefaultSchema();
-        if (is_null($name) && !is_null($defaultSchema)) {
-            return $defaultSchema;
-        } elseif (is_null($name) && static::hasSchema($defaultSchemaName)) {
-            $name = $defaultSchemaName;
-        }
-
-        return static::hasSchema($name) ? static::schema($name) : null;
+        return static::schema($name);
     }
 
     public function setSchema($schema)
@@ -175,20 +174,10 @@ trait HasFieldsSchema
     public function validateFieldsAgainstSchema()
     {
         $schema = $this->getSchema();
-        $fields = $schema->getFieldsNames();
-        $data = new StdClass();
-        foreach ($fields as $field) {
-            if ($this->hasCast($field) &&
-                $this->getCastType($field) === 'object' &&
-                isset($this->{$field}) && is_array($this->{$field})
-            ) {
-                $data->{$field} = (object)$this->{$field};
-            } elseif (isset($this->{$field})) {
-                $data->{$field} = $this->{$field};
-            }
+        if (is_null($schema)) {
+            return;
         }
-        $data = json_decode(json_encode($data));
-
+        $data = $this->fieldsAttributes->toObject();
         $validator = app(\Folklore\Panneau\Contracts\SchemaValidator::class);
         if (!$validator->validateSchema($data, $schema)) {
             throw new SchemaValidationException($validator->getMessages());

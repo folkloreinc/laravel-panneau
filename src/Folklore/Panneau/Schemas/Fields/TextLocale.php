@@ -22,4 +22,11 @@ class TextLocale extends Schema
         }
         return $properties;
     }
+
+    protected function attributes()
+    {
+        return [
+            'locales' => $this->getLocales(),
+        ];
+    }
 }
