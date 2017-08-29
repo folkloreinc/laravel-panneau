@@ -18,9 +18,11 @@ trait HasFieldsSchema
 
     protected $schemaNameColumn = 'type';
 
-    protected $originalFieldValue = [];
+    protected $fieldsAttributes;
 
-    protected $fieldsAttributes = [];
+    protected $fieldsAttributesForSaving;
+
+    protected $fieldsAppends = [];
 
     protected static $defaultSchema;
 
@@ -86,6 +88,12 @@ trait HasFieldsSchema
         return app('panneau')->addSchemas($schemas, static::class);
     }
 
+    public function __construct(array $attributes = [])
+    {
+        $this->fieldsAttributes = new FieldValue();
+        parent::__construct($attributes);
+    }
+
     public function getSchemaName()
     {
         $columnName = method_exists($this, 'getSchemaNameColumn') ?
@@ -119,60 +127,6 @@ trait HasFieldsSchema
     public function setSchemaNameColumn($column)
     {
         $this->schemaNameColumn = $column;
-    }
-
-    public function attributeHasSchema($key)
-    {
-        $schema = $this->getSchema();
-        if (is_null($schema)) {
-            return false;
-        }
-        $fields = $schema->getFieldsNames();
-        return in_array($key, $fields);
-    }
-
-    protected function getFieldPathValue($path, $data = null)
-    {
-        $data = !is_null($data) ? $data : $this->fieldsAttributes;
-        return Utils::getPath($data, $path);
-    }
-
-    protected function setFieldPathValue($key, $value)
-    {
-        $keyParts = explode('.', $key);
-        if (sizeof($keyParts) === 1) {
-            $this->{$field} = $value;
-            return;
-        }
-
-        $field = array_shift($keyParts);
-        $this->fieldsAttributes[$field]->set(implode('.', $keyParts), $value);
-        //$this->{$field} = Utils::setPath($this->{$field}, implode('.', $keyParts), $value);
-        return $this;
-    }
-
-    protected function getFieldOriginalValue($key = null)
-    {
-        if (is_null($key)) {
-            return $this->originalFieldValue;
-        }
-        return array_get($this->originalFieldValue, $key);
-    }
-
-    protected function setFieldOriginalValue($key, $value = null)
-    {
-        if (is_null($value)) {
-            $this->originalFieldValue = $key;
-        } else {
-            $this->originalFieldValue[$key] = $value;
-        }
-        return $this;
-    }
-
-    protected function clearFieldOriginalValue()
-    {
-        $this->originalFieldValue = [];
-        return $this;
     }
 
     protected function getFieldRealPaths($path, $data = null)
@@ -243,10 +197,12 @@ trait HasFieldsSchema
 
     public function prepareFieldsForSaving()
     {
+        $this->fieldsAttributesForSaving = $this->fieldsAttributes->clone();
+
         $this->fieldsCollection()
             ->eachPath(function ($path, $key, $field) {
                 $schema = $field->schema;
-                $value = $this->getFieldPathValue($path);
+                $value = $this->fieldsAttributes->get($path);
                 $prepareMethod = 'prepare'.studly_case($field->type).'Field';
                 if (method_exists($this, $prepareMethod)) {
                     $returnValue = $this->{$prepareMethod}($path, $value, $field);
@@ -254,16 +210,16 @@ trait HasFieldsSchema
                     $returnValue = $schema->prepareField($path, $value, $field, $this);
                 }
                 if (isset($returnValue)) {
-                    $this->setFieldOriginalValue($path, $value);
-                    $this->setFieldPathValue($path, $returnValue);
+                    $this->fieldsAttributesForSaving->set($path, $returnValue);
                 }
             });
 
-        foreach ($this->fieldsAttributes as $key => $value) {
+        $fieldsValue = $this->fieldsAttributesForSaving->getValue();
+        foreach ($fieldsValue as $key => $value) {
             if ($this->isJsonCastable($key)) {
-                $this->attributes[$key] = $value->toJSON();
+                $this->attributes[$key] = json_encode($value);
             } else {
-                $this->attributes[$key] = $value->getValue();
+                $this->attributes[$key] = $value instanceof FieldValue ? $value->getValue() : $value;
             }
         }
     }
@@ -273,8 +229,9 @@ trait HasFieldsSchema
         $this->fieldsCollection()
             ->eachPath(function ($path, $key, $field) {
                 $schema = $field->schema;
-                $value = $this->getFieldPathValue($path);
-                $originalValue = $this->getFieldOriginalValue($path);
+                $value = $this->fieldsAttributesForSaving->get($path);
+                $originalValue = $this->fieldsAttributes->get($path);
+
                 $saveMethod = 'save'.studly_case($field->type).'Field';
                 if (method_exists($this, $saveMethod)) {
                     $returnValue = $this->{$saveMethod}($path, $value, $originalValue, $field);
@@ -283,7 +240,7 @@ trait HasFieldsSchema
                 }
             });
 
-        $this->clearFieldOriginalValue();
+        $this->fieldsAttributesForSaving = null;
         $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
     }
 
@@ -291,33 +248,26 @@ trait HasFieldsSchema
      * Get the fields in attributes according to the schema and accessors methods
      *
      * @param  array  $attributes
-     * @return array  $attributes
+     * @return FieldValue  $fieldsAttributes
      */
     public function getFieldsFromAttributes(array $attributes)
     {
-        $newAttributes = [];
-        foreach ($attributes as $key => $value) {
-            if (!$this->attributeHasSchema($key)) {
+        $fieldsAttributes = new FieldValue();
+        foreach ($attributes as $attributeKey => $attributeValue) {
+            if (!$this->attributeIsField($attributeKey)) {
                 continue;
             }
 
-            if ($this->isJsonCastable($key)) {
-                $value = $this->castAttribute($key, $value);
+            if ($this->isJsonCastable($attributeKey)) {
+                $attributeValue = $this->castAttribute($attributeKey, $attributeValue);
             }
 
-            $fieldValue = new FieldValue($value);
+            $fieldValue = new FieldValue($attributeValue);
 
-            // $attribute = new StdClass();
-            // $attribute->key = $key;
-            // $attribute->value = $value;
-            $this->fieldsCollection($key, $value)
-                // ->eachPath(function ($path, $key, $field) use ($attribute) {
-                ->eachPath(function ($path, $key, $field) use ($key, $fieldValue) {
-                    // $fullPath = $attribute->key.'.'.$path;
-                    // $value = $attribute->value;
-                    $fullPath = $key.'.'.$path;
+            $this->fieldsCollection($attributeKey, $attributeValue)
+                ->eachPath(function ($path, $key, $field) use ($attributeKey, $fieldValue) {
+                    $fullPath = $attributeKey.'.'.$path;
                     $schema = $field->schema;
-                    //$fieldValue = $this->getFieldPathValue($path, $value);
                     $value = $fieldValue->get($path);
                     $getMethod = 'get'.studly_case($field->type).'Field';
                     if (method_exists($this, $getMethod)) {
@@ -327,18 +277,82 @@ trait HasFieldsSchema
                     }
                     if (isset($returnValue)) {
                         $fieldValue->set($path, $returnValue);
-                        //$attribute->value = Utils::setPath($attribute->value, $path, $returnValue);
                     }
                 });
 
-            // if ($this->isJsonCastable($key)) {
-            //     $value = $this->castAttributeAsJson($key, $value);
-            // }
-
-            $newAttributes[$key] = $fieldValue;
+            $fieldsAttributes->set($attributeKey, $fieldValue);
         }
 
-        return $newAttributes;
+        return $fieldsAttributes;
+    }
+
+    public function attributeIsField($key)
+    {
+        $schema = $this->getSchema();
+        if (is_null($schema)) {
+            return false;
+        }
+        return $schema->hasField($key);
+    }
+
+    public function attributeIsFieldAppend($key)
+    {
+        $appends = array_keys($this->getFieldsAppends());
+        return in_array($key, $appends);
+    }
+
+    /**
+     * Get the value of a field
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    public function getFieldValue($key)
+    {
+        if (isset($this->fieldsAttributes[$key])) {
+            return $this->fieldsAttributes[$key];
+        }
+    }
+
+    /**
+     * Get the value of a field
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    public function getFieldAppendValue($key)
+    {
+        $appends = $this->getFieldsAppends();
+        $path = $appends[$key];
+        return $this->fieldsAttributes->get($path);
+    }
+
+    /**
+     * Get the fields appends
+     *
+     * @return array
+     */
+    public function getFieldsAppends()
+    {
+        if (method_exists($this, 'fieldsAppends')) {
+            return $this->fieldsAppends();
+        } elseif (sizeof($this->fieldsAppends)) {
+            return $this->fieldsAppends;
+        }
+        $schema = $this->getSchema();
+        return !is_null($schema) ? $schema->getAppends() : [];
+    }
+
+    /**
+     * Set the fields appends
+     *
+     * @param  array  $appends
+     * @return $this
+     */
+    public function setFieldsAppends($appends)
+    {
+        $this->fieldsAppends = $appends;
+        return $this;
     }
 
     /**
@@ -363,47 +377,13 @@ trait HasFieldsSchema
      */
     public function getAttribute($key)
     {
-        if ($this->attributeHasSchema($key)) {
+        if ($this->attributeIsField($key)) {
             return $this->getFieldValue($key);
+        } elseif ($this->attributeIsFieldAppend($key)) {
+            return $this->getFieldAppendValue($key);
         }
         return parent::getAttribute($key);
     }
-
-    public function getFieldValue($key)
-    {
-        if (isset($this->fieldsAttributes[$key])) {
-            return $this->fieldsAttributes[$key];
-        }
-    }
-
-    /**
-     * Determine if a get mutator exists for an attribute.
-     *
-     * @param  string  $key
-     * @return bool
-     */
-    // public function hasGetMutator($key)
-    // {
-    //     return parent::hasGetMutator($key) || $this->attributeHasSchema($key);
-    // }
-
-    /**
-     * Get the value of an attribute using its mutator.
-     *
-     * @param  string  $key
-     * @param  mixed  $value
-     * @return mixed
-     */
-    // protected function mutateAttribute($key, $value)
-    // {
-    //     if (parent::hasGetMutator($key)) {
-    //         $value = parent::mutateAttribute($key, $value);
-    //     }
-    //     if ($this->attributeHasSchema($key)) {
-    //         $value = array_get($this->fieldsAttributes, $key);
-    //     }
-    //     return $value;
-    // }
 
     /**
      * Set a given attribute on the model.
@@ -414,23 +394,27 @@ trait HasFieldsSchema
      */
     public function setAttribute($key, $value)
     {
-        if ($this->attributeHasSchema($key)) {
-            array_set($this->fieldsAttributes, $key, new FieldValue($value));
+        if ($this->attributeIsField($key)) {
+            $this->fieldsAttributes->set($key, new FieldValue($value));
+            return $this;
         }
         return parent::setAttribute($key, $value);
     }
 
     /**
-     * Fill the model with an array of attributes.
+     * Convert the model's attributes to an array.
      *
-     * @param  array  $attributes
-     * @return $this
-     *
-     * @throws \Illuminate\Database\Eloquent\MassAssignmentException
+     * @return array
      */
-    // public function fill(array $attributes)
-    // {
-    //     $preparedAttributes = $this->prepareFieldsInAttributes($attributes);
-    //     return parent::fill($preparedAttributes);
-    // }
+    public function attributesToArray()
+    {
+        $attributes = parent::attributesToArray();
+
+        $appendsAttributes = [];
+        foreach ($this->getFieldsAppends() as $key => $path) {
+            $appendsAttributes[$key] = $this->fieldsAttributes->get($path);
+        }
+
+        return array_merge($attributes, $this->fieldsAttributes->toArray(), $appendsAttributes);
+    }
 }

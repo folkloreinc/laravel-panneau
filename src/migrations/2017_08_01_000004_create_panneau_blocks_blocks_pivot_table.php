@@ -17,13 +17,13 @@ class CreatePanneauBlocksBlocksPivotTable extends Migration
             $table->increments('id');
             $table->integer('parent_block_id')->unsigned();
             $table->integer('block_id')->unsigned();
-            $table->string('name')->nullable();
+            $table->string('handle')->nullable();
             $table->integer('order')->default(0);
 
             $table->index('parent_block_id');
             $table->index('block_id');
             $table->index('order');
-            $table->index('name');
+            $table->index('handle');
         });
     }
 

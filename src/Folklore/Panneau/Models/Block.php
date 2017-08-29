@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
 use Folklore\Mediatheque\Support\Traits\HasMedias;
 use Folklore\Panneau\Support\Traits\HasFieldsSchema;
+use Folklore\Panneau\Support\Traits\HasRelationsFields;
 use Folklore\Panneau\Support\Traits\HasMediasFields;
+use Folklore\Panneau\Support\Traits\HasPagesFields;
+use Folklore\Panneau\Support\Traits\HasBlocksFields;
 use Folklore\Panneau\Contracts\Page as PageContract;
 use Folklore\Panneau\Contracts\Block as BlockContract;
 
@@ -14,9 +17,12 @@ class Block extends Model implements
     HasFieldsSchemaInterface
 {
     use SoftDeletes;
-    use HasFieldsSchema;
-    use HasMediasFields;
     use HasMedias;
+    use HasFieldsSchema;
+    use HasRelationsFields;
+    use HasMediasFields;
+    use HasPagesFields;
+    use HasBlocksFields;
 
     protected $table = 'blocks';
 

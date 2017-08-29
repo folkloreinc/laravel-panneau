@@ -4,6 +4,7 @@ namespace Folklore\Panneau\Schemas;
 
 use Folklore\Panneau\Support\Schema;
 use Folklore\Panneau\Schemas\Fields\TextLocale;
+use Folklore\Panneau\Schemas\Fields\Page;
 
 class PageData extends Schema
 {
@@ -16,7 +17,11 @@ class PageData extends Schema
             'title' => new TextLocale([
                 'label' => 'Title',
             ]),
-            
+
+            'parent' => new Page([
+                'label' => 'Parent',
+            ]),
+
             /*'parent' => [
                 'type' => 'integer',
                 'title' => 'Parent',
@@ -58,6 +63,15 @@ class PageData extends Schema
                     'type' => 'string'
                 ],
             ],*/
+        ];
+    }
+
+    protected function appends()
+    {
+        $locale = app()->getLocale();
+        return [
+            'slug' => 'slug.'.$locale,
+            'title' => 'title.'.$locale,
         ];
     }
 }

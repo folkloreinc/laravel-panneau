@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreatePanneauPagesBlocksPivotTable extends Migration
+class CreatePanneauBubblesBubblesPivotTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,15 +13,15 @@ class CreatePanneauPagesBlocksPivotTable extends Migration
      */
     public function up()
     {
-        Schema::create(config('panneau.table_prefix').'pages_blocks_pivot', function (Blueprint $table) {
+        Schema::create(config('panneau.table_prefix').'bubbles_bubbles_pivot', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('page_id')->unsigned();
-            $table->integer('block_id')->unsigned();
+            $table->integer('parent_bubble_id')->unsigned();
+            $table->integer('bubble_id')->unsigned();
             $table->string('handle')->nullable();
             $table->integer('order')->default(0);
 
-            $table->index('block_id');
-            $table->index('page_id');
+            $table->index('parent_bubble_id');
+            $table->index('bubble_id');
             $table->index('order');
             $table->index('handle');
         });
@@ -34,6 +34,6 @@ class CreatePanneauPagesBlocksPivotTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists(config('panneau.table_prefix').'pages_blocks_pivot');
+        Schema::dropIfExists(config('panneau.table_prefix').'bubbles_bubbles_pivot');
     }
 }

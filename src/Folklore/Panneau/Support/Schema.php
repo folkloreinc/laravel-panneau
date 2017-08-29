@@ -17,8 +17,8 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     protected $default;
     protected $items;
     protected $enum;
-    protected $schemaAttributes = ['type', 'properties', 'required', 'default', 'items', 'enum'];
     protected $attributes;
+    protected $schemaAttributes = ['type', 'properties', 'required', 'default', 'items', 'enum', 'appends'];
 
     public function __construct($schema = [])
     {
@@ -43,14 +43,38 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         return method_exists($this, 'name') ? $this->name() : $defaultName;
     }
 
+    public function getAppends()
+    {
+        $appends = $this->getSchemaAttribute('appends');
+        if (is_null($appends)) {
+            $appends = [];
+        }
+        $properties = $this->getProperties();
+        if (is_null($properties)) {
+            return $appends;
+        }
+        foreach ($properties as $key => $value) {
+            $propertyAppends = $value->getAppends();
+            if (sizeof($propertyAppends)) {
+                $propertyAppends = array_map(function ($append) use ($key) {
+                    return $key.'.'.$append;
+                }, $propertyAppends);
+                $appends = array_merge($appends, $propertyAppends);
+            }
+        }
+        return $appends;
+    }
+
     public function getProperties()
     {
         if ($this->getType() !== 'object') {
             return null;
         }
-        $properties = isset($this->properties) ? $this->properties : [];
-        if (method_exists($this, 'properties')) {
-            $properties = array_merge($properties, $this->properties($properties));
+
+        $properties = $this->getSchemaAttribute('properties');
+
+        if (is_null($properties)) {
+            return [];
         }
 
         $propertiesResolved = [];
@@ -72,6 +96,15 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     public function setProperties($value)
     {
         return $this->setSchemaAttribute('properties', $value);
+    }
+
+    public function addProperty($key, $value)
+    {
+        if (!isset($this->properties)) {
+            $this->properties = [];
+        }
+        $this->properties[$key] = $value;
+        return $this;
     }
 
     public function getItems()
@@ -159,7 +192,11 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     {
         $value = isset($this->{$key}) ? $this->{$key} : null;
         if (method_exists($this, $key)) {
-            $value = $this->{$key}($value);
+            if (is_array($value)) {
+                $value = array_merge($this->{$key}($value), $value);
+            } else {
+                $value = $this->{$key}($value);
+            }
         }
 
         return $value;
@@ -168,6 +205,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     protected function setSchemaAttribute($key, $value)
     {
         $this->{$key} = $value;
+        return $this;
     }
 
     public function getStructure($path = null)

@@ -24,5 +24,5 @@ interface HasFieldsSchema
 
     public function getFieldsFromAttributes(array $attributes);
 
-    public function attributeHasSchema($key);
+    public function attributeIsField($key);
 }

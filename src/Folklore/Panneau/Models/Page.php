@@ -8,7 +8,10 @@ use Spatie\EloquentSortable\SortableTrait;
 use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
 use Folklore\Mediatheque\Support\Traits\HasMedias;
 use Folklore\Panneau\Support\Traits\HasFieldsSchema;
+use Folklore\Panneau\Support\Traits\HasRelationsFields;
 use Folklore\Panneau\Support\Traits\HasMediasFields;
+use Folklore\Panneau\Support\Traits\HasPagesFields;
+use Folklore\Panneau\Support\Traits\HasBlocksFields;
 use Folklore\Panneau\Contracts\Page as PageContract;
 use Folklore\Panneau\Contracts\Block as BlockContract;
 
@@ -18,9 +21,12 @@ class Page extends Model implements
 {
     use SoftDeletes;
     use SortableTrait;
-    use HasFieldsSchema;
-    use HasMediasFields;
     use HasMedias;
+    use HasFieldsSchema;
+    use HasRelationsFields;
+    use HasMediasFields;
+    use HasPagesFields;
+    use HasBlocksFields;
 
     protected $table = 'pages';
 
@@ -48,21 +54,20 @@ class Page extends Model implements
     ];
 
     /**
-     * Get the children pages of this one (recursive).
+     * Relationships
      */
-    public function children()
+    public function pages()
     {
         $class = get_class(app(PageContract::class));
-        return $this->hasMany($class, 'parent_id');
+        $table = config('panneau.table_prefix').'pages_pages_pivot';
+        return $this->belongsToMany($class, $table, 'parent_page_id', 'page_id');
     }
 
-    /**
-     * Get the page parent to this one.
-     */
-    public function parent()
+    public function parents()
     {
         $class = get_class(app(PageContract::class));
-        return $this->belongsTo($class);
+        $table = config('panneau.table_prefix').'pages_pages_pivot';
+        return $this->belongsToMany($class, $table, 'page_id', 'parent_page_id');
     }
 
     public function blocks()

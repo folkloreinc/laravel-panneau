@@ -8,7 +8,9 @@ use Spatie\EloquentSortable\SortableTrait;
 use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
 use Folklore\Mediatheque\Support\Traits\HasMedias;
 use Folklore\Panneau\Support\Traits\HasFieldsSchema;
+use Folklore\Panneau\Support\Traits\HasRelationsFields;
 use Folklore\Panneau\Support\Traits\HasMediasFields;
+use Folklore\Panneau\Contracts\Bubble as BubbleContract;
 use \Exception;
 
 class Bubble extends Model implements
@@ -17,9 +19,10 @@ class Bubble extends Model implements
 {
     use SoftDeletes;
     use SortableTrait;
-    use HasFieldsSchema;
-    use HasMediasFields;
     use HasMedias;
+    use HasFieldsSchema;
+    use HasRelationsFields;
+    use HasMediasFields;
 
     protected $table = 'bubbles';
 
@@ -43,4 +46,11 @@ class Bubble extends Model implements
         'order_column_name' => 'order',
         'sort_when_creating' => false,
     ];
+
+    public function bubbles()
+    {
+        $class = get_class(app(BubbleContract::class));
+        $table = config('panneau.table_prefix').'bubbles_bubbles_pivot';
+        return $this->belongsToMany($class, $table, 'parent_bubble_id', 'bubble_id');
+    }
 }

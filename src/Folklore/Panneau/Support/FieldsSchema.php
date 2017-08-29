@@ -44,6 +44,12 @@ class FieldsSchema extends Schema implements FieldsSchemaContract
         return $fieldsResolved;
     }
 
+    public function getField($key)
+    {
+        $fields = $this->getFields();
+        return isset($fields[$key]) ? $fields[$key] : null;
+    }
+
     public function setFields($value)
     {
         return $this->setSchemaAttribute('fields', $value);
@@ -59,8 +65,17 @@ class FieldsSchema extends Schema implements FieldsSchemaContract
         return $names;
     }
 
+    public function hasField($name)
+    {
+        $fields = $this->getSchemaAttribute('fields');
+        return isset($fields[$name]) || in_array($name, $fields);
+    }
+
     public function addField($name, $schema = null)
     {
+        if (!isset($this->fields)) {
+            $this->fields = [];
+        }
         if (is_null($schema)) {
             $this->fields[] = $name;
         } else {

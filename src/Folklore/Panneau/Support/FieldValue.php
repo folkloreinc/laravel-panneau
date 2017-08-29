@@ -14,12 +14,25 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
 
     public function __construct($value = [])
     {
-        $this->attributes = $value;
+        $this->setValue($value);
     }
 
     public function setValue($value)
     {
-        $this->attributes = $value;
+        if (is_object($value)) {
+            $this->attributes = new StdClass();
+            $attributes = get_object_vars($value);
+            foreach ($attributes as $key => $value) {
+                $this->attributes->{$key} = is_object($value) ? clone $value : $value;
+            }
+        } elseif (is_array($value)) {
+            $this->attributes = [];
+            foreach ($value as $key => $value) {
+                $this->attributes[$key] = is_object($value) ? clone $value : $value;
+            }
+        } else {
+            $this->attributes = !is_null($value) ? $value : [];
+        }
         return $this;
     }
 
@@ -39,10 +52,16 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
         return $this;
     }
 
+    public function clone()
+    {
+        return new self($this->attributes);
+    }
+
     public function toArray()
     {
         $data = [];
-        foreach ((array)$this->attributes as $key => $value) {
+        $attributes = is_object($this->attributes) ? get_object_vars($this->attributes) : $this->attributes;
+        foreach ($attributes as $key => $value) {
             if (is_array($value) || (is_object($value) && $value instanceof StdClass)) {
                 $value = new FieldValue($value);
             }
@@ -170,5 +189,10 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
         } else {
             unset($this->attributes[$key]);
         }
+    }
+
+    public function __clone()
+    {
+        $this->setValue($this->attributes);
     }
 }

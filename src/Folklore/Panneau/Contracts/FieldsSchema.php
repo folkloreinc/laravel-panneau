@@ -8,6 +8,8 @@ interface FieldsSchema extends Schema
 
     public function addField($name, $schema);
 
+    public function hasField($name);
+
     public function getFields();
 
     public function getFieldsNames();
