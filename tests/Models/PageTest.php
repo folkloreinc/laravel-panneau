@@ -6,7 +6,9 @@ use Folklore\Panneau\Support\FieldsSchema;
 use Folklore\Panneau\Schemas\Page as PageSchema;
 use Folklore\Panneau\Schemas\PageData;
 use Folklore\Mediatheque\Models\Picture;
+use Folklore\Mediatheque\Models\Document;
 use Folklore\Panneau\Schemas\Fields\Pictures as PicturesField;
+use Folklore\Panneau\Schemas\Fields\Documents as DocumentsField;
 
 class PageTest extends TestCase
 {
@@ -26,6 +28,7 @@ class PageTest extends TestCase
             'fields' => [
                 'data' => with(new PageData())
                     ->addProperty('pictures', PicturesField::class)
+                    ->addProperty('documents', DocumentsField::class)
             ]
         ]);
     }
@@ -76,7 +79,7 @@ class PageTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setDefaultSchema
      */
     public function testMediasRelations()
     {
@@ -85,12 +88,20 @@ class PageTest extends TestCase
         $picture->save();
         $pictureData = $picture->toArray();
 
+        $document = new Document();
+        $document->setOriginalFile(__DIR__.'/../fixture/document.pdf');
+        $document->save();
+        $documentData = $document->toArray();
+
         $data = json_decode(json_encode([
             'title' => [
                 'en' => 'Test'
             ],
             'pictures' => [
                 $pictureData
+            ],
+            'documents' => [
+                $documentData
             ]
         ]));
 
@@ -100,11 +111,15 @@ class PageTest extends TestCase
         $model->data = $data;
         $model->save();
 
-        $model = Page::with('pictures')->find($model->id);
+        $model = Page::with(['pictures', 'documents'])->find($model->id);
         $this->assertEquals($data->title, $model->data->title);
         $this->assertEquals(
             array_only($pictureData, ['id']),
             array_only($model->data->pictures[0]->toArray(), ['id'])
+        );
+        $this->assertEquals(
+            array_only($documentData, ['id']),
+            array_only($model->data->documents[0]->toArray(), ['id'])
         );
     }
 }
