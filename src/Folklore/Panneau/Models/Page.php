@@ -40,8 +40,6 @@ class Page extends Model implements
     ];
 
     protected $hidden = [
-        'pages',
-        'parents',
         'pivot',
         'blocks'
     ];

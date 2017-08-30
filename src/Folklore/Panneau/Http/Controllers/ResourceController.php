@@ -95,7 +95,7 @@ abstract class ResourceController extends Controller
             $id = $id->getKey();
         }
         $query = $this->getResourceQueryBuilder();
-        return $query->findOrFail($id)->first();
+        return $query->where('id', $id)->first();
     }
 
     /**
