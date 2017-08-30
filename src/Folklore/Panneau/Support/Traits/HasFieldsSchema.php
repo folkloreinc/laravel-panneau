@@ -421,6 +421,7 @@ trait HasFieldsSchema
             }
         }
 
+        // @TODO Remove toArray(true) and do a special case only when json
         return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
     }
 }

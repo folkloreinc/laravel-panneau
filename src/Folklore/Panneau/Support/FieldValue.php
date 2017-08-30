@@ -66,6 +66,7 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
             if (is_array($value) || (is_object($value) && $value instanceof StdClass)) {
                 $value = new FieldValue($value);
             }
+            // @TODO Remove this logic
             if ($emptyToObject && $value instanceof FieldValue) {
                 $data[$key] = $value->isEmpty() ? new StdClass() : $value->toArray();
             } else {
