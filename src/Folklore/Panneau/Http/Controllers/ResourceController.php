@@ -4,6 +4,7 @@ namespace Folklore\Panneau\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 abstract class ResourceController extends Controller
 {
@@ -90,8 +91,8 @@ abstract class ResourceController extends Controller
 
     protected function getItem($id, Request $request)
     {
-        if (is_object($id)) {
-            return $id;
+        if ($id instanceof Model) {
+            $id = $id->getKey();
         }
         $query = $this->getResourceQueryBuilder();
         return $query->findOrFail($id)->first();

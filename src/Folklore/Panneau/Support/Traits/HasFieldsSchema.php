@@ -91,7 +91,6 @@ trait HasFieldsSchema
 
     public function __construct(array $attributes = [])
     {
-        $this->fieldsAttributes = new FieldValue();
         parent::__construct($attributes);
         $this->appends[] = 'fieldsSchema';
     }
@@ -185,7 +184,7 @@ trait HasFieldsSchema
         if (is_null($schema)) {
             return;
         }
-        $data = $this->fieldsAttributes->toObject();
+        $data = $this->fieldsAttributes()->toObject();
         $validator = app(\Folklore\Panneau\Contracts\SchemaValidator::class);
         if (!$validator->validateSchema($data, $schema)) {
             throw new SchemaValidationException($validator->getMessages());
@@ -194,7 +193,7 @@ trait HasFieldsSchema
 
     public function prepareFieldsForSaving()
     {
-        $this->fieldsAttributesForSaving = $this->fieldsAttributes->clone();
+        $this->fieldsAttributesForSaving = $this->fieldsAttributes()->clone();
 
         $this->fieldsCollection()
             ->eachPath(function ($path, $key, $field) {
@@ -227,7 +226,7 @@ trait HasFieldsSchema
             ->eachPath(function ($path, $key, $field) {
                 $schema = $field->schema;
                 $value = $this->fieldsAttributesForSaving->get($path);
-                $originalValue = $this->fieldsAttributes->get($path);
+                $originalValue = $this->fieldsAttributes()->get($path);
 
                 $saveMethod = 'save'.studly_case($field->type).'Field';
                 if (method_exists($this, $saveMethod)) {
@@ -311,8 +310,9 @@ trait HasFieldsSchema
      */
     public function getFieldValue($key)
     {
-        if (isset($this->fieldsAttributes[$key])) {
-            return $this->fieldsAttributes[$key];
+        $fieldsAttributes = $this->fieldsAttributes();
+        if (isset($fieldsAttributes[$key])) {
+            return $fieldsAttributes[$key];
         }
     }
 
@@ -332,7 +332,7 @@ trait HasFieldsSchema
                 break;
             }
         }
-        return !is_null($path) ? $this->fieldsAttributes->get($path) : null;
+        return !is_null($path) ? $this->fieldsAttributes()->get($path) : null;
     }
 
     /**
@@ -363,18 +363,12 @@ trait HasFieldsSchema
         return $this;
     }
 
-    /**
-     * Set the array of model attributes. No checking is done.
-     *
-     * @param  array  $attributes
-     * @param  bool  $sync
-     * @return $this
-     */
-    public function setRawAttributes(array $attributes, $sync = false)
+    public function fieldsAttributes()
     {
-        $return = parent::setRawAttributes($attributes, $sync);
-        $this->fieldsAttributes = $this->getFieldsFromAttributes($attributes);
-        return $return;
+        if (is_null($this->fieldsAttributes)) {
+            $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
+        }
+        return $this->fieldsAttributes;
     }
 
     /**
@@ -403,7 +397,7 @@ trait HasFieldsSchema
     public function setAttribute($key, $value)
     {
         if ($this->attributeIsField($key)) {
-            $this->fieldsAttributes->set($key, new FieldValue($value));
+            $this->fieldsAttributes()->set($key, new FieldValue($value));
             return $this;
         }
         return parent::setAttribute($key, $value);
@@ -421,12 +415,12 @@ trait HasFieldsSchema
         $appendsAttributes = [];
         foreach ($this->getFieldsAppends() as $key => $path) {
             if (is_numeric($key)) {
-                $appendsAttributes[$path] = $this->fieldsAttributes->get($path);
+                $appendsAttributes[$path] = $this->fieldsAttributes()->get($path);
             } else {
-                $appendsAttributes[$key] = $this->fieldsAttributes->get($path);
+                $appendsAttributes[$key] = $this->fieldsAttributes()->get($path);
             }
         }
 
-        return array_merge($attributes, $this->fieldsAttributes->toArray(), $appendsAttributes);
+        return array_merge($attributes, $this->fieldsAttributes()->toArray(), $appendsAttributes);
     }
 }

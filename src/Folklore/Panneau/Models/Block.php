@@ -40,6 +40,13 @@ class Block extends Model implements
         'id'
     ];
 
+    protected $hidden = [
+        'pages',
+        'pivot',
+        'blocks',
+        'pictures'
+    ];
+
     protected $fillable = [
         'type',
         'data',

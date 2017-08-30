@@ -78,6 +78,7 @@ class PageData extends Schema
             'slug' => 'slug.'.$locale,
             'title' => 'title.'.$locale,
             'parent' => 'parent',
+            'blocks' => 'blocks',
         ];
     }
 }

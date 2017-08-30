@@ -167,7 +167,10 @@ trait HasRelationsFields
         if (method_exists($this, $method)) {
             return $this->{$method}($relation, $id);
         }
-        return $this->{$relation}->first(function ($item) use ($relation, $id) {
+        if (!$this->relationLoaded($relation)) {
+            $this->load($relation);
+        }
+        return $this->getRelation($relation)->first(function ($item) use ($relation, $id) {
             return $this->getRelationIdFromItem($relation, $item) === (string)$id;
         });
     }

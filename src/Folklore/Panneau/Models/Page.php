@@ -39,6 +39,13 @@ class Page extends Model implements
         'id'
     ];
 
+    protected $hidden = [
+        'pages',
+        'parents',
+        'pivot',
+        'blocks'
+    ];
+
     protected $fillable = [
         'type',
         'data',
