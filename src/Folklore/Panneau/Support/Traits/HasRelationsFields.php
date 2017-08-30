@@ -167,8 +167,10 @@ trait HasRelationsFields
         if (method_exists($this, $method)) {
             return $this->{$method}($relation, $id);
         }
+        // TODO: FIX THIS MOTHERFUCKING SITUATION WHERE A RELATION IS NOT LOADED
+        // (possible cause is having an appends the same name as a relations)
         if (!$this->relationLoaded($relation)) {
-            $this->load($relation);
+            return null;
         }
         return $this->getRelation($relation)->first(function ($item) use ($relation, $id) {
             return $this->getRelationIdFromItem($relation, $item) === (string)$id;
