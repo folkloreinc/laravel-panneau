@@ -35,18 +35,12 @@ class Page extends Model implements
         'sort_when_creating' => false,
     ];
 
-    protected $hidden = [
-        'parent_id',
-        'order',
-        'deleted_at',
-        'pivot',
-    ];
-
     protected $guarded = [
         'id'
     ];
 
     protected $fillable = [
+        'type',
         'data',
     ];
 
@@ -62,20 +56,26 @@ class Page extends Model implements
     {
         $class = get_class(app(PageContract::class));
         $table = config('panneau.table_prefix').'pages_pages_pivot';
-        return $this->belongsToMany($class, $table, 'parent_page_id', 'page_id');
+        return $this->belongsToMany($class, $table, 'parent_page_id', 'page_id')
+            ->withPivot('handle', 'order')
+            ->withTimestamps();
     }
 
     public function parents()
     {
         $class = get_class(app(PageContract::class));
         $table = config('panneau.table_prefix').'pages_pages_pivot';
-        return $this->belongsToMany($class, $table, 'page_id', 'parent_page_id');
+        return $this->belongsToMany($class, $table, 'page_id', 'parent_page_id')
+            ->withPivot('handle', 'order')
+            ->withTimestamps();
     }
 
     public function blocks()
     {
         $class = get_class(app(BlockContract::class));
         $table = config('panneau.table_prefix').'pages_blocks_pivot';
-        return $this->belongsToMany($class, $table, 'page_id', 'block_id');
+        return $this->belongsToMany($class, $table, 'page_id', 'block_id')
+            ->withPivot('handle', 'order')
+            ->withTimestamps();
     }
 }

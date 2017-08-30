@@ -19,6 +19,7 @@ class CreatePanneauPagesPagesPivotTable extends Migration
             $table->integer('page_id')->unsigned();
             $table->string('handle')->nullable();
             $table->integer('order')->default(0);
+            $table->timestamps();
 
             $table->index('parent_page_id');
             $table->index('page_id');

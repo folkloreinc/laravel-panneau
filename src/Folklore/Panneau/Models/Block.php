@@ -31,14 +31,6 @@ class Block extends Model implements
         'sort_when_creating' => false,
     ];
 
-    protected $hidden = [
-        'data',
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'pivot',
-    ];
-
     protected $casts = [
         'data' => 'object',
         'type' => 'string',
@@ -49,6 +41,7 @@ class Block extends Model implements
     ];
 
     protected $fillable = [
+        'type',
         'data',
     ];
 
@@ -56,13 +49,17 @@ class Block extends Model implements
     {
         $class = get_class(app(BlockContract::class));
         $table = config('panneau.table_prefix').'blocks_blocks_pivot';
-        return $this->belongsToMany($class, $table, 'parent_block_id', 'block_id');
+        return $this->belongsToMany($class, $table, 'parent_block_id', 'block_id')
+            ->withPivot('handle', 'order')
+            ->withTimestamps();
     }
 
     public function pages()
     {
         $class = get_class(app(PageContract::class));
         $table = config('panneau.table_prefix').'pages_blocks_pivot';
-        return $this->belongsToMany($class, $table, 'block_id', 'page_id');
+        return $this->belongsToMany($class, $table, 'block_id', 'page_id')
+            ->withPivot('handle', 'order')
+            ->withTimestamps();
     }
 }

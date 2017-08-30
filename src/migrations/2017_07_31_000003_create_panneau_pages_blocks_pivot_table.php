@@ -19,6 +19,7 @@ class CreatePanneauPagesBlocksPivotTable extends Migration
             $table->integer('block_id')->unsigned();
             $table->string('handle')->nullable();
             $table->integer('order')->default(0);
+            $table->timestamps();
 
             $table->index('block_id');
             $table->index('page_id');

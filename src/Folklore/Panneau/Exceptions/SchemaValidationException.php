@@ -10,7 +10,7 @@ class SchemaValidationException extends RuntimeException
 
     public function __construct($schemaErrors)
     {
-        parent::__construct('Error(s) while validating the schema: '.$this->getDetailedMessage($schemaErrors));
+        parent::__construct('Error(s) while validating the schema:'.PHP_EOL.$this->getDetailedMessage($schemaErrors));
         $this->schemaErrors = $schemaErrors;
     }
 
@@ -21,17 +21,13 @@ class SchemaValidationException extends RuntimeException
 
     protected function getDetailedMessage($schemaErrors)
     {
-        $msg = '';
+        $lines = [];
         foreach ($schemaErrors as $key => $value) {
-            if (!empty($msg)) {
-                $msg .= ' | ';
-            }
-            if (is_string($value)) {
-                $msg .= '"'.$key.'":'.$value;
-            } else {
-                $msg .= $this->getDetailedMessage($value);
+            $messages = (array)$value;
+            foreach ($messages as $message) {
+                $lines[] = '['.$key.']: '.$message;
             }
         }
-        return $msg;
+        return implode(PHP_EOL, $lines);
     }
 }

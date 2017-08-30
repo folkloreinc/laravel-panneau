@@ -26,18 +26,12 @@ class Bubble extends Model implements
 
     protected $table = 'bubbles';
 
-    protected $hidden = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'pivot',
-    ];
-
     protected $guarded = [
         'id'
     ];
 
     protected $fillable = [
+        'type',
         'data',
     ];
 
@@ -55,6 +49,8 @@ class Bubble extends Model implements
     {
         $class = get_class(app(BubbleContract::class));
         $table = config('panneau.table_prefix').'bubbles_bubbles_pivot';
-        return $this->belongsToMany($class, $table, 'parent_bubble_id', 'bubble_id');
+        return $this->belongsToMany($class, $table, 'parent_bubble_id', 'bubble_id')
+            ->withPivot('handle', 'order')
+            ->withTimestamps();
     }
 }

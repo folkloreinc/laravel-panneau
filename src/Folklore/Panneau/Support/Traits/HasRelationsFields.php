@@ -11,7 +11,17 @@ trait HasRelationsFields
 
     protected function prepareRelationField($relation, $path, $value, $field)
     {
-        return $this->getRelationIdFromValue($relation, $value, $path);
+        if (is_null($value)) {
+            return $value;
+        }
+        $id = $this->getRelationIdFromValue($relation, $value, $path);
+        if (is_null($id)) {
+            $item = $this->createRelationFromValue($relation, $value, $path);
+            if (!is_null($item)) {
+                $id = $this->getRelationIdFromValue($relation, $item, $path);
+            }
+        }
+        return $id;
     }
 
     protected function saveRelationsField($relation, $path, $value, $originalValue, $field)
@@ -150,10 +160,31 @@ trait HasRelationsFields
         $i = 0;
         $keys = [];
         foreach ($values as $value) {
-            $keys[] = $this->getRelationIdFromValue($relation, $value, $path.'.'.$i);
-            $i++;
+            $key = $this->getRelationIdFromValue($relation, $value, $path.'.'.$i);
+            if (is_null($key)) {
+                $item = $this->createRelationFromValue($relation, $value, $path.'.'.$i);
+                if (!is_null($item)) {
+                    $key = $this->getRelationIdFromValue($relation, $item, $path.'.'.$i);
+                }
+            }
+            if (!is_null($key)) {
+                $keys[] = $key;
+                $i++;
+            }
         }
         return $keys;
+    }
+
+    protected function createRelationFromValue($relation, $value, $path)
+    {
+        $method = 'create'.studly_case($relation).'RelationFromValue';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($relation, $value, $path);
+        }
+        $model = $this->{$relation}()->getModel();
+        $model->fill($value);
+        $model->save();
+        return $model;
     }
 
     protected function getRelationIdFromValue($relation, $value, $path)

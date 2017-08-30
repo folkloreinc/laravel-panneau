@@ -19,6 +19,7 @@ class CreatePanneauBubblesBubblesPivotTable extends Migration
             $table->integer('bubble_id')->unsigned();
             $table->string('handle')->nullable();
             $table->integer('order')->default(0);
+            $table->timestamps();
 
             $table->index('parent_bubble_id');
             $table->index('bubble_id');
