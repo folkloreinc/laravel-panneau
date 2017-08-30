@@ -6,12 +6,13 @@ trait HasRelationsFields
 {
     protected function prepareRelationsField($relation, $path, $value, $field)
     {
-        return $this->getRelationsIdsFromValue($relation, $value, $path);
+        $ids = $this->getRelationsIdsFromValue($relation, $value, $path);
+        return $ids;
     }
 
     protected function prepareRelationField($relation, $path, $value, $field)
     {
-        if (is_null($value)) {
+        if (is_null($value) || (!is_array($value) && !is_object($value))) {
             return $value;
         }
         $id = $this->getRelationIdFromValue($relation, $value, $path);

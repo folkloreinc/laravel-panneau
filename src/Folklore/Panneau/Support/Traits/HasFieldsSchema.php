@@ -191,7 +191,7 @@ trait HasFieldsSchema
         $this->fieldsCollection()
             ->eachPath(function ($path, $key, $field) {
                 $schema = $field->schema;
-                $value = $this->fieldsAttributes->get($path);
+                $value = $this->fieldsAttributesForSaving->get($path);
                 $prepareMethod = 'prepare'.studly_case($field->type).'Field';
                 if (method_exists($this, $prepareMethod)) {
                     $returnValue = $this->{$prepareMethod}($path, $value, $field);
