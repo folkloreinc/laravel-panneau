@@ -11,6 +11,7 @@ use Folklore\Panneau\Support\Utils;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Fluent;
 use StdClass;
+use Exception;
 
 trait HasFieldsSchema
 {
@@ -115,6 +116,13 @@ trait HasFieldsSchema
         }
 
         $name = $this->getSchemaName();
+        if (is_null($name)) {
+            try {
+                return static::schema($name);
+            } catch (Exception $e) {
+                return null;
+            }
+        }
         return static::schema($name);
     }
 
