@@ -90,6 +90,9 @@ abstract class ResourceController extends Controller
 
     protected function getItem($id, Request $request)
     {
+        if (is_object($id)) {
+            return $id;
+        }
         $query = $this->getResourceQueryBuilder();
         return $query->findOrFail($id)->first();
     }

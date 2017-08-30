@@ -8,16 +8,6 @@ class BlockData extends Schema
 {
     protected function properties()
     {
-        return [
-            'type' => [
-                'type' => 'string'
-            ],
-            'blocks' => [
-                'type' => 'array',
-                'items' => [
-                    'type' => 'integer'
-                ]
-            ]
-        ];
+        return [];
     }
 }

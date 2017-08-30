@@ -294,8 +294,13 @@ trait HasFieldsSchema
 
     public function attributeIsFieldAppend($key)
     {
-        $appends = array_keys($this->getFieldsAppends());
-        return in_array($key, $appends);
+        $appends = $this->getFieldsAppends();
+        foreach ($appends as $appendKey => $appendPath) {
+            if ((is_numeric($appendKey) && $appendPath === $key) || $appendKey === $key) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -320,8 +325,14 @@ trait HasFieldsSchema
     public function getFieldAppendValue($key)
     {
         $appends = $this->getFieldsAppends();
-        $path = $appends[$key];
-        return $this->fieldsAttributes->get($path);
+        $path = null;
+        foreach ($appends as $appendKey => $appendPath) {
+            if ((is_numeric($appendKey) && $appendPath === $key) || $appendKey === $key) {
+                $path = $appendPath;
+                break;
+            }
+        }
+        return !is_null($path) ? $this->fieldsAttributes->get($path) : null;
     }
 
     /**
@@ -409,7 +420,11 @@ trait HasFieldsSchema
 
         $appendsAttributes = [];
         foreach ($this->getFieldsAppends() as $key => $path) {
-            $appendsAttributes[$key] = $this->fieldsAttributes->get($path);
+            if (is_numeric($key)) {
+                $appendsAttributes[$path] = $this->fieldsAttributes->get($path);
+            } else {
+                $appendsAttributes[$key] = $this->fieldsAttributes->get($path);
+            }
         }
 
         return array_merge($attributes, $this->fieldsAttributes->toArray(), $appendsAttributes);

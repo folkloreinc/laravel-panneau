@@ -47,20 +47,26 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     public function getAppends()
     {
         $appends = $this->getSchemaAttribute('appends');
-        if (is_null($appends)) {
-            $appends = [];
-        }
         $properties = $this->getProperties();
         if (is_null($properties)) {
-            return $appends;
+            return [];
         }
+        if (is_null($appends)) {
+            $appends = [];
+        } elseif ($appends === '*') {
+            $appends = array_keys($properties);
+        }
+
         foreach ($properties as $key => $value) {
             $propertyAppends = $value->getAppends();
             if (sizeof($propertyAppends)) {
-                $propertyAppends = array_map(function ($append) use ($key) {
-                    return $key.'.'.$append;
-                }, $propertyAppends);
-                $appends = array_merge($appends, $propertyAppends);
+                foreach ($propertyAppends as $propertyKey => $propertyValue) {
+                    if (is_numeric($propertyKey)) {
+                        $appends[$propertyValue] = $key.'.'.$propertyValue;
+                    } else {
+                        $appends[$propertyKey] = $key.'.'.$propertyValue;
+                    }
+                }
             }
         }
         return $appends;
