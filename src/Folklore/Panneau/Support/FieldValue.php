@@ -57,18 +57,34 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
         return new self($this->attributes);
     }
 
-    public function toArray()
+    public function toArray($emptyToObject = false)
     {
+        $isObject = is_object($this->attributes);
         $data = [];
-        $attributes = is_object($this->attributes) ? get_object_vars($this->attributes) : $this->attributes;
+        $attributes = $isObject ? get_object_vars($this->attributes) : $this->attributes;
         foreach ($attributes as $key => $value) {
             if (is_array($value) || (is_object($value) && $value instanceof StdClass)) {
                 $value = new FieldValue($value);
             }
-            $data[$key] = $value instanceof Arrayable ? $value->toArray() : $value;
+            if ($emptyToObject && $value instanceof FieldValue) {
+                $data[$key] = $value->isEmpty() ? new StdClass() : $value->toArray();
+            } else {
+                $data[$key] = $value instanceof Arrayable ? $value->toArray() : $value;
+            }
         }
 
         return $data;
+    }
+
+    public function isObject()
+    {
+        return is_object($this->attributes);
+    }
+
+    public function isEmpty()
+    {
+        $attributes = is_object($this->attributes) ? get_object_vars($this->attributes) : $this->attributes;
+        return !sizeof($attributes);
     }
 
     public function toObject()

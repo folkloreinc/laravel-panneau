@@ -421,6 +421,6 @@ trait HasFieldsSchema
             }
         }
 
-        return array_merge($attributes, $this->fieldsAttributes()->toArray(), $appendsAttributes);
+        return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
     }
 }
