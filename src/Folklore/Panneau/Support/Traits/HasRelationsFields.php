@@ -6,8 +6,7 @@ trait HasRelationsFields
 {
     protected function prepareRelationsField($relation, $path, $value, $field)
     {
-        $ids = $this->getRelationsIdsFromValue($relation, $value, $path);
-        return $ids;
+        return $this->getRelationsIdsFromValue($relation, $value, $path);
     }
 
     protected function prepareRelationField($relation, $path, $value, $field)
@@ -36,6 +35,8 @@ trait HasRelationsFields
                     $handle = $path.'.'.$i;
                     if (!isset($currentPathsMap[$handle]) || $currentPathsMap[$handle] !== (string)$id) {
                         $this->attachRelation($relation, $id, $handle);
+                    } elseif ($this->shouldUpdateRelationItem($relation, $id, array_get($originalValue, $i))) {
+                        $this->updateRelationItem($relation, $id, array_get($originalValue, $i));
                     }
                     $ids[$handle] = (string)$id;
                     $i++;
@@ -54,6 +55,28 @@ trait HasRelationsFields
                 $this->detachRelation($relation, array_values($currentPathsMap));
             }
         }
+    }
+
+    protected function shouldUpdateRelationItem($relation, $id, $value)
+    {
+        $method = 'shouldUpdate'.studly_case($relation).'RelationItem';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($relation, $id, $value);
+        }
+        return false;
+    }
+
+    protected function updateRelationItem($relation, $id, $value)
+    {
+        $method = 'update'.studly_case($relation).'RelationItem';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($relation, $id, $value);
+        }
+
+        $item = $this->getRelationItemFromId($relation, $id);
+        $item->fill($value);
+        $item->save();
+        return $item;
     }
 
     protected function getRelationsField($relation, $path, $value, $fieldValue, $field)
@@ -163,7 +186,10 @@ trait HasRelationsFields
         foreach ($values as $value) {
             $key = $this->getRelationIdFromValue($relation, $value, $path.'.'.$i);
             if (is_null($key)) {
-                $item = $this->createRelationFromValue($relation, $value, $path.'.'.$i);
+                $item = $this->getRelationCurrentItem($relation, $path.'.'.$i);
+                if (is_null($item)) {
+                    $item = $this->createRelationFromValue($relation, $value, $path.'.'.$i);
+                }
                 if (!is_null($item)) {
                     $key = $this->getRelationIdFromValue($relation, $item, $path.'.'.$i);
                 }

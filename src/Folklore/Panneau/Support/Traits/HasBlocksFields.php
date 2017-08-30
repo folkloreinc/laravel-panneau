@@ -33,4 +33,9 @@ trait HasBlocksFields
     {
         return $this->getRelationField('blocks', $path, $value, $fieldValue, $field);
     }
+
+    protected function shouldUpdateBlocksRelationItem($relation, $id, $value)
+    {
+        return true;
+    }
 }
