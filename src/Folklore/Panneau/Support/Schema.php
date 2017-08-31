@@ -257,6 +257,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         $type = $this->getType();
         $name = $this->getName();
 
+        // @TODO Add condition to check for array
         $schema = [
             'type' => $nullable ? ['null', $type] : $type,
         ];
