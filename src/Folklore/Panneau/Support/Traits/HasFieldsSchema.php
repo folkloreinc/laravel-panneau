@@ -422,6 +422,7 @@ trait HasFieldsSchema
         }
 
         // @TODO Remove toArray(true) and do a special case only when json
+        // null column in db results in empty array; we want an empty object
         return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
     }
 }
