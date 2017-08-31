@@ -20,7 +20,15 @@ class CreatePanneauBubblesTable extends Migration
             $table->string('handle')->nullable();
             $table->integer('parent_id')->nullable();
             $table->integer('order')->nullable();
-            $table->json('data')->nullable();
+
+            $pdo = DB::connection()->getPdo();
+            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) == 'mysql' &&
+                version_compare($pdo->getAttribute(PDO::ATTR_SERVER_VERSION), '5.7.8', 'ge')
+            ) {
+                $table->json('data')->nullable();
+            } else {
+                $table->longText('data')->nullable();
+            }
 
             // Laravel features
             $table->softDeletes();
