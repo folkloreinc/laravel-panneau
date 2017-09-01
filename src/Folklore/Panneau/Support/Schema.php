@@ -215,7 +215,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         return $this;
     }
 
-    public function getStructure($path = null)
+    public function getNodes($path = null)
     {
         $type = $this->getType();
         $structure = [];
