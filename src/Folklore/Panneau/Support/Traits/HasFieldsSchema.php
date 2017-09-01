@@ -8,6 +8,9 @@ use Folklore\Panneau\Exceptions\SchemaValidationException;
 use Folklore\Panneau\Support\FieldsCollection;
 use Folklore\Panneau\Support\FieldValue;
 use Folklore\Panneau\Support\Utils;
+use Folklore\Panneau\Support\Interfaces\HasReducerGetter;
+use Folklore\Panneau\Support\Interfaces\HasReducerSetter;
+use Folklore\Panneau\Support\Interfaces\HasReducerSaving;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Fluent;
 use StdClass;
@@ -28,6 +31,12 @@ trait HasFieldsSchema
     protected static $defaultSchema;
 
     protected static $defaultSchemaName = 'default';
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->appends[] = 'fieldsSchema';
+    }
 
     public static function bootHasFieldsSchema()
     {
@@ -89,10 +98,14 @@ trait HasFieldsSchema
         return app('panneau')->addSchemas($schemas, static::class);
     }
 
-    public function __construct(array $attributes = [])
+    public static function addReducer($name, $reducer)
     {
-        parent::__construct($attributes);
-        $this->appends[] = 'fieldsSchema';
+        return app('panneau')->addReducer($name, $reducer, static::class);
+    }
+
+    public static function addReducers($reducers)
+    {
+        return app('panneau')->addReducers($reducers, static::class);
     }
 
     protected function getFieldsSchemaAttribute()
@@ -161,10 +174,10 @@ trait HasFieldsSchema
     protected function fieldsCollection($key = null, $data = null)
     {
         $schema = $this->getSchema();
-        $structure = $schema->getStructure();
+        $nodes = $schema->getNodes();
 
         $fields = new FieldsCollection();
-        foreach ($structure as $path => $field) {
+        foreach ($nodes as $path => $field) {
             $pathParts = explode('.', $path);
             if (!is_null($key) && !array_shift($pathParts) === $key) {
                 continue;
@@ -380,9 +393,9 @@ trait HasFieldsSchema
     public function getAttribute($key)
     {
         if ($this->attributeIsField($key)) {
-            return $this->getFieldValue($key);
+            return $this->callFieldReducersGet($key);
         } elseif ($this->attributeIsFieldAppend($key)) {
-            return $this->getFieldAppendValue($key);
+            return $this->getFieldAppendValue($key); // @TODO needs alteration ?
         }
         return parent::getAttribute($key);
     }
@@ -397,8 +410,8 @@ trait HasFieldsSchema
     public function setAttribute($key, $value)
     {
         if ($this->attributeIsField($key)) {
-            $this->fieldsAttributes()->set($key, new FieldValue($value));
-            return $this;
+            $this->attributes[$key] = $this->callFieldReducersSet($key, $value);
+            return this;
         }
         return parent::setAttribute($key, $value);
     }
@@ -424,5 +437,45 @@ trait HasFieldsSchema
         // @TODO Remove toArray(true) and do a special case only when json
         // null column in db results in empty array; we want an empty object
         return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
+    }
+
+    public function callFieldReducersGet($name)
+    {
+        $state = $this->attributes[$name];
+        $reducers = $this->getReducers($name);
+        foreach ($reducers as $reducer) {
+            if ($reducer instanceof HasReducerGetter) {
+                $state = $reducer->get($this, $name, $state);
+            }
+        }
+        return $state;
+    }
+
+    // $state = $this->attributes[$name];
+    // $schema = $this->getSchema();
+    // $nodes = $schema->getNodes($name);
+    // $reducers = $this->getReducers($name);
+    // foreach($nodes as $node) {
+    //     foreach($reducers as $reducer) {
+    //         $state = call_user_func_array($reducer, [$this, $node, $state]);
+    //     }
+    // }
+    // return $state;
+    public function callFieldReducersSet($name, $value)
+    {
+        $state = $value;
+        $reducers = $this->getReducers($name);
+        foreach ($reducers as $reducer) {
+            if ($reducer instanceof HasReducerSetter) {
+                $state = $reducer->set($this, $name, $state);
+            }
+        }
+        return $state;
+    }
+
+    public function callFieldReducersSave($name)
+    {
+        // @TODO
+        throw new Error('not implemented yet');
     }
 }

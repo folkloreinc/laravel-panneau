@@ -240,7 +240,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
                     'type' => $propertySchema->getName(),
                     'schema' => $propertySchema,
                 ];
-                $structure = array_merge($structure, $propertySchema->getStructure($propertyPath));
+                $structure = array_merge($structure, $propertySchema->getNodes($propertyPath));
             } else {
                 $structure[$propertyPath] = [
                     'type' => array_get($propertySchema, 'type'),

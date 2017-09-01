@@ -4,11 +4,11 @@ namespace Folklore\Panneau\Support\Traits;
 
 trait HasPagesFields
 {
-    // public static function bootHasPagesFields()
-    // {
-    //     static::addReducer([static::class, 'reducePages']);
-    // }
-    //
+    public static function bootHasPagesFields()
+    {
+        static::addReducer([static::class, 'reducePages']);
+    }
+    
     // //
     // $fields = $shema->getFieldsNames();
     // foreach($fields as $name) {

@@ -8,6 +8,7 @@ class HasFieldsSchemaObserver
 {
     public function saving(HasFieldsSchemaInterface $model)
     {
+        // @TODO $this->callFieldsReducersSaving();
         $model->validateFieldsAgainstSchema();
         $model->prepareFieldsForSaving();
     }
