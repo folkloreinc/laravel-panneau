@@ -247,7 +247,6 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
                 ];
             }
         }
-
         return $structure;
     }
 

@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Support\Reducers;
 
-use Folklore\Panneau\Models\Page;
+// use Folklore\Panneau\Models\Page;
 
-class PagesReducer extends RelationsReducer
+class MediasReducer extends RelationsReducer
 {
     public function get($model, $node, $state)
     {
