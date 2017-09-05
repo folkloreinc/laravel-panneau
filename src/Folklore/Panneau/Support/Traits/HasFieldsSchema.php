@@ -93,9 +93,12 @@ trait HasFieldsSchema
         return app('panneau')->schema($name, static::class);
     }
 
-    public static function reducer($name)
+    public static function hasReducers($name = null)
     {
-        return app('panneau')->reducer($name, static::class);
+        if (is_null($name)) {
+            return false;
+        }
+        return app('panneau')->hasReducers($name, static::class);
     }
 
     public static function addSchema($name, $schema)
@@ -146,11 +149,6 @@ trait HasFieldsSchema
             }
         }
         return static::schema($name);
-    }
-
-    public function getReducer($name)
-    {
-        return static::reducer($name);
     }
 
     public function getReducers($name)
@@ -343,6 +341,11 @@ trait HasFieldsSchema
      */
     public function getFieldValue($key)
     {
+        if ($this->hasReducers($key)) {
+            return $this->callFieldReducersGet($key, $this->attributes[$key]);
+        }
+
+        // @TODO checkpoint
         $fieldsAttributes = $this->fieldsAttributes();
         if (isset($fieldsAttributes[$key])) {
             return $fieldsAttributes[$key];
@@ -413,7 +416,7 @@ trait HasFieldsSchema
     public function getAttribute($key)
     {
         if ($this->attributeIsField($key)) {
-            return $this->callFieldReducersGet($key);
+            return $this->getFieldValue($key);
         } elseif ($this->attributeIsFieldAppend($key)) {
             return $this->getFieldAppendValue($key); // @TODO needs alteration ?
         }
@@ -459,43 +462,34 @@ trait HasFieldsSchema
         return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
     }
 
-    public function callFieldReducersGet($name)
+    public function callFieldReducersGet($name, $state)
     {
-        $state = $this->attributes[$name];
+        $schema = $this->getSchema();
+        $nodes = $schema->getNodes(); // @TODO $name param is just prepended ?
         $reducers = $this->getReducers($name);
-        foreach ($reducers as $reducer) {
-            if ($reducer instanceof HasReducerGetter) {
-                $state = $reducer->get($this, $name, $state);
+        foreach ($nodes as $path => $node) {
+            foreach ($reducers as $reducer) {
+                if ($reducer instanceof HasReducerGetter) {
+                    $state = $reducer->get($this, $path, $node, $state);
+                }
             }
         }
-        return $state;
     }
 
-    // $state = $this->attributes[$name];
-    // $schema = $this->getSchema();
-    // $nodes = $schema->getNodes($name);
-    // $reducers = $this->getReducers($name);
-    // foreach($nodes as $node) {
-    //     foreach($reducers as $reducer) {
-    //         $state = call_user_func_array($reducer, [$this, $node, $state]);
+    // public function callFieldReducersSet($name, $state)
+    // {
+    //     $reducers = $this->getReducers($name);
+    //     foreach ($reducers as $reducer) {
+    //         if ($reducer instanceof HasReducerSetter) {
+    //             $state = $reducer->set($this, $name, $state);
+    //         }
     //     }
+    //     return $state;
     // }
-    // return $state;
-    public function callFieldReducersSet($name, $value)
-    {
-        $state = $value;
-        $reducers = $this->getReducers($name);
-        foreach ($reducers as $reducer) {
-            if ($reducer instanceof HasReducerSetter) {
-                $state = $reducer->set($this, $name, $state);
-            }
-        }
-        return $state;
-    }
 
-    public function callFieldReducersSave($name)
-    {
-        // @TODO
-        throw new Error('not implemented yet');
-    }
+    // public function callFieldReducersSave($name)
+    // {
+    //     // @TODO
+    //     throw new Error('not implemented yet');
+    // }
 }

@@ -2,8 +2,15 @@
 
 namespace Folklore\Panneau\Support\Traits;
 
+use Folklore\Panneau\Support\Reducers\BlocksReducer;
+
 trait HasBlocksFields
 {
+    public static function bootHasBlocksFields()
+    {
+        static::addReducer('blocks', BlocksReducer::class);
+    }
+
     protected function prepareBlocksField($path, $value, $field)
     {
         return $this->prepareRelationsField('blocks', $path, $value, $field);
@@ -38,4 +45,10 @@ trait HasBlocksFields
     {
         return true;
     }
+
+    // test
+    // protected function getBlocksRelationItemFromId($relation, $id)
+    // {
+    //     dump($relation, $id);
+    // }
 }
