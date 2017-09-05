@@ -159,29 +159,6 @@ trait HasFieldsSchema
         return static::reducers();
     }
 
-    protected function getFieldRealPaths($path, $data = null)
-    {
-        if (sizeof(explode('*', $path)) <= 1) {
-            return new Collection((array)$path);
-        }
-        if (is_null($data)) {
-            $data = $this->toArray();
-        }
-        $dataArray = json_decode(json_encode($data), true);
-        $dotKeys = array_keys(array_dot($dataArray));
-        $matchingKeys = [];
-        $pattern = !empty($path) && $path !== '*' ?
-            '/^('.str_replace('\*', '[^\.]+', preg_quote($path)).')/' : '/^(.*)/';
-        foreach ($dotKeys as $dotKey) {
-            if (preg_match($pattern, $dotKey, $matches)) {
-                if (!in_array($matches[1], $matchingKeys)) {
-                    $matchingKeys[] = $matches[1];
-                }
-            }
-        }
-        return new Collection($matchingKeys);
-    }
-
     protected function fieldsCollection($key = null, $data = null)
     {
         $schema = $this->getSchema();
@@ -438,7 +415,7 @@ trait HasFieldsSchema
         return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
             foreach ($reducers as $reducer) {
                 if ($reducer instanceof HasReducerGetter) {
-                    $state = $reducer->get($this, $node, $state);
+                    $state = $reducer->get($this, $node, $state); // @TODO will $this here have proper scope ?
                 }
             }
             return $state;

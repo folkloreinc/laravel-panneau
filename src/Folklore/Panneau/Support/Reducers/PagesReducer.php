@@ -25,8 +25,4 @@ class PagesReducer extends RelationsReducer
         // }
         return $state;
     }
-
-    // public function save($model, $node, $state)
-    // {
-    // }
 }

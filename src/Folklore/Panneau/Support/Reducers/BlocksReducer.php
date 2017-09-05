@@ -6,7 +6,7 @@ use Folklore\Panneau\Models\Block;
 
 class BlocksReducer extends RelationsReducer
 {
-    public function get($model, $path, $node, $state)
+    public function get($model, $node, $state)
     {
         // {
         //     path: 'pictures',
@@ -39,7 +39,7 @@ class BlocksReducer extends RelationsReducer
         return $state;
     }
 
-    public function set($model, $path, $node, $state)
+    public function set($model, $node, $state)
     {
 
         // switch ($node->type) {
