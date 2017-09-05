@@ -59,6 +59,40 @@ trait HasFieldsSchema
         return static::$defaultSchemaName;
     }
 
+    public function setSchema($schema)
+    {
+        $this->fieldsSchema = $schema;
+    }
+
+    public function getSchema()
+    {
+        if (isset($this->fieldsSchema)) {
+            return $this->fieldsSchema;
+        }
+
+        $name = $this->getSchemaName();
+        if (is_null($name)) {
+            try {
+                return static::schema($name);
+            } catch (Exception $e) {
+                return null;
+            }
+        }
+        return static::schema($name);
+    }
+
+    public function getSchemaName()
+    {
+        $columnName = method_exists($this, 'getSchemaNameColumn') ?
+            $this->getSchemaNameColumn() : $this->schemaNameColumn;
+        return isset($this->attributes[$columnName]) ? $this->attributes[$columnName] : null;
+    }
+
+    public function setSchemaNameColumn($column)
+    {
+        $this->schemaNameColumn = $column;
+    }
+
     public static function schemas()
     {
         return app('panneau')->schemas(static::class);
@@ -120,43 +154,9 @@ trait HasFieldsSchema
         return !is_null($schema) ? $schema->toArray() : null;
     }
 
-    public function getSchemaName()
-    {
-        $columnName = method_exists($this, 'getSchemaNameColumn') ?
-            $this->getSchemaNameColumn() : $this->schemaNameColumn;
-        return isset($this->attributes[$columnName]) ? $this->attributes[$columnName] : null;
-    }
-
-    public function getSchema()
-    {
-        if (isset($this->fieldsSchema)) {
-            return $this->fieldsSchema;
-        }
-
-        $name = $this->getSchemaName();
-        if (is_null($name)) {
-            try {
-                return static::schema($name);
-            } catch (Exception $e) {
-                return null;
-            }
-        }
-        return static::schema($name);
-    }
-
     public function getReducers()
     {
         return static::reducers();
-    }
-
-    public function setSchema($schema)
-    {
-        $this->fieldsSchema = $schema;
-    }
-
-    public function setSchemaNameColumn($column)
-    {
-        $this->schemaNameColumn = $column;
     }
 
     protected function getFieldRealPaths($path, $data = null)
@@ -262,6 +262,28 @@ trait HasFieldsSchema
 
         $this->fieldsAttributesForSaving = null;
         $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
+    }
+
+    /**
+     * Apply saving reducers on a given attribute.
+     *
+     * @param  string $name
+     * @param  mixed $state
+     * @return mixed
+     */
+    protected function callFieldReducersSave($name, $state)
+    {
+        $reducers = $this->getReducers();
+        $schema = $this->getSchema();
+        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
+        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
+            foreach ($reducers as $reducer) {
+                if ($reducer instanceof HasReducerSaving) {
+                    $state = $reducer->save($this, $node, $state);
+                }
+            }
+            return $state;
+        }, $state);
     }
 
     /**
@@ -402,6 +424,28 @@ trait HasFieldsSchema
     }
 
     /**
+     * Apply all getter reducers on a given attribute.
+     *
+     * @param  string $name
+     * @param  mixed $state
+     * @return mixed
+     */
+    protected function callFieldReducersGet($name, $state)
+    {
+        $reducers = $this->getReducers();
+        $schema = $this->getSchema();
+        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
+        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
+            foreach ($reducers as $reducer) {
+                if ($reducer instanceof HasReducerGetter) {
+                    $state = $reducer->get($this, $node, $state);
+                }
+            }
+            return $state;
+        }, $state);
+    }
+
+    /**
      * Set a given attribute on the model.
      *
      * @param  string  $key
@@ -414,6 +458,28 @@ trait HasFieldsSchema
             $value = $this->callFieldReducersSet($key, $value);
         }
         return parent::setAttribute($key, $value);
+    }
+
+    /**
+     * Apply all setter reducers on a given attribute.
+     *
+     * @param  string $name
+     * @param  mixed $state
+     * @return mixed
+     */
+    protected function callFieldReducersSet($name, $state)
+    {
+        $reducers = $this->getReducers();
+        $schema = $this->getSchema();
+        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
+        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
+            foreach ($reducers as $reducer) {
+                if ($reducer instanceof HasReducerSetter) {
+                    $state = $reducer->set($this, $node, $state);
+                }
+            }
+            return $state;
+        }, $state);
     }
 
     /**
@@ -437,63 +503,5 @@ trait HasFieldsSchema
         // @TODO Remove toArray(true) and do a special case only when json
         // null column in db results in empty array; we want an empty object
         return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
-    }
-
-    protected function callFieldReducersGet($name, $state)
-    {
-        $reducers = $this->getReducers();
-        $schema = $this->getSchema();
-        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
-        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
-            foreach ($reducers as $reducer) {
-                if ($reducer instanceof HasReducerGetter) {
-                    $state = $reducer->get($this, $node, $state);
-                }
-            }
-            return $state;
-        }, $state);
-
-        // $reducers = $this->getReducers();
-        // $this->fieldsCollection($name, $state)
-        //     ->eachPath(function ($path, $key, $node) use ($reducers, $state) {
-        //         $node->path = $path;
-        //         foreach ($reducers as $reducer) {
-        //             if ($reducer instanceof HasReducerGetter) {
-        //                 $state = $reducer->get($this, $node, $state);
-        //             }
-        //         }
-        //     });
-        //
-        // return $state;
-    }
-
-    protected function callFieldReducersSet($name, $state)
-    {
-        $reducers = $this->getReducers();
-        $schema = $this->getSchema();
-        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
-        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
-            foreach ($reducers as $reducer) {
-                if ($reducer instanceof HasReducerSetter) {
-                    $state = $reducer->set($this, $node, $state);
-                }
-            }
-            return $state;
-        }, $state);
-    }
-
-    protected function callFieldReducersSave($name, $state)
-    {
-        $reducers = $this->getReducers();
-        $schema = $this->getSchema();
-        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
-        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
-            foreach ($reducers as $reducer) {
-                if ($reducer instanceof HasReducerSaving) {
-                    $state = $reducer->save($this, $node, $state);
-                }
-            }
-            return $state;
-        }, $state);
     }
 }
