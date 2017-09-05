@@ -10,7 +10,7 @@ class SchemaNodesCollection extends Collection
     {
         return $this->reduce(function ($collection, $node) use ($data) {
             $paths = $this->getFieldRealPaths($node->path, $data);
-            foreach ($path as $path) {
+            foreach ($paths as $path) {
                 $newNode = new SchemaNode();
                 $newNode->path = $path;
                 $newNode->type = $node->type;

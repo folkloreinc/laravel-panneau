@@ -215,7 +215,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         return $this;
     }
 
-    public function getNodes($path = null)
+    public function getNodes($path = null, $asCollection = true)
     {
         $type = $this->getType();
         $structure = [];
@@ -236,16 +236,21 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         foreach ($properties as $name => $propertySchema) {
             $propertyPath = empty($path) ? $name : ($path.'.'.$name);
             if ($propertySchema instanceof SchemaContract) {
-                $structure[$propertyPath] = [
-                    'type' => $propertySchema->getName(),
-                    'schema' => $propertySchema,
-                ];
-                $structure = array_merge($structure, $propertySchema->getNodes($propertyPath));
+                $schemaNode = new SchemaNode();
+                $schemaNode->type = $propertySchema->getName();
+                $schemaNode->schema = $propertySchema;
+                $schemaNode->path = $propertyPath;
+
+                $structure[$propertyPath] = $schemaNode;
+                $structure = array_merge($structure, $propertySchema->getNodes($propertyPath, false));
             } else {
                 $structure[$propertyPath] = [
                     'type' => array_get($propertySchema, 'type'),
                 ];
             }
+        }
+        if ($asCollection) {
+            return new SchemaNodesCollection($structure);
         }
         return $structure;
     }
