@@ -68,6 +68,11 @@ trait HasFieldsSchema
         return app('panneau')->schemas(static::class);
     }
 
+    public static function reducers($name)
+    {
+        return app('panneau')->reducers($name, static::class);
+    }
+
     public static function hasSchema($name = null)
     {
         if (is_null($name)) {
@@ -86,6 +91,11 @@ trait HasFieldsSchema
             $name = static::getDefaultSchemaName();
         }
         return app('panneau')->schema($name, static::class);
+    }
+
+    public static function reducer($name)
+    {
+        return app('panneau')->reducer($name, static::class);
     }
 
     public static function addSchema($name, $schema)
@@ -136,6 +146,16 @@ trait HasFieldsSchema
             }
         }
         return static::schema($name);
+    }
+
+    public function getReducer($name)
+    {
+        return static::reducer($name);
+    }
+
+    public function getReducers($name)
+    {
+        return static::reducers($name);
     }
 
     public function setSchema($schema)

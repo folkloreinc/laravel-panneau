@@ -2,13 +2,15 @@
 
 namespace Folklore\Panneau\Support\Traits;
 
+use Folklore\Panneau\Support\Reducers\PageReducer;
+
 trait HasPagesFields
 {
     public static function bootHasPagesFields()
     {
-        static::addReducer([static::class, 'reducePages']);
+        static::addReducer('pages', PageReducer::class);
     }
-    
+
     // //
     // $fields = $shema->getFieldsNames();
     // foreach($fields as $name) {
