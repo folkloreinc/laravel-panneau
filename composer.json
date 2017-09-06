@@ -40,7 +40,8 @@
   },
   "autoload": {
     "classmap": [
-      "tests/"
+      "tests/",
+      "src/migrations/"
     ],
     "psr-0": {
       "Folklore\\Panneau": "src/"

@@ -2,9 +2,8 @@
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Migrations\Migration;
 
-class CreatePanneauPagesPagesPivotTable extends Migration
+class CreatePanneauPagesPagesPivotTable extends PanneauMigration
 {
     /**
      * Run the migrations.
