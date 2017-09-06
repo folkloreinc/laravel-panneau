@@ -424,7 +424,12 @@ trait HasFieldsSchema
         }
         $reducers = $this->getReducers();
         $schema = $this->getSchema();
-        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
+        $data = [];
+        $data[$name] = $state;
+        $nodesCollection = $schema->getNodes()->makeFromData($data)->map(function ($node) use ($name) {
+            $node->path = str_replace($name.'.', '', $node->path);
+            return $node;
+        });
         return $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {
             foreach ($reducers as $reducer) {
                 if ($reducer instanceof $reducerInterface) {

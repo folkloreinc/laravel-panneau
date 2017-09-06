@@ -1,22 +1,72 @@
 <?php
 
+use Folklore\Panneau\Models\Page as PageModel;
 use Folklore\Panneau\Schemas\Page as PageSchema;
+use Illuminate\Support\Facades\DB;
 
 /**
  */
 class ReducersTest extends TestCase
 {
-    public function testReducersGet()
+    public function setUp()
     {
-        // setRawAttribute()
+        parent::setUp();
 
+        $this->artisan('migrate', ['--database' => 'testing']);
     }
 
-    public function testReducers()
+    public function testReducersGet()
     {
+        DB::table('panneau_pages')->insert([
+            'id' => 1,
+            'data' => json_encode([
+                'type' => 'text',
+                'data' => [
+                    'title' => 'Sub page',
+                ]
+            ])
+        ]);
+        DB::table('panneau_blocks')->insert([
+            'id' => 1,
+            'data' => json_encode([
+                'type' => 'text',
+                'data' => [
+                    'title' => '11111',
+                    'description' => 'Lorem ipsum dolor sit amet consectuet'
+                ]
+            ])
+        ]);
+        DB::table('panneau_blocks')->insert([
+            'id' => 2,
+            'data' => json_encode([
+                'type' => 'text',
+                'data' => [
+                    'title' => '22222',
+                    'description' => 'Lorem ipsum dolor sit amet consectuet'
+                ]
+            ])
+        ]);
 
+        $sourceData = [
+            'type' => 'hub',
+            'title' => 'My test title',
+            'pages' => [
+                1
+            ],
+            'blocks' => [
+                1,
+                2,
+            ]
+        ];
+        $jsonData = json_encode($sourceData);
+        $model = new PageModel();
+        $model->setRawAttributes(['data' => $jsonData]);
+        dd('------', 'test end', $model->data);
+    }
 
-        $data = [
+    public function _testReducers()
+    {
+        $sourceData = [
             'data' => [
                 'title' => 'My test title',
                 'blocks' => [
@@ -43,13 +93,8 @@ class ReducersTest extends TestCase
                 ]
             ]
         ];
-
         $schema = new PageSchema();
-
-        $nodes = $schema->getNodes()->makeFromData($data);
-
-
-
+        $nodes = $schema->getNodes()->makeFromData($sourceData);
         dd($nodes);
     }
 }
