@@ -215,10 +215,11 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         return $this;
     }
 
-    public function getNodes($path = null, $asCollection = true)
+    public function getNodes($path = null)
     {
         $type = $this->getType();
-        $structure = [];
+        $nodes = new SchemaNodesCollection();
+
         $properties = [];
         if ($type === 'object') {
             $properties = $this->getProperties();
@@ -241,18 +242,18 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
                 $schemaNode->schema = $propertySchema;
                 $schemaNode->path = $propertyPath;
 
-                $structure[$propertyPath] = $schemaNode;
-                $structure = array_merge($structure, $propertySchema->getNodes($propertyPath, false));
+                $nodes->push($schemaNode);
+                $nodes = $nodes->merge($propertySchema->getNodes($propertyPath));
             } else {
-                $structure[$propertyPath] = [
-                    'type' => array_get($propertySchema, 'type'),
-                ];
+                $schemaNode = new SchemaNode();
+                $schemaNode->type = array_get($propertySchema, 'type');
+                $schemaNode->path = $propertyPath;
+
+                $nodes->push($schemaNode);
             }
         }
-        if ($asCollection) {
-            return new SchemaNodesCollection($structure);
-        }
-        return $structure;
+
+        return $nodes;
     }
 
     public function toArray()
