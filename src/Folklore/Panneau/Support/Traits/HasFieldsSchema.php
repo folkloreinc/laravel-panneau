@@ -404,24 +404,31 @@ trait HasFieldsSchema
     protected function callFieldReducers($mode, $name, $state)
     {
         $reducerInterface = null;
+        $reducerMethod = null;
         switch ($mode) {
             case 'get':
-                $reducerInterface = HasReducerGetter;
+                $reducerInterface = HasReducerGetter::class;
+                $reducerMethod = 'get';
                 break;
             case 'set':
-                $reducerInterface = HasReducerSetter;
+                $reducerInterface = HasReducerSetter::class;
+                $reducerMethod = 'set';
                 break;
             case 'save':
-                $reducerInterface = HasReducerSaving;
+                $reducerInterface = HasReducerSaving::class;
+                $reducerMethod = 'save';
+                break;
+            default:
+                throw new \Exception("Unknown mode $mode");
                 break;
         }
         $reducers = $this->getReducers();
         $schema = $this->getSchema();
         $nodesCollection = $schema->getNodes($name)->makeFromData($state);
-        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
+        return $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {
             foreach ($reducers as $reducer) {
-                if (!is_null($reducerInterface) && $reducer instanceof $reducerInterface) {
-                    $state = $reducer->set($this, $node, $state);
+                if ($reducer instanceof $reducerInterface) {
+                    $state = $reducer->{$reducerMethod}($this, $node, $state);
                 } elseif (is_callable($reducer)) {
                     $state = call_user_func_array($reducer, [$this, $node, $state]);
                 }
