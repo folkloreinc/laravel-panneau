@@ -163,6 +163,7 @@ trait HasFieldsSchema
     {
         $schema = $this->getSchema();
         $nodes = $schema->getNodes();
+        $nodesFromData = $nodes->makeFromData($data);
 
         $fields = new FieldsCollection();
         foreach ($nodes as $path => $field) {
@@ -173,7 +174,7 @@ trait HasFieldsSchema
             $path = implode('.', $pathParts);
             $field = new Fluent($field);
             $field->path = $path;
-            $field->paths = $this->getFieldRealPaths($path, $data);
+            $field->paths = $nodesFromData; // @TODO change $nodesFromData, testing
             $fields->push($field);
         }
         return $fields;
@@ -262,10 +263,10 @@ trait HasFieldsSchema
             $fieldValue = new FieldValue($attributeValue);
 
             $this->fieldsCollection($attributeKey, $attributeValue)
-                ->eachPath(function ($path, $key, $field) use ($attributeKey, $fieldValue) {
-                    $fullPath = $attributeKey.'.'.$path;
+                ->eachPath(function ($node, $key, $field) use ($attributeKey, $fieldValue) {
+                    $fullPath = $attributeKey.'.'.$node->path;
                     $schema = $field->schema;
-                    $value = $fieldValue->get($path);
+                    $value = $fieldValue->get($node->path);
                     $getMethod = 'get'.studly_case($field->type).'Field';
                     if (method_exists($this, $getMethod)) {
                         $returnValue = $this->{$getMethod}($fullPath, $value, $fieldValue, $field);
@@ -273,7 +274,7 @@ trait HasFieldsSchema
                         $returnValue = $schema->getField($fullPath, $value, $fieldValue, $field, $this);
                     }
                     if (isset($returnValue)) {
-                        $fieldValue->set($path, $returnValue);
+                        $fieldValue->set($node->path, $returnValue);
                     }
                 });
 
@@ -331,7 +332,7 @@ trait HasFieldsSchema
                 break;
             }
         }
-        return !is_null($path) ? $this->fieldsAttributes()->get($path) : null;
+        return !is_null($path) ? $this->getFieldsFromAttributes($this->attributes)->get($path) : null;
     }
 
     /**
@@ -426,8 +427,8 @@ trait HasFieldsSchema
         $schema = $this->getSchema();
         $data = [];
         $data[$name] = $state;
-        $nodesCollection = $schema->getNodes()->makeFromData($data)->map(function ($node) use ($name) {
-            $node->path = str_replace($name.'.', '', $node->path);
+        $nodesCollection = $schema->getNodes($name)->makeFromData($data)->map(function ($node) use ($name) {
+            $node->path = preg_replace('/^'.$name.'\./', '', $node->path);
             return $node;
         });
         return $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {
@@ -453,15 +454,16 @@ trait HasFieldsSchema
 
         $appendsAttributes = [];
         foreach ($this->getFieldsAppends() as $key => $path) {
+            dump($key, $path);
             if (is_numeric($key)) {
-                $appendsAttributes[$path] = $this->fieldsAttributes()->get($path);
+                $appendsAttributes[$path] = $this->getFieldsFromAttributes($this->attributes)->get($path);
             } else {
-                $appendsAttributes[$key] = $this->fieldsAttributes()->get($path);
+                $appendsAttributes[$key] = $this->getFieldsFromAttributes($this->attributes)->get($path);
             }
         }
 
         // @TODO Remove toArray(true) and do a special case only when json
         // null column in db results in empty array; we want an empty object
-        return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
+        return array_merge($attributes, $this->getFieldsFromAttributes($this->attributes)->toArray(true), $appendsAttributes);
     }
 }

@@ -20,9 +20,10 @@ class ReducersTest extends TestCase
         DB::table('panneau_pages')->insert([
             'id' => 1,
             'data' => json_encode([
-                'type' => 'text',
+                'type' => 'hub',
                 'data' => [
-                    'title' => 'Sub page',
+                    'title' => 'Hub page',
+                    'slug' => 'hub-page',
                 ]
             ])
         ]);
@@ -49,13 +50,14 @@ class ReducersTest extends TestCase
 
         $sourceData = [
             'type' => 'hub',
-            'title' => 'My test title',
-            'pages' => [
-                1
-            ],
-            'blocks' => [
-                1,
-                2,
+            'data' => [
+                'title' => 'My test title',
+                'slug' => 'my-test-title',
+                'parent' => 1,
+                'blocks' => [
+                    1,
+                    2,
+                ]
             ]
         ];
         $jsonData = json_encode($sourceData);
