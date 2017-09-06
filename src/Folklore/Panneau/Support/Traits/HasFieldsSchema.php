@@ -454,7 +454,6 @@ trait HasFieldsSchema
 
         $appendsAttributes = [];
         foreach ($this->getFieldsAppends() as $key => $path) {
-            dump($key, $path);
             if (is_numeric($key)) {
                 $appendsAttributes[$path] = $this->getFieldsFromAttributes($this->attributes)->get($path);
             } else {
