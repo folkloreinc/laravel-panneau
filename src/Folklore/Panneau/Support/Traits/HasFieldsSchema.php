@@ -193,7 +193,8 @@ trait HasFieldsSchema
 
     public function prepareFieldsForSaving()
     {
-        $this->fieldsAttributesForSaving = clone $this->fieldsAttributes();
+        $fieldsAttributes = $this->fieldsAttributes();
+        $this->fieldsAttributesForSaving = clone $fieldsAttributes;
 
         $this->fieldsCollection()
             ->eachPath(function ($path, $key, $field) {

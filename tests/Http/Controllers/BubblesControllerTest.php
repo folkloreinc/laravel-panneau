@@ -12,7 +12,10 @@ class BubblesControllerTest extends TestCase
     {
         parent::setUp();
 
-        $this->artisan('migrate', ['--database' => 'testing']);
+        $this->artisan('migrate', [
+            '--database' => 'testing',
+            '--path' => realpath(__DIR__.'/../../src/migrations')
+        ]);
     }
 
     /**

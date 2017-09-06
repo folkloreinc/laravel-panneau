@@ -205,6 +205,6 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
 
     public function __clone()
     {
-        return new self($this->attributes);
+        $this->setValue($this->attributes);
     }
 }
