@@ -7,6 +7,8 @@ use Folklore\Mediatheque\Models\Picture;
 
 class BubbleTest extends TestCase
 {
+    use RunMigrationsTrait;
+
     protected $schema;
 
     protected $mediasSchema;
@@ -14,11 +16,8 @@ class BubbleTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-
-        $this->artisan('migrate', [
-            '--database' => 'testing',
-            '--path' => realpath(__DIR__.'/../src/migrations')
-        ]);
+        
+        $this->runMigrations();
 
         $this->schema = new FieldsSchema([
             'fields' => [

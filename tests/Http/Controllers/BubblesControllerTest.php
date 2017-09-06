@@ -8,14 +8,12 @@ use Folklore\Panneau\Models\Bubble;
  */
 class BubblesControllerTest extends TestCase
 {
+    use RunMigrationsTrait;
+
     public function setUp()
     {
         parent::setUp();
-
-        $this->artisan('migrate', [
-            '--database' => 'testing',
-            '--path' => realpath(__DIR__.'/../../src/migrations')
-        ]);
+        $this->runMigrations();
     }
 
     /**

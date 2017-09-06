@@ -12,6 +12,8 @@ use Folklore\Panneau\Schemas\Fields\Documents as DocumentsField;
 
 class PageTest extends TestCase
 {
+    use RunMigrationsTrait;
+
     protected $schema;
 
     protected $mediasSchema;
@@ -19,11 +21,8 @@ class PageTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-
-        $this->artisan('migrate', [
-            '--database' => 'testing',
-            '--path' => realpath(__DIR__.'/../src/migrations')
-        ]);
+        
+        $this->runMigrations();
 
         $this->schema = new PageSchema();
 
