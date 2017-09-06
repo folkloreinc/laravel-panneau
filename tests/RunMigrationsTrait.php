@@ -12,7 +12,10 @@ trait RunMigrationsTrait
             ]);
         }
 
-        $migrator->run($this->getMigrationPaths());
+        $paths = $this->getMigrationPaths();
+        foreach ($paths as $path) {
+            $migrator->run($path);
+        }
 
         $this->beforeApplicationDestroyed(function () {
             $this->rollbackMigrations();
@@ -22,7 +25,7 @@ trait RunMigrationsTrait
     public function rollbackMigrations()
     {
         $migrator = $this->getMigrator();
-        $migrator->rollback($this->getMigrationPaths());
+        $migrator->reset();
     }
 
     protected function getMigrator()
