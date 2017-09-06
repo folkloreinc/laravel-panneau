@@ -1,15 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Migrations\Migration;
+namespace Folklore\Panneau\Support;
 
-class PanneauMigration extends Migration
+use Illuminate\Database\Migrations\Migration as BaseMigration;
+use Illuminate\Support\Facades\DB;
+use PDO;
+
+class Migration extends BaseMigration
 {
     protected function supportsJSON()
     {
-        $supportsJSON = env('PANNEAU_MYSQL_SUPPORTS_JSON', null);
-        if (!is_null($supportsJSON)) {
+        $supportsJSON = config('panneau.migrations_supports_json', 'detect');
+        if ($supportsJSON !== 'detect') {
             return $supportsJSON;
         }
         $pdo = DB::connection()->getPdo();

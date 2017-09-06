@@ -42,11 +42,17 @@ class PanneauServiceProvider extends ServiceProvider
         // Config
         $this->mergeConfigFrom($configPath, 'panneau');
 
-        // Migrations
-        $this->loadMigrationsFrom($migrationsPath);
-
         // Views
         $this->loadViewsFrom($viewsPath, 'panneau');
+
+        // Migrations
+        if (method_exists($this, 'loadMigrationsFrom')) {
+            $this->loadMigrationsFrom($migrationsPath);
+        } else {
+            $this->publishes([
+                $migrationsPath => base_path('database/migrations')
+            ], 'migrations');
+        }
 
         // Publish
         $this->publishes([

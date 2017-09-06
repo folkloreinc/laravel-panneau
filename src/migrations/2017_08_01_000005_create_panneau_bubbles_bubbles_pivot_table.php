@@ -2,8 +2,9 @@
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
+use Folklore\Panneau\Support\Migration;
 
-class CreatePanneauBubblesBubblesPivotTable extends PanneauMigration
+class CreatePanneauBubblesBubblesPivotTable extends Migration
 {
     /**
      * Run the migrations.
