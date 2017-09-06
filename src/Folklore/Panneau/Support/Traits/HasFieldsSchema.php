@@ -242,28 +242,6 @@ trait HasFieldsSchema
     }
 
     /**
-     * Apply saving reducers on a given attribute.
-     *
-     * @param  string $name
-     * @param  mixed $state
-     * @return mixed
-     */
-    protected function callFieldReducersSave($name, $state)
-    {
-        $reducers = $this->getReducers();
-        $schema = $this->getSchema();
-        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
-        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
-            foreach ($reducers as $reducer) {
-                if ($reducer instanceof HasReducerSaving) {
-                    $state = $reducer->save($this, $node, $state);
-                }
-            }
-            return $state;
-        }, $state);
-    }
-
-    /**
      * Get the fields in attributes according to the schema and accessors methods
      *
      * @param  array  $attributes
@@ -334,7 +312,7 @@ trait HasFieldsSchema
     public function getFieldValue($key)
     {
         $state = $this->getAttributeValue($key);
-        return $this->callFieldReducersGet($key, $state);
+        return $this->callFieldReducers('get', $key, $state);
     }
 
     /**
@@ -401,28 +379,6 @@ trait HasFieldsSchema
     }
 
     /**
-     * Apply all getter reducers on a given attribute.
-     *
-     * @param  string $name
-     * @param  mixed $state
-     * @return mixed
-     */
-    protected function callFieldReducersGet($name, $state)
-    {
-        $reducers = $this->getReducers();
-        $schema = $this->getSchema();
-        $nodesCollection = $schema->getNodes($name)->makeFromData($state);
-        return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
-            foreach ($reducers as $reducer) {
-                if ($reducer instanceof HasReducerGetter) {
-                    $state = $reducer->get($this, $node, $state); // @TODO will $this here have proper scope ?
-                }
-            }
-            return $state;
-        }, $state);
-    }
-
-    /**
      * Set a given attribute on the model.
      *
      * @param  string  $key
@@ -432,27 +388,42 @@ trait HasFieldsSchema
     public function setAttribute($key, $value)
     {
         if ($this->attributeIsField($key)) {
-            $value = $this->callFieldReducersSet($key, $value);
+            $value = $this->callFieldReducers('set', $key, $value);
         }
         return parent::setAttribute($key, $value);
     }
 
     /**
-     * Apply all setter reducers on a given attribute.
+     * Apply all reducers on a given attribute.
      *
+     * @param  string $mode
      * @param  string $name
      * @param  mixed $state
      * @return mixed
      */
-    protected function callFieldReducersSet($name, $state)
+    protected function callFieldReducers($mode, $name, $state)
     {
+        $reducerInterface = null;
+        switch ($mode) {
+            case 'get':
+                $reducerInterface = HasReducerGetter;
+                break;
+            case 'set':
+                $reducerInterface = HasReducerSetter;
+                break;
+            case 'save':
+                $reducerInterface = HasReducerSaving;
+                break;
+        }
         $reducers = $this->getReducers();
         $schema = $this->getSchema();
         $nodesCollection = $schema->getNodes($name)->makeFromData($state);
         return $nodesCollection->reduce(function ($state, $node) use ($reducers) {
             foreach ($reducers as $reducer) {
-                if ($reducer instanceof HasReducerSetter) {
+                if (!is_null($reducerInterface) && $reducer instanceof $reducerInterface) {
                     $state = $reducer->set($this, $node, $state);
+                } elseif (is_callable($reducer)) {
+                    $state = call_user_func_array($reducer, [$this, $node, $state]);
                 }
             }
             return $state;

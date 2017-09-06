@@ -80,24 +80,21 @@ class Panneau
 
     public function addReducers($reducers, $namespace = 'global')
     {
-        foreach ($reducers as $name => $reducer) {
-            $this->addReducer($name, $reducer, $namespace);
+        foreach ($reducers as $reducer) {
+            $this->addReducer($reducer, $namespace);
         }
     }
 
-    public function addReducer($name, $reducer, $namespace = 'global')
+    public function addReducer($reducer, $namespace = 'global')
     {
         if (!isset($this->reducers[$namespace])) {
             $this->reducers[$namespace] = [];
         }
-        if (!isset($this->reducers[$namespace][$name])) {
-            $this->reducers[$namespace][$name] = [];
-        }
 
-        $this->reducers[$namespace][$name][] = $reducer;
+        $this->reducers[$namespace][] = $reducer;
     }
 
-    public function reducers($name, $namespace = 'global')
+    public function reducers($namespace = 'global')
     {
         if ($namespace === '*') {
             return $this->reducers;
@@ -108,15 +105,15 @@ class Panneau
         }
 
         $reducers = [];
-        foreach ($this->reducers[$namespace][$name] as $reducer) {
+        foreach ($this->reducers[$namespace] as $reducer) {
             $reducers[] = $this->getReducerAsObject($reducer);
         }
         return $reducers;
     }
 
-    public function hasReducers($name, $namespace = 'global')
+    public function hasReducers($namespace = 'global')
     {
-        return isset($this->reducers[$namespace][$name]);
+        return isset($this->reducers[$namespace]);
     }
 
     protected function getReducerAsObject($reducer)
