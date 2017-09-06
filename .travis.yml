@@ -31,7 +31,6 @@ matrix:
 
 before_install:
     - printf "\n" | pecl install imagick
-    - phpenv config-add travis-php.ini
     - composer require "illuminate/support:${ILLUMINATE_VERSION}" "orchestra/database:${DATABASE_VERSION}" "orchestra/testbench:${TESTBENCH_VERSION}" "phpunit/phpunit:${PHPUNIT_VERSION}" --no-update --prefer-dist
 
 install: composer update --no-interaction --prefer-dist
