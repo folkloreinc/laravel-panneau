@@ -31,7 +31,7 @@ class BubblesControllerTest extends TestCase
         $response = $this->json('GET', '/panneau/bubbles');
 
         $modelData = json_decode(Bubble::find($model->id)->toJson(), true);
-        $responseData = $response->getData(true);
+        $responseData = json_decode($response->getContent(), true);
 
         $this->assertEquals(200, $response->status());
         $this->assertEquals([$modelData], $responseData);
@@ -52,7 +52,7 @@ class BubblesControllerTest extends TestCase
         $response = $this->json('GET', '/panneau/bubbles/'.$model->id);
 
         $modelData = json_decode(Bubble::find($model->id)->toJson(), true);
-        $responseData = $response->getData(true);
+        $responseData = json_decode($response->getContent(), true);
 
         $this->assertEquals(200, $response->status());
         $this->assertEquals($modelData, $responseData);
