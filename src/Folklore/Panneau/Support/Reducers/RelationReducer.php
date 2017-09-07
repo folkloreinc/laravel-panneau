@@ -22,7 +22,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             return $state;
         }
 
-        // Only treat relations matching the current reducer class
+        // Only treat relations matching the associated schema class
         $relationSchemaClass = $this->getRelationSchemaClass();
         if (!($node->schema instanceof $relationSchemaClass)) {
             return $state;
@@ -34,12 +34,11 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         }
 
         $originalValue = Utils::getPath($state, $node->path);
-        $relationName = $this->getRelationName();
-
         if (is_null($originalValue)) {
             return $state;
         }
 
+        $relationName = $this->getRelationName();
         $value = $model->getRelationField($relationName, $node->path, $originalValue, null, null);
 
         // Fallback to query if not found in relations
@@ -48,39 +47,37 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             $value = app($relationClass)->find($originalValue);
         }
 
-        Utils::setPath($state, $node->path, $value);
+        $state = Utils::setPath($state, $node->path, $value);
         return $state;
     }
 
-    // protected function getRelation()
-    // {
-    // }
-    //
-    // protected function setRelation()
-    // {
-    // }
-    //
-    // protected function saveRelation()
-    // {
-    // }
-
+    // @TODO add checks everywhere required
     public function set($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
         }
 
-        $relationClass = $this->getRelationClass();
-        $relationBaseName = class_basename($relationClass);
-        switch ($node->type) {
-            case $relationBaseName:
-                $item = Utils::getPath($state, $node->path);
-                if (is_null($item) || (!is_object($item) && !is_array($item))) {
-                    return $state;
-                }
-                $state = Utils::setPath($state, $node->path, Utils::getPath($item, 'id'));
-                break;
+        // Only treat relations matching the associated schema class
+        $relationSchemaClass = $this->getRelationSchemaClass();
+        if (!($node->schema instanceof $relationSchemaClass)) {
+            return $state;
         }
+
+        // Only treat single item nodes, not arrays
+        if ($node->schema->getType() !== 'object') {
+            return $state;
+        }
+
+        $originalValue = Utils::getPath($state, $node->path);
+        if (is_null($originalValue) || (!is_object($originalValue) && !is_array($originalValue))) {
+            return $state;
+        }
+
+        $relationName = $this->getRelationName();
+        $value = $model->prepareRelationField($relationName, $node->path, $originalValue, null);
+
+        $state = Utils::setPath($state, $node->path, $value);
         return $state;
     }
 

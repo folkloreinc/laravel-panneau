@@ -4,12 +4,12 @@ namespace Folklore\Panneau\Support\Traits;
 
 trait HasRelationsFields
 {
-    protected function prepareRelationsField($relation, $path, $value, $field)
+    public function prepareRelationsField($relation, $path, $value, $field)
     {
         return $this->getRelationsIdsFromValue($relation, $value, $path);
     }
 
-    protected function prepareRelationField($relation, $path, $value, $field)
+    public function prepareRelationField($relation, $path, $value, $field)
     {
         if (is_null($value) || (!is_array($value) && !is_object($value))) {
             return $value;
@@ -24,7 +24,7 @@ trait HasRelationsFields
         return $id;
     }
 
-    protected function saveRelationsField($relation, $path, $value, $originalValue, $field)
+    public function saveRelationsField($relation, $path, $value, $originalValue, $field)
     {
         if ($value !== $originalValue) {
             $ids = [];
