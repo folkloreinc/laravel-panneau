@@ -28,8 +28,7 @@ class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
-            \Folklore\Panneau\PanneauServiceProvider::class,
-            \Folklore\Mediatheque\MediathequeServiceProvider::class
+            \Folklore\Panneau\PanneauServiceProvider::class
         ];
     }
 
