@@ -52,11 +52,6 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
         return $this;
     }
 
-    public function clone()
-    {
-        return new self($this->attributes);
-    }
-
     public function toArray($emptyToObject = false)
     {
         $isObject = is_object($this->attributes);

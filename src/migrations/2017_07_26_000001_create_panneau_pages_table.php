@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Migrations\Migration;
+use Folklore\Panneau\Support\Migration;
 
 class CreatePanneauPagesTable extends Migration
 {
@@ -16,15 +16,12 @@ class CreatePanneauPagesTable extends Migration
         Schema::create(config('panneau.table_prefix').'pages', function (Blueprint $table) {
             // Standard columns
             $table->increments('id');
-            $table->string('type')->nullable()/*->storedAs('data->>"$.type"')*/;
-            $table->string('handle')->nullable()/*->storedAs('data->>"$.slug"')*/;
-            $table->integer('parent_id')->nullable()/*->storedAs('data->"$.parent"')*/;
-            $table->integer('order')->nullable()/*->storedAs('data->"$.order"')*/;
+            $table->string('type')->nullable();
+            $table->string('handle')->nullable();
+            $table->integer('parent_id')->nullable();
+            $table->integer('order')->nullable();
 
-            $pdo = DB::connection()->getPdo();
-            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) == 'mysql' &&
-                version_compare($pdo->getAttribute(PDO::ATTR_SERVER_VERSION), '5.7.8', 'ge')
-            ) {
+            if ($this->supportsJSON()) {
                 $table->json('data')->nullable();
             } else {
                 $table->longText('data')->nullable();

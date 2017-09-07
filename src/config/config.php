@@ -4,6 +4,8 @@ return [
 
     'table_prefix' => 'panneau_',
 
+    'migrations_supports_json' => env('PANNEAU_MIGRATIONS_SUPPORTS_JSON', 'detect'),
+
     'schemas' => [
         \Folklore\Panneau\Contracts\Bubble::class => [
             'default' => \Folklore\Panneau\Schemas\Bubble::class,

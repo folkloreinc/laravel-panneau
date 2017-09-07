@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Folklore\Panneau\Models\Bubble;
 
 /**
@@ -8,11 +9,12 @@ use Folklore\Panneau\Models\Bubble;
  */
 class BubblesControllerTest extends TestCase
 {
+    use RunMigrationsTrait, WithoutMiddleware;
+
     public function setUp()
     {
         parent::setUp();
-
-        $this->artisan('migrate', ['--database' => 'testing']);
+        $this->runMigrations();
     }
 
     /**
@@ -28,10 +30,15 @@ class BubblesControllerTest extends TestCase
         $model->save();
 
         $response = $this->json('GET', '/panneau/bubbles');
+        if ($response === $this) {
+            $response = $this->response;
+        }
 
-        $response
-            ->assertStatus(200)
-            ->assertJson([$model->toArray()]);
+        $modelData = json_decode(Bubble::find($model->id)->toJson(), true);
+        $responseData = json_decode($response->getContent(), true);
+
+        $this->assertEquals(200, $response->status());
+        $this->assertEquals([$modelData], $responseData);
     }
 
     /**
@@ -47,9 +54,14 @@ class BubblesControllerTest extends TestCase
         $model->save();
 
         $response = $this->json('GET', '/panneau/bubbles/'.$model->id);
+        if ($response === $this) {
+            $response = $this->response;
+        }
 
-        $response
-            ->assertStatus(200)
-            ->assertJson($model->toArray());
+        $modelData = json_decode(Bubble::find($model->id)->toJson(), true);
+        $responseData = json_decode($response->getContent(), true);
+
+        $this->assertEquals(200, $response->status());
+        $this->assertEquals($modelData, $responseData);
     }
 }

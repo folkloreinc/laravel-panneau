@@ -2,20 +2,22 @@
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Folklore\Panneau\Models\Bubble;
+use Folklore\Panneau\Models\Block;
 use Folklore\Panneau\Support\FieldsSchema;
-use Folklore\Mediatheque\Models\Picture;
 
 class BubbleTest extends TestCase
 {
+    use RunMigrationsTrait;
+
     protected $schema;
 
-    protected $mediasSchema;
+    protected $relationsSchema;
 
     public function setUp()
     {
         parent::setUp();
 
-        $this->artisan('migrate', ['--database' => 'testing']);
+        $this->runMigrations();
 
         $this->schema = new FieldsSchema([
             'fields' => [
@@ -29,13 +31,13 @@ class BubbleTest extends TestCase
             ]
         ]);
 
-        $this->mediasSchema = new FieldsSchema([
+        $this->relationsSchema = new FieldsSchema([
             'fields' => [
                 'data' => [
                     'type' => 'object',
                     'properties' => [
                         'title' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
-                        'pictures' => \Folklore\Panneau\Schemas\Fields\Pictures::class,
+                        'bubbles' => \Folklore\Panneau\Schemas\Fields\Bubbles::class,
                     ],
                     'required' => ['title']
                 ]
@@ -91,33 +93,32 @@ class BubbleTest extends TestCase
      *
      * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
      */
-    public function testMediasRelations()
+    public function testBubblesRelations()
     {
-        $picture = new Picture();
-        $picture->setOriginalFile(__DIR__.'/../fixture/picture.jpg');
-        $picture->save();
-        $pictureData = $picture->toArray();
+        Bubble::setDefaultSchema($this->relationsSchema);
 
-        $data = json_decode(json_encode([
+        $relation = new Bubble();
+        $relation->save();
+
+        $modelData = json_decode(json_encode([
             'title' => [
                 'en' => 'Test'
             ],
-            'pictures' => [
-                $pictureData
+            'bubbles' => [
+                $relation
             ]
         ]));
-
-        Bubble::setDefaultSchema($this->mediasSchema);
-
         $model = new Bubble();
-        $model->data = $data;
+        $model->data = $modelData;
         $model->save();
 
-        $model = Bubble::with('pictures')->find($model->id);
-        $this->assertEquals($data->title, $model->data->title);
+        $model = Bubble::with('bubbles')->find($model->id);
+        $this->assertEquals(1, sizeof($model->bubbles));
+        $this->assertEquals('data.bubbles.0', $model->bubbles[0]->pivot->handle);
+        $this->assertEquals($modelData->title, $model->data->title);
         $this->assertEquals(
-            array_only($pictureData, ['id']),
-            array_only($model->data->pictures[0]->toArray(), ['id'])
+            $modelData->bubbles[0]->id,
+            $model->data->bubbles[0]->id
         );
     }
 }

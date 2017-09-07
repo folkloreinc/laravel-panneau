@@ -149,7 +149,7 @@ trait HasRelationsFields
             return $this->{$method}($relation, $item);
         }
         $column = $this->getRelationPathColumn($relation);
-        return isset($item) ? (string)$item->pivot->{$column} : null;
+        return isset($item) ? (string)($item->pivot->{$column}) : null;
     }
 
     protected function getRelationIdFromItem($relation, $item)
@@ -158,7 +158,7 @@ trait HasRelationsFields
         if (method_exists($this, $method)) {
             return $this->{$method}($relation, $item);
         }
-        return isset($item) ? (string)$item->id : null;
+        return isset($item) ? (string)($item->id) : null;
     }
 
     protected function getRelationItemFromId($relation, $id)
@@ -173,7 +173,10 @@ trait HasRelationsFields
             return null;
             // $this->load($relation);
         }
-        return $this->getRelation($relation)->first(function ($item) use ($relation, $id) {
+        return $this->getRelation($relation)->first(function ($item, $key) use ($relation, $id) {
+            if (!is_object($item)) {
+                $item = $key;
+            }
             return $this->getRelationIdFromItem($relation, $item) === (string)$id;
         });
     }

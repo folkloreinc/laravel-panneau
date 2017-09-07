@@ -2,33 +2,32 @@
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Folklore\Panneau\Models\Page;
+use Folklore\Panneau\Models\Block;
 use Folklore\Panneau\Support\FieldsSchema;
 use Folklore\Panneau\Schemas\Page as PageSchema;
 use Folklore\Panneau\Schemas\PageData;
-use Folklore\Mediatheque\Models\Picture;
-use Folklore\Mediatheque\Models\Document;
-use Folklore\Panneau\Schemas\Fields\Pictures as PicturesField;
-use Folklore\Panneau\Schemas\Fields\Documents as DocumentsField;
+use Folklore\Panneau\Schemas\Fields\Blocks as BlocksField;
 
 class PageTest extends TestCase
 {
+    use RunMigrationsTrait;
+
     protected $schema;
 
-    protected $mediasSchema;
+    protected $relationsSchema;
 
     public function setUp()
     {
         parent::setUp();
 
-        $this->artisan('migrate', ['--database' => 'testing']);
+        $this->runMigrations();
 
         $this->schema = new PageSchema();
 
-        $this->mediasSchema = new FieldsSchema([
+        $this->relationsSchema = new FieldsSchema([
             'fields' => [
                 'data' => with(new PageData())
-                    ->addProperty('pictures', PicturesField::class)
-                    ->addProperty('documents', DocumentsField::class)
+                    ->addProperty('blocks', BlocksField::class)
             ]
         ]);
     }
@@ -79,47 +78,34 @@ class PageTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setDefaultSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
      */
-    public function testMediasRelations()
+    public function testBlocksRelations()
     {
-        $picture = new Picture();
-        $picture->setOriginalFile(__DIR__.'/../fixture/picture.jpg');
-        $picture->save();
-        $pictureData = $picture->toArray();
+        Page::setDefaultSchema($this->relationsSchema);
 
-        $document = new Document();
-        $document->setOriginalFile(__DIR__.'/../fixture/document.pdf');
-        $document->save();
-        $documentData = $document->toArray();
+        $relation = new Block();
+        $relation->save();
 
-        $data = json_decode(json_encode([
+        $modelData = json_decode(json_encode([
             'title' => [
                 'en' => 'Test'
             ],
-            'pictures' => [
-                $pictureData
-            ],
-            'documents' => [
-                $documentData
+            'blocks' => [
+                $relation
             ]
         ]));
-
-        Page::setDefaultSchema($this->mediasSchema);
-
         $model = new Page();
-        $model->data = $data;
+        $model->data = $modelData;
         $model->save();
 
-        $model = Page::with(['pictures', 'documents'])->find($model->id);
-        $this->assertEquals($data->title, $model->data->title);
+        $model = Page::with('blocks')->find($model->id);
+        $this->assertEquals(1, sizeof($model->blocks));
+        $this->assertEquals('data.blocks.0', $model->blocks[0]->pivot->handle);
+        $this->assertEquals($modelData->title, $model->data->title);
         $this->assertEquals(
-            array_only($pictureData, ['id']),
-            array_only($model->data->pictures[0]->toArray(), ['id'])
-        );
-        $this->assertEquals(
-            array_only($documentData, ['id']),
-            array_only($model->data->documents[0]->toArray(), ['id'])
+            $modelData->blocks[0]->id,
+            $model->data->blocks[0]->id
         );
     }
 }
