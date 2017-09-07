@@ -118,7 +118,9 @@ class Panneau
 
     protected function getReducerAsObject($reducer)
     {
-        $reducer = app($reducer);
+        if (is_string($reducer)) {
+            $reducer = app($reducer);
+        }
         return $reducer;
     }
 }

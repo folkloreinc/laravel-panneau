@@ -156,7 +156,7 @@ trait HasFieldsSchema
 
     public function getReducers()
     {
-        return static::reducers();
+        return static::reducers(static::class);
     }
 
     protected function fieldsCollection($key = null, $data = null)
@@ -186,7 +186,7 @@ trait HasFieldsSchema
         if (is_null($schema)) {
             return;
         }
-        $data = $this->fieldsAttributes()->toObject();
+        $data = (object)$this->getFieldsValue();
         $validator = app(\Folklore\Panneau\Contracts\SchemaValidator::class);
         if (!$validator->validateSchema($data, $schema)) {
             throw new SchemaValidationException($validator->getMessages());
@@ -225,7 +225,13 @@ trait HasFieldsSchema
 
     public function saveFields()
     {
-        $this->fieldsCollection()
+        $schema = $this->getSchema();
+        $fields = $schema->getFieldsNames();
+        foreach ($fields as $field) {
+            $value = $this->{$field};
+            $this->callFieldReducers('save', $field, $value);
+        }
+        /*$this->fieldsCollection()
             ->eachPath(function ($path, $key, $field) {
                 $schema = $field->schema;
                 $value = $this->fieldsAttributesForSaving->get($path);
@@ -240,7 +246,7 @@ trait HasFieldsSchema
             });
 
         $this->fieldsAttributesForSaving = null;
-        $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
+        $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);*/
     }
 
     /**
@@ -303,6 +309,23 @@ trait HasFieldsSchema
             }
         }
         return false;
+    }
+
+    /**
+     * Get the value of a field
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    public function getFieldsValue()
+    {
+        $schema = $this->getSchema();
+        $fields = $schema->getFieldsNames();
+        $value = [];
+        foreach ($fields as $field) {
+            $value[$field] = $this->getFieldValue($field);
+        }
+        return $value;
     }
 
     /**
