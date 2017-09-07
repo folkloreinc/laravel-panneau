@@ -25,7 +25,10 @@ trait RunMigrationsTrait
     public function rollbackMigrations()
     {
         $migrator = $this->getMigrator();
-        $migrator->reset();
+        $paths = $this->getMigrationPaths();
+        foreach ($paths as $path) {
+            $migrator->rollback();
+        }
     }
 
     protected function getMigrator()
@@ -38,8 +41,7 @@ trait RunMigrationsTrait
     protected function getMigrationPaths()
     {
         return [
-            realpath(__DIR__.'/../src/migrations'),
-            realpath(__DIR__.'/../vendor/folklore/laravel-mediatheque/src/migrations')
+            realpath(__DIR__.'/../src/migrations')
         ];
     }
 }
