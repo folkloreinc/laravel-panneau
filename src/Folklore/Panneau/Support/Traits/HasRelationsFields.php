@@ -173,7 +173,10 @@ trait HasRelationsFields
             return null;
             // $this->load($relation);
         }
-        return $this->getRelation($relation)->first(function ($item) use ($relation, $id) {
+        return $this->getRelation($relation)->first(function ($item, $key) use ($relation, $id) {
+            if (!is_object($item)) {
+                $item = $key;
+            }
             return $this->getRelationIdFromItem($relation, $item) === (string)$id;
         });
     }
