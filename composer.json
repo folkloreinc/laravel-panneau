@@ -24,7 +24,8 @@
         "illuminate/support": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*",
         "guzzlehttp/guzzle": "5.3|~6.0",
         "spatie/eloquent-sortable": "^2.0|^3.0",
-        "justinrainbow/json-schema": "^5.2"
+        "justinrainbow/json-schema": "^5.2",
+        "folklore/laravel-mediatheque": "v1.x-dev"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",
@@ -34,9 +35,6 @@
         "phpunit/phpunit": "~4.0|~5.0|~5.7|~6.0",
         "satooshi/php-coveralls": "^1.0",
         "ext-imagick": "*"
-    },
-    "suggest": {
-        "folklore/laravel-mediatheque": "v1.x-dev"
     },
     "autoload": {
         "classmap": [
