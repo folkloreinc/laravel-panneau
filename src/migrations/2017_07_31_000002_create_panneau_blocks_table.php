@@ -17,12 +17,7 @@ class CreatePanneauBlocksTable extends Migration
             // Standard columns
             $table->increments('id');
             $table->string('type')->nullable();
-
-            if ($this->supportsJSON()) {
-                $table->json('data')->nullable();
-            } else {
-                $table->longText('data')->nullable();
-            }
+            $table->longText('data')->nullable();
 
             // Laravel features
             $table->softDeletes();
