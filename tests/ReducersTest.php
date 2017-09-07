@@ -19,20 +19,17 @@ class ReducersTest extends TestCase
 
         $this->runMigrations();
 
-        $this->pageSchema = new FieldsSchema([
-            'fields' => [
-                'data' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'slug' => \Folklore\Panneau\Schemas\Fields\Text::class,
-                        'title' => \Folklore\Panneau\Schemas\Fields\Text::class,
-                        'parent' => \Folklore\Panneau\Schemas\Fields\Page::class,
-                        'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
-                    ],
-                    'required' => ['title']
-                ]
-            ]
-        ]);
+        $this->pageSchema = with(new FieldsSchema())
+            ->addField('data', [
+                'type' => 'object',
+                'properties' => [
+                    'slug' => \Folklore\Panneau\Schemas\Fields\Text::class,
+                    'title' => \Folklore\Panneau\Schemas\Fields\Text::class,
+                    'parent' => \Folklore\Panneau\Schemas\Fields\Page::class,
+                    'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
+                ],
+                'required' => ['title']
+            ]);
 
         $this->blockSchema = new FieldsSchema([
             'fields' => [
@@ -61,7 +58,6 @@ class ReducersTest extends TestCase
 
     public function testReducersGet()
     {
-
         $page = [
             'data' => [
                 'title' => 'Hub page',
