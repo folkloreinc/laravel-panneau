@@ -8,4 +8,14 @@ class PagesReducer extends RelationReducer
     {
         return \Folklore\Panneau\Contracts\Page::class;
     }
+
+    protected function getRelationSchemaClass()
+    {
+        return \Folklore\Panneau\Schemas\Fields\Page::class;
+    }
+
+    protected function getRelationName()
+    {
+        return 'pages';
+    }
 }

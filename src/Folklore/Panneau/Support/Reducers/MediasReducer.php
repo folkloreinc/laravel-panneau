@@ -8,4 +8,14 @@ class MediasReducer extends RelationReducer
     {
         return null; // @TODO
     }
+
+    protected function getRelationSchemaClass()
+    {
+        return null; // @TODO
+    }
+
+    protected function getRelationName()
+    {
+        return null; // @TODO
+    }
 }

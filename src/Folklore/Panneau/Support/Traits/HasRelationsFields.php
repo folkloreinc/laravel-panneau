@@ -79,7 +79,7 @@ trait HasRelationsFields
         return $item;
     }
 
-    protected function getRelationsField($relation, $path, $value, $fieldValue, $field)
+    public function getRelationsField($relation, $path, $value, $fieldValue, $field)
     {
         if (is_null($value)) {
             return $value;
@@ -98,7 +98,7 @@ trait HasRelationsFields
         return $items;
     }
 
-    protected function getRelationField($relation, $path, $value, $fieldValue, $field)
+    public function getRelationField($relation, $path, $value, $fieldValue, $field)
     {
         if (is_object($value)) {
             return $value;

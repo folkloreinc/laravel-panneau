@@ -11,36 +11,58 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 {
     abstract protected function getRelationClass();
 
+    abstract protected function getRelationSchemaClass();
+
+    abstract protected function getRelationName();
+
+    // @TODO add checks everywhere required
     public function get($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
         }
-        /*
-        $this->getRelation($relation)->first(function ($item) use ($relation, $id) {
-            return $this->getRelationIdFromItem($relation, $item) === (string)$id;
-        });
-         */
-        $relationClass = $this->getRelationClass();
-        $relationBaseName = class_basename($relationClass);
-        switch ($node->type) {
-            case $relationBaseName:
-                $id = Utils::getPath($state, $node->path);
-                if (is_null($id)) {
-                    return $state;
-                }
-                $item = app($relationClass)->find($id);
-                Utils::setPath($state, $node->path, $item);
-                break;
+
+        // Only treat relations matching the current reducer class
+        $relationSchemaClass = $this->getRelationSchemaClass();
+        if (!($node->schema instanceof $relationSchemaClass)) {
+            return $state;
         }
+
+        // Only treat single item nodes, not arrays
+        if ($node->schema->getType() !== 'object') {
+            return $state;
+        }
+
+        $originalValue = Utils::getPath($state, $node->path);
+        $relationName = $this->getRelationName();
+
+        if (is_null($originalValue)) {
+            return $state;
+        }
+
+        $value = $model->getRelationField($relationName, $node->path, $originalValue, null, null);
+
+        // Fallback to query if not found in relations
+        if (is_null($value)) {
+            $relationClass = $this->getRelationClass();
+            $value = app($relationClass)->find($originalValue);
+        }
+
+        Utils::setPath($state, $node->path, $value);
         return $state;
     }
 
-    // utiliser le $node->schema via instanceof pour faire distinction
-
-    protected function getRelation() {}
-    protected function setRelation() {}
-    protected function saveRelation() {}
+    // protected function getRelation()
+    // {
+    // }
+    //
+    // protected function setRelation()
+    // {
+    // }
+    //
+    // protected function saveRelation()
+    // {
+    // }
 
     public function set($model, $node, $state)
     {
@@ -64,6 +86,10 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
     public function save($model, $node, $state)
     {
+        if (is_null($state)) {
+            return $state;
+        }
+
         return $state; // @TODO
     }
 }

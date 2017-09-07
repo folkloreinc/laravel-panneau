@@ -8,4 +8,14 @@ class BlocksReducer extends RelationReducer
     {
         return \Folklore\Panneau\Contracts\Block::class;
     }
+
+    protected function getRelationSchemaClass()
+    {
+        return \Folklore\Panneau\Schemas\Fields\Block::class;
+    }
+
+    protected function getRelationName()
+    {
+        return 'blocks';
+    }
 }
