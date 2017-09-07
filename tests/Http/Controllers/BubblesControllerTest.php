@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Folklore\Panneau\Models\Bubble;
 
 /**
@@ -8,7 +9,7 @@ use Folklore\Panneau\Models\Bubble;
  */
 class BubblesControllerTest extends TestCase
 {
-    use RunMigrationsTrait;
+    use RunMigrationsTrait, WithoutMiddleware;
 
     public function setUp()
     {
