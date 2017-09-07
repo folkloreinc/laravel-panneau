@@ -119,7 +119,7 @@ trait HasRelationsFields
         return $pathsMap;
     }
 
-    protected function saveRelationField($relation, $path, $value, $originalValue, $field)
+    public function saveRelationField($relation, $path, $value, $originalValue, $field)
     {
         if (is_null($value)) {
             $currentItem = $this->getRelationCurrentItem($relation, $path);

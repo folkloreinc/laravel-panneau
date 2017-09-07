@@ -81,12 +81,28 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         return $state;
     }
 
+    // @TODO add checks everywhere required
     public function save($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
         }
 
-        return $state; // @TODO
+        // Only treat relations matching the associated schema class
+        $relationSchemaClass = $this->getRelationSchemaClass();
+        if (!($node->schema instanceof $relationSchemaClass)) {
+            return $state;
+        }
+
+        // Only treat single item nodes, not arrays
+        if ($node->schema->getType() !== 'object') {
+            return $state;
+        }
+
+        $relationName = $this->getRelationName();
+        $value = Utils::getPath($state, $node->path);
+        $model->saveRelationField($relationName, $node->path, $value, null, null);
+
+        return $state;
     }
 }
