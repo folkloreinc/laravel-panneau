@@ -142,39 +142,14 @@ class ReducersTest extends TestCase
             $this->assertEquals(array_get($sourceData, 'blocks.'.$i.'.id'), $block->id);
             $i++;
         }
-    }
 
-    public function _testReducers()
-    {
-        $sourceData = [
-            'data' => [
-                'title' => 'My test title',
-                'blocks' => [
-                    [
-                        'type' => 'text',
-                        'data' => [
-                            'description' => 'My first block'
-                        ]
-                    ],
-                    [
-                        'type' => 'text',
-                        'data' => [
-                            'description' => 'My second block'
-                        ]
-                    ],
-                    [
-                        'type' => 'image',
-                        'data' => [
-                            'picture' => [
-                                'id' => 1
-                            ]
-                        ]
-                    ],
-                ]
-            ]
-        ];
-        $schema = new PageSchema();
-        $nodes = $schema->getNodes()->makeFromData($sourceData);
-        dd($nodes);
+        // $pageData = [
+        //     'data' => [
+        //         'blocks' => $blocks
+        //     ]
+        // ];
+        // $model = PageModel::create($pageData);
+        // $model->save();
+        // dd('-----', 'end test', $model->getRawAttributes());
     }
 }
