@@ -145,7 +145,7 @@ abstract class ResourceController extends Controller
         $model->save();
 
         if ($request->wantsJson()) {
-            return $model;
+            return $this->getItem($model->id, $request);
         }
 
         return redirect()->action(static::class.'@show', [$model->id]);
