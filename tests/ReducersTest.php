@@ -1,69 +1,148 @@
 <?php
 
 use Folklore\Panneau\Models\Page as PageModel;
-use Folklore\Panneau\Schemas\Page as PageSchema;
+use Folklore\Panneau\Models\Block as BlockModel;
+use Folklore\Panneau\Support\FieldsSchema;
 use Illuminate\Support\Facades\DB;
 
 /**
  */
 class ReducersTest extends TestCase
 {
+    use RunMigrationsTrait;
+
+    protected $schema;
+
     public function setUp()
     {
         parent::setUp();
 
-        $this->artisan('migrate', ['--database' => 'testing']);
+        $this->runMigrations();
+
+        $this->pageSchema = new FieldsSchema([
+            'fields' => [
+                'data' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'slug' => \Folklore\Panneau\Schemas\Fields\Text::class,
+                        'title' => \Folklore\Panneau\Schemas\Fields\Text::class,
+                    ],
+                    'required' => ['title']
+                ]
+            ]
+        ]);
+
+        $this->blockSchema = new FieldsSchema([
+            'fields' => [
+                'data' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => \Folklore\Panneau\Schemas\Fields\Text::class,
+                        'description' => \Folklore\Panneau\Schemas\Fields\Text::class,
+                    ],
+                    'required' => ['title']
+                ]
+            ]
+        ]);
+
+        PageModel::setDefaultSchema($this->pageSchema);
+        BlockModel::setDefaultSchema($this->blockSchema);
+    }
+
+    public function tearDown()
+    {
+        parent::tearDown();
+
+        PageModel::setDefaultSchema(null);
+        BlockModel::setDefaultSchema(null);
     }
 
     public function testReducersGet()
     {
-        DB::table('panneau_pages')->insert([
-            'id' => 1,
-            'data' => json_encode([
-                'type' => 'hub',
-                'data' => [
-                    'title' => 'Hub page',
-                    'slug' => 'hub-page',
-                ]
-            ])
-        ]);
-        DB::table('panneau_blocks')->insert([
-            'id' => 1,
-            'data' => json_encode([
-                'type' => 'text',
+
+        $page = [
+            'data' => [
+                'title' => 'Hub page',
+                'slug' => 'hub-page',
+            ]
+        ];
+        $blocks = [
+            [
                 'data' => [
                     'title' => '11111',
                     'description' => 'Lorem ipsum dolor sit amet consectuet'
                 ]
-            ])
-        ]);
-        DB::table('panneau_blocks')->insert([
-            'id' => 2,
-            'data' => json_encode([
-                'type' => 'text',
+            ],
+            [
                 'data' => [
                     'title' => '22222',
                     'description' => 'Lorem ipsum dolor sit amet consectuet'
                 ]
-            ])
-        ]);
-
-        $sourceData = [
-            'type' => 'hub',
-            'data' => [
-                'title' => 'My test title',
-                'slug' => 'my-test-title',
-                'parent' => 1,
-                'blocks' => [
-                    1,
-                    2,
-                ]
             ]
         ];
-        $jsonData = json_encode($sourceData);
+
+        $model = PageModel::create($page);
+        $model->save();
+        $pageId = $model->id;
+        $blockIds = [];
+        foreach ($blocks as $block) {
+            $model = BlockModel::create($page);
+            $model->save();
+            $blockIds[] = $model->id;
+        }
+
+        $sourceData = [
+            'title' => 'My test title',
+            'slug' => 'my-test-title',
+            'parent' => $pageId,
+            'blocks' => $blockIds
+        ];
+
+        // Test from raw data (equivalent to database)
         $model = new PageModel();
-        $model->setRawAttributes(['data' => $jsonData]);
-        dd('------', 'test end', $model->data);
+        $model->setRawAttributes([
+            'data' => json_encode($sourceData)
+        ]);
+
+        $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
+        $this->assertInstanceOf(PageModel::class, $model->data->parent);
+        $i = 0;
+        foreach ($model->data->blocks as $block) {
+            $this->assertInstanceOf(BlockModel::class, $block);
+            $this->assertEquals(array_get($sourceData, 'blocks.'.$i), $block->id);
+            $i++;
+        }
+        $i = 0;
+        foreach ($model->blocks as $block) {
+            $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
+            $i++;
+        }
+
+        // Test from array/object data using fill (equivalent to post)
+        // Convert blocks to object { "id" : <ID> }
+        $sourceData['blocks'] = array_map(function ($block) {
+            return [
+                'id' => $block->id,
+            ];
+        }, $sourceData['blocks']);
+        $model = new PageModel();
+        $model->fill([
+            'data' => $sourceData
+        ]);
+
+        $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
+        $this->assertInstanceOf(PageModel::class, $model->data->parent);
+        $i = 0;
+        foreach ($model->data->blocks as $block) {
+            $this->assertInstanceOf(BlockModel::class, $block);
+            $this->assertEquals(array_get($sourceData, 'blocks.'.$i.'.id'), $block->id);
+            $i++;
+        }
+        $i = 0;
+        foreach ($model->blocks as $block) {
+            $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
+            $i++;
+        }
     }
 
     public function _testReducers()
