@@ -83,7 +83,7 @@ class ReducersTest extends TestCase
 
         $model = PageModel::create($page);
         $model->save();
-        $pageId = $model->id;
+        $parentId = $model->id;
         $blockIds = [];
         foreach ($blocks as $block) {
             $model = BlockModel::create($page);
@@ -94,7 +94,7 @@ class ReducersTest extends TestCase
         $sourceData = [
             'title' => 'My test title',
             'slug' => 'my-test-title',
-            'parent' => $pageId,
+            'parent' => $parentId,
             'blocks' => $blockIds
         ];
 
@@ -105,7 +105,14 @@ class ReducersTest extends TestCase
         ]);
 
         $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
+
         $this->assertInstanceOf(PageModel::class, $model->data->parent);
+        $this->assertEquals($parentId, $model->data->parent->id);
+        $this->assertEquals(1, sizeof($model->pages));
+        $this->asserEquals('data.parent', $model->pages[0]->pivot->handle);
+
+        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->data->blocks));
+        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->blocks));
         $i = 0;
         foreach ($model->data->blocks as $block) {
             $this->assertInstanceOf(BlockModel::class, $block);
@@ -131,7 +138,14 @@ class ReducersTest extends TestCase
         ]);
 
         $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
+
         $this->assertInstanceOf(PageModel::class, $model->data->parent);
+        $this->assertEquals($parentId, $model->data->parent->id);
+        $this->assertEquals(1, sizeof($model->pages));
+        $this->asserEquals('data.parent', $model->pages[0]->pivot->handle);
+
+        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->data->blocks));
+        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->blocks));
         $i = 0;
         foreach ($model->data->blocks as $block) {
             $this->assertInstanceOf(BlockModel::class, $block);
