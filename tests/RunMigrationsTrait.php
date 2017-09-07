@@ -27,7 +27,7 @@ trait RunMigrationsTrait
         $migrator = $this->getMigrator();
         $paths = $this->getMigrationPaths();
         foreach ($paths as $path) {
-            $migrator->rollback();
+            $migrator->rollback($path);
         }
     }
 
