@@ -11,7 +11,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 {
     abstract protected function getRelationClass();
 
-    public function getRelationFromPath($model, $node, $state)
+    public function get($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
