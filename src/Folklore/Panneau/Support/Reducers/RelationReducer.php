@@ -11,12 +11,16 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 {
     abstract protected function getRelationClass();
 
-    public function get($model, $node, $state)
+    public function getRelationFromPath($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
         }
-
+        /*
+        $this->getRelation($relation)->first(function ($item) use ($relation, $id) {
+            return $this->getRelationIdFromItem($relation, $item) === (string)$id;
+        });
+         */
         $relationClass = $this->getRelationClass();
         $relationBaseName = class_basename($relationClass);
         switch ($node->type) {
@@ -31,6 +35,12 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         }
         return $state;
     }
+
+    // utiliser le $node->schema via instanceof pour faire distinction
+
+    protected function getRelation() {}
+    protected function setRelation() {}
+    protected function saveRelation() {}
 
     public function set($model, $node, $state)
     {
