@@ -449,8 +449,6 @@ trait HasFieldsSchema
         }
         $reducers = $this->getReducers();
         $schema = $this->getSchema();
-        $data = [];
-        $data[$name] = $state;
         $nodesCollection = $schema->getNodesFromData($state, $name);
         return $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {
             foreach ($reducers as $reducer) {
