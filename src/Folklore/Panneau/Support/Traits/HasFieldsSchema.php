@@ -451,8 +451,8 @@ trait HasFieldsSchema
         $schema = $this->getSchema();
         $data = [];
         $data[$name] = $state;
-        $nodesCollection = $schema->getNodes($name)->makeFromData($data)->map(function ($node) use ($name) {
-            $node->path = preg_replace('/^'.$name.'\./', '', $node->path);
+        $nodesCollection = $schema->getNodes()->makeFromData($data)->map(function ($node) use ($name) {
+            $node->path = preg_replace('/^'.$name.'(\.(.+))?$/', '$2', $node->path);
             return $node;
         });
         return $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {

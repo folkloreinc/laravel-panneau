@@ -26,6 +26,8 @@ class ReducersTest extends TestCase
                     'properties' => [
                         'slug' => \Folklore\Panneau\Schemas\Fields\Text::class,
                         'title' => \Folklore\Panneau\Schemas\Fields\Text::class,
+                        'parent' => \Folklore\Panneau\Schemas\Fields\Page::class,
+                        'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
                     ],
                     'required' => ['title']
                 ]
@@ -108,28 +110,23 @@ class ReducersTest extends TestCase
 
         $this->assertInstanceOf(PageModel::class, $model->data->parent);
         $this->assertEquals($parentId, $model->data->parent->id);
-        $this->assertEquals(1, sizeof($model->pages));
-        $this->asserEquals('data.parent', $model->pages[0]->pivot->handle);
 
         $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->data->blocks));
-        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->blocks));
         $i = 0;
         foreach ($model->data->blocks as $block) {
             $this->assertInstanceOf(BlockModel::class, $block);
             $this->assertEquals(array_get($sourceData, 'blocks.'.$i), $block->id);
             $i++;
         }
-        $i = 0;
-        foreach ($model->blocks as $block) {
-            $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
-            $i++;
-        }
 
         // Test from array/object data using fill (equivalent to post)
-        // Convert blocks to object { "id" : <ID> }
+        // Convert ids to object { "id" : <ID> }
+        $sourceData['parent'] = [
+            'id' => $sourceData['parent'],
+        ];
         $sourceData['blocks'] = array_map(function ($block) {
             return [
-                'id' => $block->id,
+                'id' => $block,
             ];
         }, $sourceData['blocks']);
         $model = new PageModel();
@@ -141,20 +138,12 @@ class ReducersTest extends TestCase
 
         $this->assertInstanceOf(PageModel::class, $model->data->parent);
         $this->assertEquals($parentId, $model->data->parent->id);
-        $this->assertEquals(1, sizeof($model->pages));
-        $this->asserEquals('data.parent', $model->pages[0]->pivot->handle);
 
         $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->data->blocks));
-        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->blocks));
         $i = 0;
         foreach ($model->data->blocks as $block) {
             $this->assertInstanceOf(BlockModel::class, $block);
             $this->assertEquals(array_get($sourceData, 'blocks.'.$i.'.id'), $block->id);
-            $i++;
-        }
-        $i = 0;
-        foreach ($model->blocks as $block) {
-            $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
             $i++;
         }
     }
