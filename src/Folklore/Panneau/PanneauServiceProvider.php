@@ -144,8 +144,7 @@ class PanneauServiceProvider extends ServiceProvider
 
             $schemas = config('panneau.schemas');
             foreach ($schemas as $namespace => $namespaceSchemas) {
-                $resolvedNamespace = get_class(app($namespace));
-                $panneau->addSchemas($namespaceSchemas, $resolvedNamespace);
+                $panneau->addSchemas($namespaceSchemas, $namespace);
             }
 
             return $panneau;
