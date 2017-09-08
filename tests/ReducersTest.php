@@ -150,7 +150,7 @@ class ReducersTest extends TestCase
             $i++;
         }
 
-        $relationBlocks = $model->blocks()->get()->all();
+        $relationBlocks = $model->blocks()->get();
         $this->assertEquals(sizeof($sourceData['blocks']), sizeof($relationBlocks));
         $i = 0;
         foreach ($relationBlocks as $block) {

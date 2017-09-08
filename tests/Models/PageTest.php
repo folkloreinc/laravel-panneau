@@ -72,7 +72,7 @@ class PageTest extends TestCase
         $model->save();
 
         $model = Page::find($model->id);
-        $this->assertEquals($data, $model->data->getValue());
+        $this->assertEquals($data, $model->data);
     }
 
     /**
