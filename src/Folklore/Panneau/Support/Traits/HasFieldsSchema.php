@@ -174,7 +174,7 @@ trait HasFieldsSchema
             $path = implode('.', $pathParts);
             $field = new Fluent($field);
             $field->path = $path;
-            $field->paths = $nodesFromData;
+            $field->paths = $schema->getNodesFromData($data, $path);
             $fields->push($field);
         }
         return $fields;
@@ -450,12 +450,12 @@ trait HasFieldsSchema
         $reducers = $this->getReducers();
         $schema = $this->getSchema();
         $nodesCollection = $schema->getNodesFromData($state, $name);
-        return $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {
+        return $nodesCollection->reduce(function ($state, $node) use ($name, $reducers, $reducerInterface, $reducerMethod) {
             foreach ($reducers as $reducer) {
                 if ($reducer instanceof $reducerInterface) {
-                    $state = $reducer->{$reducerMethod}($this, $node, $state);
+                    $state = $reducer->{$reducerMethod}($this, $name, $node, $state);
                 } elseif (is_callable($reducer)) {
-                    $state = call_user_func_array($reducer, [$this, $node, $state]);
+                    $state = call_user_func_array($reducer, [$this, $name, $node, $state]);
                 }
             }
             return $state;

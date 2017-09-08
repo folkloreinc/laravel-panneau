@@ -16,7 +16,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
     abstract protected function getRelationName();
 
     // @TODO add checks everywhere required
-    public function get($model, $node, $state)
+    public function get($model, $name, $node, $state)
     {
         if (is_null($state)) {
             return $state;
@@ -52,7 +52,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
     }
 
     // @TODO add checks everywhere required
-    public function set($model, $node, $state)
+    public function set($model, $name, $node, $state)
     {
         if (is_null($state)) {
             return $state;
@@ -82,7 +82,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
     }
 
     // @TODO add checks everywhere required
-    public function save($model, $node, $state)
+    public function save($model, $name, $node, $state)
     {
         if (is_null($state)) {
             return $state;
@@ -97,9 +97,9 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $relationName = $this->getRelationName();
         $id = Utils::getPath($state, $node->path);
         if ($node->schema->getType() === 'array') {
-            $this->updateRelationsAtPathWithIds($model, $relationName, $node->path, $id);
+            $this->updateRelationsAtPathWithIds($model, $relationName, $name.'.'.$node->path, $id);
         } else {
-            $this->updateRelationAtPathWithId($model, $relationName, $node->path, $id);
+            $this->updateRelationAtPathWithId($model, $relationName, $name.'.'.$node->path, $id);
         }
 
         return $state;
@@ -195,7 +195,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $this->attachRelationAtPath($model, $relation, $path, $id);
     }
 
-    protected function updateRelationsAtPathWithIds($model, $relation, $path, $ids)
+    protected function updateRelationsAtPathWithIds($model, $relation, $path, array $ids)
     {
         // @TODO
         // $pathColumn = $this->getRelationPathColumn($relation);

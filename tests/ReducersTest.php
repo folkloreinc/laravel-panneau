@@ -76,6 +76,12 @@ class ReducersTest extends TestCase
                     'title' => '22222',
                     'description' => 'Lorem ipsum dolor sit amet consectuet'
                 ]
+            ],
+            [
+                'data' => [
+                    'title' => '33333',
+                    'description' => 'Lorem ipsum dolor sit amet consectuet'
+                ]
             ]
         ];
 
@@ -84,7 +90,7 @@ class ReducersTest extends TestCase
         $parentId = $model->id;
         $blockIds = [];
         foreach ($blocks as $block) {
-            $model = BlockModel::create($page);
+            $model = BlockModel::create($block);
             $model->save();
             $blockIds[] = $model->id;
         }
@@ -129,6 +135,7 @@ class ReducersTest extends TestCase
         $model->fill([
             'data' => $sourceData
         ]);
+        $model->save();
 
         $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
 
@@ -143,13 +150,13 @@ class ReducersTest extends TestCase
             $i++;
         }
 
-        // $pageData = [
-        //     'data' => [
-        //         'blocks' => $blocks
-        //     ]
-        // ];
-        // $model = PageModel::create($pageData);
-        // $model->save();
-        // dd('-----', 'end test', $model->getRawAttributes());
+        $relationBlocks = $model->blocks()->get()->all();
+        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($relationBlocks));
+        $i = 0;
+        foreach ($relationBlocks as $block) {
+            $this->assertInstanceOf(BlockModel::class, $block);
+            $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
+            $i++;
+        }
     }
 }

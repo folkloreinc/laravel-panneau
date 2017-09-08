@@ -4,5 +4,5 @@ namespace Folklore\Panneau\Support\Interfaces;
 
 interface HasReducerGetter
 {
-    public function get($model, $node, $state);
+    public function get($model, $name, $node, $state);
 }
