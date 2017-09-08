@@ -163,7 +163,7 @@ trait HasFieldsSchema
     {
         $schema = $this->getSchema();
         $nodes = $schema->getNodes();
-        $nodesFromData = $nodes->makeFromData($data);
+        $nodesFromData = $schema->getNodesFromData($data);
 
         $fields = new FieldsCollection();
         foreach ($nodes as $path => $field) {
@@ -174,7 +174,7 @@ trait HasFieldsSchema
             $path = implode('.', $pathParts);
             $field = new Fluent($field);
             $field->path = $path;
-            $field->paths = $nodesFromData; // @TODO change $nodesFromData, testing
+            $field->paths = $nodesFromData;
             $fields->push($field);
         }
         return $fields;
