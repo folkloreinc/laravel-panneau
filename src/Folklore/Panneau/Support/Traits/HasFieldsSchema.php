@@ -419,12 +419,12 @@ trait HasFieldsSchema
         $nodesCollection = $schema->getNodesFromData($state, $name)->prependPath($name);
         $data = [];
         $data[$name] = is_object($state) ? clone $state : $state;
-        $data = $nodesCollection->reduce(function ($state, $node) use ($name, $reducers, $reducerInterface, $reducerMethod) {
+        $data = $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {
             foreach ($reducers as $reducer) {
                 if ($reducer instanceof $reducerInterface) {
-                    $state = $reducer->{$reducerMethod}($this, $name, $node, $state);
+                    $state = $reducer->{$reducerMethod}($this, $node, $state);
                 } elseif (is_callable($reducer)) {
-                    $state = call_user_func_array($reducer, [$this, $name, $node, $state]);
+                    $state = call_user_func_array($reducer, [$this, $node, $state]);
                 }
             }
             return $state;
