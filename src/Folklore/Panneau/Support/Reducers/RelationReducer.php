@@ -16,7 +16,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
     abstract protected function getRelationName();
 
     // @TODO add checks everywhere required
-    public function get($model, $name, $node, $state)
+    public function get($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
@@ -52,7 +52,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
     }
 
     // @TODO add checks everywhere required
-    public function set($model, $name, $node, $state)
+    public function set($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
@@ -82,7 +82,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
     }
 
     // @TODO add checks everywhere required
-    public function save($model, $name, $node, $state)
+    public function save($model, $node, $state)
     {
         if (is_null($state)) {
             return $state;
