@@ -97,9 +97,9 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $relationName = $this->getRelationName();
         $id = Utils::getPath($state, $node->path);
         if ($node->schema->getType() === 'array') {
-            $this->updateRelationsAtPathWithIds($model, $relationName, $name.'.'.$node->path, $id);
+            $this->updateRelationsAtPathWithIds($model, $relationName, $node->path, $id);
         } else {
-            $this->updateRelationAtPathWithId($model, $relationName, $name.'.'.$node->path, $id);
+            $this->updateRelationAtPathWithId($model, $relationName, $node->path, $id);
         }
 
         return $state;

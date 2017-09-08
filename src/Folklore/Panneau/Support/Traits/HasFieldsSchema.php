@@ -231,22 +231,6 @@ trait HasFieldsSchema
             $value = $this->{$field};
             $this->callFieldReducers('save', $field, $value);
         }
-        /*$this->fieldsCollection()
-            ->eachPath(function ($path, $key, $field) {
-                $schema = $field->schema;
-                $value = $this->fieldsAttributesForSaving->get($path);
-                $originalValue = $this->fieldsAttributes()->get($path);
-
-                $saveMethod = 'save'.studly_case($field->type).'Field';
-                if (method_exists($this, $saveMethod)) {
-                    $returnValue = $this->{$saveMethod}($path, $value, $originalValue, $field);
-                } elseif (is_object($schema) && method_exists($schema, 'saveField')) {
-                    $returnValue = $schema->saveField($path, $value, $originalValue, $field, $this);
-                }
-            });
-
-        $this->fieldsAttributesForSaving = null;
-        $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);*/
     }
 
     /**
@@ -257,35 +241,14 @@ trait HasFieldsSchema
      */
     public function getFieldsFromAttributes(array $attributes)
     {
-        $fieldsAttributes = new FieldValue();
-        foreach ($attributes as $attributeKey => $attributeValue) {
-            if (!$this->attributeIsField($attributeKey)) {
+        $fieldsAttributes = [];
+        foreach ($attributes as $key => $value) {
+            if (!$this->attributeIsField($key)) {
                 continue;
             }
 
-            if ($this->isJsonCastable($attributeKey)) {
-                $attributeValue = $this->castAttribute($attributeKey, $attributeValue);
-            }
-
-            $fieldValue = new FieldValue($attributeValue);
-
-            $this->fieldsCollection($attributeKey, $attributeValue)
-                ->eachPath(function ($node, $key, $field) use ($attributeKey, $fieldValue) {
-                    $fullPath = $attributeKey.'.'.$node->path;
-                    $schema = $field->schema;
-                    $value = $fieldValue->get($node->path);
-                    $getMethod = 'get'.studly_case($field->type).'Field';
-                    if (method_exists($this, $getMethod)) {
-                        $returnValue = $this->{$getMethod}($fullPath, $value, $fieldValue, $field);
-                    } elseif (is_object($schema) && method_exists($schema, 'getField')) {
-                        $returnValue = $schema->getField($fullPath, $value, $fieldValue, $field, $this);
-                    }
-                    if (isset($returnValue)) {
-                        $fieldValue->set($node->path, $returnValue);
-                    }
-                });
-
-            $fieldsAttributes->set($attributeKey, $fieldValue);
+            $state = $this->getAttributeValue($key);
+            $fieldsAttributes[$key] = $this->callFieldReducers('get', $key, $state);
         }
 
         return $fieldsAttributes;
@@ -356,7 +319,7 @@ trait HasFieldsSchema
                 break;
             }
         }
-        return !is_null($path) ? $this->getFieldsFromAttributes($this->attributes)->get($path) : null;
+        return !is_null($path) ? Utils::getPath($this->getFieldsFromAttributes($this->attributes), $path) : null;
     }
 
     /**
@@ -397,9 +360,9 @@ trait HasFieldsSchema
     {
         if ($this->attributeIsField($key)) {
             return $this->getFieldValue($key);
-        } elseif ($this->attributeIsFieldAppend($key)) {
+        }/* elseif ($this->attributeIsFieldAppend($key)) { // @TODO replace
             return $this->getFieldAppendValue($key);
-        }
+        }*/
         return parent::getAttribute($key);
     }
 
@@ -447,10 +410,16 @@ trait HasFieldsSchema
                 throw new \Exception("Unknown mode $mode");
                 break;
         }
+
         $reducers = $this->getReducers();
         $schema = $this->getSchema();
-        $nodesCollection = $schema->getNodesFromData($state, $name);
-        return $nodesCollection->reduce(function ($state, $node) use ($name, $reducers, $reducerInterface, $reducerMethod) {
+        // Here we prepend the field's name to the computed paths, so that we still get
+        // a full node path in the reducers while scoping the node list to only the current
+        // field. See also the $data array below.
+        $nodesCollection = $schema->getNodesFromData($state, $name)->prependPath($name);
+        $data = [];
+        $data[$name] = is_object($state) ? clone $state : $state;
+        $data = $nodesCollection->reduce(function ($state, $node) use ($name, $reducers, $reducerInterface, $reducerMethod) {
             foreach ($reducers as $reducer) {
                 if ($reducer instanceof $reducerInterface) {
                     $state = $reducer->{$reducerMethod}($this, $name, $node, $state);
@@ -459,7 +428,8 @@ trait HasFieldsSchema
                 }
             }
             return $state;
-        }, $state);
+        }, $data);
+        return $data[$name];
     }
 
     /**
@@ -471,17 +441,16 @@ trait HasFieldsSchema
     {
         $attributes = parent::attributesToArray();
 
+        $fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
         $appendsAttributes = [];
-        foreach ($this->getFieldsAppends() as $key => $path) {
+        /*foreach ($this->getFieldsAppends() as $key => $path) {
             if (is_numeric($key)) {
-                $appendsAttributes[$path] = $this->getFieldsFromAttributes($this->attributes)->get($path);
+                $appendsAttributes[$path] = Utils::getPath($fieldsAttributes, $path);
             } else {
-                $appendsAttributes[$key] = $this->getFieldsFromAttributes($this->attributes)->get($path);
+                $appendsAttributes[$key] = Utils::getPath($fieldsAttributes, $path);
             }
-        }
+        }*/
 
-        // @TODO Remove toArray(true) and do a special case only when json
-        // null column in db results in empty array; we want an empty object
-        return array_merge($attributes, $this->getFieldsFromAttributes($this->attributes)->toArray(true), $appendsAttributes);
+        return array_merge($attributes, $fieldsAttributes, $appendsAttributes);
     }
 }

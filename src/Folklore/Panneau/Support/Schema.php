@@ -260,7 +260,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
     public function getNodesFromData($data, $root = null)
     {
         $nodes = $this->getNodes($root);
-        $dataArray = json_decode(json_encode($data), true);
+        $dataArray = !is_null($data) ? json_decode(json_encode($data), true) : [];
         $dataPaths = array_keys(array_dot($dataArray));
         return $nodes->reduce(function ($collection, $node) use ($dataPaths, $data) {
             $paths = $this->getMatchingPaths($dataPaths, $node->path);
