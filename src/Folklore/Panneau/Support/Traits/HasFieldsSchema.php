@@ -8,6 +8,9 @@ use Folklore\Panneau\Exceptions\SchemaValidationException;
 use Folklore\Panneau\Support\FieldsCollection;
 use Folklore\Panneau\Support\FieldValue;
 use Folklore\Panneau\Support\Utils;
+use Folklore\Panneau\Support\Interfaces\HasReducerGetter;
+use Folklore\Panneau\Support\Interfaces\HasReducerSetter;
+use Folklore\Panneau\Support\Interfaces\HasReducerSaving;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Fluent;
 use StdClass;
@@ -19,15 +22,17 @@ trait HasFieldsSchema
 
     protected $schemaNameColumn = 'type';
 
-    protected $fieldsAttributes;
-
-    protected $fieldsAttributesForSaving;
-
     protected $fieldsAppends = [];
 
     protected static $defaultSchema;
 
     protected static $defaultSchemaName = 'default';
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->appends[] = 'fieldsSchema';
+    }
 
     public static function bootHasFieldsSchema()
     {
@@ -54,58 +59,9 @@ trait HasFieldsSchema
         return static::$defaultSchemaName;
     }
 
-    public static function schemas()
+    public function setSchema($schema)
     {
-        return app('panneau')->schemas(static::class);
-    }
-
-    public static function hasSchema($name = null)
-    {
-        if (is_null($name)) {
-            return false;
-        }
-        return app('panneau')->hasSchema($name, static::class);
-    }
-
-    public static function schema($name = null)
-    {
-        if (is_null($name)) {
-            $defaultSchema = static::getDefaultSchema();
-            if (!is_null($defaultSchema)) {
-                return $defaultSchema;
-            }
-            $name = static::getDefaultSchemaName();
-        }
-        return app('panneau')->schema($name, static::class);
-    }
-
-    public static function addSchema($name, $schema)
-    {
-        return app('panneau')->addSchema($name, $schema, static::class);
-    }
-
-    public static function addSchemas($schemas)
-    {
-        return app('panneau')->addSchemas($schemas, static::class);
-    }
-
-    public function __construct(array $attributes = [])
-    {
-        parent::__construct($attributes);
-        $this->appends[] = 'fieldsSchema';
-    }
-
-    protected function getFieldsSchemaAttribute()
-    {
-        $schema = $this->getSchema();
-        return !is_null($schema) ? $schema->toArray() : null;
-    }
-
-    public function getSchemaName()
-    {
-        $columnName = method_exists($this, 'getSchemaNameColumn') ?
-            $this->getSchemaNameColumn() : $this->schemaNameColumn;
-        return isset($this->attributes[$columnName]) ? $this->attributes[$columnName] : null;
+        $this->fieldsSchema = $schema;
     }
 
     public function getSchema()
@@ -125,9 +81,11 @@ trait HasFieldsSchema
         return static::schema($name);
     }
 
-    public function setSchema($schema)
+    public function getSchemaName()
     {
-        $this->fieldsSchema = $schema;
+        $columnName = method_exists($this, 'getSchemaNameColumn') ?
+            $this->getSchemaNameColumn() : $this->schemaNameColumn;
+        return isset($this->attributes[$columnName]) ? $this->attributes[$columnName] : null;
     }
 
     public function setSchemaNameColumn($column)
@@ -135,36 +93,80 @@ trait HasFieldsSchema
         $this->schemaNameColumn = $column;
     }
 
-    protected function getFieldRealPaths($path, $data = null)
+    public static function schemas()
     {
-        if (sizeof(explode('*', $path)) <= 1) {
-            return new Collection((array)$path);
+        return app('panneau')->schemas(static::class);
+    }
+
+    public static function reducers()
+    {
+        return app('panneau')->reducers(static::class);
+    }
+
+    public static function hasSchema($name = null)
+    {
+        if (is_null($name)) {
+            return false;
         }
-        if (is_null($data)) {
-            $data = $this->toArray();
-        }
-        $dataArray = json_decode(json_encode($data), true);
-        $dotKeys = array_keys(array_dot($dataArray));
-        $matchingKeys = [];
-        $pattern = !empty($path) && $path !== '*' ?
-            '/^('.str_replace('\*', '[^\.]+', preg_quote($path)).')/' : '/^(.*)/';
-        foreach ($dotKeys as $dotKey) {
-            if (preg_match($pattern, $dotKey, $matches)) {
-                if (!in_array($matches[1], $matchingKeys)) {
-                    $matchingKeys[] = $matches[1];
-                }
+        return app('panneau')->hasSchema($name, static::class);
+    }
+
+    public static function hasReducers()
+    {
+        return app('panneau')->hasReducers(static::class);
+    }
+
+    public static function schema($name = null)
+    {
+        if (is_null($name)) {
+            $defaultSchema = static::getDefaultSchema();
+            if (!is_null($defaultSchema)) {
+                return $defaultSchema;
             }
+            $name = static::getDefaultSchemaName();
         }
-        return new Collection($matchingKeys);
+        return app('panneau')->schema($name, static::class);
+    }
+
+    public static function addSchema($name, $schema)
+    {
+        return app('panneau')->addSchema($name, $schema, static::class);
+    }
+
+    public static function addReducer($reducer)
+    {
+        return app('panneau')->addReducer($reducer, static::class);
+    }
+
+    public static function addSchemas($schemas)
+    {
+        return app('panneau')->addSchemas($schemas, static::class);
+    }
+
+    public static function addReducers($reducers)
+    {
+        return app('panneau')->addReducers($reducers, static::class);
+    }
+
+    protected function getFieldsSchemaAttribute()
+    {
+        $schema = $this->getSchema();
+        return !is_null($schema) ? $schema->toArray() : null;
+    }
+
+    public function getReducers()
+    {
+        return static::reducers(static::class);
     }
 
     protected function fieldsCollection($key = null, $data = null)
     {
         $schema = $this->getSchema();
-        $structure = $schema->getStructure();
+        $nodes = $schema->getNodes();
+        $nodesFromData = $schema->getNodesFromData($data);
 
         $fields = new FieldsCollection();
-        foreach ($structure as $path => $field) {
+        foreach ($nodes as $path => $field) {
             $pathParts = explode('.', $path);
             if (!is_null($key) && !array_shift($pathParts) === $key) {
                 continue;
@@ -172,7 +174,7 @@ trait HasFieldsSchema
             $path = implode('.', $pathParts);
             $field = new Fluent($field);
             $field->path = $path;
-            $field->paths = $this->getFieldRealPaths($path, $data);
+            $field->paths = $schema->getNodesFromData($data, $path);
             $fields->push($field);
         }
         return $fields;
@@ -184,7 +186,7 @@ trait HasFieldsSchema
         if (is_null($schema)) {
             return;
         }
-        $data = $this->fieldsAttributes()->toObject();
+        $data = (object)$this->getFieldsValue();
         $validator = app(\Folklore\Panneau\Contracts\SchemaValidator::class);
         if (!$validator->validateSchema($data, $schema)) {
             throw new SchemaValidationException($validator->getMessages());
@@ -223,22 +225,12 @@ trait HasFieldsSchema
 
     public function saveFields()
     {
-        $this->fieldsCollection()
-            ->eachPath(function ($path, $key, $field) {
-                $schema = $field->schema;
-                $value = $this->fieldsAttributesForSaving->get($path);
-                $originalValue = $this->fieldsAttributes()->get($path);
-
-                $saveMethod = 'save'.studly_case($field->type).'Field';
-                if (method_exists($this, $saveMethod)) {
-                    $returnValue = $this->{$saveMethod}($path, $value, $originalValue, $field);
-                } elseif (is_object($schema) && method_exists($schema, 'saveField')) {
-                    $returnValue = $schema->saveField($path, $value, $originalValue, $field, $this);
-                }
-            });
-
-        $this->fieldsAttributesForSaving = null;
-        $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
+        $schema = $this->getSchema();
+        $fields = $schema->getFieldsNames();
+        foreach ($fields as $field) {
+            $value = $this->{$field};
+            $this->callFieldReducers('save', $field, $value);
+        }
     }
 
     /**
@@ -249,35 +241,14 @@ trait HasFieldsSchema
      */
     public function getFieldsFromAttributes(array $attributes)
     {
-        $fieldsAttributes = new FieldValue();
-        foreach ($attributes as $attributeKey => $attributeValue) {
-            if (!$this->attributeIsField($attributeKey)) {
+        $fieldsAttributes = [];
+        foreach ($attributes as $key => $value) {
+            if (!$this->attributeIsField($key)) {
                 continue;
             }
 
-            if ($this->isJsonCastable($attributeKey)) {
-                $attributeValue = $this->castAttribute($attributeKey, $attributeValue);
-            }
-
-            $fieldValue = new FieldValue($attributeValue);
-
-            $this->fieldsCollection($attributeKey, $attributeValue)
-                ->eachPath(function ($path, $key, $field) use ($attributeKey, $fieldValue) {
-                    $fullPath = $attributeKey.'.'.$path;
-                    $schema = $field->schema;
-                    $value = $fieldValue->get($path);
-                    $getMethod = 'get'.studly_case($field->type).'Field';
-                    if (method_exists($this, $getMethod)) {
-                        $returnValue = $this->{$getMethod}($fullPath, $value, $fieldValue, $field);
-                    } elseif (is_object($schema) && method_exists($schema, 'getField')) {
-                        $returnValue = $schema->getField($fullPath, $value, $fieldValue, $field, $this);
-                    }
-                    if (isset($returnValue)) {
-                        $fieldValue->set($path, $returnValue);
-                    }
-                });
-
-            $fieldsAttributes->set($attributeKey, $fieldValue);
+            $state = $this->getAttributeValue($key);
+            $fieldsAttributes[$key] = $this->callFieldReducers('get', $key, $state);
         }
 
         return $fieldsAttributes;
@@ -309,12 +280,27 @@ trait HasFieldsSchema
      * @param  string  $key
      * @return mixed
      */
+    public function getFieldsValue()
+    {
+        $schema = $this->getSchema();
+        $fields = $schema->getFieldsNames();
+        $value = [];
+        foreach ($fields as $field) {
+            $value[$field] = $this->getFieldValue($field);
+        }
+        return $value;
+    }
+
+    /**
+     * Get the value of a field
+     *
+     * @param  string  $key
+     * @return mixed
+     */
     public function getFieldValue($key)
     {
-        $fieldsAttributes = $this->fieldsAttributes();
-        if (isset($fieldsAttributes[$key])) {
-            return $fieldsAttributes[$key];
-        }
+        $state = $this->getAttributeValue($key);
+        return $this->callFieldReducers('get', $key, $state);
     }
 
     /**
@@ -333,7 +319,7 @@ trait HasFieldsSchema
                 break;
             }
         }
-        return !is_null($path) ? $this->fieldsAttributes()->get($path) : null;
+        return !is_null($path) ? Utils::getPath($this->getFieldsFromAttributes($this->attributes), $path) : null;
     }
 
     /**
@@ -364,14 +350,6 @@ trait HasFieldsSchema
         return $this;
     }
 
-    public function fieldsAttributes()
-    {
-        if (is_null($this->fieldsAttributes)) {
-            $this->fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
-        }
-        return $this->fieldsAttributes;
-    }
-
     /**
      * Get an attribute from the model.
      *
@@ -382,9 +360,9 @@ trait HasFieldsSchema
     {
         if ($this->attributeIsField($key)) {
             return $this->getFieldValue($key);
-        } elseif ($this->attributeIsFieldAppend($key)) {
+        }/* elseif ($this->attributeIsFieldAppend($key)) { // @TODO replace
             return $this->getFieldAppendValue($key);
-        }
+        }*/
         return parent::getAttribute($key);
     }
 
@@ -398,10 +376,60 @@ trait HasFieldsSchema
     public function setAttribute($key, $value)
     {
         if ($this->attributeIsField($key)) {
-            $this->fieldsAttributes()->set($key, new FieldValue($value));
-            return $this;
+            $value = $this->callFieldReducers('set', $key, $value);
         }
         return parent::setAttribute($key, $value);
+    }
+
+    /**
+     * Apply all reducers on a given attribute.
+     *
+     * @param  string $mode
+     * @param  string $name
+     * @param  mixed $state
+     * @return mixed
+     */
+    protected function callFieldReducers($mode, $name, $state)
+    {
+        $reducerInterface = null;
+        $reducerMethod = null;
+        switch ($mode) {
+            case 'get':
+                $reducerInterface = HasReducerGetter::class;
+                $reducerMethod = 'get';
+                break;
+            case 'set':
+                $reducerInterface = HasReducerSetter::class;
+                $reducerMethod = 'set';
+                break;
+            case 'save':
+                $reducerInterface = HasReducerSaving::class;
+                $reducerMethod = 'save';
+                break;
+            default:
+                throw new \Exception("Unknown mode $mode");
+                break;
+        }
+
+        $reducers = $this->getReducers();
+        $schema = $this->getSchema();
+        // Here we prepend the field's name to the computed paths, so that we still get
+        // a full node path in the reducers while scoping the node list to only the current
+        // field. See also the $data array below.
+        $nodesCollection = $schema->getNodesFromData($state, $name)->prependPath($name);
+        $data = [];
+        $data[$name] = is_object($state) ? clone $state : $state;
+        $data = $nodesCollection->reduce(function ($state, $node) use ($reducers, $reducerInterface, $reducerMethod) {
+            foreach ($reducers as $reducer) {
+                if ($reducer instanceof $reducerInterface) {
+                    $state = $reducer->{$reducerMethod}($this, $node, $state);
+                } elseif (is_callable($reducer)) {
+                    $state = call_user_func_array($reducer, [$this, $node, $state]);
+                }
+            }
+            return $state;
+        }, $data);
+        return $data[$name];
     }
 
     /**
@@ -413,17 +441,16 @@ trait HasFieldsSchema
     {
         $attributes = parent::attributesToArray();
 
+        $fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
         $appendsAttributes = [];
-        foreach ($this->getFieldsAppends() as $key => $path) {
+        /*foreach ($this->getFieldsAppends() as $key => $path) {
             if (is_numeric($key)) {
-                $appendsAttributes[$path] = $this->fieldsAttributes()->get($path);
+                $appendsAttributes[$path] = Utils::getPath($fieldsAttributes, $path);
             } else {
-                $appendsAttributes[$key] = $this->fieldsAttributes()->get($path);
+                $appendsAttributes[$key] = Utils::getPath($fieldsAttributes, $path);
             }
-        }
+        }*/
 
-        // @TODO Remove toArray(true) and do a special case only when json
-        // null column in db results in empty array; we want an empty object
-        return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
+        return array_merge($attributes, $fieldsAttributes, $appendsAttributes);
     }
 }

@@ -202,6 +202,7 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
             if (is_array($value)) {
                 $value = array_merge($this->{$key}($value), $value);
             } else {
+                $class = class_basename($this);
                 $value = $this->{$key}($value);
             }
         }
@@ -215,10 +216,11 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
         return $this;
     }
 
-    public function getStructure($path = null)
+    public function getNodes($root = null)
     {
         $type = $this->getType();
-        $structure = [];
+
+        // get properties
         $properties = [];
         if ($type === 'object') {
             $properties = $this->getProperties();
@@ -233,22 +235,61 @@ class Schema implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, Sche
             }
         }
 
+        $nodes = new SchemaNodesCollection();
         foreach ($properties as $name => $propertySchema) {
-            $propertyPath = empty($path) ? $name : ($path.'.'.$name);
+            $propertyPath = $name;
+            $schemaNode = new SchemaNode();
+            $schemaNode->path = $propertyPath;
+
             if ($propertySchema instanceof SchemaContract) {
-                $structure[$propertyPath] = [
-                    'type' => $propertySchema->getName(),
-                    'schema' => $propertySchema,
-                ];
-                $structure = array_merge($structure, $propertySchema->getStructure($propertyPath));
+                $schemaNode->type = $propertySchema->getName();
+                $schemaNode->schema = $propertySchema;
+
+                $nodes->push($schemaNode);
+                $propertyNodes = $propertySchema->getNodes()->prependPath($propertyPath);
+                $nodes = $nodes->merge($propertyNodes);
             } else {
-                $structure[$propertyPath] = [
-                    'type' => array_get($propertySchema, 'type'),
-                ];
+                $schemaNode->type = array_get($propertySchema, 'type');
+
+                $nodes->push($schemaNode);
             }
         }
+        return $root !== null ? $nodes->fromPath($root) : $nodes;
+    }
 
-        return $structure;
+    public function getNodesFromData($data, $root = null)
+    {
+        $nodes = $this->getNodes($root);
+        $dataArray = !is_null($data) ? json_decode(json_encode($data), true) : [];
+        $dataPaths = array_keys(array_dot($dataArray));
+        return $nodes->reduce(function ($collection, $node) use ($dataPaths, $data) {
+            $paths = $this->getMatchingPaths($dataPaths, $node->path);
+            foreach ($paths as $path) {
+                $newNode = clone $node;
+                $newNode->path = $path;
+                $collection->push($newNode);
+            }
+            return $collection;
+        }, new SchemaNodesCollection());
+    }
+
+    protected function getMatchingPaths($dataPaths, $path)
+    {
+        if (sizeof(explode('*', $path)) <= 1) {
+            return [$path];
+        }
+
+        $matchingPaths = [];
+        $pattern = !empty($path) && $path !== '*' ?
+            '/^('.str_replace('\*', '[^\.]+', preg_quote($path)).')/' : '/^(.*)/';
+        foreach ($dataPaths as $dataPath) {
+            if (preg_match($pattern, $dataPath, $matches)) {
+                if (!in_array($matches[1], $matchingPaths)) {
+                    $matchingPaths[] = $matches[1];
+                }
+            }
+        }
+        return $matchingPaths;
     }
 
     public function toArray()

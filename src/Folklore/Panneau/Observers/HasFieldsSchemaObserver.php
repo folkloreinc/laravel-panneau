@@ -9,7 +9,7 @@ class HasFieldsSchemaObserver
     public function saving(HasFieldsSchemaInterface $model)
     {
         $model->validateFieldsAgainstSchema();
-        $model->prepareFieldsForSaving();
+        // $model->prepareFieldsForSaving();  // @TODO remove ?
     }
 
     public function saved(HasFieldsSchemaInterface $model)

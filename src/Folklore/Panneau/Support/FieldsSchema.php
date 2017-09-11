@@ -81,6 +81,7 @@ class FieldsSchema extends Schema implements FieldsSchemaContract
         } else {
             $this->fields[$name] = $schema;
         }
+        return $this;
     }
 
     public function getSchemaForField($name)
