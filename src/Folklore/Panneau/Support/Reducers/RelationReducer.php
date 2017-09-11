@@ -13,6 +13,8 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
     abstract protected function getRelationSchemaClass();
 
+    abstract protected function getRelationSchemaManyClass();
+
     abstract protected function getRelationName();
 
     // @TODO add checks everywhere required
@@ -88,18 +90,14 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             return $state;
         }
 
-        // Only treat relations matching the associated schema class
-        $relationSchemaClass = $this->getRelationSchemaClass();
-        if (!($node->schema instanceof $relationSchemaClass)) {
-            return $state;
-        }
-
-        $relationName = $this->getRelationName();
         $id = Utils::getPath($state, $node->path);
-        if ($node->schema->getType() === 'array') {
-            $this->updateRelationsAtPathWithIds($model, $relationName, $node->path, $id);
-        } else {
+        $relationName = $this->getRelationName();
+        $relationSchemaClass = $this->getRelationSchemaClass();
+        $relationSchemaManyClass = $this->getRelationSchemaManyClass();
+        if (!is_null($relationSchemaClass) && $node->schema instanceof $relationSchemaClass) {
             $this->updateRelationAtPathWithId($model, $relationName, $node->path, $id);
+        } elseif (!is_null($relationSchemaManyClass) && $node->schema instanceof $relationSchemaManyClass) {
+            $this->updateRelationsAtPathWithIds($model, $relationName, $node->path, $id);
         }
 
         return $state;
@@ -195,10 +193,12 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $this->attachRelationAtPath($model, $relation, $path, $id);
     }
 
-    protected function updateRelationsAtPathWithIds($model, $relation, $path, array $ids)
+    protected function updateRelationsAtPathWithIds($model, $relation, $path, $ids)
     {
-        // @TODO
-        // $pathColumn = $this->getRelationPathColumn($relation);
+        // Because this method is executed first on an "array" schema node type,
+        // simply detach all relations and let updateRelationAtPathWithId()
+        // re-attach them as needed.
+        $model->{$relation}()->detach();
     }
 
     protected function detachRelationAtPath($model, $relation, $path)

@@ -14,6 +14,11 @@ class BubblesReducer extends RelationReducer
         return \Folklore\Panneau\Schemas\Fields\Bubble::class;
     }
 
+    protected function getRelationSchemaManyClass()
+    {
+        return \Folklore\Panneau\Schemas\Fields\Bubbles::class;
+    }
+
     protected function getRelationName()
     {
         return 'bubbles';

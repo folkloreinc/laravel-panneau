@@ -14,6 +14,11 @@ class BlocksReducer extends RelationReducer
         return \Folklore\Panneau\Schemas\Fields\Block::class;
     }
 
+    protected function getRelationSchemaManyClass()
+    {
+        return \Folklore\Panneau\Schemas\Fields\Blocks::class;
+    }
+
     protected function getRelationName()
     {
         return 'blocks';
