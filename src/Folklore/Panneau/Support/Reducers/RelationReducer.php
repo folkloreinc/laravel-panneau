@@ -210,7 +210,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
         $currentItem = $this->getRelationCurrentItemAtPath($model, $relation, $path);
         if ($currentItem) {
-            return $this->{$relation}()->detach($currentItem->id);
+            return $model->{$relation}()->detach($currentItem->id);
         }
     }
 
