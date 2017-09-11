@@ -67,19 +67,19 @@ class ReducersTest extends TestCase
         $blocks = [
             [
                 'data' => [
-                    'title' => '11111',
+                    'title' => 'Block 1',
                     'description' => 'Lorem ipsum dolor sit amet consectuet'
                 ]
             ],
             [
                 'data' => [
-                    'title' => '22222',
+                    'title' => 'Block 2',
                     'description' => 'Lorem ipsum dolor sit amet consectuet'
                 ]
             ],
             [
                 'data' => [
-                    'title' => '33333',
+                    'title' => 'Block 3',
                     'description' => 'Lorem ipsum dolor sit amet consectuet'
                 ]
             ]
@@ -96,8 +96,8 @@ class ReducersTest extends TestCase
         }
 
         $sourceData = [
-            'title' => 'My test title',
-            'slug' => 'my-test-title',
+            'title' => 'My main page',
+            'slug' => 'my-main-page',
             'parent' => $parentId,
             'blocks' => $blockIds
         ];
@@ -155,6 +155,26 @@ class ReducersTest extends TestCase
         $i = 0;
         foreach ($relationBlocks as $block) {
             $this->assertInstanceOf(BlockModel::class, $block);
+            $this->assertEquals(array_get($sourceData, 'blocks.'.$i.'.id'), $block->id);
+            $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
+            $i++;
+        }
+
+
+        $sourceDataMinus = $sourceData;
+        // Not using unset(), which does not reorder keys
+        array_splice($sourceDataMinus, 1, 1);
+        $model->fill([
+            'data' => $sourceDataMinus
+        ]);
+        $model->save();
+
+        $relationBlocks = $model->blocks()->get();
+        $this->assertEquals(sizeof($sourceDataMinus['blocks']), sizeof($relationBlocks));
+        $i = 0;
+        foreach ($relationBlocks as $block) {
+            $this->assertInstanceOf(BlockModel::class, $block);
+            $this->assertEquals(array_get($sourceDataMinus, 'blocks.'.$i.'.id'), $block->id);
             $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
             $i++;
         }
