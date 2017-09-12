@@ -39,7 +39,8 @@ class Page extends Model implements
 
     protected $hidden = [
         'pivot',
-        'blocks'
+        'blocks',
+        'pictures',
     ];
 
     protected $fillable = [

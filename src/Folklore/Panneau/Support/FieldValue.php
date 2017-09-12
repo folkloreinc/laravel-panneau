@@ -11,6 +11,7 @@ use StdClass;
 class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
 {
     protected $attributes = [];
+    protected $isNull = false;
 
     public function __construct($value = [])
     {
@@ -31,7 +32,8 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
                 $this->attributes[$key] = is_object($value) ? clone $value : $value;
             }
         } else {
-            $this->attributes = !is_null($value) ? $value : [];
+            $this->isNull = is_null($value);
+            $this->attributes = !$this->isNull ? $value : [];
         }
         return $this;
     }
@@ -58,17 +60,14 @@ class FieldValue implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
         $data = [];
         $attributes = $isObject ? get_object_vars($this->attributes) : $this->attributes;
         foreach ($attributes as $key => $value) {
-            if (is_array($value) || (is_object($value) && $value instanceof StdClass)) {
-                $value = new FieldValue($value);
-            }
-            // @TODO Remove this logic
-            if ($emptyToObject && $value instanceof FieldValue) {
-                $data[$key] = $value->isEmpty() ? new StdClass() : $value->toArray();
+            if ($value instanceof Arrayable) {
+                $data[$key] = $value->toArray();
+            } elseif (is_array($value) || $value instanceof StdClass) {
+                $data[$key] = with(new FieldValue($value))->toArray();
             } else {
-                $data[$key] = $value instanceof Arrayable ? $value->toArray() : $value;
+                $data[$key] = $value;
             }
         }
-
         return $data;
     }
 
