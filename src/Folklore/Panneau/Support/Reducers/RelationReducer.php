@@ -44,10 +44,9 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $value = $this->mutateRelationIdToObject($model, $relationName, $id);
 
         // Fallback to query if not found in relations and model doesn't exists
-        if (is_null($value)) {
-            //dump('a');
-            //$relationClass = $this->getRelationClass($model, $node, $state);
-            //$value = app($relationClass)->find($id);
+        if (!$model->exists && is_null($value)) {
+            $relationClass = $this->getRelationClass($model, $node, $state);
+            $value = app($relationClass)->find($id);
         }
 
         $state = Utils::setPath($state, $node->path, $value);
@@ -178,7 +177,13 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             return $object;
         }
 
-        return is_array($object) ? $object['id'] : $object->id;
+        if (is_array($object)) {
+            if (isset($object['id'])) {
+                return $object['id'];
+            }
+            return null;
+        }
+        return $object->id;
     }
 
     protected function createRelationDBItemFromObject($model, $relation, $object)
@@ -187,7 +192,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         if (method_exists($this, $method)) {
             return $this->{$method}($model, $relation, $object);
         }
-        $model = $model->getRelation($relation)->getModel();
+        $model = $model->{$relation}()->getModel();
         $model->fill($object);
         $model->save();
         return $model;
@@ -206,10 +211,12 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
     protected function updateRelationsAtPathWithIds($model, $relation, $path, $ids)
     {
-        // Because this method is executed first on an "array" schema node type,
-        // simply detach all relations and let updateRelationAtPathWithId()
-        // re-attach them as needed.
-        $model->{$relation}()->detach();
+        $method = 'update'.studly_case($relation).'RelationsAtPathWithIds';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($model, $relation, $path, $ids);
+        }
+
+        $this->detachRelationsAtPath($model, $relation, $path);
     }
 
     protected function detachRelationAtPath($model, $relation, $path)
@@ -222,6 +229,21 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $currentItem = $this->getRelationCurrentItemAtPath($model, $relation, $path);
         if ($currentItem) {
             return $model->{$relation}()->detach($currentItem->id);
+        }
+    }
+
+    protected function detachRelationsAtPath($model, $relation, $path)
+    {
+        $method = 'detach'.studly_case($relation).'RelationsAtPath';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($model, $relation, $path);
+        }
+
+        $pathColumn = $this->getRelationPathColumn($relation);
+        $currentItems = $model->{$relation}()->wherePivot($pathColumn, 'like', $path.'%')->get();
+        if ($currentItems->isNotEmpty()) {
+            $currentItemsIds = $currentItems->pluck('id');
+            $model->{$relation}()->detach($currentItemsIds);
         }
     }
 

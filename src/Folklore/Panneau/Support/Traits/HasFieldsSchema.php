@@ -177,7 +177,7 @@ trait HasFieldsSchema
         $schema = $this->getSchema();
         $fields = $schema->getFieldsNames();
         foreach ($fields as $field) {
-            $value = $this->getFieldValue($field);
+            $value = $this->getAttributeValue($field);
             $this->callFieldReducers('save', $field, $value);
         }
     }
