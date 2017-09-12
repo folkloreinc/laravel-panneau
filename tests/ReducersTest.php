@@ -136,6 +136,7 @@ class ReducersTest extends TestCase
             'data' => $sourceData
         ]);
         $model->save();
+        $model->load('pages', 'parents', 'blocks');
 
         $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
 
