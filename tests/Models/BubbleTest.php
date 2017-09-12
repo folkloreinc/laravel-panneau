@@ -85,7 +85,7 @@ class BubbleTest extends TestCase
         $model->save();
 
         $model = Bubble::find($model->id);
-        $this->assertEquals($data, $model->data);
+        $this->assertEquals($data, $model->data->getValue());
     }
 
     /**

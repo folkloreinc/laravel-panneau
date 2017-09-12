@@ -1,7 +1,6 @@
 <?php
 
 use Folklore\Panneau\Contracts\Bubble as BubbleContract;
-use Folklore\Panneau\Models\Bubble as BubbleModel;
 
 /**
  * @coversDefaultClass Folklore\Panneau\Support\Traits\HasFieldsSchema
@@ -72,7 +71,7 @@ class HasFieldsSchemaTest extends TestCase
     {
         $model = app(BubbleContract::class);
         $schema = $model->getSchema();
-        $this->assertInstanceOf(config('panneau.schemas.'.BubbleModel::class.'.default'), $schema);
+        $this->assertInstanceOf(config('panneau.schemas.'.BubbleContract::class.'.default'), $schema);
     }
 
     /**

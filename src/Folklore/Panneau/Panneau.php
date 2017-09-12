@@ -3,6 +3,7 @@
 namespace Folklore\Panneau;
 
 use Illuminate\Container\Container;
+use Folklore\Panneau\Contracts\Bubble as BubbleContract;
 use Folklore\Panneau\Contracts\Schema as SchemaContract;
 use Exception;
 
@@ -12,22 +13,28 @@ class Panneau
 
     protected $schemas = [];
 
-    protected $reducers = [];
-
     public function __construct(Container $container)
     {
         $this->container = $container;
     }
 
-    public function addSchemas($schemas, $namespace = 'global')
+    public function addSchemas($schemas, $namespace = null)
     {
+        if (is_null($namespace)) {
+            $namespace = get_class($this->container->make(BubbleContract::class));
+        }
+
         foreach ($schemas as $name => $schema) {
             $this->addSchema($name, $schema, $namespace);
         }
     }
 
-    public function addSchema($name, $schema, $namespace = 'global')
+    public function addSchema($name, $schema, $namespace = null)
     {
+        if (is_null($namespace)) {
+            $namespace = get_class($this->container->make(BubbleContract::class));
+        }
+
         if (!isset($this->schemas[$namespace])) {
             $this->schemas[$namespace] = [];
         }
@@ -35,8 +42,12 @@ class Panneau
         $this->schemas[$namespace][$name] = $schema;
     }
 
-    public function schemas($namespace = 'global')
+    public function schemas($namespace = null)
     {
+        if (is_null($namespace)) {
+            $namespace = get_class($this->container->make(BubbleContract::class));
+        }
+
         if ($namespace === '*') {
             return $this->schemas;
         }
@@ -52,8 +63,11 @@ class Panneau
         return $schemas;
     }
 
-    public function schema($name, $namespace = 'global')
+    public function schema($name, $namespace = null)
     {
+        if (is_null($namespace)) {
+            $namespace = get_class($this->container->make(BubbleContract::class));
+        }
         if (!isset($this->schemas[$namespace][$name])) {
             throw new Exception('Schema '.$name.' not found.');
         }
@@ -62,8 +76,11 @@ class Panneau
         return $this->getSchemaAsObject($schema);
     }
 
-    public function hasSchema($name, $namespace = 'global')
+    public function hasSchema($name, $namespace = null)
     {
+        if (is_null($namespace)) {
+            $namespace = get_class($this->container->make(BubbleContract::class));
+        }
         return isset($this->schemas[$namespace][$name]);
     }
 
@@ -76,51 +93,5 @@ class Panneau
             $schema->setData($schema);
         }
         return $schema;
-    }
-
-    public function addReducers($reducers, $namespace = 'global')
-    {
-        foreach ($reducers as $reducer) {
-            $this->addReducer($reducer, $namespace);
-        }
-    }
-
-    public function addReducer($reducer, $namespace = 'global')
-    {
-        if (!isset($this->reducers[$namespace])) {
-            $this->reducers[$namespace] = [];
-        }
-
-        $this->reducers[$namespace][] = $reducer;
-    }
-
-    public function reducers($namespace = 'global')
-    {
-        if ($namespace === '*') {
-            return $this->reducers;
-        }
-
-        if (!isset($this->reducers[$namespace])) {
-            return [];
-        }
-
-        $reducers = [];
-        foreach ($this->reducers[$namespace] as $reducer) {
-            $reducers[] = $this->getReducerAsObject($reducer);
-        }
-        return $reducers;
-    }
-
-    public function hasReducers($namespace = 'global')
-    {
-        return isset($this->reducers[$namespace]);
-    }
-
-    protected function getReducerAsObject($reducer)
-    {
-        if (is_string($reducer)) {
-            $reducer = app($reducer);
-        }
-        return $reducer;
     }
 }

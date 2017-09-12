@@ -7,13 +7,13 @@ return [
     'migrations_supports_json' => env('PANNEAU_MIGRATIONS_SUPPORTS_JSON', 'detect'),
 
     'schemas' => [
-        \Folklore\Panneau\Models\Bubble::class => [
+        \Folklore\Panneau\Contracts\Bubble::class => [
             'default' => \Folklore\Panneau\Schemas\Bubble::class,
         ],
-        \Folklore\Panneau\Models\Page::class => [
+        \Folklore\Panneau\Contracts\Page::class => [
             'default' => \Folklore\Panneau\Schemas\Page::class,
         ],
-        \Folklore\Panneau\Models\Block::class => [
+        \Folklore\Panneau\Contracts\Block::class => [
             'default' => \Folklore\Panneau\Schemas\Block::class,
         ],
     ],
