@@ -20,12 +20,7 @@ class CreatePanneauPagesTable extends Migration
             $table->string('handle')->nullable();
             $table->integer('parent_id')->nullable();
             $table->integer('order')->nullable();
-
-            if ($this->supportsJSON()) {
-                $table->json('data')->nullable();
-            } else {
-                $table->longText('data')->nullable();
-            }
+            $table->longText('data')->nullable();
 
             // Laravel features
             $table->softDeletes();
