@@ -50,4 +50,9 @@ class MediasReducer extends RelationReducer
         }
         return null;
     }
+
+    protected function shouldUpdateRelation($model, $relation)
+    {
+        return false;
+    }
 }

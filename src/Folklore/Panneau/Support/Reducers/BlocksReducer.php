@@ -23,4 +23,9 @@ class BlocksReducer extends RelationReducer
     {
         return 'blocks';
     }
+
+    protected function shouldUpdateRelation($model, $relation)
+    {
+        return true;
+    }
 }

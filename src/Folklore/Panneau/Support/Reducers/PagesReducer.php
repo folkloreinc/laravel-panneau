@@ -23,4 +23,9 @@ class PagesReducer extends RelationReducer
     {
         return 'pages';
     }
+
+    protected function shouldUpdateRelation($model, $relation)
+    {
+        return false;
+    }
 }

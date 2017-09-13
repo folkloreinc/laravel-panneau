@@ -17,6 +17,8 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
     abstract protected function getRelationName($model, $node, $state);
 
+    abstract protected function shouldUpdateRelation($model, $relation);
+
     // @TODO add checks everywhere required
     public function get($model, $node, $state)
     {
@@ -65,7 +67,6 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         if (is_null($relationSchemaClass) || !($node->schema instanceof $relationSchemaClass)) {
             return $state;
         }
-
         // Only treat single item nodes, not arrays
         if ($node->schema->getType() !== 'object') {
             return $state;
@@ -162,6 +163,8 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             if (!is_null($item)) {
                 $id = $this->getRelationIdFromDBItem($relation, $item);
             }
+        } elseif ($this->shouldUpdateRelation($model, $relation)) {
+            $this->updateRelationDBItemFromObject($model, $relation, $object);
         }
         return $id;
     }
@@ -192,10 +195,29 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         if (method_exists($this, $method)) {
             return $this->{$method}($model, $relation, $object);
         }
-        $model = $model->{$relation}()->getModel();
-        $model->fill($object);
-        $model->save();
-        return $model;
+
+        $relationModel = $model->{$relation}()->getModel();
+        $relationModel->fill($object);
+        $relationModel->save();
+        return $relationModel;
+    }
+
+    protected function updateRelationDBItemFromObject($model, $relation, $object)
+    {
+        $method = 'update'.studly_case($relation).'RelationDBItemFromObject';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($model, $relation, $object);
+        }
+
+        $relationId = $this->getRelationIdFromObject($relation, $object);
+        if (!is_null($relationId)) {
+            $relationModel = $model->{$relation}()->getModel();
+            $modelToUpdate = $relationModel::find($relationId);
+            if (!is_null($modelToUpdate)) {
+                $modelToUpdate->fill((array)$object);
+                $modelToUpdate->save();
+            }
+        }
     }
 
     protected function updateRelationAtPathWithId($model, $relation, $path, $id)

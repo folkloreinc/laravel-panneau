@@ -23,4 +23,9 @@ class BubblesReducer extends RelationReducer
     {
         return 'bubbles';
     }
+
+    protected function shouldUpdateRelation($model, $relation)
+    {
+        return false;
+    }
 }
