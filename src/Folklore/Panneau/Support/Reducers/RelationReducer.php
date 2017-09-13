@@ -127,8 +127,10 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         }
 
         if (!$model->relationLoaded($relationName)) {
+            \Log::warning('Relation "'.$relationName.'" is needed for reducer '.static::class.' but not explicitly loaded');
             return null;
         }
+
         $relation = $model->getRelation($relationName);
         return $relation->first(function ($item, $key) use ($relationName, $id) {
             if (!is_object($item)) {
