@@ -420,9 +420,9 @@ trait HasFieldsSchema
         $appendsAttributes = [];
         foreach ($this->getFieldsAppends() as $key => $path) {
             if (is_numeric($key)) {
-                $appendsAttributes[$path] = array_get($fieldsAttributes, $path);
+                $appendsAttributes[$path] = $this->fieldsAttributes()->get($path);
             } else {
-                $appendsAttributes[$key] = array_get($fieldsAttributes, $path);
+                $appendsAttributes[$key] = $this->fieldsAttributes()->get($path);
             }
         }
 
