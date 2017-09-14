@@ -214,16 +214,22 @@ class ReducersTest extends TestCase
         $output = $pageModel->toArray();
         $this->assertEquals($blockId, array_get($output, 'data.blocks.0.id'));
 
-        // Hidden attributes should not be output
+        // Hidden attributes should not output, but sub-fields should still append
         $pageModel->setHidden([]);
         $pageModel->makeHidden(['data', 'blocks']);
+        $pageModel->setFieldsAppends([
+            'title' => 'data.title'
+        ]);
         $output = $pageModel->toArray();
         $this->assertArrayNotHasKey('data', $output);
         $this->assertArrayNotHasKey('blocks', $output);
+        $this->assertEquals(array_get($pageData, 'data.title'), array_get($output, 'title'));
+
         $pageModel->makeVisible(['data', 'blocks']);
         $output = $pageModel->toArray();
         $this->assertArrayHasKey('data', $output);
         $this->assertArrayHasKey('blocks', $output);
         $this->assertEquals(1, sizeof(array_get($output, 'blocks')));
+        $output = $pageModel->toArray();
     }
 }
