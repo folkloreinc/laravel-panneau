@@ -462,6 +462,12 @@ trait HasFieldsSchema
         return $this;
     }
 
+    public function disableAllFields()
+    {
+        $fields = $schema->getFieldsNames();
+        $this->makeFieldDisabled($fields);
+    }
+
     public function isFieldDisabled($field)
     {
         $disabled = $this->getDisabledFields();
