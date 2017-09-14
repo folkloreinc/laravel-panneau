@@ -413,17 +413,23 @@ trait HasFieldsSchema
     {
         $attributes = parent::attributesToArray();
 
+        // @TODO Remove toArray(true) and do a special case only when json
+        // null column in db results in empty array; we want an empty object
+        $fieldsAttributes = $this->fieldsAttributes()->toArray(true);
+
         $appendsAttributes = [];
         foreach ($this->getFieldsAppends() as $key => $path) {
             if (is_numeric($key)) {
-                $appendsAttributes[$path] = $this->fieldsAttributes()->get($path);
+                $appendsAttributes[$path] = array_get($fieldsAttributes, $path);
             } else {
-                $appendsAttributes[$key] = $this->fieldsAttributes()->get($path);
+                $appendsAttributes[$key] = array_get($fieldsAttributes, $path);
             }
         }
 
-        // @TODO Remove toArray(true) and do a special case only when json
-        // null column in db results in empty array; we want an empty object
-        return array_merge($attributes, $this->fieldsAttributes()->toArray(true), $appendsAttributes);
+        return array_merge(
+            $attributes,
+            $this->getArrayableItems($fieldsAttributes),
+            $this->getArrayableItems($appendsAttributes)
+        );
     }
 }
