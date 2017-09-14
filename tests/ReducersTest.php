@@ -206,11 +206,11 @@ class ReducersTest extends TestCase
 
         $pageModel->makeFieldDisabled('data');
         $output = $pageModel->toArray();
-        $this->assertEquals(array_get($output, 'data.blocks.0'), $blockId);
+        $this->assertEquals($blockId, array_get($output, 'data.blocks.0'));
 
         $pageModel->makeFieldEnabled('data');
         $output = $pageModel->toArray();
-        $this->assertEquals(array_get($output, 'data.blocks.0.id'), $blockId);
+        $this->assertEquals($blockId, array_get($output, 'data.blocks.0.id'));
 
         $pageModel->makeHidden('data');
         $output = $pageModel->toArray();
