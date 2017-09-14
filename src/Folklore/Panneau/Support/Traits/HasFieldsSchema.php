@@ -24,6 +24,9 @@ trait HasFieldsSchema
 
     protected $fieldsAppends = [];
 
+    protected $fieldsEnabled = [];
+    protected $fieldsDisabled = [];
+
     protected static $defaultSchema;
 
     protected static $defaultSchemaName = 'default';
@@ -242,6 +245,9 @@ trait HasFieldsSchema
     public function getFieldValue($key)
     {
         $state = $this->getAttributeValue($key);
+        if ($this->isFieldDisabled($key)) {
+            return $state;
+        }
         return $this->callFieldReducers('get', $key, $state);
     }
 
@@ -394,6 +400,71 @@ trait HasFieldsSchema
             }
         }
 
-        return array_merge($attributes, $fieldsAttributes, $appendsAttributes);
+        return array_merge(
+            $attributes,
+            $this->getArrayableItems($fieldsAttributes),
+            $this->getArrayableItems($appendsAttributes)
+        );
+    }
+
+    public function getDisabledFields()
+    {
+        return $this->fieldsDisabled;
+    }
+
+    public function setDisabledFields(array $disabled)
+    {
+        $this->fieldsDisabled = $disabled;
+        return $this;
+    }
+
+    public function addDisabledField($field = null)
+    {
+        $this->fieldsDisabled = array_merge(
+            $this->fieldsDisabled,
+            is_array($field) ? $field : func_get_args()
+        );
+    }
+
+    public function getEnabledFields()
+    {
+        return $this->fieldsEnabled;
+    }
+
+    public function setEnabledFields(array $enabled)
+    {
+        $this->fieldsEnabled = $enabled;
+        return $this;
+    }
+
+    public function addEnabledField($field = null)
+    {
+        $this->fieldsEnabled = array_merge(
+            $this->fieldsEnabled,
+            is_array($field) ? $field : func_get_args()
+        );
+    }
+
+    public function makeFieldEnabled($field)
+    {
+        $this->fieldsDisabled = array_diff($this->fieldsDisabled, (array) $field);
+        if (! empty($this->fieldsEnabled)) {
+            $this->addEnabledField($field);
+        }
+        return $this;
+    }
+
+    public function makeFieldDisabled($field)
+    {
+        $field = (array) $field;
+        $this->fieldsEnabled = array_diff($this->fieldsEnabled, $field);
+        $this->fieldsDisabled = array_unique(array_merge($this->fieldsDisabled, $field));
+        return $this;
+    }
+
+    public function isFieldDisabled($field)
+    {
+        $disabled = $this->getDisabledFields();
+        return in_array($field, $disabled);
     }
 }

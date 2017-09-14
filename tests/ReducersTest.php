@@ -56,7 +56,7 @@ class ReducersTest extends TestCase
         BlockModel::setDefaultSchema(null);
     }
 
-    public function testReducersGet()
+    public function testReducersGetSetSave()
     {
         $page = [
             'data' => [
@@ -179,5 +179,41 @@ class ReducersTest extends TestCase
             $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
             $i++;
         }
+    }
+
+    public function testReducersEnableVisible()
+    {
+        $pageData = [
+            'data' => [
+                'title' => 'Hub page',
+                'slug' => 'hub-page',
+                'blocks' => [
+                    [
+                        'data' => [
+                            'title' => 'Test block',
+                            'description' => 'Lorem ipsum dolor sit amet consectuet'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $pageModel = PageModel::create($pageData);
+        $pageModel->save();
+        $pageModel->load('blocks');
+
+        $blockId = $pageModel->data->blocks[0]->id;
+
+        $pageModel->makeFieldDisabled('data');
+        $output = $pageModel->toArray();
+        $this->assertEquals(array_get($output, 'data.blocks.0'), $blockId);
+
+        $pageModel->makeFieldEnabled('data');
+        $output = $pageModel->toArray();
+        $this->assertEquals(array_get($output, 'data.blocks.0.id'), $blockId);
+
+        $pageModel->makeHidden('data');
+        $output = $pageModel->toArray();
+        $this->assertArrayNotHasKey('data', $output);
     }
 }
