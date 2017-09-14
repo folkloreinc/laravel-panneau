@@ -204,16 +204,26 @@ class ReducersTest extends TestCase
 
         $blockId = $pageModel->data->blocks[0]->id;
 
+        // Disabled field should not be reduced
         $pageModel->makeFieldDisabled('data');
         $output = $pageModel->toArray();
         $this->assertEquals($blockId, array_get($output, 'data.blocks.0'));
 
+        // Re-enabled field should be reduced
         $pageModel->makeFieldEnabled('data');
         $output = $pageModel->toArray();
         $this->assertEquals($blockId, array_get($output, 'data.blocks.0.id'));
 
-        $pageModel->makeHidden('data');
+        // Hidden attributes should not be output
+        $pageModel->setHidden([]);
+        $pageModel->makeHidden(['data', 'blocks']);
         $output = $pageModel->toArray();
         $this->assertArrayNotHasKey('data', $output);
+        $this->assertArrayNotHasKey('blocks', $output);
+        $pageModel->makeVisible(['data', 'blocks']);
+        $output = $pageModel->toArray();
+        $this->assertArrayHasKey('data', $output);
+        $this->assertArrayHasKey('blocks', $output);
+        $this->assertEquals(1, sizeof(array_get($output, 'blocks')));
     }
 }
