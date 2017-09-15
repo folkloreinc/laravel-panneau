@@ -184,11 +184,11 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
         if (is_array($object)) {
             if (isset($object['id'])) {
-                return $object['id'];
+                return (string)$object['id'];
             }
             return null;
         }
-        return $object->id;
+        return (string)$object->id;
     }
 
     protected function createRelationDBItemFromObject($model, $relation, $object)
