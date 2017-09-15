@@ -9,13 +9,15 @@ use Folklore\Panneau\Support\Utils;
 
 abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, HasReducerSaving
 {
-    abstract protected function getRelationClass();
+    abstract protected function getRelationClass($model, $node, $state);
 
-    abstract protected function getRelationSchemaClass();
+    abstract protected function getRelationSchemaClass($model, $node, $state);
 
-    abstract protected function getRelationSchemaManyClass();
+    abstract protected function getRelationSchemaManyClass($model, $node, $state);
 
-    abstract protected function getRelationName();
+    abstract protected function getRelationName($model, $node, $state);
+
+    abstract protected function shouldUpdateRelation($model, $relation);
 
     // @TODO add checks everywhere required
     public function get($model, $node, $state)
@@ -25,8 +27,8 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         }
 
         // Only treat relations matching the associated schema class
-        $relationSchemaClass = $this->getRelationSchemaClass();
-        if (!($node->schema instanceof $relationSchemaClass)) {
+        $relationSchemaClass = $this->getRelationSchemaClass($model, $node, $state);
+        if (is_null($relationSchemaClass) || !($node->schema instanceof $relationSchemaClass)) {
             return $state;
         }
 
@@ -40,12 +42,12 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             return $state;
         }
 
-        $relationName = $this->getRelationName();
+        $relationName = $this->getRelationName($model, $node, $state);
         $value = $this->mutateRelationIdToObject($model, $relationName, $id);
 
-        // Fallback to query if not found in relations
-        if (is_null($value)) {
-            $relationClass = $this->getRelationClass();
+        // Fallback to query if not found in relations and model doesn't exists
+        if (!$model->exists && is_null($value)) {
+            $relationClass = $this->getRelationClass($model, $node, $state);
             $value = app($relationClass)->find($id);
         }
 
@@ -61,11 +63,10 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         }
 
         // Only treat relations matching the associated schema class
-        $relationSchemaClass = $this->getRelationSchemaClass();
-        if (!($node->schema instanceof $relationSchemaClass)) {
+        $relationSchemaClass = $this->getRelationSchemaClass($model, $node, $state);
+        if (is_null($relationSchemaClass) || !($node->schema instanceof $relationSchemaClass)) {
             return $state;
         }
-
         // Only treat single item nodes, not arrays
         if ($node->schema->getType() !== 'object') {
             return $state;
@@ -76,7 +77,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             return $state;
         }
 
-        $relationName = $this->getRelationName();
+        $relationName = $this->getRelationName($model, $node, $state);
         $value = $this->mutateRelationObjectToId($model, $relationName, $originalValue);
 
         $state = Utils::setPath($state, $node->path, $value);
@@ -91,9 +92,15 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         }
 
         $id = Utils::getPath($state, $node->path);
-        $relationName = $this->getRelationName();
-        $relationSchemaClass = $this->getRelationSchemaClass();
-        $relationSchemaManyClass = $this->getRelationSchemaManyClass();
+        $relationName = $this->getRelationName($model, $node, $state);
+        if (is_null($relationName)) {
+            return $state;
+        }
+        if (!$model->relationLoaded($relationName)) {
+            $model->load($relationName);
+        }
+        $relationSchemaClass = $this->getRelationSchemaClass($model, $node, $state);
+        $relationSchemaManyClass = $this->getRelationSchemaManyClass($model, $node, $state);
         if (!is_null($relationSchemaClass) && $node->schema instanceof $relationSchemaClass) {
             $this->updateRelationAtPathWithId($model, $relationName, $node->path, $id);
         } elseif (!is_null($relationSchemaManyClass) && $node->schema instanceof $relationSchemaManyClass) {
@@ -105,11 +112,11 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
     ///////////////////////////////////////////
 
-    protected function mutateRelationIdToObject($model, $relation, $id)
+    protected function mutateRelationIdToObject($model, $relationName, $id)
     {
-        $method = 'mutate'.studly_case($relation).'RelationIdToObject';
+        $method = 'mutate'.studly_case($relationName).'RelationIdToObject';
         if (method_exists($this, $method)) {
-            return $this->{$method}($model, $relation, $id);
+            return $this->{$method}($model, $relationName, $id);
         }
 
         if (is_null($id)) {
@@ -119,11 +126,17 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             return $id;
         }
 
-        return $model->{$relation}->first(function ($item, $key) use ($relation, $id) {
+        if (!$model->relationLoaded($relationName)) {
+            \Log::warning('Relation "'.$relationName.'" is needed for reducer '.static::class.' but not explicitly loaded');
+            return null;
+        }
+
+        $relation = $model->getRelation($relationName);
+        return $relation->first(function ($item, $key) use ($relationName, $id) {
             if (!is_object($item)) {
                 $item = $key;
             }
-            return $this->getRelationIdFromDBItem($relation, $item) === (string)$id;
+            return $this->getRelationIdFromDBItem($relationName, $item) === (string)$id;
         });
     }
 
@@ -152,6 +165,8 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             if (!is_null($item)) {
                 $id = $this->getRelationIdFromDBItem($relation, $item);
             }
+        } elseif ($this->shouldUpdateRelation($model, $relation)) {
+            $this->updateRelationDBItemFromObject($model, $relation, $object);
         }
         return $id;
     }
@@ -167,7 +182,13 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
             return $object;
         }
 
-        return is_array($object) ? $object['id'] : $object->id;
+        if (is_array($object)) {
+            if (isset($object['id'])) {
+                return (string)$object['id'];
+            }
+            return null;
+        }
+        return (string)$object->id;
     }
 
     protected function createRelationDBItemFromObject($model, $relation, $object)
@@ -176,10 +197,29 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         if (method_exists($this, $method)) {
             return $this->{$method}($model, $relation, $object);
         }
-        $model = $model->getRelation($relation)->getModel();
-        $model->fill($object);
-        $model->save();
-        return $model;
+
+        $relationModel = $model->{$relation}()->getModel();
+        $relationModel->fill($object);
+        $relationModel->save();
+        return $relationModel;
+    }
+
+    protected function updateRelationDBItemFromObject($model, $relation, $object)
+    {
+        $method = 'update'.studly_case($relation).'RelationDBItemFromObject';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($model, $relation, $object);
+        }
+
+        $relationId = $this->getRelationIdFromObject($relation, $object);
+        if (!is_null($relationId)) {
+            $relationModel = $model->{$relation}()->getModel();
+            $modelToUpdate = $relationModel::find($relationId);
+            if (!is_null($modelToUpdate)) {
+                $modelToUpdate->fill((array)$object);
+                $modelToUpdate->save();
+            }
+        }
     }
 
     protected function updateRelationAtPathWithId($model, $relation, $path, $id)
@@ -195,10 +235,12 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
     protected function updateRelationsAtPathWithIds($model, $relation, $path, $ids)
     {
-        // Because this method is executed first on an "array" schema node type,
-        // simply detach all relations and let updateRelationAtPathWithId()
-        // re-attach them as needed.
-        $model->{$relation}()->detach();
+        $method = 'update'.studly_case($relation).'RelationsAtPathWithIds';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($model, $relation, $path, $ids);
+        }
+
+        $this->detachRelationsAtPath($model, $relation, $path);
     }
 
     protected function detachRelationAtPath($model, $relation, $path)
@@ -211,6 +253,21 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $currentItem = $this->getRelationCurrentItemAtPath($model, $relation, $path);
         if ($currentItem) {
             return $model->{$relation}()->detach($currentItem->id);
+        }
+    }
+
+    protected function detachRelationsAtPath($model, $relation, $path)
+    {
+        $method = 'detach'.studly_case($relation).'RelationsAtPath';
+        if (method_exists($this, $method)) {
+            return $this->{$method}($model, $relation, $path);
+        }
+
+        $pathColumn = $this->getRelationPathColumn($relation);
+        $currentItems = $model->{$relation}()->wherePivot($pathColumn, 'like', $path.'%')->get();
+        if ($currentItems->isNotEmpty()) {
+            $currentItemsIds = $currentItems->pluck('id');
+            $model->{$relation}()->detach($currentItemsIds);
         }
     }
 

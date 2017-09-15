@@ -24,6 +24,9 @@ trait HasFieldsSchema
 
     protected $fieldsAppends = [];
 
+    protected $fieldsEnabled = [];
+    protected $fieldsDisabled = [];
+
     protected static $defaultSchema;
 
     protected static $defaultSchemaName = 'default';
@@ -159,67 +162,16 @@ trait HasFieldsSchema
         return static::reducers(static::class);
     }
 
-    protected function fieldsCollection($key = null, $data = null)
-    {
-        $schema = $this->getSchema();
-        $nodes = $schema->getNodes();
-        $nodesFromData = $schema->getNodesFromData($data);
-
-        $fields = new FieldsCollection();
-        foreach ($nodes as $path => $field) {
-            $pathParts = explode('.', $path);
-            if (!is_null($key) && !array_shift($pathParts) === $key) {
-                continue;
-            }
-            $path = implode('.', $pathParts);
-            $field = new Fluent($field);
-            $field->path = $path;
-            $field->paths = $schema->getNodesFromData($data, $path);
-            $fields->push($field);
-        }
-        return $fields;
-    }
-
     public function validateFieldsAgainstSchema()
     {
         $schema = $this->getSchema();
         if (is_null($schema)) {
             return;
         }
-        $data = (object)$this->getFieldsValue();
+        $data = $this->getFieldsValue()->toObject();
         $validator = app(\Folklore\Panneau\Contracts\SchemaValidator::class);
         if (!$validator->validateSchema($data, $schema)) {
             throw new SchemaValidationException($validator->getMessages());
-        }
-    }
-
-    public function prepareFieldsForSaving()
-    {
-        $fieldsAttributes = $this->fieldsAttributes();
-        $this->fieldsAttributesForSaving = clone $fieldsAttributes;
-
-        $this->fieldsCollection()
-            ->eachPath(function ($path, $key, $field) {
-                $schema = $field->schema;
-                $value = $this->fieldsAttributesForSaving->get($path);
-                $prepareMethod = 'prepare'.studly_case($field->type).'Field';
-                if (method_exists($this, $prepareMethod)) {
-                    $returnValue = $this->{$prepareMethod}($path, $value, $field);
-                } elseif (is_object($schema) && method_exists($schema, 'prepareField')) {
-                    $returnValue = $schema->prepareField($path, $value, $field, $this);
-                }
-                if (isset($returnValue)) {
-                    $this->fieldsAttributesForSaving->set($path, $returnValue);
-                }
-            });
-
-        $fieldsValue = $this->fieldsAttributesForSaving->getValue();
-        foreach ($fieldsValue as $key => $value) {
-            if ($this->isJsonCastable($key)) {
-                $this->attributes[$key] = json_encode($value);
-            } else {
-                $this->attributes[$key] = $value instanceof FieldValue ? $value->getValue() : $value;
-            }
         }
     }
 
@@ -228,30 +180,40 @@ trait HasFieldsSchema
         $schema = $this->getSchema();
         $fields = $schema->getFieldsNames();
         foreach ($fields as $field) {
-            $value = $this->{$field};
+            $value = $this->getAttributeValue($field);
             $this->callFieldReducers('save', $field, $value);
         }
     }
 
     /**
-     * Get the fields in attributes according to the schema and accessors methods
+    * Get the value of a field
+    *
+    * @param  string  $key
+    * @return mixed
+    */
+    public function getFieldsValue()
+    {
+        $schema = $this->getSchema();
+        $fields = $schema->getFieldsNames();
+        $value = [];
+        foreach ($fields as $field) {
+            $fieldValue = $this->getFieldValue($field);
+            $value[$field] = !is_null($fieldValue) ? new FieldValue($fieldValue) : null;
+        }
+        return new FieldValue($value);
+    }
+
+
+    /**
+     * Get the fields to Array
      *
      * @param  array  $attributes
      * @return FieldValue  $fieldsAttributes
      */
-    public function getFieldsFromAttributes(array $attributes)
+    public function fieldsToArray()
     {
-        $fieldsAttributes = [];
-        foreach ($attributes as $key => $value) {
-            if (!$this->attributeIsField($key)) {
-                continue;
-            }
-
-            $state = $this->getAttributeValue($key);
-            $fieldsAttributes[$key] = $this->callFieldReducers('get', $key, $state);
-        }
-
-        return $fieldsAttributes;
+        $fieldsValue = $this->getFieldsValue();
+        return $fieldsValue->toArray();
     }
 
     public function attributeIsField($key)
@@ -280,26 +242,12 @@ trait HasFieldsSchema
      * @param  string  $key
      * @return mixed
      */
-    public function getFieldsValue()
-    {
-        $schema = $this->getSchema();
-        $fields = $schema->getFieldsNames();
-        $value = [];
-        foreach ($fields as $field) {
-            $value[$field] = $this->getFieldValue($field);
-        }
-        return $value;
-    }
-
-    /**
-     * Get the value of a field
-     *
-     * @param  string  $key
-     * @return mixed
-     */
     public function getFieldValue($key)
     {
         $state = $this->getAttributeValue($key);
+        if ($this->isFieldDisabled($key)) {
+            return $state;
+        }
         return $this->callFieldReducers('get', $key, $state);
     }
 
@@ -319,7 +267,7 @@ trait HasFieldsSchema
                 break;
             }
         }
-        return !is_null($path) ? Utils::getPath($this->getFieldsFromAttributes($this->attributes), $path) : null;
+        return !is_null($path) ? $this->getFieldsValue()->get($path) : null;
     }
 
     /**
@@ -360,7 +308,7 @@ trait HasFieldsSchema
     {
         if ($this->attributeIsField($key)) {
             return $this->getFieldValue($key);
-        }/* elseif ($this->attributeIsFieldAppend($key)) { // @TODO replace
+        }/* elseif ($this->attributeIsFieldAppend($key)) {
             return $this->getFieldAppendValue($key);
         }*/
         return parent::getAttribute($key);
@@ -441,16 +389,88 @@ trait HasFieldsSchema
     {
         $attributes = parent::attributesToArray();
 
-        $fieldsAttributes = $this->getFieldsFromAttributes($this->attributes);
+        $fieldsAttributes = [];
         $appendsAttributes = [];
-        /*foreach ($this->getFieldsAppends() as $key => $path) {
+        $fieldsAttributes = $this->fieldsToArray();
+        foreach ($this->getFieldsAppends() as $key => $path) {
             if (is_numeric($key)) {
-                $appendsAttributes[$path] = Utils::getPath($fieldsAttributes, $path);
+                $appendsAttributes[$path] = array_get($fieldsAttributes, $path);
             } else {
-                $appendsAttributes[$key] = Utils::getPath($fieldsAttributes, $path);
+                $appendsAttributes[$key] = array_get($fieldsAttributes, $path);
             }
-        }*/
+        }
 
-        return array_merge($attributes, $fieldsAttributes, $appendsAttributes);
+        return array_merge(
+            $attributes,
+            $this->getArrayableItems($fieldsAttributes),
+            $this->getArrayableItems($appendsAttributes)
+        );
+    }
+
+    public function getDisabledFields()
+    {
+        return $this->fieldsDisabled;
+    }
+
+    public function setDisabledFields(array $disabled)
+    {
+        $this->fieldsDisabled = $disabled;
+        return $this;
+    }
+
+    public function addDisabledField($field = null)
+    {
+        $this->fieldsDisabled = array_merge(
+            $this->fieldsDisabled,
+            is_array($field) ? $field : func_get_args()
+        );
+    }
+
+    public function getEnabledFields()
+    {
+        return $this->fieldsEnabled;
+    }
+
+    public function setEnabledFields(array $enabled)
+    {
+        $this->fieldsEnabled = $enabled;
+        return $this;
+    }
+
+    public function addEnabledField($field = null)
+    {
+        $this->fieldsEnabled = array_merge(
+            $this->fieldsEnabled,
+            is_array($field) ? $field : func_get_args()
+        );
+    }
+
+    public function makeFieldEnabled($field)
+    {
+        $this->fieldsDisabled = array_diff($this->fieldsDisabled, (array) $field);
+        if (! empty($this->fieldsEnabled)) {
+            $this->addEnabledField($field);
+        }
+        return $this;
+    }
+
+    public function makeFieldDisabled($field)
+    {
+        $field = (array) $field;
+        $this->fieldsEnabled = array_diff($this->fieldsEnabled, $field);
+        $this->fieldsDisabled = array_unique(array_merge($this->fieldsDisabled, $field));
+        return $this;
+    }
+
+    public function disableAllFields()
+    {
+        $fields = $schema->getFieldsNames();
+        $this->makeFieldDisabled($fields);
+    }
+
+    public function isFieldDisabled($field)
+    {
+        $disabled = $this->getDisabledFields();
+        return in_array($field, $disabled);
     }
 }

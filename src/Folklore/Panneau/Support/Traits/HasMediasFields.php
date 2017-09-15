@@ -8,6 +8,6 @@ trait HasMediasFields
 {
     public static function bootHasMediasFields()
     {
-        // static::addReducer(MediasReducer::class);
+        static::addReducer(MediasReducer::class);
     }
 }

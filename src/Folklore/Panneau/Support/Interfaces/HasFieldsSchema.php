@@ -18,11 +18,11 @@ interface HasFieldsSchema
 
     public function validateFieldsAgainstSchema();
 
-    public function prepareFieldsForSaving();
-
     public function saveFields();
 
-    public function getFieldsFromAttributes(array $attributes);
+    public function getFieldsValue();
+
+    public function fieldsToArray();
 
     public function attributeIsField($key);
 }

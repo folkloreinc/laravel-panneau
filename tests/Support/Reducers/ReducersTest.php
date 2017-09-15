@@ -56,7 +56,7 @@ class ReducersTest extends TestCase
         BlockModel::setDefaultSchema(null);
     }
 
-    public function testReducersGet()
+    public function testReducersGetSetSave()
     {
         $page = [
             'data' => [
@@ -136,6 +136,7 @@ class ReducersTest extends TestCase
             'data' => $sourceData
         ]);
         $model->save();
+        $model->load('pages', 'parents', 'blocks');
 
         $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
 
@@ -178,5 +179,57 @@ class ReducersTest extends TestCase
             $this->assertEquals('data.blocks.'.$i, $block->pivot->handle);
             $i++;
         }
+    }
+
+    public function testReducersEnableVisible()
+    {
+        $pageData = [
+            'data' => [
+                'title' => 'Hub page',
+                'slug' => 'hub-page',
+                'blocks' => [
+                    [
+                        'data' => [
+                            'title' => 'Test block',
+                            'description' => 'Lorem ipsum dolor sit amet consectuet'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $pageModel = PageModel::create($pageData);
+        $pageModel->save();
+        $pageModel->load('blocks');
+
+        $blockId = $pageModel->data->blocks[0]->id;
+
+        // Disabled field should not be reduced
+        $pageModel->makeFieldDisabled('data');
+        $output = $pageModel->toArray();
+        $this->assertEquals($blockId, array_get($output, 'data.blocks.0'));
+
+        // Re-enabled field should be reduced
+        $pageModel->makeFieldEnabled('data');
+        $output = $pageModel->toArray();
+        $this->assertEquals($blockId, array_get($output, 'data.blocks.0.id'));
+
+        // Hidden attributes should not output, but sub-fields should still append
+        $pageModel->setHidden([]);
+        $pageModel->makeHidden(['data', 'blocks']);
+        $pageModel->setFieldsAppends([
+            'title' => 'data.title'
+        ]);
+        $output = $pageModel->toArray();
+        $this->assertArrayNotHasKey('data', $output);
+        $this->assertArrayNotHasKey('blocks', $output);
+        $this->assertEquals(array_get($pageData, 'data.title'), array_get($output, 'title'));
+
+        $pageModel->makeVisible(['data', 'blocks']);
+        $output = $pageModel->toArray();
+        $this->assertArrayHasKey('data', $output);
+        $this->assertArrayHasKey('blocks', $output);
+        $this->assertEquals(1, sizeof(array_get($output, 'blocks')));
+        $output = $pageModel->toArray();
     }
 }
