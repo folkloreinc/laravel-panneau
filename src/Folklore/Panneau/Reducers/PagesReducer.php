@@ -1,6 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Support\Reducers;
+namespace Folklore\Panneau\Reducers;
 
 class PagesReducer extends RelationReducer
 {
@@ -22,10 +22,5 @@ class PagesReducer extends RelationReducer
     protected function getRelationName($model, $node, $state)
     {
         return 'pages';
-    }
-
-    protected function shouldUpdateRelation($model, $relation)
-    {
-        return false;
     }
 }

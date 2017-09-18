@@ -14,19 +14,19 @@ class HasFieldsSchemaTest extends TestCase
     {
         parent::setUp();
 
-        TestModel::addSchema('default', \BubbleTestSchema::class);
+        TestModel::addFieldsSchema('default', \BubbleTestSchema::class);
     }
 
     /**
      * Test getting schemas
      *
      * @test
-     * @covers ::schemas
+     * @covers ::fieldsSchemas
      *
      */
     public function testSchemas()
     {
-        $schemas = TestModel::schemas();
+        $schemas = TestModel::fieldsSchemas();
         $this->assertArrayHasKey('default', $schemas);
         $this->assertInstanceOf(\BubbleTestSchema::class, $schemas['default']);
     }
@@ -35,13 +35,13 @@ class HasFieldsSchemaTest extends TestCase
      * Test getting schema
      *
      * @test
-     * @covers ::schema
+     * @covers ::fieldsSchema
      *
      */
     public function testSchema()
     {
-        $schemas = TestModel::schemas();
-        $schema = TestModel::schema();
+        $schemas = TestModel::fieldsSchemas();
+        $schema = TestModel::fieldsSchema();
         $this->assertEquals($schemas['default'], $schema);
     }
 
@@ -49,15 +49,15 @@ class HasFieldsSchemaTest extends TestCase
      * Test getting schema with name
      *
      * @test
-     * @covers ::addSchema
-     * @covers ::schema
+     * @covers ::addFieldsSchema
+     * @covers ::fieldsSchema
      *
      */
     public function testSchemaWithName()
     {
-        TestModel::addSchema('test', \BubbleTestSchema::class);
-        $schemas = TestModel::schemas();
-        $schema = TestModel::schema('test');
+        TestModel::addFieldsSchema('test', \BubbleTestSchema::class);
+        $schemas = TestModel::fieldsSchemas();
+        $schema = TestModel::fieldsSchema('test');
         $this->assertEquals($schemas['test'], $schema);
     }
 
@@ -65,13 +65,13 @@ class HasFieldsSchemaTest extends TestCase
      * Test getting the default schema from model
      *
      * @test
-     * @covers ::getSchema
+     * @covers ::getFieldsSchema
      *
      */
     public function testGetDefaultSchema()
     {
         $model = app(BubbleContract::class);
-        $schema = $model->getSchema();
+        $schema = $model->getFieldsSchema();
         $this->assertInstanceOf(config('panneau.schemas.'.BubbleModel::class.'.default'), $schema);
     }
 
@@ -79,23 +79,23 @@ class HasFieldsSchemaTest extends TestCase
      * Test getting the schema from the default column model
      *
      * @test
-     * @covers ::addSchema
-     * @covers ::getSchema
-     * @covers ::setSchemaNameColumn
+     * @covers ::addFieldsSchema
+     * @covers ::getFieldsSchema
+     * @covers ::setFieldsSchemaNameColumn
      *
      */
     public function testGetSchemaFromColumn()
     {
         $model = app(BubbleContract::class);
         $modelClass = get_class($model);
-        $modelClass::addSchema('test', \BubbleTestSchema::class);
+        $modelClass::addFieldsSchema('test', \BubbleTestSchema::class);
         $model->type = 'test';
-        $schema = $model->getSchema();
+        $schema = $model->getFieldsSchema();
         $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
 
-        $model->setSchemaNameColumn('schema');
+        $model->setFieldsSchemaNameColumn('schema');
         $model->schema = 'test';
-        $schema = $model->getSchema();
+        $schema = $model->getFieldsSchema();
         $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
     }
 
@@ -103,17 +103,17 @@ class HasFieldsSchemaTest extends TestCase
      * Test getting the schema from the column method
      *
      * @test
-     * @covers ::addSchema
-     * @covers ::getSchema
+     * @covers ::addFieldsSchema
+     * @covers ::getFieldsSchema
      *
      */
     public function testGetSchemaFromColumnMethod()
     {
         $model = new TestColumnModel();
         $modelClass = get_class($model);
-        $modelClass::addSchema('test', \BubbleTestSchema::class);
+        $modelClass::addFieldsSchema('test', \BubbleTestSchema::class);
         $model->schema = 'test';
-        $schema = $model->getSchema();
+        $schema = $model->getFieldsSchema();
         $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
     }
 
@@ -121,16 +121,16 @@ class HasFieldsSchemaTest extends TestCase
      * Test getting the schema from a method
      *
      * @test
-     * @covers ::addSchema
-     * @covers ::getSchema
+     * @covers ::addFieldsSchema
+     * @covers ::getFieldsSchema
      *
      */
     public function testGetSchemaFromMethod()
     {
         $model = new TestModel();
         $modelClass = get_class($model);
-        $modelClass::addSchema('test', \BubbleTestSchema::class);
-        $schema = $model->getSchema();
+        $modelClass::addFieldsSchema('test', \BubbleTestSchema::class);
+        $schema = $model->getFieldsSchema();
         $this->assertInstanceOf(\BubbleTestSchema::class, $schema);
     }
 }

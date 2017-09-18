@@ -1,6 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Support\Reducers;
+namespace Folklore\Panneau\Reducers;
 
 class BlocksReducer extends RelationReducer
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Support\Reducers;
+namespace Folklore\Panneau\Reducers;
 
 use Folklore\Mediatheque\Contracts\Models\Picture as PictureContract;
 use Folklore\Mediatheque\Contracts\Models\Document as DocumentContract;
@@ -49,10 +49,5 @@ class MediasReducer extends RelationReducer
             return 'documents';
         }
         return null;
-    }
-
-    protected function shouldUpdateRelation($model, $relation)
-    {
-        return false;
     }
 }

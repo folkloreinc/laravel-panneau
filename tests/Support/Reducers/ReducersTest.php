@@ -44,16 +44,16 @@ class ReducersTest extends TestCase
             ]
         ]);
 
-        PageModel::setDefaultSchema($this->pageSchema);
-        BlockModel::setDefaultSchema($this->blockSchema);
+        PageModel::setDefaultFieldsSchema($this->pageSchema);
+        BlockModel::setDefaultFieldsSchema($this->blockSchema);
     }
 
     public function tearDown()
     {
         parent::tearDown();
 
-        PageModel::setDefaultSchema(null);
-        BlockModel::setDefaultSchema(null);
+        PageModel::setDefaultFieldsSchema(null);
+        BlockModel::setDefaultFieldsSchema(null);
     }
 
     public function testReducersGetSetSave()
@@ -109,7 +109,6 @@ class ReducersTest extends TestCase
         ]);
 
         $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
-
         $this->assertInstanceOf(PageModel::class, $model->data->parent);
         $this->assertEquals($parentId, $model->data->parent->id);
 

@@ -21,8 +21,6 @@ class Bubble extends Model implements
     use SortableTrait;
     use HasMedias;
     use HasFieldsSchema;
-    use HasBubblesFields;
-    use HasMediasFields;
 
     protected $table = 'bubbles';
 

@@ -27,7 +27,7 @@ class TestColumnModel extends Model implements HasFieldsSchemaInterface
         'type' => 'string',
     ];
 
-    public function getSchemaNameColumn()
+    public function getFieldsSchemaNameColumn()
     {
         return 'schema';
     }

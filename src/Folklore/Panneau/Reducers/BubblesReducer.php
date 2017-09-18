@@ -1,6 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Support\Reducers;
+namespace Folklore\Panneau\Reducers;
 
 class BubblesReducer extends RelationReducer
 {
@@ -22,10 +22,5 @@ class BubblesReducer extends RelationReducer
     protected function getRelationName($model, $node, $state)
     {
         return 'bubbles';
-    }
-
-    protected function shouldUpdateRelation($model, $relation)
-    {
-        return false;
     }
 }

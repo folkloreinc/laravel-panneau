@@ -22,9 +22,6 @@ class Page extends Model implements
     use SortableTrait;
     use HasMedias;
     use HasFieldsSchema;
-    use HasMediasFields;
-    use HasPagesFields;
-    use HasBlocksFields;
 
     protected $table = 'pages';
 

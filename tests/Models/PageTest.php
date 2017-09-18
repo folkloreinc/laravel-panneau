@@ -36,19 +36,19 @@ class PageTest extends TestCase
     {
         parent::tearDown();
 
-        Page::setDefaultSchema(null);
+        Page::setDefaultFieldsSchema(null);
     }
 
     /**
      * Test with invalid data
      *
      * @expectedException \Folklore\Panneau\Exceptions\SchemaValidationException
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testInvalidData()
     {
         $model = new Page();
-        $model->setSchema($this->schema);
+        $model->setFieldsSchema($this->schema);
         $model->data = [];
         $model->save();
     }
@@ -56,7 +56,7 @@ class PageTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testValidData()
     {
@@ -67,7 +67,7 @@ class PageTest extends TestCase
         ]));
 
         $model = new Page();
-        $model->setSchema($this->schema);
+        $model->setFieldsSchema($this->schema);
         $model->data = $data;
         $model->save();
 
@@ -78,11 +78,11 @@ class PageTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testBlocksRelations()
     {
-        Page::setDefaultSchema($this->relationsSchema);
+        Page::setDefaultFieldsSchema($this->relationsSchema);
 
         $relation = new Block();
         $relation->save();

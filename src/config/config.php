@@ -4,8 +4,6 @@ return [
 
     'table_prefix' => 'panneau_',
 
-    'migrations_supports_json' => env('PANNEAU_MIGRATIONS_SUPPORTS_JSON', 'detect'),
-
     'schemas' => [
         \Folklore\Panneau\Models\Bubble::class => [
             'default' => \Folklore\Panneau\Schemas\Bubble::class,
@@ -15,6 +13,23 @@ return [
         ],
         \Folklore\Panneau\Models\Block::class => [
             'default' => \Folklore\Panneau\Schemas\Block::class,
+        ],
+    ],
+
+    'reducers' => [
+        \Folklore\Panneau\Models\Bubble::class => [
+            \Folklore\Panneau\Reducers\BubblesReducer::class,
+            \Folklore\Panneau\Reducers\MediasReducer::class,
+        ],
+        \Folklore\Panneau\Models\Page::class => [
+            \Folklore\Panneau\Reducers\BlocksReducer::class,
+            \Folklore\Panneau\Reducers\PagesReducer::class,
+            \Folklore\Panneau\Reducers\MediasReducer::class,
+        ],
+        \Folklore\Panneau\Models\Block::class => [
+            \Folklore\Panneau\Reducers\BlocksReducer::class,
+            \Folklore\Panneau\Reducers\PagesReducer::class,
+            \Folklore\Panneau\Reducers\MediasReducer::class,
         ],
     ],
 

@@ -141,14 +141,26 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->app->singleton('panneau', function ($app) {
             $panneau = new Panneau($app);
-
-            $schemas = config('panneau.schemas');
-            foreach ($schemas as $namespace => $namespaceSchemas) {
-                $panneau->addSchemas($namespaceSchemas, $namespace);
-            }
-
+            $this->addSchemas($panneau);
+            $this->addReducers($panneau);
             return $panneau;
         });
+    }
+
+    protected function addSchemas(Panneau $panneau)
+    {
+        $schemas = config('panneau.schemas');
+        foreach ($schemas as $namespace => $namespaceSchemas) {
+            $panneau->addSchemas($namespaceSchemas, $namespace);
+        }
+    }
+
+    protected function addReducers(Panneau $panneau)
+    {
+        $reducers = config('panneau.reducers');
+        foreach ($reducers as $namespace => $namespaceReducers) {
+            $panneau->addReducers($namespaceReducers, $namespace);
+        }
     }
 
     /**

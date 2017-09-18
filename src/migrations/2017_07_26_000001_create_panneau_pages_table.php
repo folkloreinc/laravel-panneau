@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
-use Folklore\Panneau\Support\Migration;
+use Illuminate\Database\Migrations\Migration;
 
 class CreatePanneauPagesTable extends Migration
 {
@@ -18,7 +18,6 @@ class CreatePanneauPagesTable extends Migration
             $table->increments('id');
             $table->string('type')->nullable();
             $table->string('handle')->nullable();
-            $table->integer('parent_id')->nullable();
             $table->integer('order')->nullable();
             $table->longText('data')->nullable();
 

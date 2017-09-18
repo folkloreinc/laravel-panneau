@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
-use Folklore\Panneau\Support\Migration;
+use Illuminate\Database\Migrations\Migration;
 
 class CreatePanneauPagesBlocksPivotTable extends Migration
 {

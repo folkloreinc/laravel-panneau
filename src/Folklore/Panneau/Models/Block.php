@@ -18,9 +18,6 @@ class Block extends Model implements
     use SoftDeletes;
     use HasMedias;
     use HasFieldsSchema;
-    use HasMediasFields;
-    use HasPagesFields;
-    use HasBlocksFields;
 
     protected $table = 'blocks';
 

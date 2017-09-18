@@ -49,19 +49,19 @@ class BubbleTest extends TestCase
     {
         parent::tearDown();
 
-        Bubble::setDefaultSchema(null);
+        Bubble::setDefaultFieldsSchema(null);
     }
 
     /**
      * Test with invalid data
      *
      * @expectedException \Folklore\Panneau\Exceptions\SchemaValidationException
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testInvalidData()
     {
         $model = new Bubble();
-        $model->setSchema($this->schema);
+        $model->setFieldsSchema($this->schema);
         $model->data = [];
         $model->save();
     }
@@ -69,7 +69,7 @@ class BubbleTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testValidData()
     {
@@ -80,7 +80,7 @@ class BubbleTest extends TestCase
         ]));
 
         $model = new Bubble();
-        $model->setSchema($this->schema);
+        $model->setFieldsSchema($this->schema);
         $model->data = $data;
         $model->save();
 
@@ -91,11 +91,11 @@ class BubbleTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setSchema
+     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testBubblesRelations()
     {
-        Bubble::setDefaultSchema($this->relationsSchema);
+        Bubble::setDefaultFieldsSchema($this->relationsSchema);
 
         $relation = new Bubble();
         $relation->save();

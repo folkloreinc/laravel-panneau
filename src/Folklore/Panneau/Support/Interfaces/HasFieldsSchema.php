@@ -4,17 +4,17 @@ namespace Folklore\Panneau\Support\Interfaces;
 
 interface HasFieldsSchema
 {
-    public static function schemas();
+    public static function fieldsSchemas();
 
-    public static function schema($name);
+    public static function fieldsSchema($name);
 
-    public static function addSchema($name, $schema);
+    public static function addFieldsSchema($name, $schema);
 
-    public static function addSchemas($schemas);
+    public static function addFieldsSchemas($schemas);
 
-    public function getSchemaName();
+    public function getFieldsSchemaName();
 
-    public function getSchema();
+    public function getFieldsSchema();
 
     public function validateFieldsAgainstSchema();
 

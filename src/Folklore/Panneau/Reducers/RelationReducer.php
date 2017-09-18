@@ -1,7 +1,8 @@
 <?php
 
-namespace Folklore\Panneau\Support\Reducers;
+namespace Folklore\Panneau\Reducers;
 
+use Illuminate\Contracts\Logging\Log;
 use Folklore\Panneau\Support\Interfaces\HasReducerSaving;
 use Folklore\Panneau\Support\Interfaces\HasReducerGetter;
 use Folklore\Panneau\Support\Interfaces\HasReducerSetter;
@@ -17,23 +18,10 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
 
     abstract protected function getRelationName($model, $node, $state);
 
-    abstract protected function shouldUpdateRelation($model, $relation);
-
     // @TODO add checks everywhere required
     public function get($model, $node, $state)
     {
-        if (is_null($state)) {
-            return $state;
-        }
-
-        // Only treat relations matching the associated schema class
-        $relationSchemaClass = $this->getRelationSchemaClass($model, $node, $state);
-        if (is_null($relationSchemaClass) || !($node->schema instanceof $relationSchemaClass)) {
-            return $state;
-        }
-
-        // Only treat single item nodes, not arrays
-        if ($node->schema->getType() !== 'object') {
+        if (!$this->shouldUseReducer($model, $node, $state)) {
             return $state;
         }
 
@@ -46,7 +34,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         $value = $this->mutateRelationIdToObject($model, $relationName, $id);
 
         // Fallback to query if not found in relations and model doesn't exists
-        if (!$model->exists && is_null($value)) {
+        if ($this->shouldQueryRelation($model, $node, $state, $value)) {
             $relationClass = $this->getRelationClass($model, $node, $state);
             $value = app($relationClass)->find($id);
         }
@@ -58,17 +46,7 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
     // @TODO add checks everywhere required
     public function set($model, $node, $state)
     {
-        if (is_null($state)) {
-            return $state;
-        }
-
-        // Only treat relations matching the associated schema class
-        $relationSchemaClass = $this->getRelationSchemaClass($model, $node, $state);
-        if (is_null($relationSchemaClass) || !($node->schema instanceof $relationSchemaClass)) {
-            return $state;
-        }
-        // Only treat single item nodes, not arrays
-        if ($node->schema->getType() !== 'object') {
+        if (!$this->shouldUseReducer($model, $node, $state)) {
             return $state;
         }
 
@@ -110,7 +88,35 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         return $state;
     }
 
-    ///////////////////////////////////////////
+    protected function shouldUpdateRelation($model, $relation)
+    {
+        return false;
+    }
+
+    protected function shouldQueryRelation($model, $node, $state, $value)
+    {
+        return !$model->exists && is_null($value);
+    }
+
+    protected function shouldUseReducer($model, $node, $state)
+    {
+        if (is_null($state)) {
+            return false;
+        }
+
+        // Only treat relations matching the associated schema class
+        $relationSchemaClass = $this->getRelationSchemaClass($model, $node, $state);
+        if (is_null($relationSchemaClass) || !($node->schema instanceof $relationSchemaClass)) {
+            return false;
+        }
+
+        // Only treat single item nodes, not arrays
+        if ($node->schema->getType() !== 'object') {
+            return false;
+        }
+
+        return true;
+    }
 
     protected function mutateRelationIdToObject($model, $relationName, $id)
     {
@@ -122,12 +128,15 @@ abstract class RelationReducer implements HasReducerSetter, HasReducerGetter, Ha
         if (is_null($id)) {
             return null;
         }
+
         if (is_object($id)) {
             return $id;
         }
 
         if (!$model->relationLoaded($relationName)) {
-            \Log::warning('Relation "'.$relationName.'" is needed for reducer '.static::class.' but not explicitly loaded');
+            app(Log::class)->warning(
+                'Relation "'.$relationName.'" is needed for reducer '.get_class($this).' but not explicitly loaded'
+            );
             return null;
         }
 
