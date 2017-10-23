@@ -5,30 +5,22 @@ namespace Folklore\Panneau\Models;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
-use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
+use Folklore\EloquentJsonSchema\Support\HasJsonSchema;
+use Folklore\EloquentJsonSchema\Contracts\HasJsonSchema as HasJsonSchemaContract;
 use Folklore\Mediatheque\Support\Traits\HasMedias;
-use Folklore\Panneau\Support\Traits\HasFieldsSchema;
-use Folklore\Panneau\Support\Traits\HasMediasFields;
-use Folklore\Panneau\Support\Traits\HasPagesFields;
-use Folklore\Panneau\Support\Traits\HasBlocksFields;
 use Folklore\Panneau\Contracts\Page as PageContract;
 use Folklore\Panneau\Contracts\Block as BlockContract;
 
 class Page extends Model implements
     Sortable,
-    HasFieldsSchemaInterface
+    HasJsonSchemaContract
 {
     use SoftDeletes;
     use SortableTrait;
     use HasMedias;
-    use HasFieldsSchema;
+    use HasJsonSchema;
 
     protected $table = 'pages';
-
-    protected $sortable = [
-        'order_column_name' => 'order',
-        'sort_when_creating' => false,
-    ];
 
     protected $guarded = [
         'id'
@@ -46,8 +38,23 @@ class Page extends Model implements
     ];
 
     protected $casts = [
-        'data' => 'object',
+        'data' => 'json_schema:object',
         'order' => 'integer'
+    ];
+
+    protected $jsonSchemas = [
+        'data' => \Folklore\Panneau\Schemas\PageData::class,
+    ];
+
+    protected $jsonSchemasReducers = [
+        \Folklore\Panneau\Reducers\BlocksReducer::class,
+        \Folklore\Panneau\Reducers\PagesReducer::class,
+        \Folklore\Panneau\Reducers\MediasReducer::class,
+    ];
+
+    protected $sortable = [
+        'order_column_name' => 'order',
+        'sort_when_creating' => false,
     ];
 
     /**

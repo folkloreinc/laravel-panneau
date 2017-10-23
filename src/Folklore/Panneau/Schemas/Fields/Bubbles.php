@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Schemas\Fields;
 
-use Folklore\Panneau\Support\Schema;
+use Folklore\EloquentJsonSchema\Support\JsonSchema;
 
-class Bubbles extends Schema
+class Bubbles extends JsonSchema
 {
     protected function type()
     {

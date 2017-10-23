@@ -28,6 +28,7 @@ class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
+            \Folklore\EloquentJsonSchema\JsonSchemaServiceProvider::class,
             \Folklore\Panneau\PanneauServiceProvider::class
         ];
     }

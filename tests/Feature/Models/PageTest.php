@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Folklore\EloquentJsonSchema\Support\JsonSchema;
 use Folklore\Panneau\Models\Page;
 use Folklore\Panneau\Models\Block;
-use Folklore\Panneau\Support\FieldsSchema;
 use Folklore\Panneau\Schemas\Page as PageSchema;
 use Folklore\Panneau\Schemas\PageData;
 use Folklore\Panneau\Schemas\Fields\Blocks as BlocksField;
@@ -22,41 +22,37 @@ class PageTest extends TestCase
 
         $this->runMigrations();
 
-        $this->schema = new PageSchema();
+        $this->schema = new PageData();
 
-        $this->relationsSchema = new FieldsSchema([
-            'fields' => [
-                'data' => with(new PageData())
-                    ->addProperty('blocks', BlocksField::class)
-            ]
-        ]);
+        $this->relationsSchema = with(new PageData())
+            ->addProperty('blocks', BlocksField::class);
     }
 
     public function tearDown()
     {
         parent::tearDown();
 
-        Page::setDefaultFieldsSchema(null);
+        Page::setDefaultJsonSchema('data', null);
     }
 
     /**
      * Test with invalid data
      *
-     * @expectedException \Folklore\Panneau\Exceptions\SchemaValidationException
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
+     * @expectedException \Folklore\EloquentJsonSchema\ValidationException
      */
     public function testInvalidData()
     {
         $model = new Page();
-        $model->setFieldsSchema($this->schema);
-        $model->data = [];
+        $model->setJsonSchema('data', $this->schema);
+        $model->data = [
+            'title' => 1
+        ];
         $model->save();
     }
 
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testValidData()
     {
@@ -67,7 +63,7 @@ class PageTest extends TestCase
         ]));
 
         $model = new Page();
-        $model->setFieldsSchema($this->schema);
+        $model->setJsonSchema('data', $this->schema);
         $model->data = $data;
         $model->save();
 
@@ -78,11 +74,10 @@ class PageTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testBlocksRelations()
     {
-        Page::setDefaultFieldsSchema($this->relationsSchema);
+        Page::setDefaultJsonSchema('data', $this->relationsSchema);
 
         $relation = new Block();
         $relation->save();

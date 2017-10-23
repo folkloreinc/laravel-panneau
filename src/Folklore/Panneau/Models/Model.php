@@ -1,8 +1,8 @@
 <?php namespace Folklore\Panneau\Models;
 
-use Illuminate\Database\Eloquent\Model as Eloquent;
+use Illuminate\Database\Eloquent\Model as BaseModel;
 
-class Model extends Eloquent
+class Model extends BaseModel
 {
     public function __construct(array $attributes = array())
     {

@@ -25,8 +25,6 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->bootPublishes();
 
-        $this->bootValidator();
-
         $this->mapRoutes();
     }
 
@@ -72,14 +70,6 @@ class PanneauServiceProvider extends ServiceProvider
         ], 'lang');
     }
 
-    public function bootValidator()
-    {
-        $this->app['validator']->extend(
-            'fields_schema',
-            \Folklore\Panneau\Contracts\SchemaValidator::class.'@validate'
-        );
-    }
-
     public function mapRoutes()
     {
         if (! $this->app->routesAreCached()) {
@@ -123,44 +113,14 @@ class PanneauServiceProvider extends ServiceProvider
             \Folklore\Panneau\Contracts\Block::class,
             \Folklore\Panneau\Models\Block::class
         );
-
-        // Schema
-        $this->app->bind(
-            \Folklore\Panneau\Contracts\Schema::class,
-            \Folklore\Panneau\Support\Schema::class
-        );
-
-        // Validator
-        $this->app->bind(
-            \Folklore\Panneau\Contracts\SchemaValidator::class,
-            \Folklore\Panneau\Validators\SchemaValidator::class
-        );
     }
 
     public function registerPanneau()
     {
         $this->app->singleton('panneau', function ($app) {
             $panneau = new Panneau($app);
-            $this->addSchemas($panneau);
-            $this->addReducers($panneau);
             return $panneau;
         });
-    }
-
-    protected function addSchemas(Panneau $panneau)
-    {
-        $schemas = config('panneau.schemas');
-        foreach ($schemas as $namespace => $namespaceSchemas) {
-            $panneau->addSchemas($namespaceSchemas, $namespace);
-        }
-    }
-
-    protected function addReducers(Panneau $panneau)
-    {
-        $reducers = config('panneau.reducers');
-        foreach ($reducers as $namespace => $namespaceReducers) {
-            $panneau->addReducers($namespaceReducers, $namespace);
-        }
     }
 
     /**

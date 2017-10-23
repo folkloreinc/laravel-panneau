@@ -2,6 +2,8 @@
 
 namespace Folklore\Panneau\Reducers;
 
+use Folklore\EloquentJsonSchema\Support\RelationReducer;
+
 class BlocksReducer extends RelationReducer
 {
     protected function getRelationClass($model, $node, $state)

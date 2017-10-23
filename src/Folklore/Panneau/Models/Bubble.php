@@ -5,22 +5,20 @@ namespace Folklore\Panneau\Models;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
-use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
+use Folklore\EloquentJsonSchema\Support\HasJsonSchema;
+use Folklore\EloquentJsonSchema\Contracts\HasJsonSchema as HasJsonSchemaContract;
 use Folklore\Mediatheque\Support\Traits\HasMedias;
-use Folklore\Panneau\Support\Traits\HasFieldsSchema;
-use Folklore\Panneau\Support\Traits\HasBubblesFields;
-use Folklore\Panneau\Support\Traits\HasMediasFields;
 use Folklore\Panneau\Contracts\Bubble as BubbleContract;
 use \Exception;
 
 class Bubble extends Model implements
     Sortable,
-    HasFieldsSchemaInterface
+    HasJsonSchemaContract
 {
     use SoftDeletes;
     use SortableTrait;
     use HasMedias;
-    use HasFieldsSchema;
+    use HasJsonSchema;
 
     protected $table = 'bubbles';
 
@@ -34,8 +32,17 @@ class Bubble extends Model implements
     ];
 
     protected $casts = [
-        'data' => 'object',
+        'data' => 'json_schema:object',
         'type' => 'string',
+    ];
+
+    protected $jsonSchemas = [
+        'data' => \Folklore\Panneau\Schemas\BubbleData::class,
+    ];
+
+    protected $jsonSchemasReducers = [
+        \Folklore\Panneau\Reducers\BubblesReducer::class,
+        \Folklore\Panneau\Reducers\MediasReducer::class,
     ];
 
     protected $sortable = [

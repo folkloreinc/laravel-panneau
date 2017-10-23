@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Schemas\Fields;
 
-use Folklore\Panneau\Support\Schema;
+use Folklore\EloquentJsonSchema\Support\JsonSchema;
 
-class Select extends Schema
+class Select extends JsonSchema
 {
     protected $schemaAttributes = [
         'nullable',

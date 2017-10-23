@@ -2,6 +2,7 @@
 
 namespace Folklore\Panneau\Reducers;
 
+use Folklore\EloquentJsonSchema\Support\RelationReducer;
 use Folklore\Mediatheque\Contracts\Models\Picture as PictureContract;
 use Folklore\Mediatheque\Contracts\Models\Document as DocumentContract;
 use Folklore\Panneau\Schemas\Fields\Picture as PictureSchema;

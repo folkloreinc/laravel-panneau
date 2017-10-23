@@ -2,12 +2,12 @@
 
 namespace Folklore\Panneau\Schemas;
 
-use Folklore\Panneau\Support\Schema;
+use Folklore\EloquentJsonSchema\Support\JsonSchema;
 use Folklore\Panneau\Schemas\Fields\TextLocale;
 use Folklore\Panneau\Schemas\Fields\Page as PageField;
 use Folklore\Panneau\Schemas\Fields\Blocks;
 
-class PageData extends Schema
+class PageData extends JsonSchema
 {
     protected function properties()
     {

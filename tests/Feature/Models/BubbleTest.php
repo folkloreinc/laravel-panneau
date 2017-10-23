@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Folklore\EloquentJsonSchema\Support\JsonSchema;
 use Folklore\Panneau\Models\Bubble;
 use Folklore\Panneau\Models\Block;
-use Folklore\Panneau\Support\FieldsSchema;
 
 class BubbleTest extends TestCase
 {
@@ -19,49 +19,38 @@ class BubbleTest extends TestCase
 
         $this->runMigrations();
 
-        $this->schema = new FieldsSchema([
-            'fields' => [
-                'data' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'title' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
-                    ],
-                    'required' => ['title']
-                ]
-            ]
+        $this->schema = new JsonSchema([
+            'type' => 'object',
+            'properties' => [
+                'title' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
+            ],
+            'required' => ['title']
         ]);
 
-        $this->relationsSchema = new FieldsSchema([
-            'fields' => [
-                'data' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'title' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
-                        'bubbles' => \Folklore\Panneau\Schemas\Fields\Bubbles::class,
-                    ],
-                    'required' => ['title']
-                ]
-            ]
+        $this->relationsSchema = new JsonSchema([
+            'type' => 'object',
+            'properties' => [
+                'title' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
+                'bubbles' => \Folklore\Panneau\Schemas\Fields\Bubbles::class,
+            ],
+            'required' => ['title']
         ]);
     }
 
     public function tearDown()
     {
         parent::tearDown();
-
-        Bubble::setDefaultFieldsSchema(null);
     }
 
     /**
      * Test with invalid data
      *
-     * @expectedException \Folklore\Panneau\Exceptions\SchemaValidationException
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
+     * @expectedException \Folklore\EloquentJsonSchema\ValidationException
      */
     public function testInvalidData()
     {
         $model = new Bubble();
-        $model->setFieldsSchema($this->schema);
+        $model->setJsonSchema('data', $this->schema);
         $model->data = [];
         $model->save();
     }
@@ -69,7 +58,6 @@ class BubbleTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testValidData()
     {
@@ -80,7 +68,7 @@ class BubbleTest extends TestCase
         ]));
 
         $model = new Bubble();
-        $model->setFieldsSchema($this->schema);
+        $model->setJsonSchema('data', $this->schema);
         $model->data = $data;
         $model->save();
 
@@ -91,12 +79,9 @@ class BubbleTest extends TestCase
     /**
      * Test with valid data
      *
-     * @covers \Folklore\Panneau\Support\Traits\HasFieldsSchema::setFieldsSchema
      */
     public function testBubblesRelations()
     {
-        Bubble::setDefaultFieldsSchema($this->relationsSchema);
-
         $relation = new Bubble();
         $relation->save();
 
@@ -109,10 +94,12 @@ class BubbleTest extends TestCase
             ]
         ]));
         $model = new Bubble();
+        $model->setJsonSchema('data', $this->relationsSchema);
         $model->data = $modelData;
         $model->save();
 
         $model = Bubble::with('bubbles')->find($model->id);
+        $model->setJsonSchema('data', $this->relationsSchema);
         $this->assertEquals(1, sizeof($model->bubbles));
         $this->assertEquals('data.bubbles.0', $model->bubbles[0]->pivot->handle);
         $this->assertEquals($modelData->title, $model->data->title);
