@@ -2,10 +2,12 @@
 
 namespace Folklore\Panneau\Http\Controllers;
 
+use Illuminate\Http\Request;
+
 class BubblesController extends ResourceController
 {
-    protected function getResourceClass()
+    public function index(Request $request)
     {
-        return \Folklore\Panneau\Contracts\Bubble::class;
+        return 'test';
     }
 }

@@ -64,4 +64,25 @@ class BubblesControllerTest extends TestCase
         $this->assertEquals(200, $response->status());
         $this->assertEquals($modelData, $responseData);
     }
+
+    /**
+     * Test get bubble's resource definition
+     *
+     * @test
+     * @covers ::definition
+     *
+     */
+    public function testDefinition()
+    {
+        $response = $this->json('GET', 'panneau/bubbles/definition');
+        if ($response === $this) {
+            $response = $this->response;
+        }
+
+        $definitionData = json_decode(app('panneau')->resource('bubbles')->toJson(), true);
+        $responseData = json_decode($response->getContent(), true);
+
+        $this->assertEquals(200, $response->status());
+        $this->assertEquals($definitionData, $responseData);
+    }
 }

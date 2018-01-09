@@ -72,6 +72,10 @@ class PanneauServiceProvider extends ServiceProvider
 
     public function mapRoutes()
     {
+        $this->getRouter()->macro('panneauResource', function ($path, $options) {
+            return app('panneau.registrar')->resource($path, $options);
+        });
+
         if (! $this->app->routesAreCached()) {
             $router = $this->getRouter();
             $routesPath = is_file(base_path('routes/panneau.php')) ?
@@ -119,6 +123,17 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->app->singleton('panneau', function ($app) {
             $panneau = new Panneau($app);
+            $resources = config('panneau.resources');
+            $panneau->setResources($resources);
+            return $panneau;
+        });
+    }
+
+    public function registerResgitrar()
+    {
+        $this->app->singleton('panneau.registrar', function ($app) {
+            $panneau = new Panneau($app);
+
             return $panneau;
         });
     }

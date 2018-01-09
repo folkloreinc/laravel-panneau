@@ -8,19 +8,14 @@ class PagesController extends ResourceController
 {
     protected $responseWithSchema = false;
 
-    protected function getResourceClass()
-    {
-        return \Folklore\Panneau\Contracts\Page::class;
-    }
-
     /**
      * Get the resource query builder
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    protected function getResourceQueryBuilder()
+    protected function getResourceQueryBuilder(Request $request)
     {
-        return parent::getResourceQueryBuilder()->with([
+        return parent::getResourceQueryBuilder($request)->with([
             'pages',
             'blocks'
         ]);
