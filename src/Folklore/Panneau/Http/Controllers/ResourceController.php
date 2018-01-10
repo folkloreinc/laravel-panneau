@@ -149,13 +149,6 @@ class ResourceController extends Controller
      */
     public function definition(Request $request, $resource)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@definition', [
-                'resource' => $resource,
-            ]);
-        }
-
         $definition = $this->getResourceDefinition($resource);
         return $definition;
     }
@@ -168,13 +161,6 @@ class ResourceController extends Controller
      */
     public function index(Request $request, $resource)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@index', [
-                $this->resourceParamName => $resource,
-            ]);
-        }
-
         $items = $this->getItems($request);
 
         if ($request->wantsJson()) {
@@ -196,13 +182,6 @@ class ResourceController extends Controller
      */
     public function create(Request $request, $resource)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@create', [
-                $this->resourceParamName => $resource,
-            ]);
-        }
-
         return $this->getResourceView('create');
     }
 
@@ -214,13 +193,6 @@ class ResourceController extends Controller
      */
     public function store(Request $request, $resource)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@store', [
-                $this->resourceParamName => $resource,
-            ]);
-        }
-
         $data = $this->getStoreDataFromRequest($request);
 
         $model = $this->getResourceModel($request);
@@ -243,14 +215,6 @@ class ResourceController extends Controller
      */
     public function show(Request $request, $resource, $id)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@show', [
-                $this->resourceParamName => $resource,
-                $this->idParamName => $id,
-            ]);
-        }
-
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
@@ -271,14 +235,6 @@ class ResourceController extends Controller
      */
     public function edit(Request $request, $resource, $id)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@edit', [
-                $this->resourceParamName=> $resource,
-                $this->idParamName => $id,
-            ]);
-        }
-
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
@@ -299,14 +255,6 @@ class ResourceController extends Controller
      */
     public function update(Request $request, $resource, $id)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@update', [
-                $this->resourceParamName => $resource,
-                $this->idParamName => $id,
-            ]);
-        }
-
         $data = $this->getUpdateDataFromRequest($request);
 
         $model = $this->getItem($id, $request);
@@ -329,14 +277,6 @@ class ResourceController extends Controller
      */
     public function destroy(Request $request, $resource, $id)
     {
-        $customController = $this->getResourceController($resource);
-        if (!is_null($customController)) {
-            return redirect()->action($customController.'@destroy', [
-                $this->resourceParamName => $resource,
-                $this->idParamName => $id,
-            ]);
-        }
-
         $model = $this->getItem($id, $request);
         $data = $model->toArray();
         $model->delete();
