@@ -10,19 +10,21 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
 {
     protected $id;
     protected $name;
-    protected $route;
     protected $controller;
     protected $model;
     protected $forms;
+    protected $validation;
 
     public function __construct($definition = null)
     {
-        $this->id = array_get($definition, 'id', null);
-        $this->name = array_get($definition, 'name', null);
-        $this->route = array_get($definition, 'route', null);
-        $this->controller = array_get($definition, 'controller', null);
-        $this->model = array_get($definition, 'model', null);
-        $this->form = array_get($definition, 'form', null);
+        if (!is_null($definition)) {
+            $this->id = array_get($definition, 'id', null);
+            $this->name = array_get($definition, 'name', null);
+            $this->controller = array_get($definition, 'controller', null);
+            $this->model = array_get($definition, 'model', null);
+            $this->form = array_get($definition, 'form', null);
+            $this->validation = array_get($definition, 'validation', null);
+        }
     }
 
     public function getId()
@@ -33,11 +35,6 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
     public function getName()
     {
         return $this->name;
-    }
-
-    public function getRoute()
-    {
-        return $this->route;
     }
 
     public function getController()
@@ -55,6 +52,11 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
         return $this->form;
     }
 
+    public function getValidation()
+    {
+        return $this->validation;
+    }
+
     public function jsonSerialize()
     {
         return $this->toArray();
@@ -70,7 +72,10 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
         return [
             'id' => $this->getId(),
             'name' => $this->getName(),
+            'controller' => $this->getController(),
+            'model' => $this->getModel(),
             'forms' => $this->getForm(),
+            'validation' => $this->getValidation(),
         ];
     }
 }

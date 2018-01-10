@@ -16,7 +16,8 @@ return [
 
     'route_default_controller' => 'ResourceController',
 
-    'route_middleware' => ['api'],
+    // 'route_middleware' => ['api'],
+    'route_middleware' => [],
 
     'route_resource_param' => 'resource',
 
@@ -62,6 +63,24 @@ return [
             'name' => 'Pages',
             'controller' => 'PagesController',
             'model' => \Folklore\Panneau\Contracts\Page::class,
+            'validation' => [
+                'store' => [
+                    'rules' => [
+
+                    ],
+                    'messages' => [
+
+                    ],
+                ],
+                'update' => [
+                    'rules' => [
+
+                    ],
+                    'messages' => [
+
+                    ],
+                ],
+            ],
             'form' => [
                 'type' => 'normal',
                 'fields' => [
@@ -88,10 +107,7 @@ return [
                 ]
             ],
         ],
-        'blocks' => [
-            'name' => 'Blocks',
-            'model' => \Folklore\Panneau\Contracts\Block::class,
-        ],
+        'blocks' => \Folklore\Panneau\Resources\Block::class,
         'bubbles' => [
             'name' => 'Bubbles',
             'model' => \Folklore\Panneau\Contracts\Bubble::class,

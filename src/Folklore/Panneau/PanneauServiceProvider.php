@@ -28,6 +28,9 @@ class PanneauServiceProvider extends ServiceProvider
         $this->bootPublishes();
 
         $this->mapRoutes();
+
+        $kernel = $this->app->make('Illuminate\Contracts\Http\Kernel');
+        $kernel->pushMiddleware(\Folklore\Panneau\Http\Middlewares\InjectResource::class);
     }
 
     public function bootPublishes()
@@ -95,6 +98,7 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->registerContracts();
         $this->registerPanneau();
+        $this->registerMiddlewares();
         $this->registerRegistrar();
     }
 
@@ -146,6 +150,14 @@ class PanneauServiceProvider extends ServiceProvider
             $registrar->setRouteDefaultController($routeDefaultController);
             return $registrar;
         });
+    }
+
+    public function registerMiddlewares()
+    {
+        $this->app->bind(
+            'panneau.middlewares.injectresource',
+            \Folklore\Panneau\Http\Middlewares\InjectResource::class
+        );
     }
 
     /**

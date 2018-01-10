@@ -21,6 +21,14 @@ class Panneau
 
     public function setResource($id, $resource)
     {
+        if (is_string($resource)) {
+            // Assume a resource class path, get instance
+            $resource = app($resource);
+        } else {
+            // Create new instance from data array
+            $resource = new Resource($resource);
+        }
+
         $this->resources[$id] = $resource;
     }
 
@@ -33,11 +41,11 @@ class Panneau
 
     public function resource($id)
     {
+        dump($id);
         if (!array_key_exists($id, $this->resources)) {
             return null;
         }
 
-        $resource = new Resource($this->resources[$id] + ['id' => $id]);
-        return $resource;
+        return $this->resources[$id];
     }
 }

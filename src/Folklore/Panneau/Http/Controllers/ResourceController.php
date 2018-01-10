@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Folklore\Panneau\Support\Resource;
+use Folklore\Panneau\Http\Requests\ResourceStoreRequest;
+use Folklore\Panneau\Http\Requests\ResourceUpdateRequest;
 
 class ResourceController extends Controller
 {
@@ -18,37 +20,9 @@ class ResourceController extends Controller
 
     public function __construct()
     {
+        $this->middleware('panneau.middlewares.injectresource');
         $this->resourceParamName = config('panneau.route_resource_param');
         $this->idParamName = config('panneau.route_id_param');
-    }
-
-    protected function getResourceNameFromRequest(Request $request)
-    {
-        // Get the route parameter if set
-        if (!is_null($request->route($this->resourceParamName))) {
-            return $request->route($this->resourceParamName);
-        }
-        // If not set (implying a custom controller with predefined
-        // route path), get the action's parameter
-        $action = $request->route()->getAction();
-        if (isset($action[$this->resourceParamName])) {
-            return $action[$this->resourceParamName];
-        }
-        return null;
-    }
-
-    protected function getResourceIdFromRequest(Request $request)
-    {
-        // Get the route parameter, which should always be set by
-        // design, whether the controller is used as the default
-        // catch-all controller or extended by a custom controller.
-        return $request->{$this->idParamName};
-    }
-
-    protected function getResourceClass($resourceName)
-    {
-        $resource = app('panneau')->resource($resourceName);
-        return $resource;
     }
 
     /**
@@ -56,9 +30,9 @@ class ResourceController extends Controller
      *
      * @return \Illuminate\Database\Eloquent\Model
      */
-    protected function getResourceModel($resourceName)
+    protected function getResourceModel($request)
     {
-        $class = $this->getResourceClass($resourceName);
+        $class = $request->panneauResource;
         if (!is_null($class)) {
             $model = $class->getModel();
             if (!is_null($model)) {
@@ -68,9 +42,9 @@ class ResourceController extends Controller
         return null;
     }
 
-    protected function getResourceController($resourceName)
+    protected function getResourceController($request)
     {
-        $class = $this->getResourceClass($resourceName);
+        $class = $request->panneauResource;
         if (!is_null($class)) {
             return $class->getController();
         }
@@ -82,9 +56,9 @@ class ResourceController extends Controller
      *
      * @return array
      */
-    protected function getResourceDefinition($resourceName)
+    protected function getResourceDefinition($request)
     {
-        $class = $this->getResourceClass($resourceName);
+        $class = $request->panneauResource;
         if (!is_null($class)) {
             return $class->toArray();
         }
@@ -212,11 +186,12 @@ class ResourceController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \Foklore\Panneau\Http\Requests\ResourceStoreRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ResourceStoreRequest $request)
     {
+        // dd($request->route()->getAction());
         $data = $this->getStoreDataFromRequest($request);
 
         $model = $this->getResourceModel($request);
@@ -234,7 +209,6 @@ class ResourceController extends Controller
      * Display the specified resource.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function show(Request $request)
@@ -255,7 +229,6 @@ class ResourceController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function edit(Request $request)
@@ -275,11 +248,10 @@ class ResourceController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param  \Folklore\Panneau\Http\Requests\ResourceUpdateRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request)
+    public function update(ResourceUpdateRequest $request)
     {
         $id = $this->getResourceIdFromRequest($request);
         $data = $this->getUpdateDataFromRequest($request);
@@ -299,7 +271,6 @@ class ResourceController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy(Request $request)

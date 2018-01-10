@@ -29,7 +29,7 @@ class BubblesControllerTest extends TestCase
         $model = new Bubble();
         $model->save();
 
-        $response = $this->json('GET', '/panneau/bubbles');
+        $response = $this->call('GET', '/panneau/bubbles');
         if ($response === $this) {
             $response = $this->response;
         }
@@ -53,7 +53,7 @@ class BubblesControllerTest extends TestCase
         $model = new Bubble();
         $model->save();
 
-        $response = $this->json('GET', '/panneau/bubbles/'.$model->id);
+        $response = $this->call('GET', '/panneau/bubbles/'.$model->id);
         if ($response === $this) {
             $response = $this->response;
         }
@@ -66,6 +66,36 @@ class BubblesControllerTest extends TestCase
     }
 
     /**
+     * Test storing a bubble
+     *
+     * @test
+     * @covers ::store
+     *
+     */
+    public function testStore()
+    {
+        $postData = [
+            'data' => [
+                'title' => [
+                    'en' => 'Test en',
+                    'fr' => 'Test fr',
+                ]
+            ]
+        ];
+
+        $response = $this->call('POST', '/panneau/bubbles', $postData);
+        if ($response === $this) {
+            $response = $this->response;
+        }
+        dd($response->exception);
+
+        // $modelData = json_decode(Bubble::find($model->id)->toJson(), true);
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals(200, $response->status());
+        // $this->assertEquals($modelData, $responseData);
+    }
+
+    /**
      * Test get bubble's resource definition
      *
      * @test
@@ -74,12 +104,12 @@ class BubblesControllerTest extends TestCase
      */
     public function testDefinition()
     {
-        $response = $this->json('GET', 'panneau/bubbles/definition');
+        $response = $this->call('GET', 'panneau/bubbles/definition');
         if ($response === $this) {
             $response = $this->response;
         }
 
-        $definitionData = json_decode(app('panneau')->resource('bubbles')->toJson(), true);
+        $definitionData = json_decode($this->panneau->resource('bubbles')->toJson(), true);
         $responseData = json_decode($response->getContent(), true);
 
         $this->assertEquals(200, $response->status());

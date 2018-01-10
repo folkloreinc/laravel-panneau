@@ -6,10 +6,14 @@ $middleware = config('panneau.route_middleware');
 $resources = config('panneau.resources');
 $paths = config('panneau.route_paths');
 
+// Prepend the mandatory middleware
+array_unshift($middleware, 'panneau.middlewares.injectresource');
+
 $router->group([
     'prefix' => $prefix,
     'namespace' => $namespace,
-    'middleware' => $middleware
+    'middleware' => $middleware,
+    // 'middleware' => app('panneau.middlewares.injectresource'), // test
 ], function ($router) use ($resources, $paths) {
     // Filter the resources ids (keys) so that we only keep those
     // that do not use a custom controller, and thus should be
@@ -33,3 +37,5 @@ $router->group([
         }
     }
 });
+
+// dd($router->getRoutes());
