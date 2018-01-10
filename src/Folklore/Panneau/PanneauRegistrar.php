@@ -64,27 +64,34 @@ class PanneauRegistrar
 
         foreach ($actions as $action) {
             $pathDefinition = $this->routePaths[$action];
+            $method = $pathDefinition['method'];
             $path = $pathDefinition['path'];
-            if ($resourceName !== '*') {
-                $path = str_replace('{'.$this->routeResourceParam.'}', $resourceName, $path);
-            }
-            $this->addRoute(
-                $pathDefinition['method'],
-                $path,
-                $controller.'@'.$action,
-                $whereResource
-            );
-        }
-    }
+            $actionParams = [
+                'uses' => $controller.'@'.$action,
+            ];
 
-    protected function addRoute($method, $path, $handler, $where = null)
-    {
-        $route = $this->router->match($method, $path, [
-            'uses' => $handler,
-        ]);
-        if (!is_null($where)) {
-            $route->where($this->routeResourceParam, $where);
+            // If not for a catch-all controller
+            if ($resourceName !== '*') {
+                // Replace the resource route parameter with the actual resource name
+                $path = str_replace('{'.$this->routeResourceParam.'}', $resourceName, $path);
+                // Add the actual resource name to the action's parameters,
+                // which can later be used by helpers in ResourceController
+                $actionParams += [
+                    'resource' => $resourceName,
+                ];
+            }
+
+            $route = $this->router->match(
+                $method,
+                $path,
+                $actionParams
+            );
+
+            // If the whereResource options is set, add it as the route
+            // resource parameter filtering clause
+            if (!is_null($whereResource)) {
+                $route->where($this->routeResourceParam, $whereResource);
+            }
         }
-        return $route;
     }
 }

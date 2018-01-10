@@ -25,19 +25,16 @@ class ResourceController extends Controller
     protected function getResourceNameFromRequest(Request $request)
     {
         // Get the route parameter if set
-        if (isset($request->{$this->resourceParamName})) {
-            return $request->{$this->resourceParamName};
+        if (!is_null($request->route($this->resourceParamName))) {
+            return $request->route($this->resourceParamName);
         }
         // If not set (implying a custom controller with predefined
-        // route path)...
-        if (!empty($request->route()->getPrefix())) {
-            // The resource name will be the second route segment
-            // if a route prefix is set
-            return $request->segment(2);
+        // route path), get the action's parameter
+        $action = $request->route()->getAction();
+        if (isset($action[$this->resourceParamName])) {
+            return $action[$this->resourceParamName];
         }
-        // Without a route prefix, the resource name will be the
-        // first route segment
-        return $request->segment(1);
+        return null;
     }
 
     protected function getResourceIdFromRequest(Request $request)
