@@ -94,7 +94,6 @@ return [
         ],
         'bubbles' => [
             'name' => 'Bubbles',
-            // 'controller' => 'BubblesController',
             'model' => \Folklore\Panneau\Contracts\Bubble::class,
             'form' => [
                 'type' => 'normal',
