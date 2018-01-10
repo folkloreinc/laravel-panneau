@@ -13,13 +13,39 @@ class ResourceController extends Controller
     protected $resultsPerPage = 25;
     protected $pageInputName = 'page';
     protected $returnPagination = true;
-    protected $resourceParamName = 'resource';
-    protected $idParamName = 'id';
+    protected $resourceParamName;
+    protected $idParamName;
 
     public function __construct()
     {
-        $this->resourceParamName = config('panneau.route_resource_param', 'resource');
-        $this->idParamName = config('panneau.route_id_param', 'id');
+        $this->resourceParamName = config('panneau.route_resource_param');
+        $this->idParamName = config('panneau.route_id_param');
+    }
+
+    protected function getResourceNameFromRequest(Request $request)
+    {
+        // Get the route parameter if set
+        if (isset($request->{$this->resourceParamName})) {
+            return $request->{$this->resourceParamName};
+        }
+        // If not set (implying a custom controller with predefined
+        // route path)...
+        if (!empty($request->route()->getPrefix())) {
+            // The resource name will be the second route segment
+            // if a route prefix is set
+            return $request->segment(2);
+        }
+        // Without a route prefix, the resource name will be the
+        // first route segment
+        return $request->segment(1);
+    }
+
+    protected function getResourceIdFromRequest(Request $request)
+    {
+        // Get the route parameter, which should always be set by
+        // design, whether the controller is used as the default
+        // catch-all controller or extended by a custom controller.
+        return $request->{$this->idParamName};
     }
 
     protected function getResourceClass($resourceName)
@@ -75,7 +101,7 @@ class ResourceController extends Controller
      */
     protected function getResourceQueryBuilder(Request $request)
     {
-        $resource = $request->resource;
+        $resource = $this->getResourceNameFromRequest($request);
         $model = $this->getResourceModel($resource);
         return $model->newQuery();
     }
@@ -147,8 +173,9 @@ class ResourceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function definition(Request $request, $resource)
+    public function definition(Request $request)
     {
+        $resource = $this->getResourceNameFromRequest($request);
         $definition = $this->getResourceDefinition($resource);
         return $definition;
     }
@@ -159,7 +186,7 @@ class ResourceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request, $resource)
+    public function index(Request $request)
     {
         $items = $this->getItems($request);
 
@@ -180,7 +207,7 @@ class ResourceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function create(Request $request, $resource)
+    public function create(Request $request)
     {
         return $this->getResourceView('create');
     }
@@ -191,7 +218,7 @@ class ResourceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request, $resource)
+    public function store(Request $request)
     {
         $data = $this->getStoreDataFromRequest($request);
 
@@ -213,8 +240,9 @@ class ResourceController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, $resource, $id)
+    public function show(Request $request)
     {
+        $id = $this->getResourceIdFromRequest($request);
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
@@ -233,8 +261,9 @@ class ResourceController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit(Request $request, $resource, $id)
+    public function edit(Request $request)
     {
+        $id = $this->getResourceIdFromRequest($request);
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
@@ -253,8 +282,9 @@ class ResourceController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $resource, $id)
+    public function update(Request $request)
     {
+        $id = $this->getResourceIdFromRequest($request);
         $data = $this->getUpdateDataFromRequest($request);
 
         $model = $this->getItem($id, $request);
@@ -275,8 +305,9 @@ class ResourceController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Request $request, $resource, $id)
+    public function destroy(Request $request)
     {
+        $id = $this->getResourceIdFromRequest($request);
         $model = $this->getItem($id, $request);
         $data = $model->toArray();
         $model->delete();
