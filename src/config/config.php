@@ -14,6 +14,8 @@ return [
 
     'route_namespace' => 'Folklore\Panneau\Http\Controllers',
 
+    'route_default_controller' => 'ResourceController',
+
     'route_middleware' => ['api'],
 
     'route_resource_param' => 'resource',
@@ -21,14 +23,38 @@ return [
     'route_id_param' => 'id',
 
     'route_paths' => [
-        'definition' => '/{resource}/definition',
-        'index' => '/{resource}',
-        'create' => '/{resource}/create',
-        'store' => '/{resource}',
-        'show' => '/{resource}/{id}',
-        'edit' => '/{resource}/{id}/edit',
-        'update' => '/{resource}/{id}',
-        'destroy' => '/{resource}/{id}',
+        'definition' => [
+            'method' => ['GET', 'HEAD'],
+            'path' => '/{resource}/definition'
+        ],
+        'index' => [
+            'method' => ['GET', 'HEAD'],
+            'path' => '/{resource}'
+        ],
+        'create' => [
+            'method' => ['GET', 'HEAD'],
+            'path' => '/{resource}/create'
+        ],
+        'store' =>[
+            'method' => 'POST',
+            'path' => '/{resource}'
+        ],
+        'show' => [
+            'method' => ['GET', 'HEAD'],
+            'path' => '/{resource}/{id}'
+        ],
+        'edit' => [
+            'method' => ['GET', 'HEAD'],
+            'path' => '/{resource}/{id}/edit'
+        ],
+        'update' => [
+            'method' => ['PUT', 'PATCH'],
+            'path' => '/{resource}/{id}'
+        ],
+        'destroy' => [
+            'method' => 'DELETE',
+            'path' => '/{resource}/{id}'
+        ]
     ],
 
     'resources' => [

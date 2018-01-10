@@ -1,4 +1,6 @@
-<?php namespace Folklore\Panneau;
+<?php
+
+namespace Folklore\Panneau;
 
 use Illuminate\Support\ServiceProvider;
 
@@ -72,7 +74,7 @@ class PanneauServiceProvider extends ServiceProvider
 
     public function mapRoutes()
     {
-        $this->getRouter()->macro('panneauResource', function ($path, $options) {
+        $this->getRouter()->macro('panneauResource', function ($path, $options = null) {
             return app('panneau.registrar')->resource($path, $options);
         });
 
@@ -93,6 +95,7 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->registerContracts();
         $this->registerPanneau();
+        $this->registerRegistrar();
     }
 
     /**
@@ -129,12 +132,19 @@ class PanneauServiceProvider extends ServiceProvider
         });
     }
 
-    public function registerResgitrar()
+    public function registerRegistrar()
     {
         $this->app->singleton('panneau.registrar', function ($app) {
-            $panneau = new Panneau($app);
-
-            return $panneau;
+            $registrar = new PanneauRegistrar($this->getRouter());
+            $routePaths = config('panneau.route_paths');
+            $registrar->setRoutePaths($routePaths);
+            $routeResourceParam = config('panneau.route_resource_param');
+            $registrar->setRouteResourceParam($routeResourceParam);
+            $routeIdParam = config('panneau.route_id_param');
+            $registrar->setRouteIdParam($routeIdParam);
+            $routeDefaultController = config('panneau.route_default_controller');
+            $registrar->setRouteDefaultController($routeDefaultController);
+            return $registrar;
         });
     }
 

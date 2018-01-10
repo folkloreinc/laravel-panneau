@@ -1,7 +1,5 @@
 <?php
 
-$defaultRouter = app()->bound('router') ? app('router') : app();
-$router = !isset($router) ? $defaultRouter : $router;
 $prefix = config('panneau.route_prefix');
 $namespace = config('panneau.route_namespace');
 $middleware = config('panneau.route_middleware');
@@ -21,16 +19,17 @@ $router->group([
     });
     $resourcesMatchIds = array_keys($catchAllResources);
     $resourcesMatchRegex = implode($resourcesMatchIds, '|');
-    $router->panneauResource('resource', [
-        'where' => ['resource' => $resourcesMatchRegex],
-        'paths' => $paths,
+    $router->panneauResource('*', [
+        'whereResource' => $resourcesMatchRegex,
     ]);
 
-    // Create a custom routes for resources with a custom controller
+    // Create a custom routes set for resources with a custom controller
     $customResources = array_diff(array_keys($resources), $resourcesMatchIds);
-    foreach ($customResources as $resource) {
-        $router->panneauResource($resource, [
-            'paths' => $paths,
-        ]);
+    if (!empty($customResources)) {
+        foreach ($customResources as $resource) {
+            $router->panneauResource($resource, [
+                'controller' => $resources[$resource]['controller'],
+            ]);
+        }
     }
 });
