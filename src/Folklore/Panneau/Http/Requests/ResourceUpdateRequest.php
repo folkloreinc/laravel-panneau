@@ -22,7 +22,7 @@ class ResourceUpdateRequest extends FormRequest
      *
      * @return array
      */
-    public function message()
+    public function messages()
     {
         $validation = $this->getResourceValidation();
         return array_get($validation, 'update.messages', []);

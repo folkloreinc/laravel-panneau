@@ -22,7 +22,7 @@ class ResourceStoreRequest extends ResourceRequest
      *
      * @return array
      */
-    public function message()
+    public function messages()
     {
         $validation = $this->getResourceValidation();
         return array_get($validation, 'store.messages', []);
