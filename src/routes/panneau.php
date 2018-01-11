@@ -35,6 +35,7 @@ $router->group([
             ]);
         }
     }
-});
 
-// dd($router->getRoutes());
+    // Add the layout routes
+    $router->get('/layout/definition', 'LayoutController@definition');
+});

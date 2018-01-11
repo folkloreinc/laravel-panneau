@@ -129,6 +129,8 @@ class PanneauServiceProvider extends ServiceProvider
             $panneau = new Panneau($app);
             $resources = config('panneau.resources');
             $panneau->setResources($resources);
+            $layout = config('panneau.layout');
+            $panneau->setLayout($layout);
             return $panneau;
         });
     }

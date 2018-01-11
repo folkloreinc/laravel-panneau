@@ -60,6 +60,30 @@ return [
     ],
 
     /**
+     * Layout
+     */
+    'layout' => [
+        'type' => 'normal',
+        'header' => [
+            'navbar' => [
+                'items' => [
+                    [
+                        'id' => 'users',
+                        'type' => 'resource',
+                        'resource' => 'users'
+                    ],
+                    [
+                        'id' => 'user',
+                        'type' => 'user',
+                        'position' => 'right'
+                    ]
+                ]
+            ]
+        ],
+        'footer' => true,
+    ],
+
+    /**
      * Resources
      */
     'resources' => [

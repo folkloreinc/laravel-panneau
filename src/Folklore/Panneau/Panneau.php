@@ -4,19 +4,20 @@ namespace Folklore\Panneau;
 
 use Illuminate\Container\Container;
 use Folklore\Panneau\Support\Resource;
-
-use Exception;
+use Folklore\Panneau\Support\Layout;
 
 class Panneau
 {
     protected $container;
     protected $resources;
+    protected $layout;
 
     public function __construct(Container $container)
     {
         $this->container = $container;
 
         $this->resources = [];
+        $this->layout = null;
     }
 
     public function setResource($id, $resource)
@@ -46,5 +47,23 @@ class Panneau
         }
 
         return $this->resources[$id];
+    }
+
+    public function setLayout($layout)
+    {
+        if (is_string($layout)) {
+            // Assume a layout class, get instance
+            $layout = app($layout);
+        } else {
+            // Create new instance from data array
+            $layout = new Layout($layout);
+        }
+
+        $this->layout = $layout;
+    }
+
+    public function layout()
+    {
+        return $this->layout;
     }
 }
