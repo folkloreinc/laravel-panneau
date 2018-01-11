@@ -6,18 +6,11 @@ use Folklore\Panneau\Support\Resource;
 
 class Block extends Resource
 {
-    protected $name = 'Bubbles';
+    protected $id = 'blocks';
 
-    protected $model = \Folklore\Panneau\Contracts\Bubble::class;
+    protected $name = 'Blocks';
 
-    protected $forms = [
-        'type' => 'normal',
-        'fields' => [
-            [
-                'name' => 'title',
-                'type' => 'textlocale',
-                'label' => 'Title',
-            ]
-        ],
-    ];
+    protected $model = \Folklore\Panneau\Contracts\Block::class;
+
+    protected $forms = [];
 }
