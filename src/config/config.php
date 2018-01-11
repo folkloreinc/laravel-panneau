@@ -10,52 +10,53 @@ return [
     /**
      * Routes
      */
-    'route_prefix' => 'panneau',
+    'route' => [
+        'prefix' => 'panneau',
 
-    'route_namespace' => 'Folklore\Panneau\Http\Controllers',
+        'namespace' => 'Folklore\Panneau\Http\Controllers',
 
-    'route_default_controller' => 'ResourceController',
+        'default_controller' => 'ResourceController',
 
-    // 'route_middleware' => ['api'],
-    'route_middleware' => [],
+        'middleware' => ['api'],
 
-    'route_resource_param' => 'resource',
+        'resource_param' => 'resource',
 
-    'route_id_param' => 'id',
+        'id_param' => 'id',
 
-    'route_paths' => [
-        'definition' => [
-            'method' => ['GET', 'HEAD'],
-            'path' => '/{resource}/definition'
+        'paths' => [
+            'definition' => [
+                'method' => ['GET', 'HEAD'],
+                'path' => '/{resource}/definition'
+            ],
+            'index' => [
+                'method' => ['GET', 'HEAD'],
+                'path' => '/{resource}'
+            ],
+            'create' => [
+                'method' => ['GET', 'HEAD'],
+                'path' => '/{resource}/create'
+            ],
+            'store' =>[
+                'method' => 'POST',
+                'path' => '/{resource}'
+            ],
+            'show' => [
+                'method' => ['GET', 'HEAD'],
+                'path' => '/{resource}/{id}'
+            ],
+            'edit' => [
+                'method' => ['GET', 'HEAD'],
+                'path' => '/{resource}/{id}/edit'
+            ],
+            'update' => [
+                'method' => ['PUT', 'PATCH'],
+                'path' => '/{resource}/{id}'
+            ],
+            'destroy' => [
+                'method' => 'DELETE',
+                'path' => '/{resource}/{id}'
+            ]
         ],
-        'index' => [
-            'method' => ['GET', 'HEAD'],
-            'path' => '/{resource}'
-        ],
-        'create' => [
-            'method' => ['GET', 'HEAD'],
-            'path' => '/{resource}/create'
-        ],
-        'store' =>[
-            'method' => 'POST',
-            'path' => '/{resource}'
-        ],
-        'show' => [
-            'method' => ['GET', 'HEAD'],
-            'path' => '/{resource}/{id}'
-        ],
-        'edit' => [
-            'method' => ['GET', 'HEAD'],
-            'path' => '/{resource}/{id}/edit'
-        ],
-        'update' => [
-            'method' => ['PUT', 'PATCH'],
-            'path' => '/{resource}/{id}'
-        ],
-        'destroy' => [
-            'method' => 'DELETE',
-            'path' => '/{resource}/{id}'
-        ]
     ],
 
     'resources' => [

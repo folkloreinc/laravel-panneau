@@ -1,10 +1,10 @@
 <?php
 
-$prefix = config('panneau.route_prefix');
-$namespace = config('panneau.route_namespace');
-$middleware = config('panneau.route_middleware');
+$prefix = config('panneau.route.prefix');
+$namespace = config('panneau.route.namespace');
+$middleware = config('panneau.route.middleware');
 $resources = config('panneau.resources');
-$paths = config('panneau.route_paths');
+$paths = config('panneau.route.paths');
 
 // Prepend the mandatory middleware
 array_unshift($middleware, 'panneau.middlewares.inject_resource');

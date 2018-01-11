@@ -20,8 +20,8 @@ class ResourceController extends Controller
 
     public function __construct()
     {
-        $this->resourceParamName = config('panneau.route_resource_param');
-        $this->idParamName = config('panneau.route_id_param');
+        $this->resourceParamName = config('panneau.route.resource_param');
+        $this->idParamName = config('panneau.route.id_param');
     }
 
     /**

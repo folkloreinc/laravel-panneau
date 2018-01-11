@@ -137,13 +137,13 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->app->singleton('panneau.registrar', function ($app) {
             $registrar = new PanneauRegistrar($this->getRouter());
-            $routePaths = config('panneau.route_paths');
+            $routePaths = config('panneau.route.paths');
             $registrar->setRoutePaths($routePaths);
-            $routeResourceParam = config('panneau.route_resource_param');
+            $routeResourceParam = config('panneau.route.resource_param');
             $registrar->setRouteResourceParam($routeResourceParam);
-            $routeIdParam = config('panneau.route_id_param');
+            $routeIdParam = config('panneau.route.id_param');
             $registrar->setRouteIdParam($routeIdParam);
-            $routeDefaultController = config('panneau.route_default_controller');
+            $routeDefaultController = config('panneau.route.default_controller');
             $registrar->setRouteDefaultController($routeDefaultController);
             return $registrar;
         });
