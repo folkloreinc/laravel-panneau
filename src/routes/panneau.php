@@ -6,9 +6,6 @@ $middleware = config('panneau.route.middleware');
 $resources = config('panneau.resources');
 $paths = config('panneau.route.paths');
 
-// Prepend the mandatory middleware
-array_unshift($middleware, 'panneau.middlewares.inject_resource');
-
 $router->group([
     'prefix' => $prefix,
     'namespace' => $namespace,

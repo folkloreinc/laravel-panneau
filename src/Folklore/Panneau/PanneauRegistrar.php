@@ -86,6 +86,7 @@ class PanneauRegistrar
                 $path,
                 $actionParams
             );
+            $route->middleware('panneau.middlewares.inject_resource');
 
             // If the whereResource options is set, add it as the route
             // resource parameter filtering clause
