@@ -111,7 +111,7 @@ class BubblesControllerTest extends TestCase
             $response = $this->response;
         }
 
-        $definitionData = json_decode($this->panneau->resource('bubbles')->toJson(), true);
+        $definitionData = json_decode(app('panneau')->resource('bubbles')->toJson(), true);
         $responseData = json_decode($response->getContent(), true);
 
         $this->assertEquals(200, $response->status());
