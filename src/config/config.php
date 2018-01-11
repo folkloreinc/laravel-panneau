@@ -59,6 +59,9 @@ return [
         ],
     ],
 
+    /**
+     * Resources
+     */
     'resources' => [
         'pages' => [
             'name' => 'Pages',
