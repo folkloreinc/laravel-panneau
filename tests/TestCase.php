@@ -39,4 +39,15 @@ class TestCase extends BaseTestCase
             'Panneau' => \Folklore\Panneau\Support\Facades\Panneau::class,
         ];
     }
+
+    protected function callAsJson($method, $uri, $data = [])
+    {
+        $content = json_encode($data);
+        $server = $this->transformHeadersToServerVars([
+            'CONTENT_LENGTH' => mb_strlen($content, '8bit'),
+            'CONTENT_TYPE' => 'application/json',
+            'Accept' => 'application/json',
+        ]);
+        return $this->call($method, $uri, [], [], [], $server, $content);
+    }
 }
