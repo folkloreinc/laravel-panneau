@@ -20,11 +20,12 @@ class BubblesControllerTest extends TestCase
     protected function callAsJson($method, $uri, $data = [])
     {
         $content = json_encode($data);
-        dump('callAsJson', $content);
-        return $this->call($method, $uri, [], [], [], [
-            'CONTENT_TYPE' => 'application',
-            'HTTP_Accept' => 'application/json',
-        ], $content);
+        $server = $this->transformHeadersToServerVars([
+            'CONTENT_LENGTH' => mb_strlen($content, '8bit'),
+            'CONTENT_TYPE' => 'application/json',
+            'Accept' => 'application/json',
+        ]);
+        return $this->call($method, $uri, [], [], [], $server, $content);
     }
 
     /**
@@ -91,23 +92,22 @@ class BubblesControllerTest extends TestCase
         $this->withMiddleware();
 
         $modelData = [
-            'data' => [
-                'title' => [
-                    'en' => 'Test en',
-                    'fr' => 'Test fr',
-                ]
+            'title' => [
+                'en' => 'Test en',
+                'fr' => 'Test fr',
             ]
         ];
 
-        $response = $this->callAsJson('POST', '/panneau/bubbles', $modelData);
+        $response = $this->callAsJson('POST', '/panneau/bubbles', [
+            'data' => $modelData
+        ]);
         if ($response === $this) {
             $response = $this->response;
         }
 
         $responseData = json_decode($response->getContent(), true);
-        // dd($responseData);
         $this->assertEquals(200, $response->status());
-        // $this->assertEquals($modelData, $responseData);
+        $this->assertEquals($modelData, $responseData['data']);
     }
 
     /**
