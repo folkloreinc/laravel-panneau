@@ -27,10 +27,7 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->bootPublishes();
 
-        $this->mapRoutes();
-
-        $kernel = $this->app->make('Illuminate\Contracts\Http\Kernel');
-        $kernel->pushMiddleware(\Folklore\Panneau\Http\Middlewares\InjectResource::class);
+        $this->bootRouter();
     }
 
     public function bootPublishes()
@@ -75,14 +72,14 @@ class PanneauServiceProvider extends ServiceProvider
         ], 'lang');
     }
 
-    public function mapRoutes()
+    public function bootRouter()
     {
-        $this->getRouter()->macro('panneauResource', function ($path, $options = null) {
+        $router = $this->getRouter();
+        $router->macro('panneauResource', function ($path, $options = null) {
             return app('panneau.registrar')->resource($path, $options);
         });
 
         if (! $this->app->routesAreCached()) {
-            $router = $this->getRouter();
             $routesPath = is_file(base_path('routes/panneau.php')) ?
                 base_path('routes/panneau.php') : (__DIR__ . '/../../routes/panneau.php');
             require $routesPath;
@@ -155,7 +152,7 @@ class PanneauServiceProvider extends ServiceProvider
     public function registerMiddlewares()
     {
         $this->app->bind(
-            'panneau.middlewares.injectresource',
+            'panneau.middlewares.inject_resource',
             \Folklore\Panneau\Http\Middlewares\InjectResource::class
         );
     }

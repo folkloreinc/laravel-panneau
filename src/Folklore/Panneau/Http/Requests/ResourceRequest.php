@@ -19,10 +19,11 @@ class ResourceRequest extends FormRequest
 
     protected function getResourceValidation()
     {
-        if (!isset($this->panneauResource)) {
+        $resource = $this->get('panneau.resource');
+        if (is_null($resource)) {
             throw new Exception('Missing panneauResource request property; is the "panneau.middlewares.injectresource" middleware added to route?');
         }
-        $validation = $this->panneauResource->getValidation();
+        $validation = $resource->getValidation();
         return $validation;
     }
 }

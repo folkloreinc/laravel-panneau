@@ -41,7 +41,6 @@ class Panneau
 
     public function resource($id)
     {
-        dump($id);
         if (!array_key_exists($id, $this->resources)) {
             return null;
         }

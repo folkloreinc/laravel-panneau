@@ -20,9 +20,19 @@ class ResourceController extends Controller
 
     public function __construct()
     {
-        $this->middleware('panneau.middlewares.injectresource');
         $this->resourceParamName = config('panneau.route_resource_param');
         $this->idParamName = config('panneau.route_id_param');
+    }
+
+    /**
+     * Get the resource model
+     *
+     * @param \Illuminate\Http\Request $request The current request
+     * @return \Folklore\Panneau\Support\Resource
+     */
+    protected function getResourceFromRequest(Request $request)
+    {
+        return $request->get('panneau.resource');
     }
 
     /**
@@ -32,9 +42,9 @@ class ResourceController extends Controller
      */
     protected function getResourceModel($request)
     {
-        $class = $request->panneauResource;
-        if (!is_null($class)) {
-            $model = $class->getModel();
+        $resource = $this->getResourceFromRequest($request);
+        if (!is_null($resource)) {
+            $model = $resource->getModel();
             if (!is_null($model)) {
                 return app($model);
             }
@@ -44,9 +54,9 @@ class ResourceController extends Controller
 
     protected function getResourceController($request)
     {
-        $class = $request->panneauResource;
-        if (!is_null($class)) {
-            return $class->getController();
+        $resource = $this->getResourceFromRequest($request);
+        if (!is_null($resource)) {
+            return $resource->getController();
         }
         return null;
     }
@@ -58,9 +68,9 @@ class ResourceController extends Controller
      */
     protected function getResourceDefinition($request)
     {
-        $class = $request->panneauResource;
-        if (!is_null($class)) {
-            return $class->toArray();
+        $resource = $this->getResourceFromRequest($request);
+        if (!is_null($resource)) {
+            return $resource->toArray();
         }
         return null;
     }
@@ -191,7 +201,6 @@ class ResourceController extends Controller
      */
     public function store(ResourceStoreRequest $request)
     {
-        // dd($request->route()->getAction());
         $data = $this->getStoreDataFromRequest($request);
 
         $model = $this->getResourceModel($request);

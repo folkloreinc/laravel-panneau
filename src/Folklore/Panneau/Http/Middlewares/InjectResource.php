@@ -7,10 +7,6 @@ use Illuminate\Http\Request;
 
 class InjectResource
 {
-    public function __construct()
-    {
-        dump('__construct InjectResource');
-    }
     /**
      * Handle an incoming request.
      *
@@ -21,12 +17,11 @@ class InjectResource
      */
     public function handle(Request $request, Closure $next)
     {
-        dump('handle');
         $resourceName = $this->getResourceNameFromRequest($request);
         if (!is_null($resourceName)) {
             $class = $this->getResourceClass($resourceName);
             if (!is_null($class)) {
-                $request->panneauResource = $class;
+                $request->attributes->set('panneau.resource', $class);
             }
         }
         return $next($request);
@@ -34,9 +29,10 @@ class InjectResource
 
     protected function getResourceNameFromRequest(Request $request)
     {
+        $resourceParamName = config('panneau.route_resource_param');
         // Get the route parameter if set
-        if (!is_null($request->route($this->resourceParamName))) {
-            return $request->route($this->resourceParamName);
+        if (!is_null($request->route($resourceParamName))) {
+            return $request->route($resourceParamName);
         }
         // If not set (implying a custom controller with predefined
         // route path), get the action's parameter

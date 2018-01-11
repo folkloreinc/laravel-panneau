@@ -83,6 +83,8 @@ class BubblesControllerTest extends TestCase
             ]
         ];
 
+        $this->withMiddleware();
+
         $response = $this->call('POST', '/panneau/bubbles', $postData);
         if ($response === $this) {
             $response = $this->response;
