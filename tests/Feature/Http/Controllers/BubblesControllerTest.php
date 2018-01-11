@@ -89,7 +89,7 @@ class BubblesControllerTest extends TestCase
         if ($response === $this) {
             $response = $this->response;
         }
-        dd($response->exception);
+        // dd($response->exception);
 
         // $modelData = json_decode(Bubble::find($model->id)->toJson(), true);
         $responseData = json_decode($response->getContent(), true);
