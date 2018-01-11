@@ -24,6 +24,10 @@ class InjectResource
                 $request->attributes->set('panneau.resource', $class);
             }
         }
+        $resourceId = $this->getResourceIdFromRequest($request);
+        if (!is_null($resourceId)) {
+            $request->attributes->set('panneau.id', $resourceId);
+        }
         return $next($request);
     }
 
@@ -39,6 +43,16 @@ class InjectResource
         $action = $request->route()->getAction();
         if (isset($action[$this->resourceParamName])) {
             return $action[$this->resourceParamName];
+        }
+        return null;
+    }
+
+    protected function getResourceIdFromRequest(Request $request)
+    {
+        $idParamName = config('panneau.route_id_param');
+        // Get the route parameter
+        if (!is_null($request->route($idParamName))) {
+            return $request->route($idParamName);
         }
         return null;
     }

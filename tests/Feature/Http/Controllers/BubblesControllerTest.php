@@ -17,6 +17,16 @@ class BubblesControllerTest extends TestCase
         $this->runMigrations();
     }
 
+    protected function callAsJson($method, $uri, $data = [])
+    {
+        $content = json_encode($data);
+        dump('callAsJson', $content);
+        return $this->call($method, $uri, [], [], [], [
+            'CONTENT_TYPE' => 'application',
+            'HTTP_Accept' => 'application/json',
+        ], $content);
+    }
+
     /**
      * Test listing bubbles
      *
@@ -26,10 +36,12 @@ class BubblesControllerTest extends TestCase
      */
     public function testIndex()
     {
+        $this->withMiddleware();
+
         $model = new Bubble();
         $model->save();
 
-        $response = $this->call('GET', '/panneau/bubbles');
+        $response = $this->callAsJson('GET', '/panneau/bubbles');
         if ($response === $this) {
             $response = $this->response;
         }
@@ -50,10 +62,12 @@ class BubblesControllerTest extends TestCase
      */
     public function testShow()
     {
+        $this->withMiddleware();
+
         $model = new Bubble();
         $model->save();
 
-        $response = $this->call('GET', '/panneau/bubbles/'.$model->id);
+        $response = $this->callAsJson('GET', '/panneau/bubbles/'.$model->id);
         if ($response === $this) {
             $response = $this->response;
         }
@@ -74,7 +88,9 @@ class BubblesControllerTest extends TestCase
      */
     public function testStore()
     {
-        $postData = [
+        $this->withMiddleware();
+
+        $modelData = [
             'data' => [
                 'title' => [
                     'en' => 'Test en',
@@ -83,16 +99,13 @@ class BubblesControllerTest extends TestCase
             ]
         ];
 
-        $this->withMiddleware();
-
-        $response = $this->call('POST', '/panneau/bubbles', $postData);
+        $response = $this->callAsJson('POST', '/panneau/bubbles', $modelData);
         if ($response === $this) {
             $response = $this->response;
         }
-        // dd($response->exception);
 
-        // $modelData = json_decode(Bubble::find($model->id)->toJson(), true);
         $responseData = json_decode($response->getContent(), true);
+        // dd($responseData);
         $this->assertEquals(200, $response->status());
         // $this->assertEquals($modelData, $responseData);
     }
@@ -106,7 +119,9 @@ class BubblesControllerTest extends TestCase
      */
     public function testDefinition()
     {
-        $response = $this->call('GET', 'panneau/bubbles/definition');
+        $this->withMiddleware();
+
+        $response = $this->callAsJson('GET', 'panneau/bubbles/definition');
         if ($response === $this) {
             $response = $this->response;
         }

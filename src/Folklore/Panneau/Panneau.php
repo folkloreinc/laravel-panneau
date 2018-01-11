@@ -26,7 +26,7 @@ class Panneau
             $resource = app($resource);
         } else {
             // Create new instance from data array
-            $resource = new Resource($resource);
+            $resource = new Resource($resource + ['id' => $id]);
         }
 
         $this->resources[$id] = $resource;

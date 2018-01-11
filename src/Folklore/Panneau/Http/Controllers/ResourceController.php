@@ -82,8 +82,7 @@ class ResourceController extends Controller
      */
     protected function getResourceQueryBuilder(Request $request)
     {
-        $resource = $this->getResourceNameFromRequest($request);
-        $model = $this->getResourceModel($resource);
+        $model = $this->getResourceModel($request);
         return $model->newQuery();
     }
 
@@ -156,8 +155,7 @@ class ResourceController extends Controller
      */
     public function definition(Request $request)
     {
-        $resource = $this->getResourceNameFromRequest($request);
-        $definition = $this->getResourceDefinition($resource);
+        $definition = $this->getResourceDefinition($request);
         return $definition;
     }
 
@@ -211,7 +209,10 @@ class ResourceController extends Controller
             return $this->getItem($model->id, $request);
         }
 
-        return redirect()->action(static::class.'@show', [$model->id]);
+        return redirect()->action(static::class.'@show', [
+            $request->get('panneau.resource')->getId(),
+            $model->id,
+        ]);
     }
 
     /**
@@ -222,7 +223,7 @@ class ResourceController extends Controller
      */
     public function show(Request $request)
     {
-        $id = $this->getResourceIdFromRequest($request);
+        $id = $request->get('panneau.id');
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
@@ -242,7 +243,7 @@ class ResourceController extends Controller
      */
     public function edit(Request $request)
     {
-        $id = $this->getResourceIdFromRequest($request);
+        $id = $request->get('panneau.id');
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
@@ -262,7 +263,7 @@ class ResourceController extends Controller
      */
     public function update(ResourceUpdateRequest $request)
     {
-        $id = $this->getResourceIdFromRequest($request);
+        $id = $request->get('panneau.id');
         $data = $this->getUpdateDataFromRequest($request);
 
         $model = $this->getItem($id, $request);
@@ -273,7 +274,10 @@ class ResourceController extends Controller
             return $this->getItem($id, $request);
         }
 
-        return redirect()->action(static::class.'@show', [$model->id]);
+        return redirect()->action(static::class.'@show', [
+            $request->get('panneau.resource')->getId(),
+            $model->id,
+        ]);
     }
 
     /**
@@ -284,7 +288,7 @@ class ResourceController extends Controller
      */
     public function destroy(Request $request)
     {
-        $id = $this->getResourceIdFromRequest($request);
+        $id = $request->get('panneau.id');
         $model = $this->getItem($id, $request);
         $data = $model->toArray();
         $model->delete();
@@ -293,6 +297,8 @@ class ResourceController extends Controller
             return $data;
         }
 
-        return redirect()->action(static::class.'@index');
+        return redirect()->action(static::class.'@index', [
+            $request->get('panneau.resource')->getId(),
+        ]);
     }
 }
