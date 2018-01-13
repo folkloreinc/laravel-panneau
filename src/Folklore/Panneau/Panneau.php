@@ -22,14 +22,6 @@ class Panneau
 
     public function setResource($id, $resource)
     {
-        if (is_string($resource)) {
-            // Assume a resource class path, get instance
-            $resource = app($resource);
-        } else {
-            // Create new instance from data array
-            $resource = new Resource($resource + ['id' => $id]);
-        }
-
         $this->resources[$id] = $resource;
     }
 
@@ -46,11 +38,52 @@ class Panneau
             return null;
         }
 
-        return $this->resources[$id];
+        $resource = $this->resources[$id];
+
+        if (is_string($resource)) {
+            // Assume a resource class path, get instance
+            $resource = app($resource);
+        } else {
+            // Generate routes for resource
+            $routes = $this->generateRoutes($id);
+            // Create new instance from data array
+            $resource = new Resource(['routes' => $routes] + $resource + ['id' => $id]);
+        }
+
+        return $resource;
+    }
+
+    public function generateRoutes($resource)
+    {
+        $routes = [];
+        foreach (config('panneau.route.paths') as $action => $item) {
+            // Laravel n00b alert: the UrlGenerator requires all
+            // mandatory route params to be specified but in our case
+            // this means specifying a dummy "id" which ends up as a
+            // query param in routes where it's not required. So, use
+            // a regex to remove the query param.
+            // inb4
+            // @TODO do something better
+            $path = route(
+                implode('.', ['panneau', '*', $action]),
+                ['resource' => $resource, 'id' => '_id_'],
+                false
+            );
+            $path = preg_replace('/\?.+$/', '', $path);
+            $routes[$action] = $path;
+        }
+        return $routes;
     }
 
     public function setLayout($layout)
     {
+        $this->layout = $layout;
+    }
+
+    public function layout()
+    {
+        $layout = $this->layout;
+
         if (is_string($layout)) {
             // Assume a layout class, get instance
             $layout = app($layout);
@@ -59,11 +92,6 @@ class Panneau
             $layout = new Layout($layout);
         }
 
-        $this->layout = $layout;
-    }
-
-    public function layout()
-    {
-        return $this->layout;
+        return $layout;
     }
 }

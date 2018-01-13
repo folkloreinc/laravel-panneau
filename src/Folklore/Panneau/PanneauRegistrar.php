@@ -68,6 +68,7 @@ class PanneauRegistrar
             $path = $pathDefinition['path'];
             $actionParams = [
                 'uses' => $controller.'@'.$action,
+                'as' => $this->getRouteName($resourceName, $action),
             ];
 
             // If not for a catch-all controller
@@ -94,5 +95,10 @@ class PanneauRegistrar
                 $route->where($this->routeResourceParam, $whereResource);
             }
         }
+    }
+
+    protected function getRouteName($resource, $action)
+    {
+        return implode('.', ['panneau', $resource, $action]);
     }
 }

@@ -11,28 +11,27 @@ $router->group([
     'namespace' => $namespace,
     'middleware' => $middleware,
 ], function ($router) use ($resources, $paths) {
-    // Filter the resources ids (keys) so that we only keep those
-    // that do not use a custom controller, and thus should be
-    // handled by the default catch-all route.
-    $catchAllResources = array_filter($resources, function ($resource) {
-        return !isset($resource['controller']) || empty($resource['controller']);
-    });
-    $resourcesMatchIds = array_keys($catchAllResources);
+    $resourcesMatchIds = [];
+    foreach ($resources as $resource => $definition) {
+        $customController = array_get($definition, 'controller');
+        if (is_null($customController)) {
+            // Add resource to catch-all list
+            $resourcesMatchIds[] = $resource;
+        } else {
+            // Create custom routes set
+            $router->panneauResource($resource, [
+                'controller' => $customController,
+            ]);
+        }
+    }
+
+    // Create catch-all route
     $resourcesMatchRegex = implode($resourcesMatchIds, '|');
     $router->panneauResource('*', [
         'whereResource' => $resourcesMatchRegex,
     ]);
 
-    // Create a custom routes set for resources with a custom controller
-    $customResources = array_diff(array_keys($resources), $resourcesMatchIds);
-    if (!empty($customResources)) {
-        foreach ($customResources as $resource) {
-            $router->panneauResource($resource, [
-                'controller' => $resources[$resource]['controller'],
-            ]);
-        }
-    }
-
     // Add the layout routes
+    // @TODO move to registrar ?
     $router->get('/layout/definition', 'LayoutController@definition');
 });

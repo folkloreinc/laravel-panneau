@@ -75,8 +75,8 @@ class PanneauServiceProvider extends ServiceProvider
     public function bootRouter()
     {
         $router = $this->getRouter();
-        $router->macro('panneauResource', function ($path, $options = null) {
-            return app('panneau.registrar')->resource($path, $options);
+        $router->macro('panneauResource', function ($id, $options = null) {
+            return app('panneau.registrar')->resource($id, $options);
         });
 
         if (! $this->app->routesAreCached()) {
