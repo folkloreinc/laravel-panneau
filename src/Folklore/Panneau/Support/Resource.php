@@ -61,16 +61,14 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
     {
         $routes = [];
         foreach (config('panneau.route.paths') as $action => $item) {
-            // Laravel noob alert: the UrlGenerator requires all
+            // The UrlGenerator requires all
             // mandatory route params to be specified but in our case
-            // this means specifying a dummy "id" which ends up as a
+            // this means specifying a placeholder ":id" which ends up as a
             // query param in routes where it's not required. So, use
             // a regex to remove the query param.
-            // inb4
-            // @TODO do something better
             $path = route(
                 implode('.', ['panneau', '*', $action]),
-                ['resource' => $this->getId(), 'id' => '_id_'],
+                ['resource' => $this->getId(), 'id' => ':id'],
                 false
             );
             $path = preg_replace('/\?.+$/', '', $path);
