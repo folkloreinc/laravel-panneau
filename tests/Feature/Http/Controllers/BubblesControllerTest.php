@@ -5,7 +5,7 @@ use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Folklore\Panneau\Models\Bubble;
 
 /**
- * @coversDefaultClass Folklore\Panneau\Http\Controllers\BubblesController
+ * @coversDefaultClass Folklore\Panneau\Http\Controllers\ResourceController
  */
 class BubblesControllerTest extends TestCase
 {
