@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Folklore\Panneau\Models\Bubble;
 
 /**
@@ -9,7 +8,7 @@ use Folklore\Panneau\Models\Bubble;
  */
 class BubblesControllerTest extends TestCase
 {
-    use RunMigrationsTrait, WithoutMiddleware;
+    use RunMigrationsTrait;
 
     public function setUp()
     {
@@ -26,8 +25,6 @@ class BubblesControllerTest extends TestCase
      */
     public function testIndex()
     {
-        $this->withMiddleware();
-
         $model = new Bubble();
         $model->save();
 
@@ -52,8 +49,6 @@ class BubblesControllerTest extends TestCase
      */
     public function testShow()
     {
-        $this->withMiddleware();
-
         $model = new Bubble();
         $model->save();
 
@@ -78,8 +73,6 @@ class BubblesControllerTest extends TestCase
      */
     public function testStore()
     {
-        $this->withMiddleware();
-
         $modelData = [
             'title' => [
                 'en' => 'Test en',
@@ -108,8 +101,6 @@ class BubblesControllerTest extends TestCase
      */
     public function testDefinition()
     {
-        $this->withMiddleware();
-
         $response = $this->callAsJson('GET', 'panneau/bubbles/definition');
         if ($response === $this) {
             $response = $this->response;
