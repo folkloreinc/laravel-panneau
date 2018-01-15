@@ -14,17 +14,19 @@ class PanneauTest extends TestCase
         parent::setUp();
 
         $this->panneau = new Panneau(app());
+        $this->panneau->setDefaultRoutes(config('panneau.route.paths'));
     }
 
     /**
-     * Test adding a schema
+     * Test getting Panneau's definition
      *
      * @test
-     * @covers ::__construct
+     * @covers ::getDefinition
      *
      */
-    public function testAddSchema()
+    public function testDefinition()
     {
-        $this->assertEquals(true, true);
+        $definition = $this->panneau->getDefinition()->toArray();
+        $this->assertEquals(config('panneau.route.paths'), $definition['defaultRoutes']);
     }
 }

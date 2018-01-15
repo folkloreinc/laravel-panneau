@@ -131,6 +131,8 @@ class PanneauServiceProvider extends ServiceProvider
             $panneau->setResources($resources);
             $layout = config('panneau.layout');
             $panneau->setLayout($layout);
+            $defaultRoutes = config('panneau.route.paths');
+            $panneau->setDefaultRoutes($defaultRoutes);
             return $panneau;
         });
     }

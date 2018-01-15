@@ -5,12 +5,14 @@ namespace Folklore\Panneau;
 use Illuminate\Container\Container;
 use Folklore\Panneau\Support\Resource;
 use Folklore\Panneau\Support\Layout;
+use Folklore\Panneau\Support\PanneauDefinition;
 
 class Panneau
 {
     protected $container;
     protected $resources;
     protected $layout;
+    protected $defaultRoutes;
 
     public function __construct(Container $container)
     {
@@ -18,6 +20,7 @@ class Panneau
 
         $this->resources = [];
         $this->layout = null;
+        $this->defaultRoutes = [];
     }
 
     public function setResource($id, $resource)
@@ -30,6 +33,11 @@ class Panneau
         foreach ($resources as $id => $definition) {
             $this->setResource($id, $definition);
         }
+    }
+
+    public function setDefaultRoutes($defaultRoutes)
+    {
+        $this->defaultRoutes = $defaultRoutes;
     }
 
     public function resource($id)
@@ -93,5 +101,14 @@ class Panneau
         }
 
         return $layout;
+    }
+
+    public function getDefinition()
+    {
+        return new PanneauDefinition([
+            'name' => 'Simple panneau', // @TODO
+            'defaultRoutes' => $this->defaultRoutes,
+            'resources' => $this->resources,
+        ]);
     }
 }
