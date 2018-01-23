@@ -12,7 +12,7 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
     protected $name;
     protected $controller;
     protected $model;
-    protected $forms;
+    protected $form;
     protected $validation;
 
     public function __construct($definition = null)
@@ -94,7 +94,7 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
             'name' => $this->getName(),
             'controller' => $this->getController(),
             'model' => $this->getModel(),
-            'forms' => $this->getForm(),
+            'form' => $this->getForm(),
             'validation' => $this->getValidation(),
             'routes' => $this->getRoutes(),
         ];
