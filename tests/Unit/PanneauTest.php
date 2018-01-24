@@ -14,6 +14,7 @@ class PanneauTest extends TestCase
         parent::setUp();
 
         $this->panneau = new Panneau(app());
+        $this->panneau->setResources(config('panneau.resources'));
         $this->panneau->setDefaultRoutes(config('panneau.route.paths'));
     }
 

@@ -105,10 +105,15 @@ class Panneau
 
     public function getDefinition()
     {
+        $resources = [];
+        foreach ($this->resources as $id => $resource) {
+            $resources[$id] = $this->resource($id);
+        }
+
         return new PanneauDefinition([
             'name' => 'Simple panneau', // @TODO
             'defaultRoutes' => $this->defaultRoutes,
-            'resources' => $this->resources,
+            'resources' => $resources,
         ]);
     }
 }
