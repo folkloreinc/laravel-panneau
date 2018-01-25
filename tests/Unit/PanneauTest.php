@@ -28,6 +28,16 @@ class PanneauTest extends TestCase
     public function testDefinition()
     {
         $definition = $this->panneau->getDefinition()->toArray();
-        $this->assertEquals(config('panneau.route.paths'), $definition['defaultRoutes']);
+
+        $prefix = config('panneau.route.prefix');
+        $defaultRoutes = array_map(function ($route) use ($prefix) {
+            $path = $route['path'];
+            if (!empty($prefix)) {
+                $path = '/'.$prefix.$path;
+            }
+            $route['path'] = $path;
+            return $route;
+        }, config('panneau.route.paths'));
+        $this->assertEquals($defaultRoutes, $definition['defaultRoutes']);
     }
 }

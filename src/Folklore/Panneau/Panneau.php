@@ -54,6 +54,24 @@ class Panneau
         $this->defaultRoutes = $defaultRoutes;
     }
 
+    public function defaultRoutes()
+    {
+        $prefix = config('panneau.route.prefix');
+
+        $routes = [];
+        foreach ($this->defaultRoutes as $action => $definition) {
+            $path = $definition['path'];
+            if (!empty($prefix)) {
+                $path = '/'.$prefix.$path;
+            }
+            $routes[$action] = [
+                'method' => $definition['method'],
+                'path' => $path,
+            ];
+        }
+        return $routes;
+    }
+
     public function resource($id)
     {
         if (!array_key_exists($id, $this->resources)) {
@@ -138,6 +156,8 @@ class Panneau
 
     public function getDefinition()
     {
+        $defaultRoutes = $this->defaultRoutes();
+
         $resources = [];
         foreach ($this->resources as $id => $resource) {
             $resources[] = $this->resource($id);
@@ -147,7 +167,7 @@ class Panneau
 
         return new PanneauDefinition([
             'name' => 'Simple panneau', // @TODO
-            'defaultRoutes' => $this->defaultRoutes,
+            'defaultRoutes' => $defaultRoutes,
             'resources' => $resources,
             'layout' => $layout,
         ]);
