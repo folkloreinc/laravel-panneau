@@ -6,7 +6,7 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use \JsonSerializable;
 
-class Layout
+class Layout implements JsonSerializable, Arrayable, Jsonable
 {
     protected $type;
 

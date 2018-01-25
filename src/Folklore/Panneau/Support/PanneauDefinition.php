@@ -6,7 +6,7 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use \JsonSerializable;
 
-class PanneauDefinition
+class PanneauDefinition implements JsonSerializable, Arrayable, Jsonable
 {
     protected $name;
     protected $defaultRoutes;
