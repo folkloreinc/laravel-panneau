@@ -107,7 +107,7 @@ class Panneau
     {
         $resources = [];
         foreach ($this->resources as $id => $resource) {
-            $resources[$id] = $this->resource($id);
+            $resources[] = $this->resource($id);
         }
 
         return new PanneauDefinition([
