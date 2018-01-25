@@ -13,7 +13,7 @@ class Panneau
     protected $resources;
     protected $blocks;
     protected $layout;
-    protected $defaultRoutes;
+    protected $routes;
 
     public function __construct(Container $container)
     {
@@ -22,7 +22,7 @@ class Panneau
         $this->resources = [];
         $this->blocks = [];
         $this->layout = null;
-        $this->defaultRoutes = [];
+        $this->routes = [];
     }
 
     public function setResource($id, $resource)
@@ -49,17 +49,17 @@ class Panneau
         }
     }
 
-    public function setDefaultRoutes($defaultRoutes)
+    public function setRoutes($routes)
     {
-        $this->defaultRoutes = $defaultRoutes;
+        $this->routes = $routes;
     }
 
-    public function defaultRoutes()
+    public function routes()
     {
         $prefix = config('panneau.route.prefix');
 
         $routes = [];
-        foreach ($this->defaultRoutes as $action => $definition) {
+        foreach ($this->routes as $action => $definition) {
             $path = $definition['path'];
             if (!empty($prefix)) {
                 $path = '/'.$prefix.$path;
@@ -84,10 +84,8 @@ class Panneau
             // Assume a resource class path, get instance
             $resource = app($resource);
         } else {
-            // Generate routes for resource
-            $routes = $this->generateRoutes($id);
             // Create new instance from data array
-            $resource = new Resource(['routes' => $routes] + $resource + ['id' => $id]);
+            $resource = new Resource($resource + ['id' => $id]);
         }
 
         return $resource;
@@ -112,28 +110,6 @@ class Panneau
         return $block;
     }
 
-    public function generateRoutes($resource)
-    {
-        $routes = [];
-        foreach (config('panneau.route.paths') as $action => $item) {
-            // Laravel n00b alert: the UrlGenerator requires all
-            // mandatory route params to be specified but in our case
-            // this means specifying a dummy "id" which ends up as a
-            // query param in routes where it's not required. So, use
-            // a regex to remove the query param.
-            // inb4
-            // @TODO do something better
-            $path = route(
-                implode('.', ['panneau', '*', $action]),
-                ['resource' => $resource, 'id' => '_id_'],
-                false
-            );
-            $path = preg_replace('/\?.+$/', '', $path);
-            $routes[$action] = $path;
-        }
-        return $routes;
-    }
-
     public function setLayout($layout)
     {
         $this->layout = $layout;
@@ -156,7 +132,7 @@ class Panneau
 
     public function getDefinition()
     {
-        $defaultRoutes = $this->defaultRoutes();
+        $routes = $this->routes();
 
         $resources = [];
         foreach ($this->resources as $id => $resource) {
@@ -167,7 +143,7 @@ class Panneau
 
         return new PanneauDefinition([
             'name' => 'Simple panneau', // @TODO
-            'defaultRoutes' => $defaultRoutes,
+            'routes' => $routes,
             'resources' => $resources,
             'layout' => $layout,
         ]);

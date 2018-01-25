@@ -15,7 +15,7 @@ class PanneauTest extends TestCase
 
         $this->panneau = new Panneau(app());
         $this->panneau->setResources(config('panneau.resources'));
-        $this->panneau->setDefaultRoutes(config('panneau.route.paths'));
+        $this->panneau->setRoutes(config('panneau.route.paths'));
     }
 
     /**
@@ -30,7 +30,7 @@ class PanneauTest extends TestCase
         $definition = $this->panneau->getDefinition()->toArray();
 
         $prefix = config('panneau.route.prefix');
-        $defaultRoutes = array_map(function ($route) use ($prefix) {
+        $routes = array_map(function ($route) use ($prefix) {
             $path = $route['path'];
             if (!empty($prefix)) {
                 $path = '/'.$prefix.$path;
@@ -38,6 +38,6 @@ class PanneauTest extends TestCase
             $route['path'] = $path;
             return $route;
         }, config('panneau.route.paths'));
-        $this->assertEquals($defaultRoutes, $definition['defaultRoutes']);
+        $this->assertEquals($routes, $definition['routes']);
     }
 }

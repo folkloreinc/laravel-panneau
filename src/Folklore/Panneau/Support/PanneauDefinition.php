@@ -9,7 +9,7 @@ use \JsonSerializable;
 class PanneauDefinition implements JsonSerializable, Arrayable, Jsonable
 {
     protected $name;
-    protected $defaultRoutes;
+    protected $routes;
     protected $resources;
     protected $layout;
 
@@ -17,7 +17,7 @@ class PanneauDefinition implements JsonSerializable, Arrayable, Jsonable
     {
         if (!is_null($definition)) {
             $this->name = array_get($definition, 'name', null);
-            $this->defaultRoutes = array_get($definition, 'defaultRoutes', null);
+            $this->routes = array_get($definition, 'routes', null);
             $this->resources = array_get($definition, 'resources', null);
             $this->layout = array_get($definition, 'layout', null);
         }
@@ -28,9 +28,9 @@ class PanneauDefinition implements JsonSerializable, Arrayable, Jsonable
         return $this->name;
     }
 
-    public function getDefaultRoutes()
+    public function getRoutes()
     {
-        return $this->defaultRoutes;
+        return $this->routes;
     }
 
     public function getResources()
@@ -57,7 +57,7 @@ class PanneauDefinition implements JsonSerializable, Arrayable, Jsonable
     {
         return [
             'name' => $this->getName(),
-            'defaultRoutes' => $this->getDefaultRoutes(),
+            'routes' => $this->getRoutes(),
             'resources' => $this->getResources(),
             'layout' => $this->getLayout(),
         ];

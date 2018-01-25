@@ -89,14 +89,15 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
 
     public function toArray()
     {
-        return [
+        return array_merge([
             'id' => $this->getId(),
             'name' => $this->getName(),
             'controller' => $this->getController(),
             'model' => $this->getModel(),
             'form' => $this->getForm(),
             'validation' => $this->getValidation(),
+        ], !is_null($this->getController()) ? [
             'routes' => $this->getRoutes(),
-        ];
+        ] : []);
     }
 }
