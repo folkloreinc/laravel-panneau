@@ -26,7 +26,8 @@ class JsonSchemaResource extends Resource
         $form = $this->form;
         $fields = array_get($form, 'fields', []);
         if (empty($fields)) {
-            $properties = $this->getProperties();
+            $schema = app($this->jsonSchema);
+            $properties = $schema->getProperties();
             foreach ($properties as $prop) {
                 $fields[] = $prop->toFieldArray();
             }
