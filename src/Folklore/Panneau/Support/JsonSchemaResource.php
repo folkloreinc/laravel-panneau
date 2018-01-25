@@ -23,7 +23,7 @@ class JsonSchemaResource extends Resource
 
     protected function getFormFromSchema()
     {
-        $form = clone $this->form;
+        $form = $this->form;
         $fields = array_get($form, 'fields', []);
         if (empty($fields)) {
             $properties = $this->getProperties();
