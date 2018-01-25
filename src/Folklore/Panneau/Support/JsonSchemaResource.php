@@ -32,7 +32,7 @@ class JsonSchemaResource extends Resource
                 $fieldArray = $prop->toFieldArray();
                 array_set($fieldArray, 'name', $name);
                 array_set($fieldArray, 'label', title_case($name));
-                $fields[] = $prop->toFieldArray();
+                $fields[] = $fieldArray;
             }
             array_set($form, 'fields', $fields);
         }
