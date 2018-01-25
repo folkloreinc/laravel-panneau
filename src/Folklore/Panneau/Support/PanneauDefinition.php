@@ -30,7 +30,9 @@ class PanneauDefinition implements JsonSerializable, Arrayable, Jsonable
 
     public function getRoutes()
     {
-        return $this->routes;
+        return array_map(function ($route) {
+            return preg_replace('/{(.+?)}/', ':$1', $route);
+        }, $this->routes);
     }
 
     public function getResources()

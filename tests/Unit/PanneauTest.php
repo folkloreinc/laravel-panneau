@@ -36,7 +36,7 @@ class PanneauTest extends TestCase
             if (!empty($prefix)) {
                 $path = '/'.$prefix.$path;
             }
-            $routes['resource.'.$action] = $path;
+            $routes['resource.'.$action] = preg_replace('/{(.+?)}/', ':$1', $path);
         }
         $this->assertEquals($routes, $definition['routes']);
     }
