@@ -30,14 +30,14 @@ class PanneauTest extends TestCase
         $definition = $this->panneau->getDefinition()->toArray();
 
         $prefix = config('panneau.route.prefix');
-        $routes = array_map(function ($route) use ($prefix) {
+        $routes = [];
+        foreach (config('panneau.route.paths') as $action => $route) {
             $path = $route['path'];
             if (!empty($prefix)) {
                 $path = '/'.$prefix.$path;
             }
-            $route['path'] = $path;
-            return $route;
-        }, config('panneau.route.paths'));
+            $routes['resource.'.$action] = $path;
+        }
         $this->assertEquals($routes, $definition['routes']);
     }
 }

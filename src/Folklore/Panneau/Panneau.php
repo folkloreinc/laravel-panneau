@@ -64,10 +64,7 @@ class Panneau
             if (!empty($prefix)) {
                 $path = '/'.$prefix.$path;
             }
-            $routes[$action] = [
-                'method' => $definition['method'],
-                'path' => $path,
-            ];
+            $routes['resource.'.$action] = $path;
         }
         return $routes;
     }
