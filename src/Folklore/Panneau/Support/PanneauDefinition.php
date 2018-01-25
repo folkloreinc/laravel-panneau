@@ -11,6 +11,7 @@ class PanneauDefinition
     protected $name;
     protected $defaultRoutes;
     protected $resources;
+    protected $layout;
 
     public function __construct($definition = null)
     {
@@ -18,6 +19,7 @@ class PanneauDefinition
             $this->name = array_get($definition, 'name', null);
             $this->defaultRoutes = array_get($definition, 'defaultRoutes', null);
             $this->resources = array_get($definition, 'resources', null);
+            $this->layout = array_get($definition, 'layout', null);
         }
     }
 
@@ -36,6 +38,11 @@ class PanneauDefinition
         return $this->resources;
     }
 
+    public function getLayout()
+    {
+        return $this->layout;
+    }
+
     public function jsonSerialize()
     {
         return $this->toArray();
@@ -52,6 +59,7 @@ class PanneauDefinition
             'name' => $this->getName(),
             'defaultRoutes' => $this->getDefaultRoutes(),
             'resources' => $this->getResources(),
+            'layout' => $this->getLayout(),
         ];
     }
 }

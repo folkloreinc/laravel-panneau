@@ -110,10 +110,13 @@ class Panneau
             $resources[] = $this->resource($id);
         }
 
+        $layout = $this->layout();
+
         return new PanneauDefinition([
             'name' => 'Simple panneau', // @TODO
             'defaultRoutes' => $this->defaultRoutes,
             'resources' => $resources,
+            'layout' => $layout,
         ]);
     }
 }
