@@ -11,6 +11,7 @@ class Panneau
 {
     protected $container;
     protected $resources;
+    protected $blocks;
     protected $layout;
     protected $defaultRoutes;
 
@@ -19,6 +20,7 @@ class Panneau
         $this->container = $container;
 
         $this->resources = [];
+        $this->blocks = [];
         $this->layout = null;
         $this->defaultRoutes = [];
     }
@@ -32,6 +34,18 @@ class Panneau
     {
         foreach ($resources as $id => $definition) {
             $this->setResource($id, $definition);
+        }
+    }
+
+    public function setBlock($id, $block)
+    {
+        $this->blocks[$id] = $block;
+    }
+
+    public function setBlocks(array $blocks)
+    {
+        foreach ($blocks as $id => $definition) {
+            $this->setBlock($id, $definition);
         }
     }
 
@@ -59,6 +73,25 @@ class Panneau
         }
 
         return $resource;
+    }
+
+    public function block($id)
+    {
+        if (!array_key_exists($id, $this->blocks)) {
+            return null;
+        }
+
+        $block = $this->blocks[$id];
+
+        if (is_string($block)) {
+            // Assume a block class path, get instance
+            $block = app($block);
+        } else {
+            // Create new instance from data array
+            $block = new Resource($block + ['id' => $id]);
+        }
+
+        return $block;
     }
 
     public function generateRoutes($resource)
