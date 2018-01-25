@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Schemas\Fields;
 
-use Folklore\EloquentJsonSchema\Support\JsonSchema;
+use Folklore\Panneau\Support\JsonSchemaField;
 
-class Blocks extends JsonSchema
+class Blocks extends JsonSchemaField
 {
     protected function type()
     {
