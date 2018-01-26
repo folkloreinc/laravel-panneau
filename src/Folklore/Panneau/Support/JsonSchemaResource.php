@@ -16,12 +16,12 @@ class JsonSchemaResource extends Resource
         }
     }
 
-    public function getForm()
+    public function getForms()
     {
-        return $this->getFormFromSchema();
+        return $this->getFormsFromSchema();
     }
 
-    protected function getFormFromSchema()
+    protected function getFormsFromSchema()
     {
         $form = $this->form;
         $fields = array_get($form, 'fields', []);

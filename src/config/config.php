@@ -109,7 +109,7 @@ return [
                     ],
                 ],
             ],
-            'form' => [
+            'forms' => [
                 'type' => 'normal',
                 'fields' => [
                     [
@@ -134,12 +134,32 @@ return [
                     ]
                 ]
             ],
+            'lists' => [
+                'type' => 'table',
+                'cols' => [
+                    [
+                        'id' => 'id',
+                        'path' => 'id',
+                        'label' => 'ID',
+                        'width' => 50
+                    ],
+                    [
+                        'id' => 'name',
+                        'path' => 'name',
+                        'label' => 'Name'
+                    ],
+                    [
+                        'id' => 'actions',
+                        'type' => 'actions'
+                    ]
+                ]
+            ],
         ],
         'blocks' => \Folklore\Panneau\Resources\Block::class,
         'bubbles' => [
             'name' => 'Bubbles',
             'model' => \Folklore\Panneau\Contracts\Bubble::class,
-            'form' => [
+            'forms' => [
                 'type' => 'normal',
                 'fields' => [
                     [

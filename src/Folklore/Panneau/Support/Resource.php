@@ -12,8 +12,9 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
     protected $name;
     protected $controller;
     protected $model;
-    protected $form;
+    protected $forms;
     protected $validation;
+    protected $lists;
 
     public function __construct($definition = null)
     {
@@ -22,7 +23,8 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
             $this->name = array_get($definition, 'name', null);
             $this->controller = array_get($definition, 'controller', null);
             $this->model = array_get($definition, 'model', null);
-            $this->form = array_get($definition, 'form', null);
+            $this->forms = array_get($definition, 'forms', null);
+            $this->lists = array_get($definition, 'lists', null);
             $this->validation = array_get($definition, 'validation', null);
         }
     }
@@ -47,9 +49,14 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
         return $this->model;
     }
 
-    public function getForm()
+    public function getForms()
     {
-        return $this->form;
+        return $this->forms;
+    }
+
+    public function getLists()
+    {
+        return $this->lists;
     }
 
     public function getValidation()
@@ -94,7 +101,8 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
             'name' => $this->getName(),
             'controller' => $this->getController(),
             'model' => $this->getModel(),
-            'form' => $this->getForm(),
+            'forms' => $this->getForms(),
+            'lists' => $this->getLists(),
             'validation' => $this->getValidation(),
         ], !is_null($this->getController()) ? [
             'routes' => $this->getRoutes(),
