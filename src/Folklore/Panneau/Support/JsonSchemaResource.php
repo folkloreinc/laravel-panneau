@@ -23,8 +23,8 @@ class JsonSchemaResource extends Resource
 
     protected function getFormsFromSchema()
     {
-        $form = $this->form;
-        $fields = array_get($form, 'fields', []);
+        $forms = $this->forms;
+        $fields = array_get($forms, 'fields', []);
         if (empty($fields)) {
             $schema = app($this->jsonSchema);
             $properties = $schema->getProperties();
@@ -34,8 +34,8 @@ class JsonSchemaResource extends Resource
                 array_set($fieldArray, 'label', title_case($name));
                 $fields[] = $fieldArray;
             }
-            array_set($form, 'fields', $fields);
+            array_set($forms, 'fields', $fields);
         }
-        return $form;
+        return $forms;
     }
 }
