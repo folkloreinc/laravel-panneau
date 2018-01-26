@@ -28,9 +28,9 @@ class JsonSchemaField extends JsonSchema
 
     function toFieldArray()
     {
-        return [
+        return array_merge([
             'type' => $this->getFieldType(),
             'label' => $this->getFieldLabel(),
-        ];
+        ], $this->getAttributes());
     }
 }
