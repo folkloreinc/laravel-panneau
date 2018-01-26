@@ -21,21 +21,39 @@ class JsonSchemaResource extends Resource
         return $this->getFormsFromSchema();
     }
 
-    protected function getFormsFromSchema()
+    protected function getSchemasFromModel()
     {
-        $forms = $this->forms;
-        $fields = array_get($forms, 'fields', []);
-        if (empty($fields)) {
-            $schema = app($this->jsonSchema);
+        $model = app($this->model);
+        $schemas = $model->getJsonSchemas();
+        return $schemas;
+    }
+
+    protected function getFieldsFromSchemas($schemas)
+    {
+        $fields = [];
+        foreach ($schemas as $field => $schema) {
+            $schema = app($schema);
             $properties = $schema->getProperties();
             foreach ($properties as $name => $prop) {
                 $fieldArray = $prop->toFieldArray();
-                array_set($fieldArray, 'name', $name);
+                array_set($fieldArray, 'name', $field.'.'.$name);
                 array_set($fieldArray, 'label', title_case($name));
                 $fields[] = $fieldArray;
             }
+        }
+        return $fields;
+    }
+
+    protected function getFormsFromSchema()
+    {
+        $forms = $this->forms;
+
+        $schemas = $this->getSchemasFromModel();
+        $fields = array_get($forms, 'fields', $this->getFieldsFromSchemas($schemas));
+        if (!empty($fields)) {
             array_set($forms, 'fields', $fields);
         }
+
         return $forms;
     }
 }
