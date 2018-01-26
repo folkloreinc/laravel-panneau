@@ -41,8 +41,8 @@ class InjectResource
         // If not set (implying a custom controller with predefined
         // route path), get the action's parameter
         $action = $request->route()->getAction();
-        if (isset($action[$this->resourceParamName])) {
-            return $action[$this->resourceParamName];
+        if (isset($action[$resourceParamName])) {
+            return $action[$resourceParamName];
         }
         return null;
     }
