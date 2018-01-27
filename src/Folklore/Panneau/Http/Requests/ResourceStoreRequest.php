@@ -2,7 +2,7 @@
 
 namespace Folklore\Panneau\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use Folklore\Panneau\Http\Requests\ResourceRequest;
 
 class ResourceStoreRequest extends ResourceRequest
 {

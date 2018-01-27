@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use Folklore\Panneau\Http\Requests\ResourceRequest;
 
-class ResourceUpdateRequest extends FormRequest
+class ResourceUpdateRequest extends ResourceRequest
 {
     /**
      * Get the validation rules that apply to the request.
