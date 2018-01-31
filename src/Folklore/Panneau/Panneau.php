@@ -70,7 +70,10 @@ class Panneau
     {
         $prefix = config('panneau.route.prefix');
 
-        $routes = [];
+        // @TODO do something better
+        $routes = [
+            'home' => '/'.$prefix,
+        ];
         foreach ($this->routes as $action => $definition) {
             $path = $definition['path'];
             if (!empty($prefix)) {
