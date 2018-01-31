@@ -37,7 +37,7 @@ class JsonSchemaResource extends Resource
             foreach ($properties as $name => $prop) {
                 $fieldArray = $prop->toFieldArray();
                 array_set($fieldArray, 'name', $field.'.'.$name);
-                array_set($fieldArray, 'label', title_case($name));
+                // array_set($fieldArray, 'label', title_case($name));
                 $fields[] = $fieldArray;
             }
         }
