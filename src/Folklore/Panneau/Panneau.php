@@ -9,6 +9,7 @@ use Folklore\Panneau\Support\PanneauDefinition;
 
 class Panneau
 {
+    protected $name;
     protected $container;
     protected $resources;
     protected $blocks;
@@ -19,10 +20,21 @@ class Panneau
     {
         $this->container = $container;
 
+        $this->name = 'Simple Panneau';
         $this->resources = [];
         $this->blocks = [];
         $this->layout = null;
         $this->routes = [];
+    }
+
+    public function setName($name)
+    {
+        $this->name = $name;
+    }
+
+    public function name()
+    {
+        return $this->name;
     }
 
     public function setResource($id, $resource)
@@ -129,6 +141,8 @@ class Panneau
 
     public function getDefinition()
     {
+        $name = $this->name();
+
         $routes = $this->routes();
 
         $resources = [];
@@ -139,7 +153,7 @@ class Panneau
         $layout = $this->layout();
 
         return new PanneauDefinition([
-            'name' => 'Simple panneau', // @TODO
+            'name' => $name,
             'routes' => $routes,
             'resources' => $resources,
             'layout' => $layout,
