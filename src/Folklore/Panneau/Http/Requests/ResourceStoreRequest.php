@@ -27,4 +27,17 @@ class ResourceStoreRequest extends ResourceRequest
         $validation = $this->getResourceValidation();
         return array_get($validation, 'store.messages', []);
     }
+
+    /**
+     * Get the custom attributes for validator errors.
+     *
+     * @return array
+     */
+    public function attributes()
+    {
+        // @TODO
+        return [
+            'data.title' => 'Titre',
+        ];
+    }
 }

@@ -27,4 +27,15 @@ class ResourceUpdateRequest extends ResourceRequest
         $validation = $this->getResourceValidation();
         return array_get($validation, 'update.messages', []);
     }
+
+    /**
+     * Get the custom attributes for validator errors.
+     *
+     * @return array
+     */
+    public function attributes()
+    {
+        // @TODO
+        return [];
+    }
 }
