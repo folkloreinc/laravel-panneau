@@ -23,14 +23,14 @@ class JsonSchemaField extends JsonSchema
             return $fieldLabel;
         }
 
-        return 'Test label';
+        return array_get($this->getAttributes(), 'label', title_case($this->getName()));
     }
 
     function toFieldArray()
     {
-        return array_merge([
+        return array_merge($this->toArray(), [
             'type' => $this->getFieldType(),
             'label' => $this->getFieldLabel(),
-        ], $this->getAttributes());
+        ]);
     }
 }
