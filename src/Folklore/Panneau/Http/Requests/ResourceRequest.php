@@ -27,7 +27,7 @@ class ResourceRequest extends FormRequest
     public function rules()
     {
         $validation = $this->getResourceValidation();
-        return array_get($validation, $this->$validationPrefix.'.rules', []);
+        return array_get($validation, $this->validationPrefix.'.rules', []);
     }
 
     /**
@@ -38,7 +38,7 @@ class ResourceRequest extends FormRequest
     public function messages()
     {
         $validation = $this->getResourceValidation();
-        return array_get($validation, $this->$validationPrefix.'.messages', []);
+        return array_get($validation, $this->validationPrefix.'.messages', []);
     }
 
     /**
@@ -49,7 +49,7 @@ class ResourceRequest extends FormRequest
     public function attributes()
     {
         $validation = $this->getResourceValidation();
-        return array_get($validation, $this->$validationPrefix.'.attributes', []);
+        return array_get($validation, $this->validationPrefix.'.attributes', []);
     }
 
     protected function getResourceValidation()
