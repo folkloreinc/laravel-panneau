@@ -40,8 +40,12 @@ class Select extends JsonSchemaField
 
     protected function enum()
     {
-        $options = $this->getOptions();
         $enum = [];
+        $nullable = $this->getNullable();
+        if ($nullable) {
+            $enum[] = null;
+        }
+        $options = $this->getOptions();
         foreach ($options as $option) {
             $enum[] = $option['value'];
         }
