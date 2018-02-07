@@ -61,7 +61,7 @@ class PanneauRegistrar
             $resourceName => $this->idParameterName
         ];
 
-        $defaultNames = $this->getRoutesNames($isWildcard ? 'resource' : $resourceName);
+        $defaultNames = $this->getRoutesNames($isWildcard ? 'resource' : 'resource.'.$resourceName);
 
         $path = $isWildcard ? '{'.$this->resourceParameterName.'}' : $resourceName;
         $resourceOptions = [
@@ -75,56 +75,11 @@ class PanneauRegistrar
             'resource' => $isWildcard ? null : $resourceName,
         ], $groupConfig), function () use ($isWildcard, $resourceName, $path, $controller, $resourceOptions) {
             $this->router->get($path.'/definition', [
-                'as' =>$this->getRouteName($isWildcard ? 'resource' : $resourceName, 'definition'),
+                'as' =>$this->getRouteName($isWildcard ? 'resource' : 'resource.'.$resourceName, 'definition'),
                 'uses' => $controller.'@definition'
             ]);
             $this->router->resource($path, $controller, $resourceOptions);
         });
-
-        // $allActions = array_keys($this->routePaths);
-        // if (!empty($only) && !empty($except)) {
-        //     throw new Exception('Cannot specify both mutually exclusive options "except" and "only"');
-        // } elseif (!empty($only)) {
-        //     $actions = $only;
-        // } elseif (!empty($except)) {
-        //     $actions = array_except($allActions, $except);
-        // } else {
-        //     $actions = $allActions;
-        // }
-        //
-        // foreach ($actions as $action) {
-        //     $pathDefinition = $this->routePaths[$action];
-        //     $method = $pathDefinition['method'];
-        //     $path = $pathDefinition['path'];
-        //     $actionParams = [
-        //         'uses' => $controller.'@'.$action,
-        //         'as' => array_get($names, $action, $this->getRouteName($resourceName, $action)),
-        //     ];
-        //
-        //     // If not for a catch-all controller
-        //     if ($resourceName !== '*') {
-        //         // Replace the resource route parameter with the actual resource name
-        //         $path = str_replace('{'.$this->resourceParameterName.'}', $resourceName, $path);
-        //         // Add the actual resource name to the action's parameters,
-        //         // which can later be used by helpers in ResourceController
-        //         $actionParams += [
-        //             'resource' => $resourceName,
-        //         ];
-        //     }
-        //
-        //     $route = $this->router->match(
-        //         $method,
-        //         $path,
-        //         $actionParams
-        //     );
-        //     $route->middleware('panneau.middlewares.inject_resource');
-        //
-        //     // If the whereResource options is set, add it as the route
-        //     // resource parameter filtering clause
-        //     if (!is_null($whereResource)) {
-        //         $route->where($this->resourceParameterName, $whereResource);
-        //     }
-        // }
     }
 
     public function getRoutesNames($resource)

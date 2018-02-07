@@ -54,8 +54,6 @@ class Panneau
         return $this->defaultRoutes;
     }
 
-
-
     public function getResourcesRoutes()
     {
         $registrar = $this->app['panneau.registrar'];
@@ -64,7 +62,7 @@ class Panneau
         foreach ($resources as $resource) {
             $customController = $resource->getController();
             if (!is_null($customController)) {
-                $resourceRoutes = $registrar->getRoutesNames($resource->getId());
+                $resourceRoutes = $registrar->getRoutesNames('resource.'.$resource->getId());
                 $routes = array_merge($routes, array_values($resourceRoutes));
             }
         }
@@ -74,7 +72,7 @@ class Panneau
     public function getResourceRoutes($id)
     {
         $registrar = $this->app['panneau.registrar'];
-        return $registrar->getRoutesNames($id);
+        return $registrar->getRoutesNames('resource.'.$id);
     }
 
     public function getAllRoutes()
@@ -239,12 +237,13 @@ class Panneau
         $router = $this->app->bound('router') ? $this->app['router'] : $this->app;
         $resources = $this->getResources();
         $paramName = $this->app['config']->get('panneau.routes.parameters.resource', 'resource');
-        $ids = [];
+        $ids = ['_resource'];
         foreach ($resources as $resource) {
             if (is_null($resource->getController())) {
                 $ids[] = $resource->getId();
             }
         }
+
         $router->pattern($paramName, implode('|', $ids));
     }
 
