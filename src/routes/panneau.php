@@ -12,7 +12,7 @@ foreach ($resources as $resource) {
     if (!is_null($customController)) {
         // Create custom routes set
         $router->panneauResource($resource->getId(), [
-            'controller' => $customController,
+            'controller' => '\\'.$customController,
         ]);
     }
 }
