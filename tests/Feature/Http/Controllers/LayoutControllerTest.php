@@ -6,7 +6,7 @@ class LayoutControllerTest extends TestCase
 {
     public function testDefinition()
     {
-        $response = $this->callAsJson('GET', 'panneau/layout/definition');
+        $response = $this->callAsJson('GET', 'panneau/definition/layout');
         if ($response === $this) {
             $response = $this->response;
         }

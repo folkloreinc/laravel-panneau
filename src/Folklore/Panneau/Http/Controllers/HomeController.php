@@ -6,9 +6,8 @@ use Illuminate\Http\Request;
 
 class LayoutController extends Controller
 {
-    public function definition(Request $request)
+    public function index(Request $request)
     {
-        $definition = app('panneau')->layout()->toArray();
-        return $definition;
+        return view('panneau::page');
     }
 }

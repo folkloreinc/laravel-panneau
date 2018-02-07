@@ -75,15 +75,9 @@ class PanneauServiceProvider extends ServiceProvider
     public function bootRouter()
     {
         $router = $this->getRouter();
-        $router->macro('panneauResource', function ($id, $options = null) {
+        $router->macro('panneauResource', function ($id, $options = []) {
             return app('panneau.registrar')->resource($id, $options);
         });
-
-        if (! $this->app->routesAreCached()) {
-            $routesPath = is_file(base_path('routes/panneau.php')) ?
-                base_path('routes/panneau.php') : (__DIR__ . '/../../routes/panneau.php');
-            require $routesPath;
-        }
     }
 
     /**
@@ -127,16 +121,12 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->app->singleton('panneau', function ($app) {
             $panneau = new Panneau($app);
-            $name = config('panneau.name');
-            $panneau->setName($name);
-            $resources = config('panneau.resources');
-            $panneau->setResources($resources);
-            $blocks = config('panneau.blocks');
-            $panneau->setBlocks($blocks);
-            $layout = config('panneau.layout');
-            $panneau->setLayout($layout);
-            $defaultRoutes = config('panneau.route.paths');
-            $panneau->setRoutes($defaultRoutes);
+            $panneau->setName(config('panneau.name'));
+            $panneau->setResources(config('panneau.resources'));
+            $panneau->setBlocks(config('panneau.blocks'));
+            $panneau->setLayout(config('panneau.layout'));
+            $panneau->setDefaultRoutes(config('panneau.routes.defaultRoutes'));
+            $panneau->setCustomRoutes(config('panneau.routes.customRoutes'));
             return $panneau;
         });
     }
@@ -145,14 +135,9 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->app->singleton('panneau.registrar', function ($app) {
             $registrar = new PanneauRegistrar($this->getRouter());
-            $routePaths = config('panneau.route.paths');
-            $registrar->setRoutePaths($routePaths);
-            $routeResourceParam = config('panneau.route.resource_param');
-            $registrar->setRouteResourceParam($routeResourceParam);
-            $routeIdParam = config('panneau.route.id_param');
-            $registrar->setRouteIdParam($routeIdParam);
-            $routeDefaultController = config('panneau.route.default_controller');
-            $registrar->setRouteDefaultController($routeDefaultController);
+            $registrar->setResourceParameterName(config('panneau.routes.parameters.resource'));
+            $registrar->setIdParameterName(config('panneau.routes.parameters.id'));
+            $registrar->setResourceController(config('panneau.routes.controllers.resource'));
             return $registrar;
         });
     }
