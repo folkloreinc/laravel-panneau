@@ -156,7 +156,7 @@ class ResourceController extends Controller
     public function definition(Request $request)
     {
         $definition = $this->getResourceDefinition($request);
-        return $definition;
+        return $this->jsonResponse($definition);
     }
 
     /**
@@ -171,7 +171,7 @@ class ResourceController extends Controller
 
         if ($request->wantsJson()) {
             return $this->shouldPaginate($request) && !$this->shouldReturnPagination($request) ?
-                $items->getCollection() : $items;
+                $this->jsonResponse($items->getCollection()) : $this->jsonResponse($items);
         }
 
         return $this->getResourceView('index', [
@@ -206,7 +206,7 @@ class ResourceController extends Controller
         $model->save();
 
         if ($request->wantsJson()) {
-            return $this->getItem($model->id, $request);
+            return $this->jsonResponse($this->getItem($model->id, $request));
         }
 
         return redirect()->action(static::class.'@show', [
@@ -227,7 +227,7 @@ class ResourceController extends Controller
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
-            return $item;
+            return $this->jsonResponse($item);
         }
 
         return $this->getResourceView('show', [
@@ -247,7 +247,7 @@ class ResourceController extends Controller
         $item = $this->getItem($id, $request);
 
         if ($request->wantsJson()) {
-            return $item;
+            return $this->jsonResponse($item);
         }
 
         return $this->getResourceView('edit', [
@@ -271,7 +271,7 @@ class ResourceController extends Controller
         $model->save();
 
         if ($request->wantsJson()) {
-            return $this->getItem($id, $request);
+            return $this->jsonResponse($this->getItem($id, $request));
         }
 
         return redirect()->action(static::class.'@show', [
@@ -294,7 +294,7 @@ class ResourceController extends Controller
         $model->delete();
 
         if ($request->wantsJson()) {
-            return $data;
+            return $this->jsonResponse($data);
         }
 
         return redirect()->action(static::class.'@index', [
