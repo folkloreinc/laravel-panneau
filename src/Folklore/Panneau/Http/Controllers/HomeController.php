@@ -4,7 +4,7 @@ namespace Folklore\Panneau\Http\Controllers;
 
 use Illuminate\Http\Request;
 
-class LayoutController extends Controller
+class HomeController extends Controller
 {
     public function index(Request $request)
     {
