@@ -28,6 +28,8 @@ class PanneauServiceProvider extends ServiceProvider
         $this->bootPublishes();
 
         $this->bootRouter();
+
+        $this->bootViews();
     }
 
     public function bootPublishes()
@@ -38,6 +40,9 @@ class PanneauServiceProvider extends ServiceProvider
         $migrationsPath = __DIR__ . '/../../migrations/';
         $viewsPath = __DIR__ . '/../../resources/views/';
         $langPath = __DIR__ . '/../../resources/lang/';
+        $jsPath = __DIR__ . '/../../resources/js/';
+        $scssPath = __DIR__ . '/../../resources/scss/';
+        $vendorPath = __DIR__ . '/../../vendor/';
 
         // Config
         $this->mergeConfigFrom($configPath, 'panneau');
@@ -70,6 +75,15 @@ class PanneauServiceProvider extends ServiceProvider
         $this->publishes([
             $langPath => base_path('resources/lang/vendor/panneau')
         ], 'lang');
+
+        $this->publishes([
+            $jsPath => base_path('resources/assets/js/panneau'),
+            $scssPath => base_path('resources/assets/scss/panneau')
+        ], 'assets');
+
+        $this->publishes([
+            $vendorPath => public_path('vendor/panneau'),
+        ], 'vendor');
     }
 
     public function bootRouter()
@@ -78,6 +92,11 @@ class PanneauServiceProvider extends ServiceProvider
         $router->macro('panneauResource', function ($id, $options = []) {
             return app('panneau.registrar')->resource($id, $options);
         });
+    }
+
+    public function bootViews()
+    {
+        $this->app['view']->composer('panneau::index', \Folklore\Panneau\Composers\IndexComposer::class);
     }
 
     /**

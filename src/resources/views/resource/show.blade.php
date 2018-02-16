@@ -1,1 +1,1 @@
-@extends('panneau::layout')
+@extends('panneau::index')

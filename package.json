@@ -1,0 +1,35 @@
+{
+    "name": "laravel-panneau",
+    "private": true,
+    "description": "",
+    "main": "/src/resources/assets/js/index.js",
+    "scripts": {
+        "clean:panneau": "rm -rf ./src/vendor/",
+        "clean": "npm run clean:panneau",
+        "copy:panneau": "cp -R ./node_modules/panneau/dist/ ./src/vendor/",
+        "copy:translations": "node -r babel-register ./build/copyTranslations.js",
+        "copy": "npm run copy:panneau && npm run copy:translations",
+        "build": "npm run copy",
+        "prepare": "npm run clean && npm run build"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Folkloreatelier/laravel-panneau.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Folkloreatelier/laravel-panneau/issues"
+    },
+    "homepage": "https://github.com/Folkloreatelier/laravel-panneau#readme",
+    "dependencies": {
+        "panneau": "^0.3.43"
+    },
+    "devDependencies": {
+        "babel-plugin-transform-object-rest-spread": "^6.26.0",
+        "babel-preset-env": "^1.6.1",
+        "babel-register": "^6.26.0",
+        "glob": "^7.1.2",
+        "mkdirp": "^0.5.1"
+    }
+}

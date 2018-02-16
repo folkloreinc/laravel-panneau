@@ -20,33 +20,29 @@
 	@show
 
 	@section('head:styles')
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+        <link href="/vendor/panneau/panneau.css" rel="stylesheet" type="text/css" />
+        <!-- <link href="/css/panneau/main.css" rel="stylesheet" type="text/css" /> -->
 		@stack('styles:head')
 	@show
 
 </head>
 <body>
 	@section('body')
-        <section id="header">
-			@yield('header')
-		</section>
-
-		<section id="content">
-			@yield('content')
-		</section>
-
-		<footer id="footer">
-			@yield('footer')
-		</footer>
+        <div id="panneau"></div>
 	@show
 
 	@section('body:scripts')
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" type="text/javascript"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" type="text/javascript"></script>
 		@stack('scripts:footer')
 	@show
 
     @section('body:styles')
+        <script type="text/javascript">
+            window.panneau_locale = "{{ $locale }}";
+            window.panneau_messages = {!! $messages !!};
+            window.panneau_definition = {!! $definition !!};
+        </script>
+        <script src="/vendor/panneau/panneau.js" type="text/javascript"></script>
+        <!-- <script src="/js/panneau/main.js" type="text/javascript"></script> -->
 		@stack('styles:footer')
 	@show
 
