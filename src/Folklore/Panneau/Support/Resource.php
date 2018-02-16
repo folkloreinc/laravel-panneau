@@ -4,6 +4,7 @@ namespace Folklore\Panneau\Support;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Foundation\Http\FormRequest;
 use \JsonSerializable;
 
 class Resource implements JsonSerializable, Arrayable, Jsonable
@@ -70,7 +71,7 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
         return $this->validation;
     }
 
-    public function getValidationFromRequest(Request $request)
+    public function getValidationFromRequest(FormRequest $request)
     {
         return $this->getValidation();
     }
