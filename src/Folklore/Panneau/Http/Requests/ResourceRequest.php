@@ -58,7 +58,7 @@ class ResourceRequest extends FormRequest
         if (is_null($resource)) {
             throw new Exception('Missing panneau.resource request property; is the "panneau.middlewares.inject_resource" middleware present on the route ?');
         }
-        $validation = $resource->getValidation();
+        $validation = $resource->getValidationFromRequest($this);
         return $validation;
     }
 }

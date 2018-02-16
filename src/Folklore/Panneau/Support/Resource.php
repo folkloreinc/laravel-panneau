@@ -70,6 +70,11 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
         return $this->validation;
     }
 
+    public function getValidationFromRequest(Request $request)
+    {
+        return $this->getValidation();
+    }
+
     public function getRoutes()
     {
         return app('panneau')->getRoutesForResource($this->id);
