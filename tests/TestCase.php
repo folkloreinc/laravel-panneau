@@ -25,6 +25,13 @@ class TestCase extends BaseTestCase
         ]);
     }
 
+    public function setUp()
+    {
+        parent::setUp();
+
+        app('panneau')->routes();
+    }
+
     protected function getPackageProviders($app)
     {
         return [

@@ -1,36 +1,27 @@
 <?php
 
-$prefix = config('panneau.route.prefix');
-$namespace = config('panneau.route.namespace');
-$middleware = config('panneau.route.middleware');
+// Home
+$router->get('/', [
+    'as' => 'panneau.home',
+    'uses' => $controllers['home'].'@index',
+]);
 
-$resources = app('panneau')->getDefinition()->getResources();
-
-$router->group([
-    'prefix' => $prefix,
-    'namespace' => $namespace,
-    'middleware' => $middleware,
-], function ($router) use ($resources) {
-    $resourcesMatchIds = [];
-    foreach ($resources as $resource) {
-        $customController = $resource->getController();
-        if (is_null($customController)) {
-            // Add resource to catch-all list
-            $resourcesMatchIds[] = $resource->getId();
-        } else {
-            // Create custom routes set
-            $router->panneauResource($resource->getId(), [
-                'controller' => $customController,
-            ]);
-        }
+// Build resource routes
+foreach ($resources as $resource) {
+    $customController = $resource->getController();
+    if (!is_null($customController)) {
+        // Create custom routes set
+        $router->panneauResource($resource->getId(), [
+            'controller' => '\\'.$customController,
+        ]);
     }
+}
 
-    // Create catch-all route
-    $router->panneauResource('*', !empty($resourcesMatchIds) ? [
-        'whereResource' => implode($resourcesMatchIds, '|'),
-    ] : null);
+// Create catch-all route
+$router->panneauResource('*');
 
-    // Add the layout routes
-    // @TODO move to registrar ?
-    $router->get('/layout/definition', 'LayoutController@definition');
-});
+// Add the layout routes
+$router->get('definition/layout', [
+    'as' => 'panneau.definition.layout',
+    'uses' => $controllers['definition'].'@layout'
+]);

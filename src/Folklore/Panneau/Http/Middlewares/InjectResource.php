@@ -33,7 +33,7 @@ class InjectResource
 
     protected function getResourceNameFromRequest(Request $request)
     {
-        $resourceParamName = config('panneau.route.resource_param');
+        $resourceParamName = config('panneau.routes.parameters.resource');
         // Get the route parameter if set
         if (!is_null($request->route($resourceParamName))) {
             return $request->route($resourceParamName);
@@ -41,15 +41,12 @@ class InjectResource
         // If not set (implying a custom controller with predefined
         // route path), get the action's parameter
         $action = $request->route()->getAction();
-        if (isset($action[$resourceParamName])) {
-            return $action[$resourceParamName];
-        }
-        return null;
+        return array_get($action, 'resource', null);
     }
 
     protected function getResourceIdFromRequest(Request $request)
     {
-        $idParamName = config('panneau.route.id_param');
+        $idParamName = config('panneau.routes.parameters.id');
         // Get the route parameter
         if (!is_null($request->route($idParamName))) {
             return $request->route($idParamName);

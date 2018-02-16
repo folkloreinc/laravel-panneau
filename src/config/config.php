@@ -10,52 +10,32 @@ return [
     /**
      * Routes
      */
-    'route' => [
+    'routes' => [
         'prefix' => 'panneau',
+
+        'domain' => null,
 
         'namespace' => 'Folklore\Panneau\Http\Controllers',
 
-        'default_controller' => 'ResourceController',
-
         'middleware' => ['api'],
 
-        'resource_param' => 'resource',
+        'controllers' => [
+            'home' => 'HomeController',
+            'resource' => 'ResourceController',
+            'definition' => 'DefinitionController',
+        ],
 
-        'id_param' => 'id',
+        'parameters' => [
+            'resource' => 'resource',
+            'id' => 'id',
+        ],
 
-        'paths' => [
-            'definition' => [
-                'method' => ['GET', 'HEAD'],
-                'path' => '/{resource}/definition'
-            ],
-            'index' => [
-                'method' => ['GET', 'HEAD'],
-                'path' => '/{resource}'
-            ],
-            'create' => [
-                'method' => ['GET', 'HEAD'],
-                'path' => '/{resource}/create'
-            ],
-            'store' =>[
-                'method' => 'POST',
-                'path' => '/{resource}'
-            ],
-            'show' => [
-                'method' => ['GET', 'HEAD'],
-                'path' => '/{resource}/{id}'
-            ],
-            'edit' => [
-                'method' => ['GET', 'HEAD'],
-                'path' => '/{resource}/{id}/edit'
-            ],
-            'update' => [
-                'method' => ['PUT', 'PATCH'],
-                'path' => '/{resource}/{id}'
-            ],
-            'destroy' => [
-                'method' => 'DELETE',
-                'path' => '/{resource}/{id}'
-            ]
+        'defaultRoutes' => [
+            'panneau.home',
+        ],
+
+        'customRoutes' => [
+
         ],
     ],
 

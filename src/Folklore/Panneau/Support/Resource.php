@@ -29,6 +29,12 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
         }
     }
 
+    public function setId($id)
+    {
+        $this->id = $id;
+        return $this;
+    }
+
     public function getId()
     {
         return $this->id;
@@ -71,22 +77,7 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
 
     public function getRoutes()
     {
-        $routes = [];
-        foreach (config('panneau.route.paths') as $action => $item) {
-            // The UrlGenerator requires all
-            // mandatory route params to be specified but in our case
-            // this means specifying a placeholder ":id" which ends up as a
-            // query param in routes where it's not required. So, use
-            // a regex to remove the query param.
-            $path = route(
-                implode('.', ['panneau', '*', $action]),
-                ['resource' => $this->getId(), 'id' => ':id'],
-                false
-            );
-            $path = preg_replace('/\?.+$/', '', $path);
-            $routes[$action] = $path;
-        }
-        return $routes;
+        return app('panneau')->getRoutesForResource($this->id);
     }
 
     public function jsonSerialize()
