@@ -50,6 +50,9 @@ class PanneauServiceProvider extends ServiceProvider
         // Views
         $this->loadViewsFrom($viewsPath, 'panneau');
 
+        // Translations
+        $this->loadTranslationsFrom($langPath, 'panneau');
+
         // Migrations
         if (method_exists($this, 'loadMigrationsFrom')) {
             $this->loadMigrationsFrom($migrationsPath);

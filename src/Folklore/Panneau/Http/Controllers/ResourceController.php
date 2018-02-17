@@ -25,129 +25,6 @@ class ResourceController extends Controller
     }
 
     /**
-     * Get the resource model
-     *
-     * @param \Illuminate\Http\Request $request The current request
-     * @return \Folklore\Panneau\Support\Resource
-     */
-    protected function getResourceFromRequest(Request $request)
-    {
-        return $request->get('panneau.resource');
-    }
-
-    /**
-     * Get the resource model
-     *
-     * @return \Illuminate\Database\Eloquent\Model
-     */
-    protected function getResourceModel($request)
-    {
-        $resource = $this->getResourceFromRequest($request);
-        if (!is_null($resource)) {
-            $model = $resource->getModel();
-            if (!is_null($model)) {
-                return app($model);
-            }
-        }
-        return null;
-    }
-
-    protected function getResourceController($request)
-    {
-        $resource = $this->getResourceFromRequest($request);
-        if (!is_null($resource)) {
-            return $resource->getController();
-        }
-        return null;
-    }
-
-    /**
-     * Get the resource definition
-     *
-     * @return array
-     */
-    protected function getResourceDefinition($request)
-    {
-        $resource = $this->getResourceFromRequest($request);
-        if (!is_null($resource)) {
-            return $resource->toArray();
-        }
-        return null;
-    }
-
-    /**
-     * Get the resource query builder
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    protected function getResourceQueryBuilder(Request $request)
-    {
-        $model = $this->getResourceModel($request);
-        return $model->newQuery();
-    }
-
-    protected function shouldPaginate(Request $request)
-    {
-        return $this->indexPaginated;
-    }
-
-    protected function shouldReturnPagination(Request $request)
-    {
-        return $this->returnPagination;
-    }
-
-    protected function getResulsPerPage(Request $request)
-    {
-        return $this->resultsPerPage;
-    }
-
-    protected function getPageFromRequest(Request $request)
-    {
-        return $request->input($this->pageInputName);
-    }
-
-    protected function getStoreDataFromRequest(Request $request)
-    {
-        return $request->all();
-    }
-
-    protected function getUpdateDataFromRequest(Request $request)
-    {
-        return $request->all();
-    }
-
-    protected function getResourceView($view, $data = [])
-    {
-        return view('panneau::resource.'.$view, $data);
-    }
-
-    protected function getItems(Request $request)
-    {
-        $query = $this->getResourceQueryBuilder($request);
-
-        if (method_exists($this, 'buildQueryFromRequest')) {
-            $this->buildQueryFromRequest($query, $request);
-        }
-
-        if ($this->shouldPaginate($request)) {
-            $page = $this->getPageFromRequest($request);
-            $resultsPerPage = $this->getResulsPerPage($request);
-            return $query->paginate($resultsPerPage, ['*'], $this->pageInputName, $page);
-        }
-
-        return $query->get();
-    }
-
-    protected function getItem($id, Request $request)
-    {
-        if ($id instanceof Model) {
-            $id = $id->getKey();
-        }
-        $query = $this->getResourceQueryBuilder($request);
-        return $query->where('id', $id)->first();
-    }
-
-    /**
      * Return the definition of a resource
      *
      * @param  \Illuminate\Http\Request  $request
@@ -300,5 +177,128 @@ class ResourceController extends Controller
         return redirect()->action(static::class.'@index', [
             $request->get('panneau.resource')->getId(),
         ]);
+    }
+
+    /**
+     * Get the resource model
+     *
+     * @param \Illuminate\Http\Request $request The current request
+     * @return \Folklore\Panneau\Support\Resource
+     */
+    protected function getResourceFromRequest(Request $request)
+    {
+        return $request->get('panneau.resource');
+    }
+
+    /**
+     * Get the resource model
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    protected function getResourceModel($request)
+    {
+        $resource = $this->getResourceFromRequest($request);
+        if (!is_null($resource)) {
+            $model = $resource->getModel();
+            if (!is_null($model)) {
+                return app($model);
+            }
+        }
+        return null;
+    }
+
+    protected function getResourceController($request)
+    {
+        $resource = $this->getResourceFromRequest($request);
+        if (!is_null($resource)) {
+            return $resource->getController();
+        }
+        return null;
+    }
+
+    /**
+     * Get the resource definition
+     *
+     * @return array
+     */
+    protected function getResourceDefinition($request)
+    {
+        $resource = $this->getResourceFromRequest($request);
+        if (!is_null($resource)) {
+            return $resource->toArray();
+        }
+        return null;
+    }
+
+    /**
+     * Get the resource query builder
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function getResourceQueryBuilder(Request $request)
+    {
+        $model = $this->getResourceModel($request);
+        return $model->newQuery();
+    }
+
+    protected function shouldPaginate(Request $request)
+    {
+        return $this->indexPaginated;
+    }
+
+    protected function shouldReturnPagination(Request $request)
+    {
+        return $this->returnPagination;
+    }
+
+    protected function getResulsPerPage(Request $request)
+    {
+        return $this->resultsPerPage;
+    }
+
+    protected function getPageFromRequest(Request $request)
+    {
+        return $request->input($this->pageInputName);
+    }
+
+    protected function getStoreDataFromRequest(Request $request)
+    {
+        return $request->all();
+    }
+
+    protected function getUpdateDataFromRequest(Request $request)
+    {
+        return $request->all();
+    }
+
+    protected function getResourceView($view, $data = [])
+    {
+        return view('panneau::resource.'.$view, $data);
+    }
+
+    protected function getItems(Request $request)
+    {
+        $query = $this->getResourceQueryBuilder($request);
+
+        if (method_exists($this, 'buildQueryFromRequest')) {
+            $this->buildQueryFromRequest($query, $request);
+        }
+
+        if ($this->shouldPaginate($request)) {
+            $page = $this->getPageFromRequest($request);
+            $resultsPerPage = $this->getResulsPerPage($request);
+            return $query->paginate($resultsPerPage, ['*'], $this->pageInputName, $page);
+        }
+
+        return $query->get();
+    }
+
+    protected function getItem($id, Request $request)
+    {
+        if ($id instanceof Model) {
+            $id = $id->getKey();
+        }
+        $query = $this->getResourceQueryBuilder($request);
+        return $query->where('id', $id)->first();
     }
 }
