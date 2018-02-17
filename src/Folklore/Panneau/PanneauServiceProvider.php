@@ -39,8 +39,8 @@ class PanneauServiceProvider extends ServiceProvider
         $configPath = __DIR__ . '/../../config/config.php';
         $migrationsPath = __DIR__ . '/../../migrations/';
         $viewsPath = __DIR__ . '/../../resources/views/';
-        $langPath = __DIR__ . '/../../resources/lang/';
-        $jsPath = __DIR__ . '/../../resources/js/';
+        $langPath = __DIR__ . '/../../resources/assets/lang/';
+        $jsPath = __DIR__ . '/../../resources/assets/js/';
         $scssPath = __DIR__ . '/../../resources/scss/';
         $vendorPath = __DIR__ . '/../../vendor/';
 
