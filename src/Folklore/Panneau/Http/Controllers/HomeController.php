@@ -8,6 +8,6 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        return view('panneau::page');
+        return view('panneau.index');
     }
 }
