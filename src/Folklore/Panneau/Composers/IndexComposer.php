@@ -21,6 +21,7 @@ class IndexComposer
 
     protected function getMessages()
     {
+        $locale = app()->getLocale();
         $messages = [];
         $messages[$locale] = [];
         foreach ($this->messagesFiles as $file) {

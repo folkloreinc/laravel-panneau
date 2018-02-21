@@ -23,7 +23,7 @@
     },
     "homepage": "https://github.com/Folkloreatelier/laravel-panneau#readme",
     "dependencies": {
-        "panneau": "^0.3.54"
+        "panneau": "^0.3.55"
     },
     "devDependencies": {
         "babel-plugin-transform-object-rest-spread": "^6.26.0",
