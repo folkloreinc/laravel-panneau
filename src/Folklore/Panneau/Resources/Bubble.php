@@ -12,14 +12,17 @@ class Bubble extends Resource
 
     protected $model = \Folklore\Panneau\Contracts\Bubble::class;
 
-    protected $forms = [
-        'type' => 'normal',
-        'fields' => [
-            [
-                'name' => 'title',
-                'type' => 'textlocale',
-                'label' => 'Title',
-            ]
-        ],
-    ];
+    protected function forms()
+    {
+        return [
+            'type' => 'normal',
+            'fields' => [
+                [
+                    'name' => 'title',
+                    'type' => 'textlocale',
+                    'label' => 'Title',
+                ]
+            ],
+        ];
+    }
 }

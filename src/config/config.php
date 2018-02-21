@@ -3,6 +3,11 @@
 return [
 
     /**
+     * The name of the administration panel
+     */
+    'name' => 'Panneau',
+
+    /**
      * Database
      */
     'table_prefix' => 'panneau_',
@@ -22,6 +27,7 @@ return [
         'middlewares' => [
             'auth' => \Folklore\Panneau\Http\Middlewares\Authenticate::class,
             'guest' => \Folklore\Panneau\Http\Middlewares\RedirectIfAuthenticated::class,
+            'resource' => \Folklore\Panneau\Http\Middlewares\InjectResource::class,
         ],
 
         'controllers' => [
@@ -37,8 +43,31 @@ return [
             'resource' => 'resource',
             'id' => 'id',
         ],
+    ],
 
-        'defaultRoutes' => [
+    /**
+     * Resources
+     */
+    'resources' => [
+        'pages' => \Folklore\Panneau\Resources\Page::class,
+        'blocks' => \Folklore\Panneau\Resources\Block::class,
+        'bubbles' => \Folklore\Panneau\Resources\Bubble::class,
+    ],
+
+    /**
+     * Blocks
+     */
+    'blocks' => [
+
+    ],
+
+    /**
+     * Definition
+     */
+    'definition' => [
+        'layout' => \Folklore\Panneau\Layouts\Normal::class,
+
+        'routes' => [
             'panneau.home',
             'panneau.auth.login',
             'panneau.auth.logout',
@@ -46,127 +75,26 @@ return [
             'panneau.auth.password.email',
             'panneau.auth.password.reset',
         ],
-
-        'customRoutes' => [
-
-        ],
     ],
 
     /**
-     * Layout
+     * Layout configuration used by the Normal layout
      */
     'layout' => [
-        'type' => 'normal',
-        'header' => [
-            'navbar' => [
-                'items' => [
-                    [
-                        'id' => 'users',
-                        'type' => 'resource',
-                        'resource' => 'users'
-                    ],
-                    [
-                        'id' => 'user',
-                        'type' => 'user',
-                        'position' => 'right'
-                    ]
+        'navbar' => [
+            'items' => [
+                [
+                    'id' => 'users',
+                    'type' => 'resource',
+                    'resource' => 'users'
+                ],
+                [
+                    'id' => 'user',
+                    'type' => 'user',
+                    'position' => 'right'
                 ]
             ]
-        ],
-        'footer' => true,
-    ],
-
-    /**
-     * Resources
-     */
-    'resources' => [
-        'pages' => [
-            'name' => 'Pages',
-            'controller' => 'PagesController',
-            'model' => \Folklore\Panneau\Contracts\Page::class,
-            'validation' => [
-                'store' => [
-                    'rules' => [
-
-                    ],
-                    'messages' => [
-
-                    ],
-                ],
-                'update' => [
-                    'rules' => [
-
-                    ],
-                    'messages' => [
-
-                    ],
-                ],
-            ],
-            'forms' => [
-                'type' => 'normal',
-                'fields' => [
-                    [
-                        'name' => 'slug',
-                        'type' => 'textlocale',
-                        'label' => 'Slug',
-                    ],
-                    [
-                        'name' => 'title',
-                        'type' => 'textlocale',
-                        'label' => 'Title',
-                    ],
-                    [
-                        'name' => 'parent',
-                        'type' => 'page',
-                        'label' => 'Parent page',
-                    ],
-                    [
-                        'name' => 'blocks',
-                        'type' => 'blocks',
-                        'label' => 'Blocks',
-                    ]
-                ]
-            ],
-            'lists' => [
-                'type' => 'table',
-                'cols' => [
-                    [
-                        'id' => 'id',
-                        'path' => 'id',
-                        'label' => 'ID',
-                        'width' => 50
-                    ],
-                    [
-                        'id' => 'name',
-                        'path' => 'name',
-                        'label' => 'Name'
-                    ],
-                    [
-                        'id' => 'actions',
-                        'type' => 'actions'
-                    ]
-                ]
-            ],
-        ],
-        'blocks' => \Folklore\Panneau\Resources\Block::class,
-        'bubbles' => [
-            'name' => 'Bubbles',
-            'model' => \Folklore\Panneau\Contracts\Bubble::class,
-            'forms' => [
-                'type' => 'normal',
-                'fields' => [
-                    [
-                        'name' => 'title',
-                        'type' => 'textlocale',
-                        'label' => 'Title',
-                    ]
-                ],
-            ],
-        ],
-    ],
-
-    'blocks' => [
-
-    ],
+        ]
+    ]
 
 ];

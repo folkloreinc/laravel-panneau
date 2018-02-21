@@ -11,6 +11,4 @@ class Block extends Resource
     protected $name = 'Blocks';
 
     protected $model = \Folklore\Panneau\Contracts\Block::class;
-
-    protected $forms = [];
 }

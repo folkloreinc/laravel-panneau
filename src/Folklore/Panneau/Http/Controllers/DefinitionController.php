@@ -8,6 +8,6 @@ class DefinitionController extends Controller
 {
     public function layout(Request $request)
     {
-        return app('panneau')->layout();
+        return app('panneau')->getDefinitionLayout();
     }
 }

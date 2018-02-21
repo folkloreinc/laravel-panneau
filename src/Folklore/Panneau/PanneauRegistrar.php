@@ -71,7 +71,7 @@ class PanneauRegistrar
             'parameters' => array_merge($defaultParameters, $parameters),
         ];
         $this->router->group(array_merge([
-            'middleware' => ['panneau.middlewares.inject_resource'],
+            'middleware' => ['panneau.resource'],
             'resource' => $isWildcard ? null : $resourceName,
         ], $groupConfig), function () use ($isWildcard, $resourceName, $path, $controller, $resourceOptions) {
             $this->router->get($path.'/definition', [

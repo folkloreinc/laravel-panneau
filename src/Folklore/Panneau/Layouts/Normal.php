@@ -2,11 +2,21 @@
 
 namespace Folklore\Panneau\Layouts;
 
-class Standard
+use Folklore\Panneau\Support\Layout;
+
+class Normal extends Layout
 {
-    protected $type;
+    protected $type = 'normal';
 
-    protected $header;
+    protected function header()
+    {
+        return [
+            'navbar' => config('panneau.layout.navbar')
+        ];
+    }
 
-    protected $footer;
+    protected function footer()
+    {
+        return true;
+    }
 }

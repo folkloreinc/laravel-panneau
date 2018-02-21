@@ -23,19 +23,61 @@ class Layout implements JsonSerializable, Arrayable, Jsonable
         }
     }
 
+    protected function type()
+    {
+        return 'layout';
+    }
+
+    protected function header()
+    {
+        return true;
+    }
+
+    protected function footer()
+    {
+        return false;
+    }
+
+    public function setType($type)
+    {
+        $this->type = $type;
+        return $this;
+    }
+
     public function getType()
     {
-        return $this->type;
+        if (isset($this->type)) {
+            return $this->type;
+        }
+        return $this->type();
+    }
+
+    public function setHeader($header)
+    {
+        $this->header = $header;
+        return $this;
     }
 
     public function getHeader()
     {
-        return $this->header;
+        if (isset($this->header)) {
+            return $this->header;
+        }
+        return $this->header();
+    }
+
+    public function setFooter($footer)
+    {
+        $this->footer = $footer;
+        return $this;
     }
 
     public function getFooter()
     {
-        return $this->footer;
+        if (isset($this->footer)) {
+            return $this->footer;
+        }
+        return $this->footer();
     }
 
     public function jsonSerialize()

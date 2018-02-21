@@ -112,6 +112,14 @@ class PanneauServiceProvider extends ServiceProvider
                 \Folklore\Panneau\Http\Middlewares\RedirectIfAuthenticated::class
             )
         );
+
+        $router->aliasMiddleware(
+            'panneau.resource',
+            $this->app['config']->get(
+                'panneau.routes.middlewares.resource',
+                \Folklore\Panneau\Http\Middlewares\InjectResource::class
+            )
+        );
     }
 
     public function bootViews()
@@ -131,7 +139,6 @@ class PanneauServiceProvider extends ServiceProvider
     {
         $this->registerContracts();
         $this->registerPanneau();
-        $this->registerMiddlewares();
         $this->registerRegistrar();
     }
 
@@ -166,9 +173,8 @@ class PanneauServiceProvider extends ServiceProvider
             $panneau->setName(config('panneau.name'));
             $panneau->setResources(config('panneau.resources'));
             $panneau->setBlocks(config('panneau.blocks'));
-            $panneau->setLayout(config('panneau.layout'));
-            $panneau->setDefaultRoutes(config('panneau.routes.defaultRoutes'));
-            $panneau->setCustomRoutes(config('panneau.routes.customRoutes'));
+            $panneau->setDefinitionLayout(config('panneau.definition.layout'));
+            $panneau->setDefinitionRoutes(config('panneau.definition.routes'));
             return $panneau;
         });
     }
@@ -182,14 +188,6 @@ class PanneauServiceProvider extends ServiceProvider
             $registrar->setResourceController(config('panneau.routes.controllers.resource'));
             return $registrar;
         });
-    }
-
-    public function registerMiddlewares()
-    {
-        $this->app->bind(
-            'panneau.middlewares.inject_resource',
-            \Folklore\Panneau\Http\Middlewares\InjectResource::class
-        );
     }
 
     /**

@@ -14,9 +14,8 @@ class Panneau
     protected $resources = [];
     protected $resourcesInstances = [];
     protected $blocks = [];
-    protected $layout = null;
-    protected $defaultRoutes = [];
-    protected $customRoutes = [];
+    protected $definitionLayout = null;
+    protected $definitionRoutes = [];
 
     public function __construct($app)
     {
@@ -33,53 +32,14 @@ class Panneau
         return $this->name;
     }
 
-    public function setCustomRoutes($routes)
+    public function setDefinitionRoutes($routes)
     {
-        $this->customRoutes = $routes;
+        $this->definitionRoutes = $routes;
     }
 
-    public function getCustomRoutes()
+    public function getDefinitionRoutes()
     {
-        return $this->customRoutes;
-    }
-
-    public function setDefaultRoutes($routes)
-    {
-        $this->defaultRoutes = $routes;
-    }
-
-    public function getDefaultRoutes()
-    {
-        return $this->defaultRoutes;
-    }
-
-    public function getResourcesRoutes()
-    {
-        $registrar = $this->app['panneau.registrar'];
-        $routes = array_values($registrar->getRoutesNames('resource'));
-        $resources = $this->getResources();
-        foreach ($resources as $resource) {
-            $customController = $resource->getController();
-            if (!is_null($customController)) {
-                $resourceRoutes = $registrar->getRoutesNames('resource.'.$resource->getId());
-                $routes = array_merge($routes, array_values($resourceRoutes));
-            }
-        }
-        return $routes;
-    }
-
-    public function getResourceRoutes($id)
-    {
-        $registrar = $this->app['panneau.registrar'];
-        return $registrar->getRoutesNames('resource.'.$id);
-    }
-
-    public function getAllRoutes()
-    {
-        $defaultRoutes = $this->getDefaultRoutes();
-        $resourcesRoutes = $this->getResourcesRoutes();
-        $customRoutes = $this->getCustomRoutes();
-        return array_merge($defaultRoutes, $resourcesRoutes, $customRoutes);
+        return $this->definitionRoutes;
     }
 
     public function routes()
@@ -112,6 +72,15 @@ class Panneau
         }
     }
 
+    public function getResources($fresh = false)
+    {
+        $resources = [];
+        foreach ($this->resources as $id => $resource) {
+            $resources[] = $this->resource($id, $fresh);
+        }
+        return $resources;
+    }
+
     public function resource($id, $fresh = false)
     {
         if (!array_key_exists($id, $this->resources)) {
@@ -140,15 +109,6 @@ class Panneau
         }
 
         return $resource;
-    }
-
-    public function getResources($fresh = false)
-    {
-        $resources = [];
-        foreach ($this->resources as $id => $resource) {
-            $resources[] = $this->resource($id, $fresh);
-        }
-        return $resources;
     }
 
     public function setBlock($id, $block)
@@ -182,14 +142,14 @@ class Panneau
         return $block;
     }
 
-    public function setLayout($layout)
+    public function setDefinitionLayout($layout)
     {
-        $this->layout = $layout;
+        $this->definitionLayout = $layout;
     }
 
-    public function layout()
+    public function getDefinitionLayout()
     {
-        $layout = $this->layout;
+        $layout = $this->definitionLayout;
 
         if (is_string($layout)) {
             // Assume a layout class, get instance
@@ -210,9 +170,9 @@ class Panneau
     public function getDefinition()
     {
         $name = $this->name();
-        $routes = $this->getRoutesForDefinition();
         $resources = $this->getResources();
-        $layout = $this->layout();
+        $routes = $this->getRoutesForDefinition();
+        $layout = $this->getDefinitionLayout();
 
         return new PanneauDefinition([
             'name' => $name,
@@ -232,6 +192,34 @@ class Panneau
     {
         $routes = $this->getAllRoutes();
         return $this->getPathsFromRoutes($routes);
+    }
+
+    protected function getResourcesRoutes()
+    {
+        $registrar = $this->app['panneau.registrar'];
+        $routes = array_values($registrar->getRoutesNames('resource'));
+        $resources = $this->getResources();
+        foreach ($resources as $resource) {
+            $customController = $resource->getController();
+            if (!is_null($customController)) {
+                $resourceRoutes = $registrar->getRoutesNames('resource.'.$resource->getId());
+                $routes = array_merge($routes, array_values($resourceRoutes));
+            }
+        }
+        return $routes;
+    }
+
+    protected function getResourceRoutes($id)
+    {
+        $registrar = $this->app['panneau.registrar'];
+        return $registrar->getRoutesNames('resource.'.$id);
+    }
+
+    protected function getAllRoutes()
+    {
+        $definitionRoutes = $this->getDefinitionRoutes();
+        $resourcesRoutes = $this->getResourcesRoutes();
+        return array_merge($definitionRoutes, $resourcesRoutes);
     }
 
     protected function updateRouterPatterns()

@@ -27,7 +27,49 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
             $this->forms = array_get($definition, 'forms', null);
             $this->lists = array_get($definition, 'lists', null);
             $this->validation = array_get($definition, 'validation', null);
+            $this->routes = array_get($definition, 'routes', null);
         }
+    }
+
+    protected function id()
+    {
+        return null;
+    }
+
+    protected function name()
+    {
+        return null;
+    }
+
+    protected function model()
+    {
+        return null;
+    }
+
+    protected function controller()
+    {
+        return null;
+    }
+
+    protected function forms()
+    {
+        return [];
+    }
+
+    protected function lists()
+    {
+        return [];
+    }
+
+    protected function validation()
+    {
+        return [];
+    }
+
+    protected function routes()
+    {
+        $id = $this->getId();
+        return app('panneau')->getRoutesForResource($id);
     }
 
     public function setId($id)
@@ -38,47 +80,113 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
 
     public function getId()
     {
-        return $this->id;
+        if (isset($this->id)) {
+            return $this->id;
+        }
+        return $this->id();
+    }
+
+    public function setName($name)
+    {
+        $this->name = $name;
+        return $this;
     }
 
     public function getName()
     {
-        return $this->name;
+        if (isset($this->name)) {
+            return $this->name;
+        }
+        return $this->name();
+    }
+
+    public function setController($controller)
+    {
+        $this->controller = $controller;
+        return $this;
     }
 
     public function getController()
     {
-        return $this->controller;
+        if (isset($this->controller)) {
+            return $this->controller;
+        }
+        return $this->controller();
+    }
+
+    public function setModel($model)
+    {
+        $this->model = $model;
+        return $this;
     }
 
     public function getModel()
     {
-        return $this->model;
+        if (isset($this->model)) {
+            return $this->model;
+        }
+        return $this->model();
+    }
+
+    public function setForms($forms)
+    {
+        $this->forms = $forms;
+        return $this;
     }
 
     public function getForms()
     {
-        return $this->forms;
+        if (isset($this->forms)) {
+            return $this->forms;
+        }
+        return $this->forms();
+    }
+
+    public function setLists($lists)
+    {
+        $this->lists = $lists;
+        return $this;
     }
 
     public function getLists()
     {
-        return $this->lists;
+        if (isset($this->lists)) {
+            return $this->lists;
+        }
+        return $this->lists();
+    }
+
+    public function setValidation($validation)
+    {
+        $this->validation = $validation;
+        return $this;
     }
 
     public function getValidation()
     {
-        return $this->validation;
+        if (isset($this->validation)) {
+            return $this->validation;
+        }
+        return $this->validation();
+    }
+
+    public function setRoutes($routes)
+    {
+        $this->routes = $routes;
+        return $this;
+    }
+
+    public function getRoutes()
+    {
+        if (isset($this->routes)) {
+            return $this->routes;
+        }
+        return $this->routes();
     }
 
     public function getValidationFromRequest(FormRequest $request)
     {
         return $this->getValidation();
-    }
-
-    public function getRoutes()
-    {
-        return app('panneau')->getRoutesForResource($this->id);
     }
 
     public function jsonSerialize()
@@ -93,7 +201,7 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
 
     public function toArray()
     {
-        return array_merge([
+        $data = [
             'id' => $this->getId(),
             'name' => $this->getName(),
             'controller' => $this->getController(),
@@ -101,8 +209,10 @@ class Resource implements JsonSerializable, Arrayable, Jsonable
             'forms' => $this->getForms(),
             'lists' => $this->getLists(),
             'validation' => $this->getValidation(),
-        ], !is_null($this->getController()) ? [
-            'routes' => $this->getRoutes(),
-        ] : []);
+        ];
+        if (!is_null($data['controller'])) {
+            $data['routes'] = $this->getRoutes();
+        }
+        return $data;
     }
 }

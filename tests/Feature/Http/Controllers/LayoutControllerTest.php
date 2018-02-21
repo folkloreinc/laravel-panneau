@@ -11,7 +11,7 @@ class LayoutControllerTest extends TestCase
             $response = $this->response;
         }
 
-        $definitionData = json_decode(app('panneau')->layout()->toJson(), true);
+        $definitionData = json_decode(app('panneau')->getDefinitionLayout()->toJson(), true);
         $responseData = json_decode($response->getContent(), true);
 
         $this->assertEquals(200, $response->status());

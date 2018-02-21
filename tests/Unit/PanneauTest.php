@@ -15,8 +15,7 @@ class PanneauTest extends TestCase
 
         $this->panneau = new Panneau(app());
         $this->panneau->setResources(config('panneau.resources'));
-        $this->panneau->setDefaultRoutes(config('panneau.routes.defaultRoutes'));
-        $this->panneau->setCustomRoutes(config('panneau.routes.customRoutes'));
+        $this->panneau->setDefinitionRoutes(config('panneau.definition.routes'));
     }
 
     /**
@@ -29,9 +28,18 @@ class PanneauTest extends TestCase
     public function testDefinition()
     {
         $definition = $this->panneau->getDefinition()->toArray();
-        $routes = array_map(function ($route) {
+        $definitionRoutes = array_map(function ($route) {
             return preg_replace('/^panneau\./', '', $route);
-        }, $this->panneau->getAllRoutes());
+        }, config('panneau.definition.routes'));
+        $routes = array_merge($definitionRoutes, [
+            'resource.index',
+            'resource.create',
+            'resource.store',
+            'resource.show',
+            'resource.edit',
+            'resource.update',
+            'resource.destroy',
+        ]);
         $this->assertEquals($routes, array_keys($definition['routes']));
     }
 }
