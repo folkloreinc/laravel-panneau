@@ -6,8 +6,8 @@ domready(() => {
     const panneau = new Panneau(window.panneau_definition, {
         locale: 'fr',
     });
-    panneau.componentsCollection.addComponent('fields.group', FieldsGroup);
+    panneau.components('fields.group', FieldsGroup);
 
-    const target = window.document.getElementById('panneau');
+    const target = document.getElementById('panneau');
     panneau.render(target);
 });

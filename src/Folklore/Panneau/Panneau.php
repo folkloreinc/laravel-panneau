@@ -9,7 +9,6 @@ use Folklore\Panneau\Support\PanneauDefinition;
 
 class Panneau
 {
-
     protected $app;
     protected $name = 'Simple Panneau';
     protected $resources = [];
@@ -203,6 +202,11 @@ class Panneau
         }
 
         return $layout;
+    }
+
+    public function definition()
+    {
+        return $this->getDefinition();
     }
 
     public function getDefinition()
