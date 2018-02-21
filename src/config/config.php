@@ -17,7 +17,7 @@ return [
 
         'namespace' => 'Folklore\Panneau\Http\Controllers',
 
-        'middleware' => ['api'],
+        'middleware' => ['web'],
 
         'middlewares' => [
             'auth' => \Folklore\Panneau\Http\Middlewares\Authenticate::class,
