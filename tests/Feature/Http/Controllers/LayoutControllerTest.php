@@ -4,6 +4,12 @@ use Folklore\Panneau\Models\Bubble;
 
 class LayoutControllerTest extends TestCase
 {
+    public function setUp()
+    {
+        parent::setUp();
+        app('router')->aliasMiddleware('panneau.auth', \Authenticate::class);
+    }
+
     public function testDefinition()
     {
         $response = $this->callAsJson('GET', 'panneau/definition/layout');

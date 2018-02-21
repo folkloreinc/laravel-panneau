@@ -13,6 +13,13 @@ return [
     'table_prefix' => 'panneau_',
 
     /**
+     * Authentication
+     */
+    'auth' => [
+        'user' => \App\User::class,
+    ],
+
+    /**
      * Routes
      */
     'routes' => [
@@ -49,9 +56,10 @@ return [
      * Resources
      */
     'resources' => [
-        'pages' => \Folklore\Panneau\Resources\Page::class,
-        'blocks' => \Folklore\Panneau\Resources\Block::class,
-        'bubbles' => \Folklore\Panneau\Resources\Bubble::class,
+        'pages' => \Folklore\Panneau\Resources\Pages::class,
+        'blocks' => \Folklore\Panneau\Resources\Blocks::class,
+        'bubbles' => \Folklore\Panneau\Resources\Bubbles::class,
+        'users' => \Folklore\Panneau\Resources\Users::class,
     ],
 
     /**

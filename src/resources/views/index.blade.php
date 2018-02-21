@@ -50,7 +50,20 @@
             panneau_config('definition', {!! json_encode($definition) !!});
         </script>
         <script src="/vendor/panneau/panneau.js" type="text/javascript"></script>
+
+        <!-- Uncomment if you want a custom implementation -->
         <!-- <script src="/js/panneau/main.js" type="text/javascript"></script> -->
+
+        <!-- Comment if you want a custom implementation -->
+        <script type="text/javascript">
+            window.onload = function() {
+                var config = panneau_config();
+                panneau()
+                    .setDefinition(config.definition)
+                    .setOptions(config)
+                    .render(document.getElementById('panneau'));
+            };
+        </script>
 		@stack('styles:footer')
 	@show
 

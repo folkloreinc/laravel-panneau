@@ -14,6 +14,7 @@ class BubblesControllerTest extends TestCase
     {
         parent::setUp();
         $this->runMigrations();
+        app('router')->aliasMiddleware('panneau.auth', \Authenticate::class);
     }
 
     /**

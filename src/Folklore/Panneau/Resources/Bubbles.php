@@ -4,10 +4,8 @@ namespace Folklore\Panneau\Resources;
 
 use Folklore\Panneau\Support\Resource;
 
-class Bubble extends Resource
+class Bubbles extends Resource
 {
-    protected $id = 'bubbles';
-
     protected $name = 'Bubbles';
 
     protected $model = \Folklore\Panneau\Contracts\Bubble::class;

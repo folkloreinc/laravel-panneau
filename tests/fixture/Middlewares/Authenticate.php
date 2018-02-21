@@ -1,11 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Http\Middlewares;
-
-use Closure;
-use Illuminate\Support\Facades\Auth;
-
-class RedirectIfAuthenticated
+class Authenticate
 {
     /**
      * Handle an incoming request.
@@ -17,10 +12,6 @@ class RedirectIfAuthenticated
      */
     public function handle($request, Closure $next, $guard = null)
     {
-        if (Auth::guard($guard)->check()) {
-            return route('panneau.home');
-        }
-
         return $next($request);
     }
 }

@@ -3,13 +3,18 @@
 $resources = app('panneau')->getResources();
 $controllers = config('panneau.routes.controllers');
 
-// Home
+/**
+ * Home
+ */
 $router->get('/', [
     'as' => 'panneau.home',
+    'middleware' => ['panneau.auth'],
     'uses' => $controllers['home'].'@index',
 ]);
 
-// Auth
+/**
+ * Auth
+ */
 $router->group([
     'prefix' => 'auth',
 ], function ($router) use ($controllers) {
@@ -40,22 +45,29 @@ $router->group([
     $router->post('password/reset', $controllers['reset'].'@reset');
 });
 
-// Build resource routes
-foreach ($resources as $resource) {
-    $customController = $resource->getController();
-    if (!is_null($customController)) {
-        // Create custom routes set
-        $router->panneauResource($resource->getId(), [
-            'controller' => '\\'.$customController,
-        ]);
+/**
+ * Resources
+ */
+$router->group([
+    'middleware' => ['panneau.auth'],
+], function ($router) use ($resources, $controllers) {
+    // Build resource routes
+    foreach ($resources as $resource) {
+        $customController = $resource->getController();
+        if (!is_null($customController)) {
+            // Create custom routes set
+            $router->panneauResource($resource->getId(), [
+                'controller' => '\\'.$customController,
+            ]);
+        }
     }
-}
 
-// Create catch-all route
-$router->panneauResource('*');
+    // Create catch-all route
+    $router->panneauResource('*');
 
-// Add the layout routes
-$router->get('definition/layout', [
-    'as' => 'panneau.definition.layout',
-    'uses' => $controllers['definition'].'@layout'
-]);
+    // Add the layout routes
+    $router->get('definition/layout', [
+        'as' => 'panneau.definition.layout',
+        'uses' => $controllers['definition'].'@layout'
+    ]);
+});

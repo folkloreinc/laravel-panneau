@@ -164,6 +164,11 @@ class PanneauServiceProvider extends ServiceProvider
             \Folklore\Panneau\Contracts\Block::class,
             \Folklore\Panneau\Models\Block::class
         );
+
+        $this->app->bind(
+            \Folklore\Panneau\Contracts\User::class,
+            config('panneau.auth.user')
+        );
     }
 
     public function registerPanneau()
