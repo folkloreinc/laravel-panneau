@@ -19,10 +19,18 @@ return [
 
         'middleware' => ['api'],
 
+        'middlewares' => [
+            'auth' => \Folklore\Panneau\Http\Middlewares\Authenticate::class,
+            'guest' => \Folklore\Panneau\Http\Middlewares\RedirectIfAuthenticated::class,
+        ],
+
         'controllers' => [
             'home' => 'HomeController',
             'resource' => 'ResourceController',
             'definition' => 'DefinitionController',
+            'login' => 'Auth\LoginController',
+            'forgot' => 'Auth\ForgotPasswordController',
+            'reset' => 'Auth\ResetPasswordController',
         ],
 
         'parameters' => [
@@ -32,6 +40,11 @@ return [
 
         'defaultRoutes' => [
             'panneau.home',
+            'panneau.auth.login',
+            'panneau.auth.logout',
+            'panneau.auth.password.request',
+            'panneau.auth.password.email',
+            'panneau.auth.password.reset',
         ],
 
         'customRoutes' => [

@@ -16,6 +16,14 @@
 	@section('head:scripts')
 		<!-- Head Javascript -->
 		<script src="https://cdn.polyfill.io/v2/polyfill.min.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            window._panneau_config=window._panneau_config||{};
+            function panneau_config(a,b){
+                if("undefined"===typeof a)return window._panneau_config;
+                if("undefined"===typeof b)return window._panneau_config[a];
+                window._panneau_config[a]=b
+            };
+        </script>
 		@stack('scripts:head')
 	@show
 
@@ -37,9 +45,9 @@
 
     @section('body:styles')
         <script type="text/javascript">
-            window.panneau_locale = "{{ $locale }}";
-            window.panneau_messages = {!! $messages !!};
-            window.panneau_definition = {!! $definition !!};
+            panneau_config('locale', '{{ $locale }}');
+            panneau_config('messages', {!! json_encode($messages) !!});
+            panneau_config('definition', {!! json_encode($definition) !!});
         </script>
         <script src="/vendor/panneau/panneau.js" type="text/javascript"></script>
         <!-- <script src="/js/panneau/main.js" type="text/javascript"></script> -->

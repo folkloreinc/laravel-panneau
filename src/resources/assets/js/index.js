@@ -1,13 +1,15 @@
-/* globals Panneau */
+/* globals panneau, panneau_config */
 import domready from 'domready';
 import FieldsGroup from '@panneau/fields-group';
 
 domready(() => {
-    const panneau = new Panneau(window.panneau_definition, {
-        locale: 'fr',
-    });
-    panneau.components('fields.group', FieldsGroup);
-
-    const target = document.getElementById('panneau');
-    panneau.render(target);
+    const { definition, ...opts } = panneau_config();
+    panneau()
+        .setDefinition(definition)
+        .setOptions({
+            locale: 'fr',
+            ...opts,
+        })
+        .components('fields.group', FieldsGroup)
+        .render(document.getElementById('panneau'));
 });

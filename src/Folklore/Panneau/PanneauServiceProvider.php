@@ -92,14 +92,34 @@ class PanneauServiceProvider extends ServiceProvider
     public function bootRouter()
     {
         $router = $this->getRouter();
+
         $router->macro('panneauResource', function ($id, $options = []) {
             return app('panneau.registrar')->resource($id, $options);
         });
+
+        $router->aliasMiddleware(
+            'panneau.auth',
+            $this->app['config']->get(
+                'panneau.routes.middlewares.auth',
+                \Folklore\Panneau\Http\Middlewares\Authenticate::class
+            )
+        );
+
+        $router->aliasMiddleware(
+            'panneau.guest',
+            $this->app['config']->get(
+                'panneau.routes.middlewares.guest',
+                \Folklore\Panneau\Http\Middlewares\RedirectIfAuthenticated::class
+            )
+        );
     }
 
     public function bootViews()
     {
-        $this->app['view']->composer('panneau::index', \Folklore\Panneau\Composers\IndexComposer::class);
+        $this->app['view']->composer(
+            'panneau::index',
+            \Folklore\Panneau\Composers\IndexComposer::class
+        );
     }
 
     /**

@@ -1,10 +1,44 @@
 <?php
 
+$resources = app('panneau')->getResources();
+$controllers = config('panneau.routes.controllers');
+
 // Home
 $router->get('/', [
     'as' => 'panneau.home',
     'uses' => $controllers['home'].'@index',
 ]);
+
+// Auth
+$router->group([
+    'prefix' => 'auth',
+], function ($router) use ($controllers) {
+    // Authentication Routes...
+    $router->get('login', [
+        'as' => 'panneau.auth.login',
+        'uses' => $controllers['login'].'@showLoginForm',
+    ]);
+    $router->post('login', $controllers['login'].'@login');
+    $router->post('logout', [
+        'as' => 'panneau.auth.logout',
+        'uses' => $controllers['login'].'@logout',
+    ]);
+
+    // Password Reset Routes...
+    $router->get('password/reset', [
+        'as' => 'panneau.auth.password.request',
+        'uses' => $controllers['forgot'].'@showLinkRequestForm'
+    ]);
+    $router->post('password/email', [
+        'as' => 'panneau.auth.password.email',
+        'uses' => $controllers['forgot'].'@sendResetLinkEmail',
+    ]);
+    $router->get('password/reset/{token}', [
+        'as' => 'panneau.auth.password.reset',
+        'uses' => $controllers['reset'].'@showResetForm',
+    ]);
+    $router->post('password/reset', $controllers['reset'].'@reset');
+});
 
 // Build resource routes
 foreach ($resources as $resource) {

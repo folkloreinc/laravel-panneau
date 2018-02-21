@@ -93,9 +93,7 @@ class Panneau
         $router = $this->app->bound('router') ? $this->app['router'] : $this->app;
         $config = $this->app['config']->get('panneau.routes', []);
         $routeGroupConfig = array_only($config, ['prefix', 'namespace', 'middleware', 'domain']);
-        $router->group($routeGroupConfig, function ($router) use ($config) {
-            $controllers = array_get($config, 'controllers', []);
-            $resources = $this->getResources();
+        $router->group($routeGroupConfig, function ($router) {
             $routesPath = is_file(base_path('routes/panneau.php')) ?
                 base_path('routes/panneau.php') : (__DIR__ . '/../../routes/panneau.php');
             require $routesPath;
