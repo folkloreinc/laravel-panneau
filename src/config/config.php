@@ -149,6 +149,19 @@ return [
                     ]
                 ],
             ],
+            'validation' => [
+                'rules' => [
+                    'data.title.en' => 'required',
+                    'data.title.fr' => 'required',
+                ],
+                'messages' => [
+                    'required' => 'The field :attribute is required',
+                ],
+                'attributes' => [
+                    'data.title.fr' => '"Title FR"',
+                    'data.title.en' => '"Title EN"',
+                ],
+            ]
         ],
     ],
 

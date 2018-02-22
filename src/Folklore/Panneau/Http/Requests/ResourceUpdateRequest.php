@@ -6,5 +6,5 @@ use Folklore\Panneau\Http\Requests\ResourceRequest;
 
 class ResourceUpdateRequest extends ResourceRequest
 {
-    protected $validationPrefix = 'update';
+
 }

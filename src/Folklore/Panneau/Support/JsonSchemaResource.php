@@ -70,24 +70,19 @@ class JsonSchemaResource extends Resource
         $schemas = $this->getSchemasFromModel();
         $fields = $this->getFieldsFromSchemas($schemas);
 
-        if (!array_has($validation, 'store.rules')) {
-            $validationStoreRules = $this->mutateFieldsToValidationRules($fields);
-            array_set($validation, 'store.rules', $validationStoreRules);
+        if (!array_has($validation, 'rules')) {
+            $validationRules = $this->mutateFieldsToValidationRules($fields);
+            array_set($validation, 'rules', $validationRules);
         }
 
-        if (!array_has($validation, 'store.attributes')) {
-            $validationStoreAttributes = $this->mutateFieldsToValidationAttributes($fields);
-            array_set($validation, 'store.attributes', $validationStoreAttributes);
+        if (!array_has($validation, 'messages')) {
+            $validationMessages = $this->mutateFieldsToValidationRules($fields);
+            array_set($validation, 'rules', $validationMessages);
         }
 
-        if (!array_has($validation, 'update.rules')) {
-            $validationUpdateRules = $this->mutateFieldsToValidationRules($fields);
-            array_set($validation, 'update.rules', $validationUpdateRules);
-        }
-
-        if (!array_has($validation, 'update.attributes')) {
-            $validationUpdateAttributes = $this->mutateFieldsToValidationAttributes($fields);
-            array_set($validation, 'update.attributes', $validationUpdateAttributes);
+        if (!array_has($validation, 'attributes')) {
+            $validationAttributes = $this->mutateFieldsToValidationAttributes($fields);
+            array_set($validation, 'attributes', $validationAttributes);
         }
 
         return $validation;
