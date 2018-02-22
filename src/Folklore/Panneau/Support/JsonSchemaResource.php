@@ -8,14 +8,6 @@ class JsonSchemaResource extends Resource
 {
     protected $jsonSchema;
 
-    public function __construct($definition = null)
-    {
-        parent::__construct($definition);
-        if (!is_null($definition)) {
-            $this->jsonSchema = array_get($definition, 'jsonSchema', null);
-        }
-    }
-
     public function getForms()
     {
         return $this->getFormsFromSchema();
