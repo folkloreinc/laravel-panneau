@@ -10,7 +10,7 @@ use Folklore\Panneau\Support\PanneauDefinition;
 class Panneau
 {
     protected $app;
-    protected $name = 'Simple Panneau';
+    protected $name = null;
     protected $resources = [];
     protected $resourcesInstances = [];
     protected $blocks = [];
@@ -224,17 +224,8 @@ class Panneau
 
     protected function updateRouterPatterns()
     {
-        $router = $this->app->bound('router') ? $this->app['router'] : $this->app;
         $resources = $this->getResources();
-        $paramName = $this->app['config']->get('panneau.routes.parameters.resource', 'resource');
-        $ids = ['_resource'];
-        foreach ($resources as $resource) {
-            if (is_null($resource->getController())) {
-                $ids[] = $resource->getId();
-            }
-        }
-
-        $router->pattern($paramName, implode('|', $ids));
+        $this->app['panneau.registrar']->updateResourcesPattern($resources);
     }
 
     protected function getPathsFromRoutes($routes)

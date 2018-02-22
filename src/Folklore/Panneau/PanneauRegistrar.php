@@ -33,16 +33,34 @@ class PanneauRegistrar
     public function setResourceParameterName($name)
     {
         $this->resourceParameterName = $name;
+        return $this;
+    }
+
+    public function getResourceParameterName()
+    {
+        return $this->resourceParameterName;
     }
 
     public function setIdParameterName($name)
     {
         $this->idParameterName = $name;
+        return $this;
+    }
+
+    public function getIdParameterName()
+    {
+        return $this->idParameterName;
     }
 
     public function setResourceController($controller)
     {
         $this->resourceController = $controller;
+        return $this;
+    }
+
+    public function getResourceController()
+    {
+        return $this->resourceController;
     }
 
     public function resource($resourceName, $options = [])
@@ -89,6 +107,18 @@ class PanneauRegistrar
             $names[$action] = $this->getRouteName($resource, $action);
         }
         return $names;
+    }
+
+    public function updateResourcesPattern($resources)
+    {
+        $paramName = $this->getResourceParameterName();
+        $ids = ['_resource'];
+        foreach ($resources as $resource) {
+            if (is_null($resource->getController())) {
+                $ids[] = $resource->getId();
+            }
+        }
+        $this->router->pattern($paramName, implode('|', $ids));
     }
 
     protected function getRouteName($resource, $action)
