@@ -1,15 +1,15 @@
 <?php
 
-namespace Folklore\Panneau\Support;
+namespace Folklore\Panneau\Schemas\Blocks;
 
 use Folklore\EloquentJsonSchema\Support\JsonSchema;
 
-class Block extends JsonSchema
+class Base extends JsonSchema
 {
     protected function properties()
     {
         return [
-
+            
         ];
     }
 }

@@ -10,12 +10,18 @@ abstract class Definition implements JsonSerializable, Arrayable, Jsonable
 {
     public function __construct($definition = [])
     {
+        $this->setDefinition($definition);
+    }
+
+    public function setDefinition($definition)
+    {
         foreach ($definition as $key => $value) {
             if ($this->hasProperty($key)) {
                 $methodName = 'set'.studly_case($key);
                 $this->{$methodName}($value);
             }
         }
+        return $this;
     }
 
     public function set($key, $value)

@@ -1,13 +1,15 @@
 <?php
 
-namespace Folklore\Panneau\Schemas;
+namespace Folklore\Panneau\Schemas\Bubbles;
 
 use Folklore\EloquentJsonSchema\Support\JsonSchema;
 
-class BlockData extends JsonSchema
+class Base extends JsonSchema
 {
     protected function properties()
     {
-        return [];
+        return [
+
+        ];
     }
 }

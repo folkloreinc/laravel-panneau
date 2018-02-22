@@ -8,6 +8,7 @@ use Folklore\EloquentJsonSchema\Contracts\HasJsonSchema as HasJsonSchemaContract
 use Folklore\Mediatheque\Support\Traits\HasMedias;
 use Folklore\Panneau\Contracts\Page as PageContract;
 use Folklore\Panneau\Contracts\Block as BlockContract;
+use Folklore\Panneau\Schemas\Blocks\Base as BaseSchema;
 
 class Block extends Model implements
     HasJsonSchemaContract
@@ -39,9 +40,7 @@ class Block extends Model implements
         'type' => 'string',
     ];
 
-    protected $jsonSchemas = [
-        'data' => \Folklore\Panneau\Schemas\BlockData::class,
-    ];
+    protected $jsonSchemas = [];
 
     protected $jsonSchemasReducers = [
         \Folklore\Panneau\Reducers\BlocksReducer::class,
@@ -53,6 +52,14 @@ class Block extends Model implements
         'order_column_name' => 'order',
         'sort_when_creating' => false,
     ];
+
+    public function getJsonSchemas()
+    {
+        $schema = app('panneau')->block($this->type);
+        return array_merge([
+            'data' => !is_null($schema) ? $schema : BaseSchema::class,
+        ], $this->jsonSchemas);
+    }
 
     public function blocks()
     {

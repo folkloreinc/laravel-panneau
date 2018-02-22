@@ -4,8 +4,7 @@ use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Folklore\EloquentJsonSchema\Support\JsonSchema;
 use Folklore\Panneau\Models\Page;
 use Folklore\Panneau\Models\Block;
-use Folklore\Panneau\Schemas\Page as PageSchema;
-use Folklore\Panneau\Schemas\PageData;
+use Folklore\Panneau\Schemas\Pages\Base as PageBaseSchema;
 use Folklore\Panneau\Schemas\Fields\Blocks as BlocksField;
 
 class PageTest extends TestCase
@@ -22,9 +21,9 @@ class PageTest extends TestCase
 
         $this->runMigrations();
 
-        $this->schema = new PageData();
+        $this->schema = new PageBaseSchema();
 
-        $this->relationsSchema = with(new PageData())
+        $this->relationsSchema = with(new PageBaseSchema())
             ->addProperty('blocks', BlocksField::class);
     }
 
