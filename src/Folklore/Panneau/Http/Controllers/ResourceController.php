@@ -6,8 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Folklore\Panneau\Support\Resource;
-use Folklore\Panneau\Http\Requests\ResourceStoreRequest;
-use Folklore\Panneau\Http\Requests\ResourceUpdateRequest;
+use Folklore\Panneau\Contracts\ResourceStoreRequest;
+use Folklore\Panneau\Contracts\ResourceUpdateRequest;
 
 class ResourceController extends Controller
 {

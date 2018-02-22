@@ -169,6 +169,17 @@ class PanneauServiceProvider extends ServiceProvider
             \Folklore\Panneau\Contracts\User::class,
             config('panneau.auth.user')
         );
+
+        // Requests
+        $this->app->bind(
+            \Folklore\Panneau\Contracts\ResourceStoreRequest::class,
+            \Folklore\Panneau\Http\Requests\ResourceStoreRequest::class
+        );
+
+        $this->app->bind(
+            \Folklore\Panneau\Contracts\ResourceUpdateRequest::class,
+            \Folklore\Panneau\Http\Requests\ResourceUpdateRequest::class
+        );
     }
 
     public function registerPanneau()
