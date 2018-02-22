@@ -37,7 +37,7 @@ class Bubble extends Model implements
     ];
 
     protected $jsonSchemas = [
-        'data' => \Folklore\Panneau\Schemas\BubbleData::class,
+        'data' => \Folklore\Panneau\Schemas\Bubbles\Base::class,
     ];
 
     protected $jsonSchemasReducers = [

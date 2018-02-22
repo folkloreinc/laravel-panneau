@@ -1,10 +1,8 @@
 <?php
 
-namespace Folklore\Panneau\Support;
+namespace Folklore\Panneau;
 
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
-use \JsonSerializable;
+use Folklore\Panneau\Support\Definition;
 
 class PanneauDefinition extends Definition
 {

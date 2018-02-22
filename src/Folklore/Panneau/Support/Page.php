@@ -4,7 +4,7 @@ namespace Folklore\Panneau\Support;
 
 use Folklore\EloquentJsonSchema\Support\JsonSchema;
 
-class Block extends JsonSchema
+class Page extends JsonSchema
 {
     protected function properties()
     {

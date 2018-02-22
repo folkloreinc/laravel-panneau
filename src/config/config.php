@@ -63,10 +63,17 @@ return [
     ],
 
     /**
+     * Pages
+     */
+    'pages' => [
+        'base' => \Folklore\Panneau\Schemas\Pages\Base::class,
+    ],
+
+    /**
      * Blocks
      */
     'blocks' => [
-
+        'base' => \Folklore\Panneau\Schemas\Blocks\Base::class,
     ],
 
     /**

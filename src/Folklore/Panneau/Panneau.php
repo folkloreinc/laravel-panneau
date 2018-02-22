@@ -5,15 +5,17 @@ namespace Folklore\Panneau;
 use Illuminate\Container\Container;
 use Folklore\Panneau\Support\Resource;
 use Folklore\Panneau\Support\Layout;
-use Folklore\Panneau\Support\PanneauDefinition;
+use Folklore\Panneau\Support\Page;
+use Folklore\Panneau\Support\Block;
 
 class Panneau
 {
     protected $app;
     protected $name = null;
     protected $resources = [];
-    protected $resourcesInstances = [];
+    protected $singletons = [];
     protected $blocks = [];
+    protected $pages = [];
     protected $definitionLayout = null;
     protected $definitionRoutes = [];
 
@@ -40,6 +42,18 @@ class Panneau
     public function getDefinitionRoutes()
     {
         return $this->definitionRoutes;
+    }
+
+    public function setDefinitionLayout($layout)
+    {
+        $this->definitionLayout = $layout;
+    }
+
+    public function getDefinitionLayout()
+    {
+        $definition = $this->definitionLayout;
+        $layout = is_string($definition) ? app($definition) : new Layout($definition);
+        return $layout;
     }
 
     public function routes()
@@ -72,40 +86,23 @@ class Panneau
         }
     }
 
-    public function getResources($fresh = false)
+    public function getResources($singleton = true)
     {
         $resources = [];
         foreach ($this->resources as $id => $resource) {
-            $resources[] = $this->resource($id, $fresh);
+            $resources[$id] = $this->resource($id, $singleton);
         }
         return $resources;
     }
 
-    public function resource($id, $fresh = false)
+    public function resource($id, $singleton = true)
     {
-        if (!array_key_exists($id, $this->resources)) {
-            return null;
-        }
+        $resource = $singleton
+            ? $this->makeSingleton('resources', $id, Resource::class)
+            : $this->make('resources', $id, Resource::class);
 
-        if (!$fresh && isset($this->resourcesInstances[$id])) {
-            return $this->resourcesInstances[$id];
-        }
-
-        $resource = $this->resources[$id];
-
-        if (is_string($resource)) {
-            // Assume a resource class path, get instance
-            $resource = app($resource);
-        } else {
-            // Create new instance from data array
-            $resource = new Resource($resource);
-        }
-
-        // Set id from specified id
-        $resource->setId($id);
-
-        if (!$fresh) {
-            $this->resourcesInstances[$id] = $resource;
+        if (!is_null($resource)) {
+            $resource->setId($id);
         }
 
         return $resource;
@@ -125,41 +122,32 @@ class Panneau
 
     public function block($id)
     {
-        if (!array_key_exists($id, $this->blocks)) {
-            return null;
+        $block = $this->make('blocks', $id, Block::class);
+        if (!is_null($block)) {
+            $block->setName($id);
         }
-
-        $block = $this->blocks[$id];
-
-        if (is_string($block)) {
-            // Assume a block class path, get instance
-            $block = app($block);
-        } else {
-            // Create new instance from data array
-            $block = new Resource($block + ['id' => $id]);
-        }
-
         return $block;
     }
 
-    public function setDefinitionLayout($layout)
+    public function setPage($id, $page)
     {
-        $this->definitionLayout = $layout;
+        $this->pages[$id] = $page;
     }
 
-    public function getDefinitionLayout()
+    public function setPages(array $pages)
     {
-        $layout = $this->definitionLayout;
-
-        if (is_string($layout)) {
-            // Assume a layout class, get instance
-            $layout = app($layout);
-        } else {
-            // Create new instance from data array
-            $layout = new Layout($layout);
+        foreach ($pages as $id => $definition) {
+            $this->setPage($id, $definition);
         }
+    }
 
-        return $layout;
+    public function page($id)
+    {
+        $page = $this->make('pages', $id, Page::class);
+        if (!is_null($page)) {
+            $page->setName($id);
+        }
+        return $page;
     }
 
     public function definition()
@@ -174,12 +162,14 @@ class Panneau
         $routes = $this->getRoutesForDefinition();
         $layout = $this->getDefinitionLayout();
 
-        return new PanneauDefinition([
+        $definition = app(\Folklore\Panneau\Contracts\PanneauDefinition::class);
+        $definition->setDefinition([
             'name' => $name,
             'routes' => $routes,
             'resources' => $resources,
             'layout' => $layout,
         ]);
+        return $definition;
     }
 
     public function getRoutesForResource($resource)
@@ -192,6 +182,27 @@ class Panneau
     {
         $routes = $this->getAllRoutes();
         return $this->getPathsFromRoutes($routes);
+    }
+
+    protected function make($type, $id, $class)
+    {
+        if (!array_key_exists($id, $this->{$type})) {
+            return null;
+        }
+
+        $definition = $this->{$type}[$id];
+        return is_string($definition) ? app($definition) : new $class($definition);
+    }
+
+    protected function makeSingleton($type, $id, $class)
+    {
+        $instance = array_get($this->singletons, $type.'.'.$id, null);
+        if (!is_null($instance)) {
+            return $instance;
+        }
+        $instance = $this->make($type, $id, $class);
+        array_set($this->singletons, $type.'.'.$id, $instance);
+        return $instance;
     }
 
     protected function getResourcesRoutes()

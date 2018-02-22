@@ -170,6 +170,12 @@ class PanneauServiceProvider extends ServiceProvider
             config('panneau.auth.user')
         );
 
+        // Definition
+        $this->app->bind(
+            \Folklore\Panneau\Contracts\PanneauDefinition::class,
+            \Folklore\Panneau\PanneauDefinition::class
+        );
+
         // Requests
         $this->app->bind(
             \Folklore\Panneau\Contracts\ResourceStoreRequest::class,
@@ -189,6 +195,7 @@ class PanneauServiceProvider extends ServiceProvider
             $panneau->setName(config('panneau.name'));
             $panneau->setResources(config('panneau.resources'));
             $panneau->setBlocks(config('panneau.blocks'));
+            $panneau->setPages(config('panneau.pages'));
             $panneau->setDefinitionLayout(config('panneau.definition.layout'));
             $panneau->setDefinitionRoutes(config('panneau.definition.routes'));
             return $panneau;
