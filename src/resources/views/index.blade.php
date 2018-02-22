@@ -17,6 +17,7 @@
 		<!-- Head Javascript -->
 		<script src="https://cdn.polyfill.io/v2/polyfill.min.js" type="text/javascript"></script>
         <script type="text/javascript">
+            var PANNEAU_ASSETS_PATH = '{{ assets('vendor/panneau/') }}';
             window._panneau_config=window._panneau_config||{};
             function panneau_config(a,b){
                 if("undefined"===typeof a)return window._panneau_config;
