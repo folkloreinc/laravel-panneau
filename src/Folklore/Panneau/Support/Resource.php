@@ -2,7 +2,7 @@
 
 namespace Folklore\Panneau\Support;
 
-use Illuminate\Http\Request;
+use Folklore\Panneau\Http\Requests\ResourceRequest;
 
 class Resource extends Definition
 {
@@ -61,7 +61,7 @@ class Resource extends Definition
         return app('panneau')->getRoutesForResource($id);
     }
 
-    public function getValidationFromRequest(Request $request)
+    public function getValidationFromRequest(ResourceRequest $request)
     {
         return $this->getValidation();
     }
