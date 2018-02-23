@@ -1,6 +1,8 @@
 /* globals panneau, panneau_config */
 import domready from 'domready';
 
+import '../styles/main.global.scss';
+
 domready(() => {
     const { definition, ...opts } = panneau_config();
     panneau()

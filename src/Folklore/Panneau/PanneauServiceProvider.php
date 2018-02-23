@@ -40,8 +40,7 @@ class PanneauServiceProvider extends ServiceProvider
         $migrationsPath = __DIR__ . '/../../migrations/';
         $viewsPath = __DIR__ . '/../../resources/views/';
         $langPath = __DIR__ . '/../../resources/lang/';
-        $jsPath = __DIR__ . '/../../resources/assets/js/';
-        $scssPath = __DIR__ . '/../../resources/assets/scss/';
+        $assetsPath = __DIR__ . '/../../resources/assets/';
         $vendorPath = __DIR__ . '/../../vendor/';
 
         // Config
@@ -80,8 +79,7 @@ class PanneauServiceProvider extends ServiceProvider
         ], 'lang');
 
         $this->publishes([
-            $jsPath => base_path('resources/assets/js/panneau'),
-            $scssPath => base_path('resources/assets/scss/panneau')
+            $assetsPath => base_path('resources/assets/vendor/panneau')
         ], 'assets');
 
         $this->publishes([

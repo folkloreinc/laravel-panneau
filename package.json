@@ -26,10 +26,16 @@
         "panneau": "^0.3.62"
     },
     "devDependencies": {
+        "babel-eslint": "^8.2.2",
         "babel-plugin-transform-object-rest-spread": "^6.26.0",
         "babel-preset-env": "^1.6.1",
         "babel-register": "^6.26.0",
         "glob": "^7.1.2",
-        "mkdirp": "^0.5.1"
+        "mkdirp": "^0.5.1",
+        "eslint": "^4.18.1",
+        "eslint-config-airbnb": "^16.1.0",
+        "eslint-plugin-import": "^2.8.0",
+        "eslint-plugin-jsx-a11y": "^6.0.3",
+        "eslint-plugin-react": "^7.7.0"
     }
 }

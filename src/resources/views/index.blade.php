@@ -30,7 +30,7 @@
 
 	@section('head:styles')
         <link href="/vendor/panneau/panneau.css" rel="stylesheet" type="text/css" />
-        <!-- <link href="/css/panneau/main.css" rel="stylesheet" type="text/css" /> -->
+        <!-- <link href="/panneau/main.css" rel="stylesheet" type="text/css" /> -->
 		@stack('styles:head')
 	@show
 
@@ -53,7 +53,7 @@
         <script src="/vendor/panneau/panneau.js" type="text/javascript"></script>
 
         <!-- Uncomment if you want a custom implementation -->
-        <!-- <script src="/js/panneau/main.js" type="text/javascript"></script> -->
+        <!-- <script src="/panneau/main.js" type="text/javascript"></script> -->
 
         <!-- Comment if you want a custom implementation -->
         <script type="text/javascript">
