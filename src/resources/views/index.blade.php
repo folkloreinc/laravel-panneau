@@ -30,7 +30,10 @@
 
 	@section('head:styles')
         <link href="/vendor/panneau/panneau.css" rel="stylesheet" type="text/css" />
+        @if (app()->environment() === 'production')
+        <!-- Uncomment if you want a custom implementation -->
         <!-- <link href="/panneau/main.css" rel="stylesheet" type="text/css" /> -->
+        @endif
 		@stack('styles:head')
 	@show
 
