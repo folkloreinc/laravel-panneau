@@ -186,22 +186,29 @@ class Panneau
 
     protected function make($type, $id, $class)
     {
-        if (!array_key_exists($id, $this->{$type})) {
+        $normalizedId = snake_case($id);
+        $keys = array_keys($this->{$type});
+        $foundKey = array_first($keys, function ($key, $index) use ($normalizedId) {
+            $key = is_int($key) ? $index : $key;
+            return snake_case($key) === $normalizedId;
+        });
+        if (is_null($foundKey)) {
             return null;
         }
 
-        $definition = $this->{$type}[$id];
+        $definition = $this->{$type}[$foundKey];
         return is_string($definition) ? app($definition) : new $class($definition);
     }
 
     protected function makeSingleton($type, $id, $class)
     {
-        $instance = array_get($this->singletons, $type.'.'.$id, null);
+        $normalizedId = snake_case($id);
+        $instance = array_get($this->singletons, $type.'.'.$normalizedId, null);
         if (!is_null($instance)) {
             return $instance;
         }
-        $instance = $this->make($type, $id, $class);
-        array_set($this->singletons, $type.'.'.$id, $instance);
+        $instance = $this->make($type, $normalizedId, $class);
+        array_set($this->singletons, $type.'.'.$normalizedId, $instance);
         return $instance;
     }
 
