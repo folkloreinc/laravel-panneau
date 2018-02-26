@@ -7,7 +7,7 @@ class LayoutControllerTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        app('router')->aliasMiddleware('panneau.auth', \Authenticate::class);
+        $this->withoutAuthentication();
     }
 
     public function testDefinition()

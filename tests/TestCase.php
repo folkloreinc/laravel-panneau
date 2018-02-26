@@ -47,6 +47,16 @@ class TestCase extends BaseTestCase
         ];
     }
 
+    protected function withoutAuthentication()
+    {
+        $router = app('router');
+        if (method_exists($router, 'aliasMiddleware')) {
+            $router->aliasMiddleware('panneau.auth', \Authenticate::class);
+        } else {
+            $router->middleware('panneau.auth', \Authenticate::class);
+        }
+    }
+
     protected function callAsJson($method, $uri, $data = [])
     {
         $content = json_encode($data);
