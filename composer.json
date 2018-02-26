@@ -41,16 +41,15 @@
     "autoload": {
         "psr-0": {
             "Folklore\\Panneau": "src/"
-        }
+        },
+        "files": [
+            "src/Folklore/Panneau/helpers.php"
+        ]
     },
     "autoload-dev": {
         "classmap": [
             "tests/"
-        ],
-        "psr-0": {
-            "Folklore\\Mediatheque": "../laravel-mediatheque/src/",
-            "Folklore\\EloquentJsonSchema": "../eloquent-json-schema/src/"
-        }
+        ]
     },
     "extra": {
         "laravel": {
