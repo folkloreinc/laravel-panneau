@@ -20,7 +20,7 @@ class JsonSchemaResource extends Resource
 
     protected function getSchemasFromModel()
     {
-        $model = app($this->model);
+        $model = resolve($this->model);
         $schemas = $model->getJsonSchemas();
         return $schemas;
     }
@@ -29,7 +29,7 @@ class JsonSchemaResource extends Resource
     {
         $fields = [];
         foreach ($schemas as $field => $schema) {
-            $schema = app($schema);
+            $schema = resolve($schema);
             $properties = $schema->getProperties();
             foreach ($properties as $name => $prop) {
                 $fieldArray = $prop->toFieldArray();
