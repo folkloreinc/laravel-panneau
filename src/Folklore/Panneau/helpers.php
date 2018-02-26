@@ -1,6 +1,6 @@
 <?php
 
-if (! function_exists('panneau')) {
+if (!function_exists('panneau')) {
     /**
      * Get the panneau instance
      *
@@ -9,5 +9,19 @@ if (! function_exists('panneau')) {
     function panneau()
     {
         return app('panneau');
+    }
+}
+
+// Missing method in Laravel 5.2
+if (! function_exists('resolve')) {
+    /**
+     * Resolve a service from the container.
+     *
+     * @param  string  $name
+     * @return mixed
+     */
+    function resolve($name)
+    {
+        return app($name);
     }
 }
