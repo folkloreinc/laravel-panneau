@@ -95,29 +95,32 @@ class PanneauServiceProvider extends ServiceProvider
             return app('panneau.registrar')->resource($id, $options);
         });
 
-        $router->aliasMiddleware(
-            'panneau.auth',
-            $this->app['config']->get(
-                'panneau.routes.middlewares.auth',
+        $configMiddlewares = $this->app['config']->get('panneau.routes.middlewares', []);
+        $middlewares = [
+            'panneau.auth' => array_get(
+                $configMiddlewares,
+                'auth',
                 \Folklore\Panneau\Http\Middlewares\Authenticate::class
-            )
-        );
-
-        $router->aliasMiddleware(
-            'panneau.guest',
-            $this->app['config']->get(
-                'panneau.routes.middlewares.guest',
+            ),
+            'panneau.guest' => array_get(
+                $configMiddlewares,
+                'guest',
                 \Folklore\Panneau\Http\Middlewares\RedirectIfAuthenticated::class
-            )
-        );
-
-        $router->aliasMiddleware(
-            'panneau.resource',
-            $this->app['config']->get(
-                'panneau.routes.middlewares.resource',
+            ),
+            'panneau.resource' => array_get(
+                $configMiddlewares,
+                'resource',
                 \Folklore\Panneau\Http\Middlewares\InjectResource::class
-            )
-        );
+            ),
+        ];
+
+        foreach ($middlewares as $key => $class) {
+            if (method_exists($router, 'aliasMiddleware')) {
+                $router->aliasMiddleware($key, $class);
+            } else {
+                $router->middleware($key, $class);
+            }
+        }
     }
 
     public function bootViews()
