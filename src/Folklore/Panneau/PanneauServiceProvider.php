@@ -4,6 +4,10 @@ namespace Folklore\Panneau;
 
 use Illuminate\Support\ServiceProvider;
 
+use Folklore\Panneau\Console\BlockMakeCommand;
+use Folklore\Panneau\Console\PageMakeCommand;
+use Folklore\Panneau\Console\FieldMakeCommand;
+
 class PanneauServiceProvider extends ServiceProvider
 {
     /**
@@ -141,6 +145,7 @@ class PanneauServiceProvider extends ServiceProvider
         $this->registerContracts();
         $this->registerPanneau();
         $this->registerRegistrar();
+        $this->registerConsole();
     }
 
     /**
@@ -214,6 +219,27 @@ class PanneauServiceProvider extends ServiceProvider
         });
     }
 
+    public function registerConsole()
+    {
+        $this->app->singleton('panneau.command.block.make', function ($app) {
+            return new BlockMakeCommand($app['files']);
+        });
+
+        $this->app->singleton('panneau.command.page.make', function ($app) {
+            return new PageMakeCommand($app['files']);
+        });
+
+        $this->app->singleton('panneau.command.field.make', function ($app) {
+            return new FieldMakeCommand($app['files']);
+        });
+
+        $this->commands([
+            'panneau.command.block.make',
+            'panneau.command.page.make',
+            'panneau.command.field.make',
+        ]);
+    }
+
     /**
      * Get the services provided by the provider.
      *
@@ -221,6 +247,6 @@ class PanneauServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return ['panneau'];
+        return ['panneau', 'panneau.registrar'];
     }
 }

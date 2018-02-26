@@ -1,0 +1,15 @@
+<?php
+
+namespace DummyNamespace;
+
+use Folklore\Panneau\Support\JsonSchemaField;
+
+class DummyClass extends JsonSchemaField
+{
+    protected function properties()
+    {
+        return [
+
+        ];
+    }
+}

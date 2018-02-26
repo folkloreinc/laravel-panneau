@@ -1,22 +1,23 @@
 <?php
 
-namespace Folklore\Panneau\Schemas\Pages;
+namespace DummyNamespace;
 
-use Folklore\Panneau\Support\Page;
+use Folklore\Panneau\Support\Page as BasePage;
 use Folklore\Panneau\Schemas\Fields\TextLocale as TextLocaleField;
 use Folklore\Panneau\Schemas\Fields\Page as PageField;
 use Folklore\Panneau\Schemas\Fields\Blocks as BlocksField;
 
-class Base extends Page
+class DummyClass extends BasePage
 {
     protected function properties()
     {
         return [
-            'slug' => new TextLocaleField([
-                'label' => 'Slug',
-            ]),
             'title' => new TextLocaleField([
                 'label' => 'Title',
+            ]),
+
+            'slug' => new TextLocaleField([
+                'label' => 'Slug',
             ]),
 
             'parent' => new PageField([

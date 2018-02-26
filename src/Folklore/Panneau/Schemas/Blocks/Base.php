@@ -2,14 +2,14 @@
 
 namespace Folklore\Panneau\Schemas\Blocks;
 
-use Folklore\EloquentJsonSchema\Support\JsonSchema;
+use Folklore\Panneau\Support\Block;
 
-class Base extends JsonSchema
+class Base extends Block
 {
     protected function properties()
     {
         return [
-            
+
         ];
     }
 }

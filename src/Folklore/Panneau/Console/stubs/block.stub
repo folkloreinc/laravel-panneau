@@ -1,0 +1,15 @@
+<?php
+
+namespace DummyNamespace;
+
+use Folklore\Panneau\Support\Block as BaseBlock;
+
+class DummyClass extends BaseBlock
+{
+    protected function properties()
+    {
+        return [
+
+        ];
+    }
+}
