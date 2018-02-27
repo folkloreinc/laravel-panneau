@@ -25,7 +25,8 @@
         "guzzlehttp/guzzle": "5.3|~6.0",
         "spatie/eloquent-sortable": "^2.0|^3.0",
         "folklore/eloquent-json-schema": "~0.9",
-        "folklore/laravel-mediatheque": "v1.x-dev"
+        "folklore/laravel-mediatheque": "v1.x-dev",
+        "alchemy/binary-driver": "dev-master as 1.6.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",
@@ -33,8 +34,7 @@
         "orchestra/testbench": "3.3.*|3.4.*|3.5.*|3.6.*",
         "mockery/mockery": "0.9.*|1.0.*",
         "phpunit/phpunit": "~4.0|~4.1|~5.4|~5.7|~6.0|~7.0",
-        "satooshi/php-coveralls": "^2.0",
-        "alchemy/binary-driver": "dev-master as 1.6.0"
+        "satooshi/php-coveralls": "^2.0"
     },
     "autoload": {
         "psr-0": {
