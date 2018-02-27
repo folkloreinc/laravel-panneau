@@ -3,9 +3,6 @@
 namespace Folklore\Panneau\Schemas\Pages;
 
 use Folklore\Panneau\Support\Page;
-use Folklore\Panneau\Schemas\Fields\TextLocale as TextLocaleField;
-use Folklore\Panneau\Schemas\Fields\Page as PageField;
-use Folklore\Panneau\Schemas\Fields\Blocks as BlocksField;
 
 class Base extends Page
 {
