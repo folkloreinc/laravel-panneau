@@ -7,7 +7,7 @@ const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = (env) => {
     const CONTEXT_PATH = path.join(__dirname, './');
-    const OUTPUT_PATH = path.join(__dirname, '../../../public/panneau/');
+    const OUTPUT_PATH = path.join(__dirname, '../../../../public/panneau/');
     const PUBLIC_PATH = '/panneau/';
     const CSS_FILENAME = env === 'dev' ? '[name]-[contenthash].css' : '[name].css';
     const CSS_NAME = '[name]-[local]';
