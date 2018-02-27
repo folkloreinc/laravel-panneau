@@ -39,7 +39,6 @@ class PanneauServiceProvider extends ServiceProvider
     public function bootPublishes()
     {
         // Paths
-        $routesPath = __DIR__ . '/../../routes/';
         $configPath = __DIR__ . '/../../config/config.php';
         $migrationsPath = __DIR__ . '/../../migrations/';
         $viewsPath = __DIR__ . '/../../resources/views/';
@@ -69,10 +68,6 @@ class PanneauServiceProvider extends ServiceProvider
         $this->publishes([
             $configPath => config_path('panneau.php')
         ], 'config');
-
-        $this->publishes([
-            $routesPath => base_path('routes')
-        ], 'routes');
 
         $this->publishes([
             $viewsPath => base_path('resources/views/vendor/panneau')
@@ -124,6 +119,10 @@ class PanneauServiceProvider extends ServiceProvider
             } else {
                 $router->middleware($key, $class);
             }
+        }
+
+        if ($this->app['config']->get('panneau.routes.map', true)) {
+            $this->app['panneau']->routes();
         }
     }
 

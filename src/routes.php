@@ -1,6 +1,6 @@
 <?php
 
-$resources = app('panneau')->getResources();
+$resources = panneau()->getResources();
 $controllers = config('panneau.routes.controllers');
 
 /**

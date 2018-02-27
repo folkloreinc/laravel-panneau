@@ -23,6 +23,8 @@ return [
      * Routes
      */
     'routes' => [
+        'map' => true,
+
         'prefix' => 'panneau',
 
         'domain' => null,
