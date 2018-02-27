@@ -10,7 +10,9 @@ abstract class Definition implements JsonSerializable, Arrayable, Jsonable
 {
     public function __construct($definition = [])
     {
-        $this->setDefinition($definition);
+        if (!is_null($definition)) {
+            $this->setDefinition($definition);
+        }
     }
 
     public function setDefinition($definition)

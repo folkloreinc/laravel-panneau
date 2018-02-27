@@ -2,7 +2,7 @@
 
 namespace Folklore\Panneau\Support;
 
-class Block extends Fields
+class Bubble extends Fields
 {
 
 }

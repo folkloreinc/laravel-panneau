@@ -65,9 +65,23 @@ $router->group([
     // Create catch-all route
     $router->panneauResource('*');
 
-    // Add the layout routes
-    $router->get('definition/layout', [
-        'as' => 'panneau.definition.layout',
-        'uses' => $controllers['definition'].'@layout'
-    ]);
+    // Definition path
+    $router->group([
+        'prefix' => 'definition',
+    ], function ($router) use ($controllers) {
+        $router->get('layout', [
+            'as' => 'panneau.definition.layout',
+            'uses' => $controllers['definition'].'@layout'
+        ]);
+
+        $router->get('blocks', [
+            'as' => 'panneau.definition.blocks',
+            'uses' => $controllers['definition'].'@blocks'
+        ]);
+
+        $router->get('pages', [
+            'as' => 'panneau.definition.pages',
+            'uses' => $controllers['definition'].'@pages'
+        ]);
+    });
 });

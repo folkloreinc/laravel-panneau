@@ -16,6 +16,8 @@ class Panneau
     protected $singletons = [];
     protected $blocks = [];
     protected $pages = [];
+    protected $fields = [];
+    protected $bubbles = [];
     protected $definitionLayout = null;
     protected $definitionRoutes = [];
 
@@ -129,6 +131,15 @@ class Panneau
         return $block;
     }
 
+    public function getBlocks()
+    {
+        $blocks = [];
+        foreach ($this->blocks as $id => $block) {
+            $blocks[] = $this->block($id);
+        }
+        return $blocks;
+    }
+
     public function setPage($id, $page)
     {
         $this->pages[$id] = $page;
@@ -148,6 +159,75 @@ class Panneau
             $page->setName($id);
         }
         return $page;
+    }
+
+    public function getPages()
+    {
+        $pages = [];
+        foreach ($this->pages as $id => $page) {
+            $pages[] = $this->page($id);
+        }
+        return $pages;
+    }
+
+    public function setField($id, $field)
+    {
+        $this->fields[$id] = $field;
+    }
+
+    public function setFields(array $fields)
+    {
+        foreach ($fields as $id => $definition) {
+            $this->setField($id, $definition);
+        }
+    }
+
+    public function field($id)
+    {
+        $field = $this->make('fields', $id, Field::class);
+        if (!is_null($field)) {
+            $field->setName($id);
+        }
+        return $field;
+    }
+
+    public function getFields()
+    {
+        $items = [];
+        foreach ($this->fields as $id => $class) {
+            $items[] = $this->field($id);
+        }
+        return $items;
+    }
+
+    public function setBubble($id, $bubble)
+    {
+        $this->bubbles[$id] = $bubble;
+    }
+
+    public function setBubbles(array $bubbles)
+    {
+        foreach ($bubbles as $id => $definition) {
+            $this->setBubble($id, $definition);
+        }
+    }
+
+    public function bubble($id)
+    {
+        $bubble = $this->make('bubbles', $id, Bubble::class);
+        if (!is_null($bubble)) {
+            $bubble->setName($id);
+        }
+        return $bubble;
+    }
+
+    public function getBubbles()
+    {
+        $items = [];
+        foreach ($this->bubbles as $id => $class) {
+            $items[] = $this->bubble($id);
+        }
+        return $items;
     }
 
     public function definition()

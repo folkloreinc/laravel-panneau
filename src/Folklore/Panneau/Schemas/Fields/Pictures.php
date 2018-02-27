@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Schemas\Fields;
 
-use Folklore\Panneau\Support\JsonSchemaField;
+use Folklore\Panneau\Support\Field;
 
-class Pictures extends JsonSchemaField
+class Pictures extends Field
 {
     protected function type()
     {

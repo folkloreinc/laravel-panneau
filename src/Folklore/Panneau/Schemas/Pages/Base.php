@@ -12,19 +12,20 @@ class Base extends Page
     protected function properties()
     {
         return [
-            'slug' => new TextLocaleField([
-                'label' => 'Slug',
-            ]),
-            'title' => new TextLocaleField([
-                'label' => 'Title',
+            'slug' => field('text_locale', [
+                'label' => trans('panneau::pages.base.slug_label'),
             ]),
 
-            'parent' => new PageField([
-                'label' => 'Parent',
+            'title' => field('text_locale', [
+                'label' => trans('panneau::pages.base.title_label'),
             ]),
 
-            'blocks' => new BlocksField([
-                'label' => 'Blocks',
+            'parent' => field('page', [
+                'label' => trans('panneau::pages.base.parent_label'),
+            ]),
+
+            'blocks' => field('blocks', [
+                'label' => trans('panneau::pages.base.blocks_label'),
             ]),
         ];
     }

@@ -9,6 +9,7 @@ use Folklore\EloquentJsonSchema\Support\HasJsonSchema;
 use Folklore\EloquentJsonSchema\Contracts\HasJsonSchema as HasJsonSchemaContract;
 use Folklore\Mediatheque\Support\Traits\HasMedias;
 use Folklore\Panneau\Contracts\Bubble as BubbleContract;
+use Folklore\Panneau\Schemas\Bubbles\Base as BaseSchema;
 use \Exception;
 
 class Bubble extends Model implements
@@ -36,9 +37,7 @@ class Bubble extends Model implements
         'type' => 'string',
     ];
 
-    protected $jsonSchemas = [
-        'data' => \Folklore\Panneau\Schemas\Bubbles\Base::class,
-    ];
+    protected $jsonSchemas = [];
 
     protected $jsonSchemasReducers = [
         \Folklore\Panneau\Reducers\BubblesReducer::class,
@@ -49,6 +48,14 @@ class Bubble extends Model implements
         'order_column_name' => 'order',
         'sort_when_creating' => false,
     ];
+
+    public function getJsonSchemas()
+    {
+        $schema = app('panneau')->block($this->type);
+        return array_merge([
+            'data' => !is_null($schema) ? $schema : BaseSchema::class,
+        ], $this->jsonSchemas);
+    }
 
     public function bubbles()
     {

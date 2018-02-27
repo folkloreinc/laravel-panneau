@@ -2,9 +2,9 @@
 
 namespace Folklore\Panneau\Schemas\Fields;
 
-use Folklore\Panneau\Support\JsonSchemaField;
+use Folklore\Panneau\Support\Field;
 
-class TextLocale extends JsonSchemaField
+class TextLocale extends Field
 {
     protected function getLocales()
     {
