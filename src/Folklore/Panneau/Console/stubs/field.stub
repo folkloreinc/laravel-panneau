@@ -2,9 +2,9 @@
 
 namespace DummyNamespace;
 
-use Folklore\Panneau\Support\JsonSchemaField;
+use Folklore\Panneau\Support\Field as BaseField;
 
-class DummyClass extends JsonSchemaField
+class DummyClass extends BaseField
 {
     protected function properties()
     {
