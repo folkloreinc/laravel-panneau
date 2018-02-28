@@ -68,8 +68,8 @@ class JsonSchemaResource extends Resource
         }
 
         if (!array_has($validation, 'messages')) {
-            $validationMessages = $this->mutateFieldsToValidationRules($fields);
-            array_set($validation, 'rules', $validationMessages);
+            $validationMessages = $this->mutateFieldsToValidationMessages($fields);
+            array_set($validation, 'messages', $validationMessages);
         }
 
         if (!array_has($validation, 'attributes')) {
@@ -89,6 +89,12 @@ class JsonSchemaResource extends Resource
             }
         }
         return $rules;
+    }
+
+    protected function mutateFieldsToValidationMessages($fields)
+    {
+        $messages = [];
+        return $messages;
     }
 
     protected function mutateFieldsToValidationAttributes($fields)
