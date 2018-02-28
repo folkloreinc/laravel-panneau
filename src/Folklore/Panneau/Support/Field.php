@@ -34,4 +34,12 @@ class Field extends JsonSchema
             'label' => $this->getFieldLabel(),
         ]);
     }
+
+    public function toValidationArray()
+    {
+        return [
+            'required' => $this->getSchemaAttribute('required'),
+            'pattern' => $this->getSchemaAttribute('pattern'),
+        ];
+    }
 }

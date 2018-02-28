@@ -34,7 +34,21 @@ class JsonSchemaResource extends Resource
             foreach ($properties as $name => $prop) {
                 $fieldArray = $prop->toFieldArray();
                 array_set($fieldArray, 'name', $field.'.'.$name);
-                // array_set($fieldArray, 'label', title_case($name));
+                $fields[] = $fieldArray;
+            }
+        }
+        return $fields;
+    }
+
+    protected function getValidationsFromSchemas($schemas)
+    {
+        $fields = [];
+        foreach ($schemas as $field => $schema) {
+            $schema = resolve($schema);
+            $properties = $schema->getProperties();
+            foreach ($properties as $name => $prop) {
+                $fieldArray = $prop->toValidationArray();
+                array_set($fieldArray, 'name', $field.'.'.$name);
                 $fields[] = $fieldArray;
             }
         }
@@ -61,9 +75,10 @@ class JsonSchemaResource extends Resource
 
         $schemas = $this->getSchemasFromModel();
         $fields = $this->getFieldsFromSchemas($schemas);
+        $validations = $this->getValidationsFromSchemas($schemas);
 
         if (!array_has($validation, 'rules')) {
-            $validationRules = $this->mutateFieldsToValidationRules($fields);
+            $validationRules = $this->mutateValidationsToRules($validations);
             array_set($validation, 'rules', $validationRules);
         }
 
@@ -80,12 +95,19 @@ class JsonSchemaResource extends Resource
         return $validation;
     }
 
-    protected function mutateFieldsToValidationRules($fields)
+    protected function mutateValidationsToRules($fields)
     {
         $rules = [];
         foreach ($fields as $field) {
+            $fieldRules = [];
             if (array_get($field, 'required') === true) {
-                $rules[array_get($field, 'name')] = 'required';
+                $fieldRules[] = 'required';
+            }
+            if (!is_null(array_get($field, 'pattern'))) {
+                $fieldRules[] = 'regex:/'.array_get($field, 'pattern').'/';
+            }
+            if (!empty($fieldRules)) {
+                $rules[array_get($field, 'name')] = implode('|', $fieldRules);
             }
         }
         return $rules;
@@ -101,10 +123,13 @@ class JsonSchemaResource extends Resource
     {
         $attributes = [];
         foreach ($fields as $field) {
-            if (array_get($field, 'required') === true) {
-                $attributes[array_get($field, 'name')] = '"'.array_get($field, 'label').'"';
-            }
+            $attributes[array_get($field, 'name')] = $this->getFieldValidationAttribute($field);
         }
         return $attributes;
+    }
+
+    protected function getFieldValidationAttribute($field)
+    {
+        return '"'.array_get($field, 'label').'"';
     }
 }
