@@ -8,6 +8,8 @@ return [
     'titles.resources.edit' => 'Edit {name}',
     'buttons.resources.save' => 'Save',
     'titles.resources.default' => '{name}',
+    'notices.resources.success' => 'Success!',
+    'notices.resources.error' => 'Failed. The form contains errors.',
     'buttons.resources.add' => 'Add {name}',
     'titles.resources.index' => '{name}',
     'navbar.resources.index' => 'View all {resourceLabel}',
