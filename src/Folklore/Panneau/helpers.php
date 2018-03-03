@@ -23,7 +23,7 @@ if (!function_exists('page')) {
     function page($name, $attributes = [])
     {
         $page = app('panneau')->page($name);
-        if (sizeof($page)) {
+        if (!is_null($page)) {
             $page->setAttributes($attributes);
         }
         return $page;
@@ -41,7 +41,7 @@ if (!function_exists('block')) {
     function block($name, $attributes = [])
     {
         $block = app('panneau')->block($name);
-        if (sizeof($block)) {
+        if (!is_null($block)) {
             $block->setAttributes($attributes);
         }
         return $block;
@@ -59,7 +59,7 @@ if (!function_exists('field')) {
     function field($name, $attributes = [])
     {
         $field = app('panneau')->field($name);
-        if (sizeof($field)) {
+        if (!is_null($field)) {
             $field->setAttributes($attributes);
         }
         return $field;
@@ -77,7 +77,7 @@ if (!function_exists('bubble')) {
     function bubble($name, $attributes = [])
     {
         $bubble = app('panneau')->bubble($name);
-        if (sizeof($bubble)) {
+        if (!is_null($bubble)) {
             $bubble->setAttributes($attributes);
         }
         return $bubble;
