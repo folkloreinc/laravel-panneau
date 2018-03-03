@@ -8,6 +8,7 @@ class Resource extends Definition
 {
     protected $id;
     protected $name;
+    protected $type;
     protected $controller;
     protected $model;
     protected $forms;
@@ -17,12 +18,17 @@ class Resource extends Definition
 
     protected function id()
     {
-        return null;
+        return strtolower($this->get('name'));
     }
 
     protected function name()
     {
         return null;
+    }
+
+    protected function type()
+    {
+        return 'default';
     }
 
     protected function model()
@@ -71,6 +77,7 @@ class Resource extends Definition
         $data = [
             'id' => $this->getId(),
             'name' => $this->getName(),
+            'type' => $this->getType(),
             'controller' => $this->getController(),
             'model' => $this->getModel(),
             'forms' => $this->getForms(),

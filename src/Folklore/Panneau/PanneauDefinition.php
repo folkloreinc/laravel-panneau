@@ -2,6 +2,7 @@
 
 namespace Folklore\Panneau;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Folklore\Panneau\Support\Definition;
 
 class PanneauDefinition extends Definition
@@ -33,11 +34,16 @@ class PanneauDefinition extends Definition
 
     public function toArray()
     {
+        $resources = $this->getResources();
+        $layout = $this->getLayout();
+
         return [
             'name' => $this->getName(),
             'routes' => $this->getRoutes(),
-            'resources' => $this->getResources(),
-            'layout' => $this->getLayout(),
+            'resources' => array_map(function ($resource) {
+                return $resource instanceof Arrayable ? $resource->toArray() : $resource;
+            }, $resources),
+            'layout' => $layout instanceof Arrayable ? $layout->toArray() : $layout,
         ];
     }
 }

@@ -1,0 +1,43 @@
+<?php
+
+namespace DummyNamespace;
+
+use Folklore\Panneau\Support\Resource as BaseResource;
+
+class DummyClass extends BaseResource
+{
+    protected function name()
+    {
+        return null;
+    }
+
+    protected function model()
+    {
+        return null;
+    }
+
+    protected function controller()
+    {
+        return null;
+    }
+
+    protected function forms()
+    {
+        return [];
+    }
+
+    protected function lists()
+    {
+        return [];
+    }
+
+    protected function validation()
+    {
+        return [];
+    }
+
+    protected function messages()
+    {
+        return [];
+    }
+}

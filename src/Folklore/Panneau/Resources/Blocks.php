@@ -2,11 +2,22 @@
 
 namespace Folklore\Panneau\Resources;
 
-use Folklore\Panneau\Support\Resource;
+use Folklore\Panneau\Support\TypedModelResource;
 
-class Blocks extends Resource
+class Blocks extends TypedModelResource
 {
-    protected $name = 'Blocks';
+    protected function name()
+    {
+        return 'Blocks';
+    }
 
-    protected $model = \Folklore\Panneau\Contracts\Block::class;
+    protected function model()
+    {
+        return \Folklore\Panneau\Contracts\Block::class;
+    }
+
+    protected function modelTypes()
+    {
+        return panneau()->getBlocks();
+    }
 }

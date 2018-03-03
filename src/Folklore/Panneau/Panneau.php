@@ -330,6 +330,9 @@ class Panneau
         $allRoutes = $this->app['router']->getRoutes();
         foreach ($routes as $name) {
             $route = is_string($name) ? $allRoutes->getByName($name) : $name;
+            if (is_null($route)) {
+                continue;
+            }
             $parameters = $route->parameterNames();
             $params = [];
             foreach ($parameters as $parameter) {

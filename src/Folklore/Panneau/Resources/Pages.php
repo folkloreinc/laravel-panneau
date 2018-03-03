@@ -2,41 +2,28 @@
 
 namespace Folklore\Panneau\Resources;
 
-use Folklore\Panneau\Support\Resource;
+use Folklore\Panneau\Support\TypedModelResource;
 
-class Pages extends Resource
+class Pages extends TypedModelResource
 {
-    protected $name = 'Pages';
-
-    protected $model = \Folklore\Panneau\Contracts\Page::class;
-
-    protected function forms()
+    protected function name()
     {
-        return [
-            'type' => 'normal',
-            'fields' => [
-                [
-                    'name' => 'slug',
-                    'type' => 'textlocale',
-                    'label' => 'Slug',
-                ],
-                [
-                    'name' => 'title',
-                    'type' => 'textlocale',
-                    'label' => 'Title',
-                ],
-                [
-                    'name' => 'parent',
-                    'type' => 'page',
-                    'label' => 'Parent page',
-                ],
-                [
-                    'name' => 'blocks',
-                    'type' => 'blocks',
-                    'label' => 'Blocks',
-                ]
-            ],
-        ];
+        return 'Pages';
+    }
+
+    protected function model()
+    {
+        return \Folklore\Panneau\Contracts\Page::class;
+    }
+
+    protected function controller()
+    {
+        return \Folklore\Panneau\Http\Controllers\PagesController::class;
+    }
+
+    protected function modelTypes()
+    {
+        return panneau()->getPages();
     }
 
     protected function lists()
@@ -54,6 +41,11 @@ class Pages extends Resource
                     'id' => 'name',
                     'path' => 'name',
                     'label' => 'Name'
+                ],
+                [
+                    'id' => 'type',
+                    'path' => 'type',
+                    'label' => 'Type'
                 ],
                 [
                     'id' => 'actions',

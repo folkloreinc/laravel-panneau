@@ -13,7 +13,7 @@ class FieldMakeCommand extends GeneratorCommand
      *
      * @var string
      */
-    protected $name = 'make:field';
+    protected $name = 'make:panneau_field';
 
     /**
      * The console command description.

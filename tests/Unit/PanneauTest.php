@@ -27,11 +27,14 @@ class PanneauTest extends TestCase
      */
     public function testDefinition()
     {
-        $definition = $this->panneau->getDefinition()->toArray();
+        $resources = $this->panneau->getResources();
+        $definition = $this->panneau->definition()->toArray();
+
+        // Check routes
         $definitionRoutes = array_map(function ($route) {
             return preg_replace('/^panneau\./', '', $route);
         }, config('panneau.definition.routes'));
-        $routes = array_merge($definitionRoutes, [
+        $resourceRoutes = [
             'resource.index',
             'resource.create',
             'resource.store',
@@ -39,7 +42,13 @@ class PanneauTest extends TestCase
             'resource.edit',
             'resource.update',
             'resource.destroy',
-        ]);
+        ];
+        $customResourceRoutes = array_reduce($resources, function ($allRoutes, $resource) {
+            $data = $resource->toArray();
+            $routes = array_get($data, 'routes', []);
+            return array_merge($allRoutes, array_keys($routes));
+        }, []);
+        $routes = array_merge($definitionRoutes, $resourceRoutes, $customResourceRoutes);
         $this->assertEquals($routes, array_keys($definition['routes']));
     }
 }

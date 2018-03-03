@@ -79,8 +79,7 @@ class ResourceController extends Controller
         $data = $this->getStoreDataFromRequest($request);
 
         $model = $this->getResourceModel($request);
-        $model->fill($data);
-        $model->save();
+        $model = $this->saveItem($model, $data, $request);
 
         if ($request->wantsJson()) {
             return $this->jsonResponse($this->getItem($model->id, $request));
@@ -144,8 +143,7 @@ class ResourceController extends Controller
         $data = $this->getUpdateDataFromRequest($request);
 
         $model = $this->getItem($id, $request);
-        $model->fill($data);
-        $model->save();
+        $model = $this->saveItem($model, $data, $request);
 
         if ($request->wantsJson()) {
             return $this->jsonResponse($this->getItem($id, $request));
@@ -167,8 +165,7 @@ class ResourceController extends Controller
     {
         $id = $request->get('panneau.id');
         $model = $this->getItem($id, $request);
-        $data = $model->toArray();
-        $model->delete();
+        $model = $this->deleteItem($model, $request);
 
         if ($request->wantsJson()) {
             return $this->jsonResponse($data);
@@ -300,5 +297,19 @@ class ResourceController extends Controller
         }
         $query = $this->getResourceQueryBuilder($request);
         return $query->where('id', $id)->first();
+    }
+
+    protected function saveItem($item, $data, Request $request)
+    {
+        $item->fill($data);
+        $item->save();
+        return $item;
+    }
+
+    protected function deleteItem($item, Request $request)
+    {
+        $data = $item->toArray();
+        $item->delete();
+        return $data;
     }
 }

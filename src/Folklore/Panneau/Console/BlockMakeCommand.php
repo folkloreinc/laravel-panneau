@@ -13,7 +13,7 @@ class BlockMakeCommand extends GeneratorCommand
      *
      * @var string
      */
-    protected $name = 'make:block';
+    protected $name = 'make:panneau_block';
 
     /**
      * The console command description.

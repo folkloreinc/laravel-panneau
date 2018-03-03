@@ -1,0 +1,48 @@
+<?php
+
+namespace DummyNamespace;
+
+use Folklore\Panneau\Support\TypedModelResource as BaseTypedModelResource;
+
+class DummyClass extends BaseTypedModelResource
+{
+    protected function name()
+    {
+        return null;
+    }
+
+    protected function model()
+    {
+        return null;
+    }
+
+    protected function modelTypes()
+    {
+        return [];
+    }
+
+    protected function controller()
+    {
+        return null;
+    }
+
+    protected function forms()
+    {
+        return [];
+    }
+
+    protected function lists()
+    {
+        return [];
+    }
+
+    protected function validation()
+    {
+        return [];
+    }
+
+    protected function messages()
+    {
+        return [];
+    }
+}

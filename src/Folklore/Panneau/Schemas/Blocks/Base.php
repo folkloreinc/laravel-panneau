@@ -9,7 +9,7 @@ class Base extends Block
     protected function attributes()
     {
         return [
-            'label' => trans('panneau::blocks.base.label')
+            'label' => trans('panneau::models.blocks.base.label')
         ];
     }
 

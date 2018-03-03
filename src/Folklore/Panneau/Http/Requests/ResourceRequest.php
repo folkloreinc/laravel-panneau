@@ -57,6 +57,10 @@ class ResourceRequest extends FormRequest
             throw new Exception('Missing panneau.resource request property; is the "panneau.resource" middleware present on the route ?');
         }
         $validation = $resource->getValidationFromRequest($this);
+        if ($resource->getType() === 'typed') {
+            $type = $this->get('type', array_get($resource->getTypes(), '0.id'));
+            return array_get($validation, $type, $validation);
+        }
         return $validation;
     }
 }

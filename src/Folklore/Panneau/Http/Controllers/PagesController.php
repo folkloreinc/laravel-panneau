@@ -40,4 +40,16 @@ class PagesController extends ResourceController
         }
         return $item;
     }
+
+    protected function saveItem($item, $data, Request $request)
+    {
+        $type = array_get($data, 'type', $request->get('type', null));
+        $data = array_except($data, ['type']);
+        if (!is_null($type)) {
+            $item->type = $type;
+        }
+        $item->fill($data);
+        $item->save();
+        return $item;
+    }
 }

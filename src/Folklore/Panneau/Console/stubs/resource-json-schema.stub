@@ -1,0 +1,48 @@
+<?php
+
+namespace DummyNamespace;
+
+use Folklore\Panneau\Support\JsonSchemasResource as BaseJsonSchemasResource;
+
+class DummyClass extends BaseJsonSchemasResource
+{
+    protected function name()
+    {
+        return null;
+    }
+
+    protected function model()
+    {
+        return null;
+    }
+
+    protected function jsonSchemas()
+    {
+        return $this->getSchemasFromModel();
+    }
+
+    protected function controller()
+    {
+        return null;
+    }
+
+    protected function forms()
+    {
+        return [];
+    }
+
+    protected function lists()
+    {
+        return [];
+    }
+
+    protected function validation()
+    {
+        return [];
+    }
+
+    protected function messages()
+    {
+        return [];
+    }
+}
