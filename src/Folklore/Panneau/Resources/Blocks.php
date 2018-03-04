@@ -20,4 +20,11 @@ class Blocks extends TypedModelResource
     {
         return panneau()->getBlocks();
     }
+
+    protected function messages()
+    {
+        return [
+            'names' => trans('panneau::resources.blocks.names')
+        ];
+    }
 }

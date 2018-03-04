@@ -20,4 +20,11 @@ class Bubbles extends TypedModelResource
     {
         return panneau()->getBubbles();
     }
+
+    protected function messages()
+    {
+        return [
+            'names' => trans('panneau::resources.bubbles.names')
+        ];
+    }
 }

@@ -15,7 +15,7 @@ class Users extends Resource
         return [
             'type' => 'normal',
             'fields' => [
-                
+
             ],
         ];
     }
@@ -41,6 +41,13 @@ class Users extends Resource
                     'type' => 'actions'
                 ]
             ]
+        ];
+    }
+
+    protected function messages()
+    {
+        return [
+            'names' => trans('panneau::resources.users.names')
         ];
     }
 }

@@ -23,21 +23,47 @@ class DummyClass extends BaseResource
 
     protected function forms()
     {
-        return [];
+        return [
+            'type' => 'normal',
+            'fields' => [],
+        ];
     }
 
     protected function lists()
     {
-        return [];
+        return [
+            'type' => 'table',
+            'cols' => [
+                [
+                    'id' => 'id',
+                    'path' => 'id',
+                    'label' => 'ID',
+                    'width' => 50
+                ],
+                [
+                    'id' => 'actions',
+                    'type' => 'actions'
+                ]
+            ]
+        ];
     }
 
     protected function validation()
     {
-        return [];
+        return [
+            // 'rules' => [],
+            // 'messages' => [],
+            // 'attributes' => [],
+        ];
     }
 
     protected function messages()
     {
-        return [];
+        return [
+            // 'names' => [
+            //     'plural' => 'Resources',
+            //     'a' => 'a resource',
+            // ]
+        ];
     }
 }
