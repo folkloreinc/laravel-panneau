@@ -2,16 +2,16 @@
 <?php
 
 return [
-    'buttons.resources.create' => 'Create',
-    'titles.resources.create' => 'Create {name}',
-    'buttons.resources.edit' => 'Save',
-    'titles.resources.edit' => 'Edit {name}',
-    'buttons.resources.save' => 'Save',
-    'titles.resources.default' => '{name}',
-    'notices.resources.success' => 'Success!',
-    'notices.resources.error' => 'Failed. The form contains errors.',
     'buttons.resources.add' => 'Add {name}',
-    'titles.resources.index' => '{name}',
-    'navbar.resources.index' => 'View all {resourceLabel}',
+    'buttons.resources.create' => 'Create',
+    'buttons.resources.edit' => 'Save',
+    'buttons.resources.save' => 'Save',
     'navbar.resources.create' => 'Add a new {resourceLabel}',
+    'navbar.resources.index' => 'View all {resourceLabel}',
+    'notices.resources.error' => 'Failed. The form contains errors.',
+    'notices.resources.success' => 'Success!',
+    'titles.resources.create' => 'Create {name}',
+    'titles.resources.default' => '{name}',
+    'titles.resources.edit' => 'Edit {name}',
+    'titles.resources.index' => '{name}',
 ];
