@@ -12,6 +12,10 @@ class PagesResourceTest extends TestCase
         $data = $resource->toArray();
         $pageTypes = panneau()->getPages();
         $this->assertEquals('typed', $data['type']);
+        $this->assertEquals(
+            ['index', 'definition', 'create', 'store', 'show', 'edit', 'update', 'destroy', 'delete'],
+            array_keys($data['routes'])
+        );
         foreach ($pageTypes as $index => $pageType) {
             $name = $pageType->getName();
             $this->assertArrayHasKey($name, $data['forms']['fields']);

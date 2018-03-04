@@ -252,14 +252,17 @@ class Panneau
 
     public function getRoutesForResource($resource)
     {
-        $routes = $this->getResourceRoutes($resource);
-        return $this->getPathsFromRoutes($routes);
+        $resourceRoutes = $this->getPathsFromRoutes($this->getResourceRoutes($resource));
+        $routes = [];
+        foreach ($resourceRoutes as $name => $path) {
+            $routes[preg_replace('/^resource\.'.$resource.'\./', '', $name)] = $path;
+        }
+        return $routes;
     }
 
     public function getRoutesForDefinition()
     {
-        $routes = $this->getAllRoutes();
-        return $this->getPathsFromRoutes($routes);
+        return $this->getPathsFromRoutes($this->getAllRoutes());
     }
 
     protected function make($type, $id, $class)

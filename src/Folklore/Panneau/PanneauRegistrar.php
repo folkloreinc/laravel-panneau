@@ -9,7 +9,7 @@ class PanneauRegistrar
 {
     protected $router;
 
-    protected $actions = ['index', 'create', 'store', 'show', 'edit', 'update', 'destroy'];
+    protected $actions = ['index', 'definition', 'create', 'store', 'show', 'edit', 'update', 'destroy', 'delete'];
 
     protected $routePaths;
 
@@ -95,6 +95,11 @@ class PanneauRegistrar
             $this->router->get($path.'/definition', [
                 'as' =>$this->getRouteName($isWildcard ? 'resource' : 'resource.'.$resourceName, 'definition'),
                 'uses' => $controller.'@definition'
+            ]);
+            $idParameter = array_get($resourceOptions, 'parameters.'.$isWildcard ? '{resource}' : $resourceName, 'id');
+            $this->router->get($path.'/{'.$idParameter.'}/delete', [
+                'as' =>$this->getRouteName($isWildcard ? 'resource' : 'resource.'.$resourceName, 'delete'),
+                'uses' => $controller.'@delete'
             ]);
             $this->router->resource($path, $controller, $resourceOptions);
         });

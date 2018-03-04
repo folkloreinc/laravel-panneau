@@ -36,17 +36,22 @@ class PanneauTest extends TestCase
         }, config('panneau.definition.routes'));
         $resourceRoutes = [
             'resource.index',
+            'resource.definition',
             'resource.create',
             'resource.store',
             'resource.show',
             'resource.edit',
             'resource.update',
             'resource.destroy',
+            'resource.delete',
         ];
         $customResourceRoutes = array_reduce($resources, function ($allRoutes, $resource) {
             $data = $resource->toArray();
             $routes = array_get($data, 'routes', []);
-            return array_merge($allRoutes, array_keys($routes));
+            $names = array_map(function ($name) use ($resource) {
+                return 'resource.'.$resource->getId().'.'.$name;
+            }, array_keys($routes));
+            return array_merge($allRoutes, $names);
         }, []);
         $routes = array_merge($definitionRoutes, $resourceRoutes, $customResourceRoutes);
         $this->assertEquals($routes, array_keys($definition['routes']));
