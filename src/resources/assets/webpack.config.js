@@ -98,21 +98,19 @@ module.exports = (env) => {
             }),
             new webpack.optimize.ModuleConcatenationPlugin(),
             new UglifyJSPlugin({
-                beautify: false,
                 sourceMap: true,
-                mangle: {
-                    screw_ie8: true,
-                    keep_fnames: true,
+                uglifyOptions: {
+                    beautify: false,
+                    mangle: {
+                        screw_ie8: true,
+                        keep_fnames: true,
+                    },
+                    compress: {
+                        screw_ie8: true,
+                        warnings: false,
+                    },
+                    comments: false,
                 },
-                compress: {
-                    screw_ie8: true,
-                    warnings: false,
-                },
-                comments: false,
-            }),
-            new webpack.SourceMapDevToolPlugin({
-                filename: '[file].map',
-                exclude: [/vendor\//],
             }),
         ]),
 
