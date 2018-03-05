@@ -5,6 +5,10 @@ import panneau from 'panneau';
 import '../styles/main.global.scss';
 
 domready(() => {
+    const el = document.getElementById('panneau');
+    if (el === null) {
+        return;
+    }
     const { definition, ...opts } = panneau_config();
     panneau()
         .setDefinition(definition)
@@ -12,5 +16,5 @@ domready(() => {
             locale: 'fr',
             ...opts,
         })
-        .render(document.getElementById('panneau'));
+        .render(el);
 });
