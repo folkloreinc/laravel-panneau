@@ -35,7 +35,7 @@ class Fields extends JsonSchema
         $fields = [];
         foreach ($properties as $name => $value) {
             $field = $value;
-            if ($field instanceof JsonSchemaField) {
+            if ($field instanceof Field) {
                 $field = $field->toFieldArray();
             } elseif ($field instanceof Arrayable) {
                 $field = $field->toArray();
