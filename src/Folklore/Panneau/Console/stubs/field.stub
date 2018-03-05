@@ -6,6 +6,13 @@ use Folklore\Panneau\Support\Field as BaseField;
 
 class DummyClass extends BaseField
 {
+    protected function attributes()
+    {
+        return [
+            'label' => trans('panneau::fields.DummyClass.label')
+        ];
+    }
+
     protected function properties()
     {
         return [

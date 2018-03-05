@@ -3,29 +3,33 @@
 namespace DummyNamespace;
 
 use Folklore\Panneau\Support\Page as BasePage;
-use Folklore\Panneau\Schemas\Fields\TextLocale as TextLocaleField;
-use Folklore\Panneau\Schemas\Fields\Page as PageField;
-use Folklore\Panneau\Schemas\Fields\Blocks as BlocksField;
 
 class DummyClass extends BasePage
 {
+    protected function attributes()
+    {
+        return [
+            'label' => trans('panneau::models.pages.DummyClass.label')
+        ];
+    }
+
     protected function properties()
     {
         return [
-            'title' => new TextLocaleField([
-                'label' => 'Title',
+            'slug' => field('text_locale', [
+                'label' => trans('panneau::models.pages.fields.slug_label'),
             ]),
 
-            'slug' => new TextLocaleField([
-                'label' => 'Slug',
+            'title' => field('text_locale', [
+                'label' => trans('panneau::models.pages.fields.title_label'),
             ]),
 
-            'parent' => new PageField([
-                'label' => 'Parent',
+            'parent' => field('page', [
+                'label' => trans('panneau::models.pages.fields.parent_label'),
             ]),
 
-            'blocks' => new BlocksField([
-                'label' => 'Blocks',
+            'blocks' => field('blocks', [
+                'label' => trans('panneau::models.pages.fields.blocks_label'),
             ]),
         ];
     }

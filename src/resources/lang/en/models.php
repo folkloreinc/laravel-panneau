@@ -4,7 +4,9 @@ return [
     'pages' => [
         'base' => [
             'label' => 'Base',
+        ],
 
+        'fields' => [
             'slug_label' => 'Slug',
             'title_label' => 'Title',
             'parent_label' => 'Parent page',

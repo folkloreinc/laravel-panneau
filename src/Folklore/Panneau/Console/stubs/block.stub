@@ -6,6 +6,13 @@ use Folklore\Panneau\Support\Block as BaseBlock;
 
 class DummyClass extends BaseBlock
 {
+    protected function attributes()
+    {
+        return [
+            'label' => trans('panneau::models.blocks.DummyClass.label')
+        ];
+    }
+
     protected function properties()
     {
         return [
