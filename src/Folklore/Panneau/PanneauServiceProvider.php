@@ -9,6 +9,7 @@ use Folklore\Panneau\Console\PublishLangCommand;
 use Folklore\Panneau\Console\BlockMakeCommand;
 use Folklore\Panneau\Console\PageMakeCommand;
 use Folklore\Panneau\Console\FieldMakeCommand;
+use Folklore\Panneau\Console\ResourceMakeCommand;
 
 class PanneauServiceProvider extends ServiceProvider
 {
@@ -244,12 +245,17 @@ class PanneauServiceProvider extends ServiceProvider
             return new FieldMakeCommand($app['files']);
         });
 
+        $this->app->singleton('panneau.command.resource.make', function ($app) {
+            return new ResourceMakeCommand($app['files']);
+        });
+
         $this->commands([
             'panneau.command.vendor',
             'panneau.command.lang',
             'panneau.command.block.make',
             'panneau.command.page.make',
             'panneau.command.field.make',
+            'panneau.command.resource.make',
         ]);
     }
 
