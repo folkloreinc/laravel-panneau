@@ -13,7 +13,7 @@ class PageMakeCommand extends GeneratorCommand
      *
      * @var string
      */
-    protected $name = 'make:panneau_page';
+    protected $name = 'make:panneau:page';
 
     /**
      * The console command description.

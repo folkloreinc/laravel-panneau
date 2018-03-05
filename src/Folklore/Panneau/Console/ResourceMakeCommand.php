@@ -13,7 +13,7 @@ class ResourceMakeCommand extends GeneratorCommand
      *
      * @var string
      */
-    protected $name = 'make:panneau_resource {--json-schema} {--typed-model}';
+    protected $name = 'make:panneau:resource {--json-schema} {--typed-model}';
 
     /**
      * The console command description.
