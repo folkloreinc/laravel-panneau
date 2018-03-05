@@ -5,7 +5,7 @@ return [
         'names' => [
             'plural' => 'Blocs',
             'a' => 'un bloc',
-            'a_plural' => 'des blocs'
+            'a_plural' => 'les blocs'
         ],
     ],
 
@@ -13,7 +13,7 @@ return [
         'names' => [
             'plural' => 'Pages',
             'a' => 'une page',
-            'a_plural' => 'des pages'
+            'a_plural' => 'les pages'
         ],
     ],
 
@@ -21,7 +21,7 @@ return [
         'names' => [
             'plural' => 'Contenus',
             'a' => 'un contenu',
-            'a_plural' => 'des contenus'
+            'a_plural' => 'les contenus'
         ],
     ],
 
@@ -29,7 +29,7 @@ return [
         'names' => [
             'plural' => 'Utilisateurs',
             'a' => 'un utilisateur',
-            'a_plural' => 'des utilisateurs'
+            'a_plural' => 'les utilisateurs'
         ],
     ],
 ];
