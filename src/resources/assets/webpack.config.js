@@ -71,6 +71,8 @@ module.exports = (env) => {
             main: './js/index',
         },
 
+        devtool: 'source-map',
+
         output: {
             path: OUTPUT_PATH,
             filename: '[name].js',

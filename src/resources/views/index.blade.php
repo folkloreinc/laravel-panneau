@@ -48,17 +48,19 @@
 	@show
 
     @section('body:styles')
+        <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+        <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
         <script type="text/javascript">
             panneau_config('locale', '{{ $locale }}');
             panneau_config('messages', {!! json_encode($messages) !!});
             panneau_config('definition', {!! json_encode($definition) !!});
         </script>
-        <script src="/vendor/panneau/panneau.js" type="text/javascript"></script>
 
         <!-- Uncomment if you want a custom implementation -->
         <!-- <script src="/panneau/main.js" type="text/javascript"></script> -->
 
         <!-- Comment if you want a custom implementation -->
+        <script src="/vendor/panneau/panneau.js" type="text/javascript"></script>
         <script type="text/javascript">
             window.onload = function() {
                 var config = panneau_config();

@@ -1,5 +1,6 @@
-/* globals panneau, panneau_config */
+/* globals panneau_config */
 import domready from 'domready';
+import panneau from 'panneau';
 
 import '../styles/main.global.scss';
 
