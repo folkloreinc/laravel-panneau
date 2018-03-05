@@ -17,19 +17,19 @@ class Base extends Page
     {
         return [
             'slug' => field('text_locale', [
-                'label' => trans('panneau::models.pages.fields.slug_label'),
+                'label' => trans('panneau::fields.slug_label'),
             ]),
 
             'title' => field('text_locale', [
-                'label' => trans('panneau::models.pages.fields.title_label'),
+                'label' => trans('panneau::fields.title_label'),
             ]),
 
             'parent' => field('page', [
-                'label' => trans('panneau::models.pages.fields.parent_label'),
+                'label' => trans('panneau::fields.parent_label'),
             ]),
 
             'blocks' => field('blocks', [
-                'label' => trans('panneau::models.pages.fields.blocks_label'),
+                'label' => trans('panneau::fields.blocks_label'),
             ]),
         ];
     }

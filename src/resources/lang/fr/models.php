@@ -5,13 +5,6 @@ return [
         'base' => [
             'label' => 'De base',
         ],
-
-        'fields' => [
-            'slug_label' => 'Slug',
-            'title_label' => 'Titre',
-            'parent_label' => 'Page parent',
-            'blocks_label' => 'Blocs'
-        ],
     ],
 
     'blocks' => [
