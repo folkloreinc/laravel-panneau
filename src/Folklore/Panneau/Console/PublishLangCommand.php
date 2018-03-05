@@ -4,21 +4,21 @@ namespace Folklore\Panneau\Console;
 
 use Illuminate\Console\Command;
 
-class UpdateVendorCommand extends Command
+class PublishLangCommand extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'panneau:vendor';
+    protected $signature = 'panneau:lang';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Update vendor assets';
+    protected $description = 'Publish translations';
 
     /**
      * Create a new command instance.
@@ -39,7 +39,7 @@ class UpdateVendorCommand extends Command
     {
         $this->call('vendor:publish', [
             '--provider' => \Folklore\Panneau\PanneauServiceProvider::class,
-            '--tag' => 'vendor',
+            '--tag' => 'lang',
             '--force' => true
         ]);
     }

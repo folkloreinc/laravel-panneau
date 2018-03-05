@@ -4,7 +4,8 @@ namespace Folklore\Panneau;
 
 use Illuminate\Support\ServiceProvider;
 
-use Folklore\Panneau\Console\UpdateVendorCommand;
+use Folklore\Panneau\Console\PublishVendorCommand;
+use Folklore\Panneau\Console\PublishLangCommand;
 use Folklore\Panneau\Console\BlockMakeCommand;
 use Folklore\Panneau\Console\PageMakeCommand;
 use Folklore\Panneau\Console\FieldMakeCommand;
@@ -224,7 +225,11 @@ class PanneauServiceProvider extends ServiceProvider
     public function registerConsole()
     {
         $this->app->singleton('panneau.command.vendor', function ($app) {
-            return new UpdateVendorCommand();
+            return new PublishVendorCommand();
+        });
+
+        $this->app->singleton('panneau.command.lang', function ($app) {
+            return new PublishLangCommand();
         });
 
         $this->app->singleton('panneau.command.block.make', function ($app) {
@@ -241,6 +246,7 @@ class PanneauServiceProvider extends ServiceProvider
 
         $this->commands([
             'panneau.command.vendor',
+            'panneau.command.lang',
             'panneau.command.block.make',
             'panneau.command.page.make',
             'panneau.command.field.make',
