@@ -51,7 +51,7 @@ class Bubble extends Model implements
 
     public function getJsonSchemas()
     {
-        $schema = app('panneau')->block($this->type);
+        $schema = app('panneau')->bubble($this->type);
         return array_merge([
             'data' => !is_null($schema) ? $schema : BaseSchema::class,
         ], $this->jsonSchemas);
