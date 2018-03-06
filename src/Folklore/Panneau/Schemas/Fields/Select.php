@@ -6,6 +6,8 @@ use Folklore\Panneau\Support\Field;
 
 class Select extends Field
 {
+    protected $options;
+
     protected $schemaAttributes = [
         'nullable',
         'type',
@@ -50,5 +52,12 @@ class Select extends Field
             $enum[] = $option['value'];
         }
         return $enum;
+    }
+
+    protected function attributes()
+    {
+        return [
+            'options' => $this->getOptions(),
+        ];
     }
 }
