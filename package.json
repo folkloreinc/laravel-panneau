@@ -23,7 +23,7 @@
     },
     "homepage": "https://github.com/Folkloreatelier/laravel-panneau#readme",
     "dependencies": {
-        "panneau": "^0.3.89"
+        "panneau": "^0.3.93"
     },
     "devDependencies": {
         "babel-eslint": "^8.2.2",
