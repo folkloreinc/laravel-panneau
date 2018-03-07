@@ -168,7 +168,7 @@ class ResourceController extends Controller
         $model = $this->deleteItem($model, $request);
 
         if ($request->wantsJson()) {
-            return $this->jsonResponse($data);
+            return $this->jsonResponse($model);
         }
 
         return redirect()->action(static::class.'@index', [
