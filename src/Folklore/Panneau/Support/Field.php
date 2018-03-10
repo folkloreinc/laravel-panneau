@@ -37,8 +37,9 @@ class Field extends JsonSchema
         return array_merge([], $attributes, [
             'type' => $this->getFieldType(),
             'label' => $this->getFieldLabel(),
-            'fields' => $fields
-        ]);
+        ], !is_null($fields) ? [
+            'fields' => $fields,
+        ] : null);
     }
 
     public function toValidationArray()
