@@ -39,7 +39,7 @@ class Field extends JsonSchema
             'label' => $this->getFieldLabel(),
         ], !is_null($fields) ? [
             'fields' => $fields,
-        ] : null);
+        ] : []);
     }
 
     public function toValidationArray()
