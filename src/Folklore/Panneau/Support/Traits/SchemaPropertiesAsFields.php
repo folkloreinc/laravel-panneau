@@ -15,12 +15,10 @@ trait SchemaPropertiesAsFields
         }
         $fields = [];
         foreach ($properties as $name => $value) {
-            $field = $value;
-            if ($field instanceof Field) {
-                $field = $field->toFieldArray();
-            } elseif ($field instanceof Arrayable) {
-                $field = $field->toArray();
+            if (!($field instanceof Field)) {
+                continue;
             }
+            $field = $value->toFieldArray();
             $field['name'] = $name;
             $fields[] = $field;
         }
