@@ -3,9 +3,12 @@
 namespace Folklore\Panneau\Support;
 
 use Folklore\EloquentJsonSchema\Support\JsonSchema;
+use Folklore\Panneau\Support\Traits\SchemaPropertiesAsFields;
 
 class Fields extends JsonSchema
 {
+    use SchemaPropertiesAsFields;
+    
     public function getFieldsType()
     {
         $fieldType = $this->getSchemaAttribute('fieldsType');
