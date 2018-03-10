@@ -82,6 +82,12 @@ return [
      * Fields
      */
     'fields' => [
+        'text' => \Folklore\Panneau\Schemas\Fields\Text::class,
+        'text_locale' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
+        'select' => \Folklore\Panneau\Schemas\Fields\Select::class,
+        'toggle' => \Folklore\Panneau\Schemas\Fields\Toggle::class,
+        'date' => \Folklore\Panneau\Schemas\Fields\Date::class,
+        'color' => \Folklore\Panneau\Schemas\Fields\Color::class,
         'block' => \Folklore\Panneau\Schemas\Fields\Block::class,
         'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
         'bubble' => \Folklore\Panneau\Schemas\Fields\Bubble::class,
@@ -92,10 +98,6 @@ return [
         'pages' => \Folklore\Panneau\Schemas\Fields\Pages::class,
         'picture' => \Folklore\Panneau\Schemas\Fields\Picture::class,
         'pictures' => \Folklore\Panneau\Schemas\Fields\Pictures::class,
-        'select' => \Folklore\Panneau\Schemas\Fields\Select::class,
-        'text' => \Folklore\Panneau\Schemas\Fields\Text::class,
-        'text_locale' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
-        'toggle' => \Folklore\Panneau\Schemas\Fields\Toggle::class,
     ],
 
     /**
