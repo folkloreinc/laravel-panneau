@@ -15,7 +15,7 @@ trait SchemaPropertiesAsFields
         }
         $fields = [];
         foreach ($properties as $name => $value) {
-            if (!($field instanceof Field)) {
+            if (!($value instanceof Field)) {
                 continue;
             }
             $field = $value->toFieldArray();
