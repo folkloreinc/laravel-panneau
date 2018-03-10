@@ -3,9 +3,12 @@
 namespace Folklore\Panneau\Support;
 
 use Folklore\EloquentJsonSchema\Support\JsonSchema;
+use Folklore\Panneau\Support\Traits\SchemaPropertiesAsFields;
 
 class Field extends JsonSchema
 {
+    use SchemaPropertiesAsFields;
+
     public function getFieldType()
     {
         $fieldType = $this->getSchemaAttribute('fieldType');
@@ -29,9 +32,12 @@ class Field extends JsonSchema
     public function toFieldArray()
     {
         $attributes = $this->getAttributes();
+        $fields = $this->getPropertiesAsFields();
+
         return array_merge([], $attributes, [
             'type' => $this->getFieldType(),
             'label' => $this->getFieldLabel(),
+            'fields' => $fields
         ]);
     }
 

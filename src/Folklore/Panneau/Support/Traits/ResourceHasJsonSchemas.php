@@ -4,7 +4,8 @@ namespace Folklore\Panneau\Support\Traits;
 
 use Folklore\Panneau\Support\Field;
 
-trait ResourceHasJsonSchemas {
+trait ResourceHasJsonSchemas
+{
     protected function getSchemasFromModel($model = null)
     {
         if (is_null($model)) {
