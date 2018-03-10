@@ -79,9 +79,29 @@ $router->group([
             'uses' => $controllers['definition'].'@blocks'
         ]);
 
+        $router->get('blocks/{name}', [
+            'as' => 'panneau.definition.block',
+            'uses' => $controllers['definition'].'@block'
+        ]);
+
         $router->get('pages', [
             'as' => 'panneau.definition.pages',
             'uses' => $controllers['definition'].'@pages'
+        ]);
+
+        $router->get('pages/{name}', [
+            'as' => 'panneau.definition.page',
+            'uses' => $controllers['definition'].'@page'
+        ]);
+
+        $router->get('fields', [
+            'as' => 'panneau.definition.fields',
+            'uses' => $controllers['definition'].'@fields'
+        ]);
+
+        $router->get('fields/{name}', [
+            'as' => 'panneau.definition.field',
+            'uses' => $controllers['definition'].'@field'
         ]);
     });
 });
