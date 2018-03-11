@@ -88,16 +88,22 @@ return [
         'toggle' => \Folklore\Panneau\Schemas\Fields\Toggle::class,
         'date' => \Folklore\Panneau\Schemas\Fields\Date::class,
         'color' => \Folklore\Panneau\Schemas\Fields\Color::class,
+
         'block' => \Folklore\Panneau\Schemas\Fields\Block::class,
         'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
         'bubble' => \Folklore\Panneau\Schemas\Fields\Bubble::class,
         'bubbles' => \Folklore\Panneau\Schemas\Fields\Bubbles::class,
-        'document' => \Folklore\Panneau\Schemas\Fields\Document::class,
-        'documents' => \Folklore\Panneau\Schemas\Fields\Documents::class,
         'page' => \Folklore\Panneau\Schemas\Fields\Page::class,
         'pages' => \Folklore\Panneau\Schemas\Fields\Pages::class,
+
+        'audio' => \Folklore\Panneau\Schemas\Fields\Audio::class,
+        'audios' => \Folklore\Panneau\Schemas\Fields\Audios::class,
+        'document' => \Folklore\Panneau\Schemas\Fields\Document::class,
+        'documents' => \Folklore\Panneau\Schemas\Fields\Documents::class,
         'picture' => \Folklore\Panneau\Schemas\Fields\Picture::class,
         'pictures' => \Folklore\Panneau\Schemas\Fields\Pictures::class,
+        'video' => \Folklore\Panneau\Schemas\Fields\Video::class,
+        'videos' => \Folklore\Panneau\Schemas\Fields\Videos::class,
     ],
 
     /**
