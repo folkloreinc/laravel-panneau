@@ -13,6 +13,6 @@ class Documents extends Field
 
     protected function items()
     {
-        return \Folklore\Panneau\Schemas\Fields\Document::class;
+        return field('document');
     }
 }

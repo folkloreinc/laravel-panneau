@@ -203,12 +203,12 @@ class ReducersTest extends TestCase
         // Disabled field should not be reduced
         $pageModel->makeJsonSchemaAttributeDisabled('data');
         $output = $pageModel->toArray();
-        $this->assertEquals($blockId, $output['data']->blocks[0]);
+        $this->assertEquals($blockId, array_get($output, 'data.blocks.0'));
 
         // Re-enabled field should be reduced
         $pageModel->makeJsonSchemaAttributeEnabled('data');
         $output = $pageModel->toArray();
-        $this->assertEquals($blockId, $output['data']->blocks[0]->id);
+        $this->assertEquals($blockId, array_get($output, 'data.blocks.0.id'));
 
         // Hidden attributes should not output, but sub-fields should still append
         $pageModel->setHidden([]);

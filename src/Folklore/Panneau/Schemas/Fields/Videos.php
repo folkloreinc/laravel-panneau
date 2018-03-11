@@ -13,6 +13,6 @@ class Videos extends Field
 
     protected function items()
     {
-        return \Folklore\Panneau\Schemas\Fields\Video::class;
+        return field('video');
     }
 }

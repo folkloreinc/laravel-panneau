@@ -13,6 +13,6 @@ class Pictures extends Field
 
     protected function items()
     {
-        return \Folklore\Panneau\Schemas\Fields\Picture::class;
+        return field('picture');
     }
 }

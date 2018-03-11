@@ -13,6 +13,6 @@ class Pages extends Field
 
     protected function items()
     {
-        return \Folklore\Panneau\Schemas\Fields\Page::class;
+        return field('page');
     }
 }

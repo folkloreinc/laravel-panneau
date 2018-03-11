@@ -13,6 +13,6 @@ class Audios extends Field
 
     protected function items()
     {
-        return \Folklore\Panneau\Schemas\Fields\Audio::class;
+        return field('audio');
     }
 }

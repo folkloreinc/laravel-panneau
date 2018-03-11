@@ -13,6 +13,6 @@ class Blocks extends Field
 
     protected function items()
     {
-        return \Folklore\Panneau\Schemas\Fields\Block::class;
+        return field('block');
     }
 }

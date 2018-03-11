@@ -13,6 +13,6 @@ class Bubbles extends Field
 
     protected function items()
     {
-        return \Folklore\Panneau\Schemas\Fields\Bubble::class;
+        return field('bubble');
     }
 }
