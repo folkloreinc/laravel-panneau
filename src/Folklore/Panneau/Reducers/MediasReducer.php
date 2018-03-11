@@ -51,4 +51,20 @@ class MediasReducer extends RelationReducer
         }
         return null;
     }
+
+    protected function mutateRelationObjectToId($model, $relation, $object)
+    {
+        $id = parent::mutateRelationObjectToId($model, $relation, $object);
+        if (is_string($id) && !is_numeric($id) && file_exists($id)) {
+            $name = basename($id);
+            $item = $model->{$relation}()->where('name', $name)->first();
+            if (!$item) {
+                $item = $model->{$relation}()->getRelated()->newInstance();
+                $item->setOriginalFile($id);
+                $item->save();
+            }
+            return $item ? $item->id : null;
+        }
+        return $id;
+    }
 }
