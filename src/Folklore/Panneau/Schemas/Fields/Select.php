@@ -6,7 +6,7 @@ use Folklore\Panneau\Support\Field;
 
 class Select extends Field
 {
-    protected $options;
+    protected $options = [];
 
     protected $schemaAttributes = [
         'nullable',
