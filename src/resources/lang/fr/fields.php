@@ -2,6 +2,9 @@
 <?php
 
 return [
+    'core.buttons.add' => 'Ajouter',
+    'items.buttons.add' => 'Ajouter',
+    'items.buttons.add_with_type' => 'Ajouter {type}',
     'media.dimension_label' => 'Dimension',
     'media.duration_label' => 'Durée',
     'media.pages_label' => 'Pages',
