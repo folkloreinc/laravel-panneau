@@ -13,6 +13,7 @@ use Folklore\Panneau\Contracts\Block as BlockContract;
 use Folklore\Panneau\Schemas\Pages\Base as BaseSchema;
 
 class Page extends Model implements
+    PageContract,
     Sortable,
     HasJsonSchemaContract
 {

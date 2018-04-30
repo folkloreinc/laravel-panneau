@@ -11,6 +11,7 @@ use Folklore\Panneau\Contracts\Block as BlockContract;
 use Folklore\Panneau\Schemas\Blocks\Base as BaseSchema;
 
 class Block extends Model implements
+    BlockContract,
     HasJsonSchemaContract
 {
     use SoftDeletes;

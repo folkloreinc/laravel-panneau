@@ -13,6 +13,7 @@ use Folklore\Panneau\Schemas\Bubbles\Base as BaseSchema;
 use \Exception;
 
 class Bubble extends Model implements
+    BubbleContract,
     Sortable,
     HasJsonSchemaContract
 {
