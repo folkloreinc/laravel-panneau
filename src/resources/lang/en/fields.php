@@ -2,9 +2,12 @@
 <?php
 
 return [
+    'blocks.add_button_type_label' => 'a block',
     'core.buttons.add' => 'Add',
     'items.buttons.add' => 'Add',
     'items.buttons.add_with_type' => 'Add {type}',
+    'items.title' => 'Item #{index}',
+    'items.title_with_label' => 'Item #{index} - {label}',
     'media.audio_add_type_label' => 'an audio file',
     'media.dimension_label' => 'Dimension',
     'media.document_add_type_label' => 'a document file',
