@@ -10,7 +10,8 @@ class IndexComposer
     protected $messagesFiles = [
         'forms',
         'list',
-        'core'
+        'core',
+        'fields',
     ];
 
     public function __construct(Application $app)
