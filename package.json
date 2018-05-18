@@ -23,7 +23,7 @@
     },
     "homepage": "https://github.com/Folkloreatelier/laravel-panneau#readme",
     "dependencies": {
-        "panneau": "^0.3.114"
+        "panneau": "^0.3.118"
     },
     "devDependencies": {
         "babel-eslint": "^8.2.3",
@@ -32,9 +32,9 @@
         "babel-register": "^6.26.0",
         "eslint": "^4.19.1",
         "eslint-config-airbnb": "^16.1.0",
-        "eslint-plugin-import": "^2.11.0",
+        "eslint-plugin-import": "^2.12.0",
         "eslint-plugin-jsx-a11y": "^6.0.3",
-        "eslint-plugin-react": "^7.8.0",
+        "eslint-plugin-react": "^7.8.2",
         "glob": "^7.1.2",
         "mkdirp": "^0.5.1"
     }

@@ -88,6 +88,10 @@ return [
         'toggle' => \Folklore\Panneau\Schemas\Fields\Toggle::class,
         'date' => \Folklore\Panneau\Schemas\Fields\Date::class,
         'color' => \Folklore\Panneau\Schemas\Fields\Color::class,
+        'link' => \Folklore\Panneau\Schemas\Fields\Link::class,
+        'links' => \Folklore\Panneau\Schemas\Fields\Links::class,
+        'link_locale' => \Folklore\Panneau\Schemas\Fields\LinkLocale::class,
+        'links_locale' => \Folklore\Panneau\Schemas\Fields\LinksLocale::class,
 
         'block' => \Folklore\Panneau\Schemas\Fields\Block::class,
         'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
