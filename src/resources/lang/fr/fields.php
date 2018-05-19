@@ -24,4 +24,5 @@ return [
     'media.upload_picture_label' => 'Sélectionnez une image...',
     'media.upload_video_label' => 'Sélectionnez un fichier vidéo...',
     'media.video_add_type_label' => 'un fichier vidéo',
+    'page.placeholder' => 'Rechercher une page...',
 ];

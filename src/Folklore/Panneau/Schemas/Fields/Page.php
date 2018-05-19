@@ -9,16 +9,7 @@ class Page extends Field
     protected function attributes()
     {
         return [
-            'cardItemMap' => [
-                'name' => 'title',
-                'created_at' => 'created_at',
-                'thumbnail' => 'image',
-            ],
-            'autosuggestProps' => [
-                'suggestionsEndpoint' => $this->getEndpoint(),
-                'suggestionValuePath' => 'title',
-                'suggestionTitlePath' => 'title',
-            ]
+            'endpoint' => $this->getEndpoint(),
         ];
     }
 
