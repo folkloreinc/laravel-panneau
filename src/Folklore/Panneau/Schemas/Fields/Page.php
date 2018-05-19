@@ -13,11 +13,6 @@ class Page extends Field
         ];
     }
 
-    protected function fieldType()
-    {
-        return 'item';
-    }
-
     protected function properties()
     {
         return [
