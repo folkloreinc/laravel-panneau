@@ -9,7 +9,7 @@ class LinkLocale extends Field
     protected function properties()
     {
         return [
-            'url' => field('text_locale'),
+            'url' => field('url_locale'),
             'label' => field('text_locale'),
         ];
     }

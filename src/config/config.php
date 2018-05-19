@@ -92,6 +92,8 @@ return [
         'links' => \Folklore\Panneau\Schemas\Fields\Links::class,
         'link_locale' => \Folklore\Panneau\Schemas\Fields\LinkLocale::class,
         'links_locale' => \Folklore\Panneau\Schemas\Fields\LinksLocale::class,
+        'url' => \Folklore\Panneau\Schemas\Fields\Url::class,
+        'url_locale' => \Folklore\Panneau\Schemas\Fields\UrlLocale::class,
 
         'block' => \Folklore\Panneau\Schemas\Fields\Block::class,
         'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
