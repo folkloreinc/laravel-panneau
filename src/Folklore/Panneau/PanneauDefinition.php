@@ -8,6 +8,7 @@ use Folklore\Panneau\Support\Definition;
 class PanneauDefinition extends Definition
 {
     protected $name;
+    protected $locales;
     protected $routes;
     protected $resources;
     protected $layout;
@@ -15,6 +16,11 @@ class PanneauDefinition extends Definition
     protected function name()
     {
         return config('panneau.name');
+    }
+
+    protected function locales()
+    {
+        return [];
     }
 
     protected function routes()
@@ -39,6 +45,7 @@ class PanneauDefinition extends Definition
 
         return [
             'name' => $this->getName(),
+            'locales' => $this->getLocales(),
             'routes' => $this->getRoutes(),
             'resources' => array_map(function ($resource) {
                 return $resource instanceof Arrayable ? $resource->toArray() : $resource;

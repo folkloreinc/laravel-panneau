@@ -8,7 +8,7 @@ class TextLocale extends Field
 {
     protected function getLocales()
     {
-        return config('app.locales', [config('app.locale')]);
+        return app('panneau')->locales();
     }
 
     protected function properties()

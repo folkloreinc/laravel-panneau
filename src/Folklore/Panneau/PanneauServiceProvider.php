@@ -201,6 +201,7 @@ class PanneauServiceProvider extends ServiceProvider
         $this->app->singleton('panneau', function ($app) {
             $panneau = new Panneau($app);
             $panneau->setName(config('panneau.name'));
+            $panneau->setLocales(config('app.locales', [config('app.locale')]));
             $panneau->setResources(config('panneau.resources', []));
             $panneau->setBlocks(config('panneau.blocks', []));
             $panneau->setPages(config('panneau.pages', []));

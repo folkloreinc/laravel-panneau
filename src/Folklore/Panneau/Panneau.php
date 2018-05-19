@@ -12,6 +12,7 @@ class Panneau
 {
     protected $app;
     protected $name = null;
+    protected $locales = [];
     protected $resources = [];
     protected $singletons = [];
     protected $blocks = [];
@@ -34,6 +35,16 @@ class Panneau
     public function name()
     {
         return $this->name;
+    }
+
+    public function setLocales($locales)
+    {
+        $this->locales = $locales;
+    }
+
+    public function locales()
+    {
+        return $this->locales;
     }
 
     public function setDefinitionRoutes($routes)
@@ -236,6 +247,7 @@ class Panneau
     public function getDefinition()
     {
         $name = $this->name();
+        $locales = $this->locales();
         $resources = $this->getResources();
         $routes = $this->getRoutesForDefinition();
         $layout = $this->getDefinitionLayout();
@@ -243,6 +255,7 @@ class Panneau
         $definition = resolve(\Folklore\Panneau\Contracts\PanneauDefinition::class);
         $definition->setDefinition([
             'name' => $name,
+            'locales' => $locales,
             'routes' => $routes,
             'resources' => $resources,
             'layout' => $layout,
