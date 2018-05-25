@@ -81,8 +81,11 @@ class PanneauServiceProvider extends ServiceProvider
 
         $this->publishes([
             $assetsPath => base_path('resources/assets/vendor/panneau'),
-            $vendorPath => public_path('vendor/panneau'),
         ], 'assets');
+
+        $this->publishes([
+            $vendorPath => public_path('vendor/panneau'),
+        ], 'vendor');
     }
 
     public function bootRouter()
