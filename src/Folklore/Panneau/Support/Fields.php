@@ -8,7 +8,7 @@ use Folklore\Panneau\Support\Traits\SchemaPropertiesAsFields;
 class Fields extends JsonSchema
 {
     use SchemaPropertiesAsFields;
-    
+
     public function getFieldsType()
     {
         $fieldType = $this->getSchemaAttribute('fieldsType');
@@ -16,7 +16,8 @@ class Fields extends JsonSchema
             return $fieldType;
         }
 
-        return snake_case(class_basename($this));
+        $name = $this->getName();
+        return !empty($name) ? $name : snake_case(class_basename($this));
     }
 
     public function getFieldsLabel()

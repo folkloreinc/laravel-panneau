@@ -16,7 +16,8 @@ class Field extends JsonSchema
             return $fieldType;
         }
 
-        return snake_case(class_basename($this));
+        $name = $this->getName();
+        return !empty($name) ? $name : snake_case(class_basename($this));
     }
 
     public function getFieldLabel()
