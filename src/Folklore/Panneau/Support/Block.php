@@ -2,7 +2,7 @@
 
 namespace Folklore\Panneau\Support;
 
-class Block extends Fields
+class Block extends DataFields
 {
 
 }
