@@ -43,8 +43,9 @@ class PublishCommand extends Command
             $choiceTags = [
                 'config',
                 'views',
-                'lang',
                 'assets',
+                'lang',
+                'vendor',
             ];
             $tags = $this->choice('What tags to you want to publish?', $choiceTags, null, null, true);
         }
