@@ -4,7 +4,7 @@
 <div class="container">
     <div class="row justify-content-md-center">
         <div class="col-md-8">
-            <div class="card mt2">
+            <div class="card  mt-4">
                 <div class="card-header">@lang('panneau::auth.login_title')</div>
 
                 <div class="card-body">
