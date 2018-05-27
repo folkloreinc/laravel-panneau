@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'login_title' => 'Connexion',
+    'login_title' => 'Connexion à Panneau',
     'email_label' => 'Courriel',
     'password_label' => 'Mot de passe',
     'password_confirm_label' => 'Confirmation du mot de passe',

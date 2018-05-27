@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'login_title' => 'Login',
+    'login_title' => 'Login to Panneau',
     'email_label' => 'E-Mail Address',
     'password_label' => 'Password',
     'password_confirm_label' => 'Confirm password',
