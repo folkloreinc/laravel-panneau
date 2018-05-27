@@ -3,8 +3,8 @@
 
 return [
     'buttons.resources.add' => 'Add {name}',
+    'buttons.resources.cancel' => 'Cancel',
     'buttons.resources.create' => 'Create',
-    'buttons.resources.edit' => 'Save',
     'buttons.resources.save' => 'Save',
     'buttons.upload' => 'Select a file...',
     'navbar.resources.create' => 'Add a new {resource}',
