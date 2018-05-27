@@ -2,12 +2,12 @@
 
 @section('body')
 <div class="container">
-    <div class="row">
-        <div class="col-md-8 col-md-offset-2">
-            <div class="panel panel-default">
-                <div class="panel-heading">@lang('panneau::auth.login_title')</div>
+    <div class="row justify-content-md-center">
+        <div class="col-md-8">
+            <div class="card mt2">
+                <div class="card-header">@lang('panneau::auth.login_title')</div>
 
-                <div class="panel-body">
+                <div class="card-body">
                     <form class="form-horizontal" method="POST" action="{{ route('panneau.auth.login') }}">
                         {{ csrf_field() }}
 
