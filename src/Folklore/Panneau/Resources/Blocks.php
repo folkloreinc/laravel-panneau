@@ -23,8 +23,6 @@ class Blocks extends TypedModelResource
 
     protected function messages()
     {
-        return [
-            'names' => trans('panneau::resources.blocks.names')
-        ];
+        return trans('panneau::resources.blocks');
     }
 }

@@ -46,8 +46,6 @@ class Users extends Resource
 
     protected function messages()
     {
-        return [
-            'names' => trans('panneau::resources.users.names')
-        ];
+        return trans('panneau::resources.users');
     }
 }

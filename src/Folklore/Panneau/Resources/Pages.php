@@ -57,8 +57,6 @@ class Pages extends TypedModelResource
 
     protected function messages()
     {
-        return [
-            'names' => trans('panneau::resources.pages.names')
-        ];
+        return trans('panneau::resources.pages');
     }
 }
