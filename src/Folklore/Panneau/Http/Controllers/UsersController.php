@@ -1,6 +1,6 @@
 <?php
 
-namespace Panneau\Http\Controllers;
+namespace Folklore\Panneau\Http\Controllers;
 
 class UsersController extends ResourceController
 {
