@@ -31,5 +31,12 @@ return [
             'a' => 'a user',
             'a_plural' => 'users'
         ],
+
+        'fields' => [
+            'name_label' => 'Name',
+            'email_label' => 'Email',
+            'password_label' => 'Password',
+            'password_confirmation_label' => 'Password confirmation',
+        ]
     ],
 ];

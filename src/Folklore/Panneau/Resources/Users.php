@@ -3,6 +3,7 @@
 namespace Folklore\Panneau\Resources;
 
 use Folklore\Panneau\Support\Resource;
+use Folklore\Panneau\Http\Requests\ResourceRequest;
 
 class Users extends Resource
 {
@@ -10,12 +11,48 @@ class Users extends Resource
 
     protected $model = \Folklore\Panneau\Contracts\User::class;
 
+    protected $controller = \Folklore\Panneau\Http\Controllers\UsersController::class;
+
     protected function forms()
     {
         return [
             'type' => 'normal',
             'fields' => [
+                [
+                    'name' => 'name',
+                    'label' => trans('panneau::resources.users.fields.name_label'),
+                    'type' => 'text'
+                ],
+                [
+                    'name' => 'email',
+                    'label' => trans('panneau::resources.users.fields.email_label'),
+                    'type' => 'email'
+                ],
+                [
+                    'name' => 'password',
+                    'label' => trans('panneau::resources.users.fields.password_label'),
+                    'type' => 'password'
+                ],
+                [
+                    'name' => 'password_confirmation',
+                    'label' => trans('panneau::resources.users.fields.password_confirmation_label'),
+                    'type' => 'password'
+                ]
+            ],
+        ];
+    }
 
+    public function getValidationFromRequest(ResourceRequest $request)
+    {
+        $isCreating = $request->isMethod('post');
+        $id = $request->route(config('panneau.routes.parameters.id', 'id'));
+        return [
+            'rules' => [
+                'name' => ['required'],
+                'email' => $isCreating
+                    ? ['required', 'email', 'unique:users,email']
+                    : ['required', 'email', 'unique:users,email,'.$id.',id'],
+                'password' => $isCreating ? ['required', 'confirmed'] : ['sometimes', 'required', 'confirmed'],
             ],
         ];
     }

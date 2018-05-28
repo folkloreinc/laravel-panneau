@@ -34,5 +34,12 @@ return [
             'a' => 'un utilisateur',
             'a_plural' => 'les utilisateurs',
         ],
+
+        'fields' => [
+            'name_label' => 'Nom',
+            'email_label' => 'Courriel',
+            'password_label' => 'Mot de passe',
+            'password_confirmation_label' => 'Confirmer le mot de passe',
+        ]
     ],
 ];

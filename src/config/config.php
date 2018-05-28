@@ -82,6 +82,7 @@ return [
      * Fields
      */
     'fields' => [
+        'email' => \Folklore\Panneau\Schemas\Fields\Email::class,
         'text' => \Folklore\Panneau\Schemas\Fields\Text::class,
         'text_locale' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
         'select' => \Folklore\Panneau\Schemas\Fields\Select::class,
