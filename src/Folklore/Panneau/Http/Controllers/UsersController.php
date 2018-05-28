@@ -2,6 +2,8 @@
 
 namespace Folklore\Panneau\Http\Controllers;
 
+use Illuminate\Http\Request;
+
 class UsersController extends ResourceController
 {
     protected function saveItem($item, $data, Request $request)
