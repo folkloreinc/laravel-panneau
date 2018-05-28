@@ -46,6 +46,7 @@ class PublishCommand extends Command
                 'assets',
                 'lang',
                 'vendor',
+                'lang,vendor'
             ];
             $tags = $this->choice('What tags to you want to publish?', $choiceTags, null, null, true);
         }
@@ -55,11 +56,13 @@ class PublishCommand extends Command
         }
 
         foreach ($tags as $tag) {
-            $this->call('vendor:publish', [
-                '--provider' => \Folklore\Panneau\PanneauServiceProvider::class,
-                '--tag' => trim($tag),
-                '--force' => $force
-            ]);
+            foreach (explode(',', $tag) as $subTag) {
+                $this->call('vendor:publish', [
+                    '--provider' => \Folklore\Panneau\PanneauServiceProvider::class,
+                    '--tag' => trim($subTag),
+                    '--force' => $force
+                ]);
+            }
         }
     }
 }
