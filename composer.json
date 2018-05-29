@@ -62,16 +62,16 @@
         "install-panneau": "Folklore\\Panneau\\PanneauInstaller::install",
         "update-panneau": "Folklore\\Panneau\\PanneauInstaller::update",
         "post-install-cmd": [
-            "@composer install-panneau"
+            "@install-panneau"
         ],
         "post-update-cmd": [
-            "@composer update-panneau"
+            "@update-panneau"
         ],
         "post-package-install": [
-            "@composer install-panneau"
+            "@install-panneau"
         ],
         "post-package-update": [
-            "@composer update-panneau"
+            "@update-panneau"
         ]
     },
     "extra": {
