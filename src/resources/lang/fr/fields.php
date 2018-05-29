@@ -3,6 +3,7 @@
 
 return [
     'blocks.add_button_type_label' => 'un bloc',
+    'blocks.item_title' => 'Bloc #{index}',
     'core.buttons.add' => 'Ajouter',
     'items.buttons.add' => 'Ajouter',
     'items.buttons.add_with_type' => 'Ajouter {type}',
