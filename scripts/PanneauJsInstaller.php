@@ -3,7 +3,7 @@ namespace Folklore\Panneau;
 
 use Composer\Script\Event;
 
-class PanneauInstaller
+class PanneauJsInstaller
 {
     /**
      * Install panneau
@@ -13,6 +13,7 @@ class PanneauInstaller
      */
     public static function install(Event $event)
     {
+        echo 'Installing panneau-js...'.PHP_EOL.PHP_EOL;
         self::installNpmPackage();
         self::copyFiles();
         self::copyTranslations();
@@ -26,6 +27,7 @@ class PanneauInstaller
      */
     public static function update(Event $event)
     {
+        echo 'Updating panneau-js...'.PHP_EOL.PHP_EOL;
         self::updateNpmPackage();
         self::copyFiles();
         self::copyTranslations();
