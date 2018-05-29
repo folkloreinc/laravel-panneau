@@ -64,6 +64,9 @@
         "post-install-cmd": [
             "@composer install-panneau"
         ],
+        "post-update-cmd": [
+            "@composer update-panneau"
+        ],
         "post-package-install": [
             "@composer install-panneau"
         ],
