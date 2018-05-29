@@ -7,7 +7,7 @@
         "clean:panneau": "rm -rf ./src/vendor/",
         "clean": "npm run clean:panneau",
         "copy:panneau": "cp -R ./node_modules/panneau/dist/ ./src/vendor/",
-        "copy:translations": "node -r babel-register ./build/copyTranslations.js",
+        "copy:translations": "node -r babel-register ./scripts/copyTranslations.js",
         "copy": "npm run copy:panneau && npm run copy:translations",
         "build": "npm run copy",
         "prepare": "npm run clean && npm run build"

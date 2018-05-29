@@ -42,6 +42,9 @@
         },
         "files": [
             "src/Folklore/Panneau/helpers.php"
+        ],
+        "classmap": [
+            "scripts/PanneauInstaller.php"
         ]
     },
     "autoload-dev": {
@@ -55,6 +58,19 @@
             "url": "https://github.com/PHP-FFMpeg/BinaryDriver.git"
         }
     ],
+    "scripts": {
+        "install-panneau": "Folklore\\Panneau\\PanneauInstaller::install",
+        "update-panneau": "Folklore\\Panneau\\PanneauInstaller::update",
+        "post-install-cmd": [
+            "@composer install-panneau"
+        ],
+        "post-package-install": [
+            "@composer install-panneau"
+        ],
+        "post-package-update": [
+            "@composer update-panneau"
+        ]
+    },
     "extra": {
         "laravel": {
             "providers": [
