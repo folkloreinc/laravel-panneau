@@ -58,22 +58,6 @@
             "url": "https://github.com/PHP-FFMpeg/BinaryDriver.git"
         }
     ],
-    "scripts": {
-        "install-panneau": "Folklore\\Panneau\\PanneauJsInstaller::install",
-        "update-panneau": "Folklore\\Panneau\\PanneauJsInstaller::update",
-        "post-install-cmd": [
-            "@install-panneau"
-        ],
-        "post-update-cmd": [
-            "@update-panneau"
-        ],
-        "post-package-install": [
-            "@install-panneau"
-        ],
-        "post-package-update": [
-            "@update-panneau"
-        ]
-    },
     "extra": {
         "laravel": {
             "providers": [
