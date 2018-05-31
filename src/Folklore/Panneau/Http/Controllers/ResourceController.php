@@ -240,7 +240,11 @@ class ResourceController extends Controller
 
     protected function shouldPaginate(Request $request)
     {
-        return $this->indexPaginated;
+        if ($this->indexPaginated) {
+            return true;
+        }
+        $resource = $this->getResourceFromRequest($request)->toArray();
+        return array_get($resource, 'lists.index.pagination', array_get($resource, 'lists.pagination', false));
     }
 
     protected function shouldReturnPagination(Request $request)
