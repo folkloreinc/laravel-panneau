@@ -11,6 +11,7 @@ return [
     'navbar.resources.index' => 'Voir tous {resource}',
     'notices.resources.error' => 'Échec. Le formulaire contient des erreurs.',
     'notices.resources.success' => 'Succès!',
+    'resources.index.confirm_delete' => 'Êtes-vous certain de vouloir supprimer cet item de {name}?',
     'titles.resources.create' => 'Créer {name}',
     'titles.resources.default' => '{name}',
     'titles.resources.edit' => 'Modifier {name}',
