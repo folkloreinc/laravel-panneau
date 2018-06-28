@@ -7,6 +7,7 @@ use Folklore\Panneau\Support\Resource;
 use Folklore\Panneau\Support\Layout;
 use Folklore\Panneau\Support\Page;
 use Folklore\Panneau\Support\Block;
+use Closure;
 
 class Panneau
 {
@@ -69,7 +70,7 @@ class Panneau
         return $layout;
     }
 
-    public function routes()
+    public function routes(Closure $callback = null)
     {
         $this->updateRouterPatterns();
 
@@ -80,7 +81,7 @@ class Panneau
         $router = $this->app->bound('router') ? $this->app['router'] : $this->app;
         $config = $this->app['config']->get('panneau.routes', []);
         $routeGroupConfig = array_only($config, ['prefix', 'namespace', 'middleware', 'domain']);
-        $router->group($routeGroupConfig, function ($router) {
+        $router->group($routeGroupConfig, !is_null($callback) ? $callback : function ($router) {
             require __DIR__ . '/../../routes.php';
         });
     }
