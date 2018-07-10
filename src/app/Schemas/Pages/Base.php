@@ -1,6 +1,6 @@
 <?php
 
-namespace Folklore\Panneau\Schemas\Pages;
+namespace App\Schemas\Pages;
 
 use Folklore\Panneau\Support\Page;
 

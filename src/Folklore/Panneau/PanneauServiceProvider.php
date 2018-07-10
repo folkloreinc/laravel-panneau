@@ -41,6 +41,7 @@ class PanneauServiceProvider extends ServiceProvider
     public function bootPublishes()
     {
         // Paths
+        $appPath = __DIR__ . '/../../app/';
         $configPath = __DIR__ . '/../../config/config.php';
         $migrationsPath = __DIR__ . '/../../migrations/';
         $viewsPath = __DIR__ . '/../../resources/views/';
@@ -65,6 +66,10 @@ class PanneauServiceProvider extends ServiceProvider
                 $migrationsPath => base_path('database/migrations')
             ], 'migrations');
         }
+
+        $this->publishes([
+            $appPath => base_path('app'),
+        ], 'app');
 
         // Publish
         $this->publishes([

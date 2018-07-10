@@ -58,7 +58,7 @@ return [
      * Resources
      */
     'resources' => [
-        'pages' => \Folklore\Panneau\Resources\Pages::class,
+        'pages' => \App\Resources\Pages::class,
         'blocks' => \Folklore\Panneau\Resources\Blocks::class,
         'bubbles' => \Folklore\Panneau\Resources\Bubbles::class,
         'users' => \Folklore\Panneau\Resources\Users::class,
@@ -68,14 +68,14 @@ return [
      * Pages
      */
     'pages' => [
-        'base' => \Folklore\Panneau\Schemas\Pages\Base::class,
+        'base' => \App\Schemas\Pages\Base::class,
     ],
 
     /**
      * Blocks
      */
     'blocks' => [
-        'base' => \Folklore\Panneau\Schemas\Blocks\Base::class,
+        'base' => \App\Schemas\Blocks\Base::class,
     ],
 
     /**
