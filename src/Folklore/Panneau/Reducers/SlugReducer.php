@@ -11,10 +11,12 @@ class SlugReducer extends Reducer
 {
     protected function getSlugPaths()
     {
-        return [
-            'data.slug.fr' => 'data.title.fr',
-            'data.slug.en' => 'data.title.en',
-        ];
+        $locales = panneau()->locales();
+        $columns = [];
+        foreach ($locales as $locale) {
+            $columns['data.slug.'.$locale] = 'data.title.'.$locale;
+        }
+        return $columns;
     }
 
     public function set(HasJsonSchema $model, Node $node, $value)

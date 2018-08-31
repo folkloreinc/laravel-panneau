@@ -14,7 +14,7 @@ class UpdatePanneauPagesSlugColumns extends Migration
     public function up()
     {
         Schema::table(config('panneau.table_prefix').'pages', function (Blueprint $table) {
-            $locales = config('locale.locales', [config('app.locale')]);
+            $locales = panneau()->locales();
             $lastColumn = 'data';
             foreach ($locales as $locale) {
                 $table->string('slug_'.$locale)->after($lastColumn)->nullable();
@@ -32,7 +32,7 @@ class UpdatePanneauPagesSlugColumns extends Migration
     public function down()
     {
         Schema::table(config('panneau.table_prefix').'pages', function (Blueprint $table) {
-            $locales = config('locale.locales', [config('app.locale')]);
+            $locales = panneau()->locales();
             foreach ($locales as $locale) {
                 $table->dropColumn('slug_'.$locale);
             }
