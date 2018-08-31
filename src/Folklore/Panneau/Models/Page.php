@@ -57,12 +57,42 @@ class Page extends Model implements
         'sort_when_creating' => false,
     ];
 
+    /**
+     * Get JSON Schemas
+     * @return array Map of the json schemas and columns
+     */
     public function getJsonSchemas()
     {
         $schema = app('panneau')->page($this->type);
         return array_merge([
             'data' => !is_null($schema) ? $schema : BaseSchema::class,
         ], $this->jsonSchemas);
+    }
+
+    /**
+     * Scope the model by slug
+     * @param  \Illuminate\Database\Eloquent\Builder $query The query builder
+     * @param  string $slug The slug
+     * @param  string|null $locale The locale of the slug
+     * @return \Illuminate\Database\Eloquent\Builder The query builder
+     */
+    public function scopeWhereSlug($query, $slug, $locale = null)
+    {
+        if (is_null($locale)) {
+            $locale = app()->getLocale();
+        }
+        return $query->where('slug_'.$locale, $slug);
+    }
+
+    /**
+     * Scope the model by handle
+     * @param \Illuminate\Database\Eloquent\Builder $query The query builder
+     * @param string $handle The handle
+     * @return \Illuminate\Database\Eloquent\Builder The query builder
+     */
+    public function scopeWhereHandle($query, $handle)
+    {
+        return $query->where('handle', $handle);
     }
 
     /**
