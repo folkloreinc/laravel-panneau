@@ -169,7 +169,6 @@ module.exports = {
                             path.join(process.env.PWD, './node_modules/react-intl'),
                         ],
                         options: {
-                            forceEnv: ENV,
                             cacheDirectory: true,
                         },
                     },
