@@ -166,10 +166,28 @@ module.exports = {
                         loader: 'babel-loader',
                         include: [
                             srcPath,
-                            path.join(process.env.PWD, './node_modules/react-intl'),
                         ],
                         options: {
                             cacheDirectory: true,
+                        },
+                    },
+                    {
+                        test: /\.(js|jsx|mjs)$/,
+                        include: [
+                            /react-intl/,
+                        ],
+                        loader: require.resolve('babel-loader'),
+                        options: {
+                            presets: [
+                                [require.resolve('@babel/preset-env'), {
+                                    targets: {
+                                        ie: 9,
+                                    },
+                                }],
+                            ],
+                            plugins: [
+                                require.resolve('@babel/plugin-proposal-object-rest-spread'),
+                            ],
                         },
                     },
                     {
