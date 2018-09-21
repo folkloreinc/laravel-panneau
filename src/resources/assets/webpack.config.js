@@ -174,7 +174,8 @@ module.exports = {
                     {
                         test: /\.(js|jsx|mjs)$/,
                         include: [
-                            /react-intl/,
+                            /react-intl\//,
+                            /query-string\//,
                         ],
                         loader: require.resolve('babel-loader'),
                         options: {
