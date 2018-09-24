@@ -30,11 +30,6 @@ class Select extends Field
         return $this->isMultiple() ? 'array' : 'string';
     }
 
-    protected function getNullable()
-    {
-        return !$this->isMultiple() ? $this->getSchemaAttribute('nullable') : false;
-    }
-
     protected function items()
     {
         return $this->isMultiple() ? [
