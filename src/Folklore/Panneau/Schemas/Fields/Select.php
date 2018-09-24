@@ -20,9 +20,27 @@ class Select extends Field
         'options'
     ];
 
+    protected function isMultiple()
+    {
+        return array_get($this->attributes, 'multiple', false);
+    }
+
     protected function type()
     {
-        return 'string';
+        return $this->isMultiple() ? 'array' : 'string';
+    }
+
+    protected function getNullable()
+    {
+        return !$this->isMultiple() ? $this->getSchemaAttribute('nullable') : false;
+    }
+
+    protected function items()
+    {
+        return $this->isMultiple() ? [
+            'type' => ['integer', 'string'],
+            'enum' => $this->getEnumValues(),
+        ] : null;
     }
 
     protected function name()
@@ -32,7 +50,9 @@ class Select extends Field
 
     public function getOptions()
     {
-        return $this->getSchemaAttribute('options');
+        $schemaOptions = $this->getSchemaAttribute('options');
+        $options = array_get($this->attributes, 'options', null);
+        return !sizeof($schemaOptions) && !is_null($options) ? $options : $schemaOptions;
     }
 
     public function setOptions($value)
@@ -40,7 +60,7 @@ class Select extends Field
         return $this->setSchemaAttribute('options', $value);
     }
 
-    protected function enum()
+    protected function getEnumValues()
     {
         $enum = [];
         $nullable = $this->getNullable();
@@ -52,6 +72,11 @@ class Select extends Field
             $enum[] = $option['value'];
         }
         return $enum;
+    }
+
+    protected function enum()
+    {
+        return !$this->isMultiple() ? $this->getEnumValues() : null;
     }
 
     protected function attributes()
