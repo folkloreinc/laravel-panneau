@@ -23,7 +23,7 @@
     },
     "homepage": "https://github.com/Folkloreatelier/laravel-panneau#readme",
     "dependencies": {
-        "panneau": "^0.5.4"
+        "panneau": "^0.5.7"
     },
     "devDependencies": {
         "@babel/cli": "^7.1.0",

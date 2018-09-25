@@ -7,6 +7,7 @@ return [
     'buttons.resources.create' => 'Create',
     'buttons.resources.save' => 'Save',
     'buttons.upload' => 'Select a file...',
+    'buttons.uploading' => 'Uploading...',
     'navbar.resources.create' => 'Add a new {resource}',
     'navbar.resources.index' => 'View all {resource}',
     'notices.resources.error' => 'Failed. The form contains errors.',

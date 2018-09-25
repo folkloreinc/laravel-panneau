@@ -7,6 +7,7 @@ return [
     'buttons.resources.create' => 'Créer',
     'buttons.resources.save' => 'Enregistrer',
     'buttons.upload' => 'Sélectionner un fichier',
+    'buttons.uploading' => 'Envoi...',
     'navbar.resources.create' => 'Ajouter {resource}',
     'navbar.resources.index' => 'Voir tous {resource}',
     'notices.resources.error' => 'Échec. Le formulaire contient des erreurs.',
