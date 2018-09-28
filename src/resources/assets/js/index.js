@@ -14,5 +14,6 @@ domready(() => {
         .setDefinition(definition)
         .setUser(user)
         .setLocale(locale)
+        .setOptions(opts)
         .render(el);
 });
