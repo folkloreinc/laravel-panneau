@@ -9,12 +9,10 @@ domready(() => {
     if (el === null) {
         return;
     }
-    const { definition, ...opts } = panneau_config();
+    const { definition, user, locale, ...opts } = panneau_config();
     panneau()
         .setDefinition(definition)
-        .setOptions({
-            locale: 'fr',
-            ...opts,
-        })
+        .setUser(user)
+        .setLocale(locale)
         .render(el);
 });

@@ -51,6 +51,12 @@ $router->group([
 $router->group([
     'middleware' => ['panneau.auth'],
 ], function ($router) use ($resources, $controllers) {
+    $router->get('account', [
+        'as' => 'panneau.account',
+        'middleware' => ['panneau.auth'],
+        'uses' => $controllers['home'].'@index',
+    ]);
+
     // Build resource routes
     foreach ($resources as $resource) {
         $customController = $resource->getController();

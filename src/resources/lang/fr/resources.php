@@ -11,7 +11,7 @@ return [
 
     'pages' => [
         'navbar' => [
-            'view_all' => 'Voir toutes les pages',
+            'index' => 'Voir toutes les pages',
         ],
         'names' => [
             'plural' => 'Pages',

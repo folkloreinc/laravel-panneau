@@ -128,6 +128,7 @@ return [
 
         'routes' => [
             'panneau.home',
+            'panneau.account',
             'panneau.auth.login',
             'panneau.auth.logout',
             'panneau.auth.password.request',
