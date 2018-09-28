@@ -23,11 +23,11 @@
     },
     "homepage": "https://github.com/Folkloreatelier/laravel-panneau#readme",
     "dependencies": {
-        "panneau": "^0.6.2"
+        "panneau": "^0.6.3"
     },
     "devDependencies": {
-        "@babel/cli": "^7.1.1",
-        "@babel/core": "^7.1.1",
+        "@babel/cli": "^7.1.2",
+        "@babel/core": "^7.1.2",
         "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
         "@babel/plugin-syntax-dynamic-import": "^7.0.0",
         "@babel/polyfill": "^7.0.0",
