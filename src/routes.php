@@ -24,7 +24,7 @@ $router->group([
         'uses' => $controllers['login'].'@showLoginForm',
     ]);
     $router->post('login', $controllers['login'].'@login');
-    $router->post('logout', [
+    $router->match(['get', 'post'], 'logout', [
         'as' => 'panneau.auth.logout',
         'uses' => $controllers['login'].'@logout',
     ]);
