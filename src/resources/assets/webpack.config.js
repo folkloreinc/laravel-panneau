@@ -36,6 +36,10 @@ const cssLoaders = [
             },
         },
     },
+];
+
+const sassLoaders = [
+    ...cssLoaders,
     {
         loader: 'sass-loader',
         options: {
@@ -47,8 +51,8 @@ const cssLoaders = [
     },
 ];
 
-const cssLocalLoaders = [].concat(cssLoaders);
-cssLocalLoaders[0] = {
+const sassLocalLoaders = [].concat(sassLoaders);
+sassLocalLoaders[0] = {
     loader: 'css-loader',
     options: {
         modules: true,
@@ -203,8 +207,7 @@ module.exports = {
                     },
 
                     {
-                        test: /\.global\.s[ac]ss$/,
-                        include: srcPath,
+                        test: /\.css$/,
                         use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(cssLoaders) : extractPlugin.extract({
                             fallback: 'style-loader',
                             use: cssLoaders,
@@ -212,12 +215,21 @@ module.exports = {
                     },
 
                     {
+                        test: /\.global\.s[ac]ss$/,
+                        include: srcPath,
+                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLoaders) : extractPlugin.extract({
+                            fallback: 'style-loader',
+                            use: sassLoaders,
+                        }),
+                    },
+
+                    {
                         test: /\.s[ac]ss$/,
                         include: srcPath,
                         exclude: /.global\.s[ac]ss$/,
-                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(cssLocalLoaders) : extractPlugin.extract({
+                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLocalLoaders) : extractPlugin.extract({
                             fallback: 'style-loader',
-                            use: cssLocalLoaders,
+                            use: sassLocalLoaders,
                         }),
                     },
                 ],
