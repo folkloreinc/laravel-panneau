@@ -20,6 +20,23 @@ return [
     ],
 
     /**
+     * Localization
+     */
+    'localization' => [
+        'locale' => null, // If null, will use application locale
+
+        'locales' => ['en', 'fr'],
+
+        'translations' => [
+            'panneau::forms',
+            'panneau::list',
+            'panneau::core',
+            'panneau::fields',
+            'panneau::layouts',
+        ]
+    ],
+
+    /**
      * Routes
      */
     'routes' => [

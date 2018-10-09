@@ -26,4 +26,8 @@ return [
     'media.upload_video_label' => 'Sélectionnez un fichier vidéo...',
     'media.video_add_type_label' => 'un fichier vidéo',
     'page.placeholder' => 'Rechercher une page...',
+    'select.loading' => 'Chargement...',
+    'select.no_options' => 'Aucune option',
+    'select.placeholder' => 'Sélectionnez...',
+    'select.screen_reader_status' => '{count, plural, =0 {aucun résultat disponible} one {# résultat disponible} other {# résultats disponibles}}',
 ];

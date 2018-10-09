@@ -198,16 +198,17 @@ class PanneauServiceProvider extends ServiceProvider
     public function registerPanneau()
     {
         $this->app->singleton('panneau', function ($app) {
+            $config = $app['config'];
             $panneau = new Panneau($app);
-            $panneau->setName(config('panneau.name'));
-            $panneau->setLocales(config('app.locales', [config('app.locale')]));
-            $panneau->setResources(config('panneau.resources', []));
-            $panneau->setBlocks(config('panneau.blocks', []));
-            $panneau->setPages(config('panneau.pages', []));
-            $panneau->setFields(config('panneau.fields', []));
-            $panneau->setBubbles(config('panneau.bubbles', []));
-            $panneau->setDefinitionLayout(config('panneau.definition.layout'));
-            $panneau->setDefinitionRoutes(config('panneau.definition.routes'));
+            $panneau->setName($config->get('panneau.name'));
+            $panneau->setLocales($config->get('panneau.localization.locales', ['en', 'fr']));
+            $panneau->setResources($config->get('panneau.resources', []));
+            $panneau->setBlocks($config->get('panneau.blocks', []));
+            $panneau->setPages($config->get('panneau.pages', []));
+            $panneau->setFields($config->get('panneau.fields', []));
+            $panneau->setBubbles($config->get('panneau.bubbles', []));
+            $panneau->setDefinitionLayout($config->get('panneau.definition.layout'));
+            $panneau->setDefinitionRoutes($config->get('panneau.definition.routes'));
             return $panneau;
         });
     }
