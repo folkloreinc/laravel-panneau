@@ -26,6 +26,7 @@ return [
     'media.upload_video_label' => 'Select a video file...',
     'media.video_add_type_label' => 'a video file',
     'page.placeholder' => 'Search for a page...',
+    'select.create' => 'Create "{inputValue}"',
     'select.loading' => 'Loading...',
     'select.no_options' => 'No options',
     'select.placeholder' => 'Select...',
