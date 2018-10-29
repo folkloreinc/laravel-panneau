@@ -33,9 +33,11 @@ class UpdatePanneauPagesSlugColumns extends Migration
     {
         Schema::table(config('panneau.table_prefix').'pages', function (Blueprint $table) {
             $locales = panneau()->locales();
+            $columns = [];
             foreach ($locales as $locale) {
-                $table->dropColumn('slug_'.$locale);
+                $columns[] = 'slug_'.$locale;
             }
+            $table->dropColumn($columns);
         });
     }
 }
