@@ -6,6 +6,7 @@ return [
     'buttons.resources.cancel' => 'Cancel',
     'buttons.resources.create' => 'Create',
     'buttons.resources.save' => 'Save',
+    'buttons.resources.switch_type' => 'Switch type',
     'buttons.upload' => 'Select a file...',
     'buttons.uploading' => 'Uploading...',
     'notices.resources.error' => 'Failed. The form contains errors.',
