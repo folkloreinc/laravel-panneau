@@ -1,7 +1,9 @@
 /* eslint-disable import/no-extraneous-dependencies */
-const webpack = require('webpack');
 const path = require('path');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const safePostCssParser = require('postcss-safe-parser');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const eslintFormatter = require('react-dev-utils/eslintFormatter');
 
 const ENV = process.env.NODE_ENV;
@@ -11,13 +13,10 @@ const srcPath = path.join(__dirname, './');
 const outputPath = path.join(process.env.PWD, './public/panneau/');
 const publicPath = '/panneau/';
 
-const extractPlugin = new ExtractTextPlugin({
-    filename: '[name].css',
-    allChunks: true,
-    disable: isDevelopment,
-});
-
 const cssLoaders = [
+    !isDevelopment && {
+        loader: MiniCssExtractPlugin.loader,
+    },
     {
         loader: 'css-loader',
         options: {
@@ -36,7 +35,7 @@ const cssLoaders = [
             },
         },
     },
-];
+].filter(Boolean);
 
 const sassLoaders = [
     ...cssLoaders,
@@ -64,15 +63,16 @@ sassLocalLoaders[0] = {
 
 
 module.exports = {
+    mode: isDevelopment ? 'development' : 'production',
 
-    context: srcPath,
+    bail: !isDevelopment,
+
+    // context: srcPath,
 
     entry: isDevelopment ? [
-        path.join(__dirname, './js/polyfills.js'),
         require.resolve('react-dev-utils/webpackHotDevClient'),
         path.join(__dirname, './js/index.js'),
     ] : [
-        path.join(__dirname, './js/polyfills.js'),
         path.join(__dirname, './js/index.js'),
     ],
 
@@ -80,42 +80,77 @@ module.exports = {
 
     output: {
         path: outputPath,
-        filename: '[name].js',
+        filename: 'main.js',
         chunkFilename: '[name].chunk.js',
-        jsonpFunction: 'flklrJsonp',
         publicPath,
     },
 
+    optimization: {
+        minimizer: !isDevelopment ? [
+            new TerserPlugin({
+                terserOptions: {
+                    parse: {
+                        // we want terser to parse ecma 8 code. However, we don't want it
+                        // to apply any minfication steps that turns valid ecma 5 code
+                        // into invalid ecma 5 code. This is why the 'compress' and 'output'
+                        // sections only apply transformations that are ecma 5 safe
+                        // https://github.com/facebook/create-react-app/pull/4234
+                        ecma: 8,
+                    },
+                    compress: {
+                        ecma: 5,
+                        warnings: false,
+                        // Disabled because of an issue with Uglify breaking seemingly valid code:
+                        // https://github.com/facebook/create-react-app/issues/2376
+                        // Pending further investigation:
+                        // https://github.com/mishoo/UglifyJS2/issues/2011
+                        comparisons: false,
+                        // Disabled because of an issue with Terser breaking valid code:
+                        // https://github.com/facebook/create-react-app/issues/5250
+                        // Pending futher investigation:
+                        // https://github.com/terser-js/terser/issues/120
+                        inline: 2,
+                    },
+                    mangle: {
+                        safari10: true,
+                    },
+                    output: {
+                        ecma: 5,
+                        comments: false,
+                        // Turned on because emoji and regex is not minified properly using default
+                        // https://github.com/facebook/create-react-app/issues/2488
+                        ascii_only: true,
+                    },
+                },
+                // Use multi-process parallel running to improve the build speed
+                // Default number of concurrent runs: os.cpus().length - 1
+                parallel: true,
+                // Enable file caching
+                cache: true,
+                sourceMap: false,
+            }),
+            new OptimizeCSSAssetsPlugin({
+                cssProcessorOptions: {
+                    parser: safePostCssParser,
+                    map: false,
+                },
+            }),
+        ] : [],
+        // Automatically split vendor and commons
+        // https://twitter.com/wSokra/status/969633336732905474
+        // https://medium.com/webpack/webpack-4-code-splitting-chunk-graph-and-the-splitchunks-optimization-be739a861366
+        splitChunks: false,
+        // Keep the runtime chunk seperated to enable long term caching
+        // https://twitter.com/wSokra/status/969679223278505985
+        runtimeChunk: false,
+    },
+
     plugins: [
-        extractPlugin,
-    ].concat(isDevelopment ? [
-        new webpack.NamedModulesPlugin(),
-        new webpack.DefinePlugin({
-            'process.env': {
-                NODE_ENV: JSON.stringify('development'),
-            },
-            __DEV__: JSON.stringify(true),
+        !isDevelopment && new MiniCssExtractPlugin({
+            filename: '[name].css',
+            chunkFilename: '[name].[contenthash:8].chunk.css',
         }),
-    ] : [
-        new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify('production'),
-            __DEV__: JSON.stringify(false),
-        }),
-        new webpack.optimize.ModuleConcatenationPlugin(),
-        new webpack.optimize.UglifyJsPlugin({
-            compress: {
-                warnings: false,
-                comparisons: false,
-            },
-            mangle: {
-                safari10: true,
-            },
-            output: {
-                comments: false,
-                ascii_only: true,
-            },
-        }),
-    ]),
+    ].filter(Boolean),
 
     module: {
         rules: [
@@ -165,34 +200,56 @@ module.exports = {
                             publicPath: '',
                         },
                     },
+                    // Process JS with Babel.
                     {
-                        test: /\.jsx?$/,
-                        loader: 'babel-loader',
-                        include: [
-                            srcPath,
-                        ],
-                        options: {
-                            cacheDirectory: true,
-                        },
-                    },
-                    {
-                        test: /\.(js|jsx|mjs)$/,
-                        include: [
-                            /react-intl\//,
-                            /query-string\//,
-                        ],
+                        test: /\.(js|mjs|jsx|ts|tsx)$/,
+                        include: srcPath,
+
                         loader: require.resolve('babel-loader'),
                         options: {
-                            presets: [
-                                [require.resolve('@babel/preset-env'), {
-                                    targets: {
-                                        ie: 9,
-                                    },
-                                }],
-                            ],
+                            customize: require.resolve('babel-preset-react-app/webpack-overrides'),
                             plugins: [
-                                require.resolve('@babel/plugin-proposal-object-rest-spread'),
+                                [
+                                    require.resolve('babel-plugin-named-asset-import'),
+                                    {
+                                        loaderMap: {
+                                            svg: {
+                                                ReactComponent:
+                                                    '@svgr/webpack?-prettier,-svgo![path]',
+                                            },
+                                        },
+                                    },
+                                ],
                             ],
+                            cacheDirectory: true,
+                            // Save disk space when time isn't as important
+                            cacheCompression: !isDevelopment,
+                            compact: !isDevelopment,
+                        },
+                    },
+                    // For dependencies
+                    {
+                        test: /\.(js|mjs)$/,
+                        exclude: /@babel(?:\/|\\{1,2})runtime/,
+                        loader: require.resolve('babel-loader'),
+                        options: {
+                            babelrc: false,
+                            configFile: false,
+                            compact: false,
+                            presets: [
+                                [
+                                    require.resolve('babel-preset-react-app/dependencies'),
+                                    { helpers: true },
+                                ],
+                            ],
+                            cacheDirectory: true,
+                            // Save disk space when time isn't as important
+                            cacheCompression: !isDevelopment,
+                            // If an error happens in a package, it's possible to be
+                            // because it was compiled. Thus, we don't want the browser
+                            // debugger to show the original code. Instead, the code
+                            // being evaluated would be much more helpful.
+                            sourceMaps: false,
                         },
                     },
                     {
@@ -208,29 +265,20 @@ module.exports = {
 
                     {
                         test: /\.css$/,
-                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(cssLoaders) : extractPlugin.extract({
-                            fallback: 'style-loader',
-                            use: cssLoaders,
-                        }),
+                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(cssLoaders) : cssLoaders,
                     },
 
                     {
                         test: /\.global\.s[ac]ss$/,
                         include: srcPath,
-                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLoaders) : extractPlugin.extract({
-                            fallback: 'style-loader',
-                            use: sassLoaders,
-                        }),
+                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLoaders) : sassLoaders,
                     },
 
                     {
                         test: /\.s[ac]ss$/,
                         include: srcPath,
                         exclude: /.global\.s[ac]ss$/,
-                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLocalLoaders) : extractPlugin.extract({
-                            fallback: 'style-loader',
-                            use: sassLocalLoaders,
-                        }),
+                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLocalLoaders) : sassLocalLoaders,
                     },
                 ],
             },
@@ -244,23 +292,16 @@ module.exports = {
         ],
     },
 
-    stats: {
-        colors: true,
-        modules: true,
-        reasons: true,
-        modulesSort: 'size',
-        children: true,
-        chunks: true,
-        chunkModules: true,
-        chunkOrigins: true,
-        chunksSort: 'size',
+    // Some libraries import Node modules but don't use them in the browser.
+    // Tell Webpack to provide empty mocks for them so importing them works.
+    node: {
+        dgram: 'empty',
+        fs: 'empty',
+        net: 'empty',
+        tls: 'empty',
+        child_process: 'empty',
     },
-
-    performance: {
-        maxAssetSize: 100000,
-        maxEntrypointSize: 300000,
-    },
-
-    cache: true,
-    watch: false,
+    // Turn off performance processing because we utilize
+    // our own hints via the FileSizeReporter
+    performance: false,
 };
