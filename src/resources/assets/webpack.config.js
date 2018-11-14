@@ -1,5 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const path = require('path');
+const webpack = require('webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const safePostCssParser = require('postcss-safe-parser');
@@ -150,6 +151,14 @@ module.exports = {
             filename: '[name].css',
             chunkFilename: '[name].[contenthash:8].chunk.css',
         }),
+        // Moment.js is an extremely popular library that bundles large locale files
+        // by default due to how Webpack interprets its code. This is a practical
+        // solution that requires the user to opt into importing specific locales.
+        // https://github.com/jmblog/how-to-optimize-momentjs-with-webpack
+        // You can remove this if you don't use Moment.js:
+        new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
+        // Ignore react-intl locale except fr and en
+        new webpack.IgnorePlugin(/(?!fr|en)([a-z]{2,3})/, /locale-data/),
     ].filter(Boolean),
 
     module: {
