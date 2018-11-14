@@ -4,7 +4,6 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const safePostCssParser = require('postcss-safe-parser');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const eslintFormatter = require('react-dev-utils/eslintFormatter');
 
 const ENV = process.env.NODE_ENV;
 const isDevelopment = ENV === 'development';
@@ -65,9 +64,9 @@ sassLocalLoaders[0] = {
 module.exports = {
     mode: isDevelopment ? 'development' : 'production',
 
-    bail: !isDevelopment,
+    devtool: isDevelopment ? 'cheap-eval-source-map' : false,
 
-    // context: srcPath,
+    bail: !isDevelopment,
 
     entry: isDevelopment ? [
         require.resolve('react-dev-utils/webpackHotDevClient'),
@@ -75,8 +74,6 @@ module.exports = {
     ] : [
         path.join(__dirname, './js/index.js'),
     ],
-
-    devtool: isDevelopment ? 'cheap-eval-source-map' : false,
 
     output: {
         path: outputPath,
@@ -139,7 +136,10 @@ module.exports = {
         // Automatically split vendor and commons
         // https://twitter.com/wSokra/status/969633336732905474
         // https://medium.com/webpack/webpack-4-code-splitting-chunk-graph-and-the-splitchunks-optimization-be739a861366
-        splitChunks: false,
+        splitChunks: {
+            chunks: 'async',
+            name: false,
+        },
         // Keep the runtime chunk seperated to enable long term caching
         // https://twitter.com/wSokra/status/969679223278505985
         runtimeChunk: false,
@@ -160,19 +160,16 @@ module.exports = {
                 use: [
                     {
                         options: {
-                            formatter: eslintFormatter,
+                            formatter: require.resolve('react-dev-utils/eslintFormatter'),
                             eslintPath: require.resolve('eslint'),
-                            rules: {
+                            rules: isDevelopment ? {
                                 'no-console': ['warn', { allow: ['warn', 'error'] }],
-                            },
+                            } : {},
                         },
                         loader: require.resolve('eslint-loader'),
                     },
                 ],
                 include: srcPath,
-                exclude: [
-                    /\/vendor\//,
-                ],
             },
             {
                 // "oneOf" will traverse all following loaders until one will
@@ -266,12 +263,22 @@ module.exports = {
                     {
                         test: /\.css$/,
                         use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(cssLoaders) : cssLoaders,
+                        // Don't consider CSS imports dead code even if the
+                        // containing package claims to have no side effects.
+                        // Remove this when webpack adds a warning or an error for this.
+                        // See https://github.com/webpack/webpack/issues/6571
+                        sideEffects: true,
                     },
 
                     {
                         test: /\.global\.s[ac]ss$/,
                         include: srcPath,
                         use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLoaders) : sassLoaders,
+                        // Don't consider CSS imports dead code even if the
+                        // containing package claims to have no side effects.
+                        // Remove this when webpack adds a warning or an error for this.
+                        // See https://github.com/webpack/webpack/issues/6571
+                        sideEffects: true,
                     },
 
                     {
