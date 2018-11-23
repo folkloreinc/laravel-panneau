@@ -13,54 +13,48 @@ const srcPath = path.join(__dirname, './');
 const outputPath = path.join(process.env.PWD, './public/panneau/');
 const publicPath = '/panneau/';
 
-const cssLoaders = [
-    !isDevelopment && {
-        loader: MiniCssExtractPlugin.loader,
-    },
-    {
-        loader: 'css-loader',
-        options: {
-            sourceMap: true,
+// Options for PostCSS as we reference these options twice
+// Adds vendor prefixing based on your specified browser support in
+// package.json
+const postCSSLoaderOptions = {
+    config: {
+        path: path.join(__dirname, './postcss.config.js'),
+        ctx: {
+            env: ENV,
         },
     },
-    {
-        loader: 'postcss-loader',
-        options: {
-            sourceMap: true,
-            config: {
-                path: path.join(__dirname, './postcss.config.js'),
-                ctx: {
-                    env: ENV,
-                },
-            },
-        },
-    },
-].filter(Boolean);
-
-const sassLoaders = [
-    ...cssLoaders,
-    {
-        loader: 'sass-loader',
-        options: {
-            sourceMap: true,
-            includePaths: [
-                path.join(process.env.PWD, './node_modules'),
-            ],
-        },
-    },
-];
-
-const sassLocalLoaders = [].concat(sassLoaders);
-sassLocalLoaders[0] = {
-    loader: 'css-loader',
-    options: {
-        modules: true,
-        sourceMap: true,
-        importLoaders: 1,
-        localIdentName: '[name]-[local]',
-    },
+    sourceMap: true,
 };
 
+// common function to get style loaders
+const getStyleLoaders = (cssOptions, preProcessor) => {
+    const loaders = [
+        isDevelopment ? require.resolve('style-loader') : {
+            loader: MiniCssExtractPlugin.loader,
+            options: {},
+        },
+        {
+            loader: require.resolve('css-loader'),
+            options: cssOptions,
+        },
+        {
+            loader: require.resolve('postcss-loader'),
+            options: postCSSLoaderOptions,
+        },
+    ];
+    if (preProcessor) {
+        loaders.push({
+            loader: require.resolve(preProcessor),
+            options: {
+                sourceMap: true,
+                includePaths: [
+                    path.join(process.env.PWD, './node_modules'),
+                ],
+            },
+        });
+    }
+    return loaders;
+};
 
 module.exports = {
     mode: isDevelopment ? 'development' : 'production',
@@ -270,31 +264,63 @@ module.exports = {
                     },
 
                     {
+                        test: /\.global\.css$/,
+                        loader: getStyleLoaders({
+                            importLoaders: 1,
+                            sourceMap: true,
+                        }),
+                        // Don't consider CSS imports dead code even if the
+                        // containing package claims to have no side effects.
+                        // Remove this when webpack adds a warning or an error for this.
+                        // See https://github.com/webpack/webpack/issues/6571
+                        sideEffects: true,
+                    },
+
+                    {
                         test: /\.css$/,
-                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(cssLoaders) : cssLoaders,
+                        exclude: /\.global\.css$/,
+                        loader: getStyleLoaders({
+                            importLoaders: 1,
+                            minimize: true,
+                            sourceMap: true,
+                            modules: true,
+                            localIdentName: '[name]-[local]',
+                        }),
+                        // Note: this won't work without `new ExtractTextPlugin()` in `plugins`.
+                    },
+
+                    {
+                        test: /\.global\.(scss|sass)$/,
+                        loader: getStyleLoaders(
+                            {
+                                importLoaders: 2,
+                                minimize: true,
+                                sourceMap: true,
+                            },
+                            'sass-loader',
+                        ),
                         // Don't consider CSS imports dead code even if the
                         // containing package claims to have no side effects.
                         // Remove this when webpack adds a warning or an error for this.
                         // See https://github.com/webpack/webpack/issues/6571
                         sideEffects: true,
                     },
-
+                    // Adds support for CSS Modules, but using SASS
+                    // using the extension .module.scss or .module.sass
                     {
-                        test: /\.global\.s[ac]ss$/,
-                        include: srcPath,
-                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLoaders) : sassLoaders,
-                        // Don't consider CSS imports dead code even if the
-                        // containing package claims to have no side effects.
-                        // Remove this when webpack adds a warning or an error for this.
-                        // See https://github.com/webpack/webpack/issues/6571
-                        sideEffects: true,
-                    },
-
-                    {
-                        test: /\.s[ac]ss$/,
-                        include: srcPath,
-                        exclude: /.global\.s[ac]ss$/,
-                        use: isDevelopment ? ['style-loader?convertToAbsoluteUrls'].concat(sassLocalLoaders) : sassLocalLoaders,
+                        test: /\.(scss|sass)$/,
+                        exclude: /\.global\.(scss|sass)$/,
+                        loader: getStyleLoaders(
+                            {
+                                importLoaders: 2,
+                                minimize: true,
+                                sourceMap: true,
+                                modules: true,
+                                localIdentName: '[name]-[local]',
+                            },
+                            'sass-loader',
+                        ),
+                        // Note: this won't work without `new ExtractTextPlugin()` in `plugins`.
                     },
                 ],
             },
