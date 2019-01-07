@@ -29,7 +29,7 @@ abstract class TypedModelResource extends JsonSchemasTypedResource
         $schemas = [];
         $modelTypes = $this->getModelTypes();
         $model = $this->get('model');
-        $model = is_string($model) ? resolve($model) : $model;
+        $model = is_string($model) ? app()->make($model) : $model;
         foreach ($modelTypes as $modelType) {
             $type = $modelType->getName();
             $model->type = $type;

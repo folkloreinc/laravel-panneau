@@ -10,7 +10,7 @@ trait ResourceHasJsonSchemas
     {
         if (is_null($model)) {
             $model = $this->get('model');
-            $model = is_string($model) ? resolve($model) : $model;
+            $model = is_string($model) ? app()->make($model) : $model;
         }
         $schemas = $model->getJsonSchemas();
         return $schemas;
@@ -29,7 +29,7 @@ trait ResourceHasJsonSchemas
     protected function getFieldsFromSchema($schema, $path = null)
     {
         $fields = [];
-        $schema = is_string($schema) ? resolve($schema) : $schema;
+        $schema = is_string($schema) ? app()->make($schema) : $schema;
         $properties = $schema->getProperties();
         foreach ($properties as $name => $prop) {
             if ($prop instanceof Field) {
@@ -54,7 +54,7 @@ trait ResourceHasJsonSchemas
     protected function getValidationsFromSchema($schema, $path = null)
     {
         $fields = [];
-        $schema = is_string($schema) ? resolve($schema) : $schema;
+        $schema = is_string($schema) ? app()->make($schema) : $schema;
         $properties = $schema->getProperties();
         foreach ($properties as $name => $prop) {
             if ($prop instanceof Field) {

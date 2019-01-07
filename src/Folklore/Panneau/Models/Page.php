@@ -100,7 +100,7 @@ class Page extends Model implements
      */
     public function pages()
     {
-        $class = get_class(resolve(PageContract::class));
+        $class = get_class(app()->make(PageContract::class));
         $table = config('panneau.table_prefix').'pages_pages_pivot';
         return $this->belongsToMany($class, $table, 'parent_page_id', 'page_id')
             ->withPivot('handle', 'order')
@@ -109,7 +109,7 @@ class Page extends Model implements
 
     public function parents()
     {
-        $class = get_class(resolve(PageContract::class));
+        $class = get_class(app()->make(PageContract::class));
         $table = config('panneau.table_prefix').'pages_pages_pivot';
         return $this->belongsToMany($class, $table, 'page_id', 'parent_page_id')
             ->withPivot('handle', 'order')
@@ -118,7 +118,7 @@ class Page extends Model implements
 
     public function blocks()
     {
-        $class = get_class(resolve(BlockContract::class));
+        $class = get_class(app()->make(BlockContract::class));
         $table = config('panneau.table_prefix').'pages_blocks_pivot';
         return $this->belongsToMany($class, $table, 'page_id', 'block_id')
             ->withPivot('handle', 'order')

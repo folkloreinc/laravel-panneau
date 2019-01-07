@@ -66,7 +66,7 @@ class Panneau
     public function getDefinitionLayout()
     {
         $definition = $this->definitionLayout;
-        $layout = is_string($definition) ? resolve($definition) : new Layout($definition);
+        $layout = is_string($definition) ? app()->make($definition) : new Layout($definition);
         return $layout;
     }
 
@@ -253,7 +253,7 @@ class Panneau
         $routes = $this->getRoutesForDefinition();
         $layout = $this->getDefinitionLayout();
 
-        $definition = resolve(\Folklore\Panneau\Contracts\PanneauDefinition::class);
+        $definition = app()->make(\Folklore\Panneau\Contracts\PanneauDefinition::class);
         $definition->setDefinition([
             'name' => $name,
             'locales' => $locales,
@@ -292,7 +292,7 @@ class Panneau
         }
 
         $definition = $this->{$type}[$foundKey];
-        return is_string($definition) ? resolve($definition) : new $class($definition);
+        return is_string($definition) ? app()->make($definition) : new $class($definition);
     }
 
     protected function makeSingleton($type, $id, $class)

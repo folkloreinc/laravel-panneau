@@ -64,7 +64,7 @@ class Block extends Model implements
 
     public function blocks()
     {
-        $class = get_class(resolve(BlockContract::class));
+        $class = get_class(app()->make(BlockContract::class));
         $table = config('panneau.table_prefix').'blocks_blocks_pivot';
         return $this->belongsToMany($class, $table, 'parent_block_id', 'block_id')
             ->withPivot('handle', 'order')
@@ -73,7 +73,7 @@ class Block extends Model implements
 
     public function pages()
     {
-        $class = get_class(resolve(PageContract::class));
+        $class = get_class(app()->make(PageContract::class));
         $table = config('panneau.table_prefix').'pages_blocks_pivot';
         return $this->belongsToMany($class, $table, 'block_id', 'page_id')
             ->withPivot('handle', 'order')
