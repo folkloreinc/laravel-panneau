@@ -60,7 +60,7 @@ class Bubble extends Model implements
 
     public function bubbles()
     {
-        $class = get_class(app()->make(BubbleContract::class));
+        $class = get_class(resolve(BubbleContract::class));
         $table = config('panneau.table_prefix').'bubbles_bubbles_pivot';
         return $this->belongsToMany($class, $table, 'parent_bubble_id', 'bubble_id')
             ->withPivot('handle', 'order')

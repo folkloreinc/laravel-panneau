@@ -198,7 +198,7 @@ class ResourceController extends Controller
         if (!is_null($resource)) {
             $model = $resource->getModel();
             if (!is_null($model)) {
-                return app()->make($model);
+                return resolve($model);
             }
         }
         return null;
