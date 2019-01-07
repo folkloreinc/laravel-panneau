@@ -281,7 +281,6 @@ module.exports = {
                         exclude: /\.global\.css$/,
                         loader: getStyleLoaders({
                             importLoaders: 1,
-                            minimize: true,
                             sourceMap: true,
                             modules: true,
                             localIdentName: '[name]-[local]',
@@ -294,7 +293,6 @@ module.exports = {
                         loader: getStyleLoaders(
                             {
                                 importLoaders: 2,
-                                minimize: true,
                                 sourceMap: true,
                             },
                             'sass-loader',
@@ -313,7 +311,6 @@ module.exports = {
                         loader: getStyleLoaders(
                             {
                                 importLoaders: 2,
-                                minimize: true,
                                 sourceMap: true,
                                 modules: true,
                                 localIdentName: '[name]-[local]',
