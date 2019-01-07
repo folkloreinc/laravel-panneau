@@ -64,7 +64,5 @@
                 "Panneau": "Folklore\\Panneau\\Support\\Facades\\Panneau"
             }
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    }
 }
