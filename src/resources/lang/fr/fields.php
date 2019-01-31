@@ -7,6 +7,7 @@ return [
     'core.buttons.add' => 'Ajouter',
     'items.buttons.add' => 'Ajouter',
     'items.buttons.add_with_type' => 'Ajouter {type}',
+    'items.confirm_remove_message' => 'Êtes-vous certain de vouloir supprimer cet élément?',
     'items.title' => 'Item #{index}',
     'items.title_with_label' => 'Item #{index} - {label}',
     'link.label_label' => 'Libellé',
