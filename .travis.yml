@@ -41,6 +41,7 @@ matrix:
           env: ILLUMINATE_VERSION=5.3.* PHPUNIT_VERSION=~5.0
 
 before_install:
+    - echo "memory_limit=2G" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
     - cp ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini ~/xdebug.ini
     - phpenv config-rm xdebug.ini
     - composer global require hirak/prestissimo --update-no-dev
