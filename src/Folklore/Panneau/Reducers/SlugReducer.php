@@ -31,7 +31,13 @@ class SlugReducer extends Reducer
         if ((isset($slug) && !empty($slug)) || is_null($text) || empty($text)) {
             return $value;
         }
-        $value = Utils::setPath($value, $node->path, str_slug($text));
+        $slug = $this->createSlug($text, $model, $node, $value);
+        $value = Utils::setPath($value, $node->path, $slug);
         return $value;
+    }
+
+    protected function createSlug($text, $model, $node, $value)
+    {
+        return str_slug($text);
     }
 }
