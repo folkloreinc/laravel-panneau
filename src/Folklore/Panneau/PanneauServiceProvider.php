@@ -116,7 +116,9 @@ class PanneauServiceProvider extends ServiceProvider
         ];
 
         foreach ($middlewares as $key => $class) {
-            if (method_exists($router, 'aliasMiddleware')) {
+            if (is_array($class) && method_exists($router, 'middlewareGroup')) {
+                $router->middlewareGroup($key, $class);
+            } elseif (method_exists($router, 'aliasMiddleware')) {
                 $router->aliasMiddleware($key, $class);
             } else {
                 $router->middleware($key, $class);
