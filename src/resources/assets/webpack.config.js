@@ -282,8 +282,9 @@ module.exports = {
                         loader: getStyleLoaders({
                             importLoaders: 1,
                             sourceMap: true,
-                            modules: true,
-                            localIdentName: '[name]-[local]',
+                            modules: {
+                                localIdentName: '[name]-[local]',
+                            },
                         }),
                         // Note: this won't work without `new ExtractTextPlugin()` in `plugins`.
                     },
@@ -312,8 +313,9 @@ module.exports = {
                             {
                                 importLoaders: 2,
                                 sourceMap: true,
-                                modules: true,
-                                localIdentName: '[name]-[local]',
+                                modules: {
+                                    localIdentName: '[name]-[local]',
+                                },
                             },
                             'sass-loader',
                         ),
