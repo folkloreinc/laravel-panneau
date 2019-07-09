@@ -1,6 +1,6 @@
 <?php
 
-use Folklore\Panneau\Support\Schema;
+use Panneau\Support\Schema;
 
 class BubbleTestSchema extends Schema
 {

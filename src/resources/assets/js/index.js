@@ -10,13 +10,12 @@ domready(() => {
         return;
     }
     const {
-        definition, user, locale, messages, ...opts
+        definition, user, locale, ...opts
     } = panneau_config();
     panneau()
         .setLocale(locale)
         .setDefinition(definition)
         .setUser(user)
-        .setMessages(messages)
         .setOptions(opts)
         .render(el);
 });

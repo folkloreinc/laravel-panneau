@@ -9,22 +9,19 @@ return [
         ],
     ],
 
-    'pages' => [
-        'navbar' => [
-            'index' => 'Voir toutes les pages',
-        ],
+    'documents' => [
         'names' => [
-            'plural' => 'Pages',
-            'a' => 'une page',
-            'a_plural' => 'les pages',
+            'plural' => 'Documents',
+            'a' => 'un document',
+            'a_plural' => 'les documents',
         ],
     ],
 
-    'bubbles' => [
+    'medias' => [
         'names' => [
-            'plural' => 'Contenus',
-            'a' => 'un contenu',
-            'a_plural' => 'les contenus',
+            'plural' => 'Médias',
+            'a' => 'un média',
+            'a_plural' => 'les médias',
         ],
     ],
 

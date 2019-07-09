@@ -1,0 +1,36 @@
+<?php
+
+namespace DummyNamespace;
+
+use Panneau\Support\Schemas\Document as BaseDocument;
+
+class DummyClass extends BaseDocument
+{
+    protected function attributes()
+    {
+        return [
+            'label' => trans('panneau.documents.DummyClass.label')
+        ];
+    }
+
+    protected function properties()
+    {
+        return [
+            'slug' => field('text_locale', [
+                'label' => trans('panneau::fields.slug_label'),
+            ]),
+
+            'title' => field('text_locale', [
+                'label' => trans('panneau::fields.title_label'),
+            ]),
+
+            'parent' => field('document', [
+                'label' => trans('panneau::fields.parent_label'),
+            ]),
+
+            'blocks' => field('blocks', [
+                'label' => trans('panneau::fields.blocks_label'),
+            ]),
+        ];
+    }
+}

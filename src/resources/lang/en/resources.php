@@ -9,19 +9,19 @@ return [
         ],
     ],
 
-    'pages' => [
+    'documents' => [
         'names' => [
-            'plural' => 'Pages',
-            'a' => 'a page',
-            'a_plural' => 'pages'
+            'plural' => 'Documents',
+            'a' => 'a document',
+            'a_plural' => 'documents'
         ],
     ],
 
-    'bubbles' => [
+    'medias' => [
         'names' => [
-            'plural' => 'Bubbles',
-            'a' => 'a bubble',
-            'a_plural' => 'bubbles'
+            'plural' => 'Medias',
+            'a' => 'a media',
+            'a_plural' => 'medias'
         ],
     ],
 

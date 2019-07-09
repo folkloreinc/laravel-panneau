@@ -1,5 +1,7 @@
 <?php
 
+namespace Panneau\Tests;
+
 trait RunMigrationsTrait
 {
     public function runMigrations()
@@ -12,7 +14,9 @@ trait RunMigrationsTrait
             ]);
         }
 
-        $paths = $this->getMigrationPaths();
+        $paths = array_unique(
+            array_merge($migrator->paths(), $this->getMigrationPaths())
+        );
         foreach ($paths as $path) {
             $migrator->run($path);
         }
@@ -40,8 +44,6 @@ trait RunMigrationsTrait
 
     protected function getMigrationPaths()
     {
-        return [
-            realpath(__DIR__.'/../src/migrations')
-        ];
+        return [realpath(__DIR__ . '/../src/migrations')];
     }
 }

@@ -1,21 +1,22 @@
 <?php
 
-use Folklore\Panneau\Panneau;
+namespace Panneau\Tests\Unit;
+
+use Panneau\Tests\TestCase;
+use Panneau\Panneau;
 
 /**
- * @coversDefaultClass Folklore\Panneau\Panneau
+ * @coversDefaultClass Panneau\Panneau
  */
 class PanneauTest extends TestCase
 {
     protected $panneau;
 
-    public function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 
-        $this->panneau = new Panneau(app());
-        $this->panneau->setResources(config('panneau.resources'));
-        $this->panneau->setDefinitionRoutes(config('panneau.definition.routes'));
+        $this->panneau = new Panneau(app(), app('auth'));
     }
 
     /**
@@ -27,13 +28,10 @@ class PanneauTest extends TestCase
      */
     public function testDefinition()
     {
-        $resources = $this->panneau->getResources();
+        $resources = $this->panneau->resources();
         $definition = $this->panneau->definition()->toArray();
 
         // Check routes
-        $definitionRoutes = array_map(function ($route) {
-            return preg_replace('/^panneau\./', '', $route);
-        }, config('panneau.definition.routes'));
         $resourceRoutes = [
             'resource.index',
             'resource.definition',
@@ -43,17 +41,22 @@ class PanneauTest extends TestCase
             'resource.edit',
             'resource.update',
             'resource.destroy',
-            'resource.delete',
+            'resource.delete'
         ];
-        $customResourceRoutes = array_reduce($resources, function ($allRoutes, $resource) {
-            $data = $resource->toArray();
-            $routes = array_get($data, 'routes', []);
-            $names = array_map(function ($name) use ($resource) {
-                return 'resource.'.$resource->getId().'.'.$name;
-            }, array_keys($routes));
-            return array_merge($allRoutes, $names);
-        }, []);
-        $routes = array_merge($definitionRoutes, $resourceRoutes, $customResourceRoutes);
+        $customResourceRoutes = $resources
+            ->instances()
+            ->reduce(function ($allRoutes, $resource) {
+                $controller = $resource->getController();
+                if (is_null($controller)) {
+                    return $allRoutes;
+                }
+                $resourceName = $resource->getName();
+                $names = $resource->getRoutes()->keys()->map(function ($action) use ($resourceName) {
+                    return sprintf('resource.%s.%s', $resourceName, $action);
+                })->all();
+                return array_merge($allRoutes, $names);
+            }, []);
+        $routes = array_merge($resourceRoutes, $customResourceRoutes);
         $this->assertEquals($routes, array_keys($definition['routes']));
     }
 }

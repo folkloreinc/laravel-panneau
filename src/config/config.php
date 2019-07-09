@@ -16,7 +16,7 @@ return [
      * Authentication
      */
     'auth' => [
-        'user' => \App\User::class,
+        'guard' => null,
     ],
 
     /**
@@ -46,14 +46,14 @@ return [
 
         'domain' => null,
 
-        'namespace' => 'Folklore\Panneau\Http\Controllers',
+        'namespace' => 'Panneau\Http\Controllers',
 
         'middleware' => ['web'],
 
         'middlewares' => [
-            'auth' => \Folklore\Panneau\Http\Middlewares\Authenticate::class,
-            'guest' => \Folklore\Panneau\Http\Middlewares\RedirectIfAuthenticated::class,
-            'resource' => \Folklore\Panneau\Http\Middlewares\InjectResource::class,
+            'auth' => \Panneau\Http\Middlewares\Authenticate::class,
+            'guest' => \Panneau\Http\Middlewares\RedirectIfAuthenticated::class,
+            'resource' => \Panneau\Http\Middlewares\InjectResource::class,
         ],
 
         'controllers' => [
@@ -75,103 +75,98 @@ return [
      * Resources
      */
     'resources' => [
-        'pages' => \Folklore\Panneau\Resources\Pages::class,
-        'blocks' => \Folklore\Panneau\Resources\Blocks::class,
-        'bubbles' => \Folklore\Panneau\Resources\Bubbles::class,
-        'users' => \Folklore\Panneau\Resources\Users::class,
+        'documents' => \Panneau\Resources\Documents::class,
+        'blocks' => \Panneau\Resources\Blocks::class,
+        'medias' => \Panneau\Resources\Medias::class,
+        'users' => \Panneau\Resources\Users::class,
     ],
 
     /**
-     * Pages
+     * Documents
      */
-    'pages' => [
-        'base' => \Folklore\Panneau\Schemas\Pages\Base::class,
+    'documents' => [
+        'page' => \Panneau\Schemas\Documents\Page::class,
+        'video' => \Panneau\Schemas\Documents\Video::class,
+        'gallery' => \Panneau\Schemas\Documents\Gallery::class,
     ],
 
     /**
      * Blocks
      */
     'blocks' => [
-        'base' => \Folklore\Panneau\Schemas\Blocks\Base::class,
+        'text' => \Panneau\Schemas\Blocks\Text::class,
+        'image' => \Panneau\Schemas\Blocks\Image::class,
+        'quote' => \Panneau\Schemas\Blocks\Quote::class,
     ],
 
     /**
      * Fields
      */
     'fields' => [
-        'email' => \Folklore\Panneau\Schemas\Fields\Email::class,
-        'text' => \Folklore\Panneau\Schemas\Fields\Text::class,
-        'text_locale' => \Folklore\Panneau\Schemas\Fields\TextLocale::class,
-        'select' => \Folklore\Panneau\Schemas\Fields\Select::class,
-        'toggle' => \Folklore\Panneau\Schemas\Fields\Toggle::class,
-        'date' => \Folklore\Panneau\Schemas\Fields\Date::class,
-        'color' => \Folklore\Panneau\Schemas\Fields\Color::class,
-        'link' => \Folklore\Panneau\Schemas\Fields\Link::class,
-        'links' => \Folklore\Panneau\Schemas\Fields\Links::class,
-        'link_locale' => \Folklore\Panneau\Schemas\Fields\LinkLocale::class,
-        'links_locale' => \Folklore\Panneau\Schemas\Fields\LinksLocale::class,
-        'url' => \Folklore\Panneau\Schemas\Fields\Url::class,
-        'url_locale' => \Folklore\Panneau\Schemas\Fields\UrlLocale::class,
+        'email' => \Panneau\Schemas\Fields\Email::class,
+        'text' => \Panneau\Schemas\Fields\Text::class,
+        'text_localized' => \Panneau\Schemas\Fields\TextLocalized::class,
+        'select' => \Panneau\Schemas\Fields\Select::class,
+        'toggle' => \Panneau\Schemas\Fields\Toggle::class,
+        'date' => \Panneau\Schemas\Fields\Date::class,
+        'color' => \Panneau\Schemas\Fields\Color::class,
+        'link' => \Panneau\Schemas\Fields\Link::class,
+        'link_localized' => \Panneau\Schemas\Fields\LinkLocalized::class,
+        'links' => \Panneau\Schemas\Fields\Links::class,
+        'links_localized' => \Panneau\Schemas\Fields\LinksLocalized::class,
+        'url' => \Panneau\Schemas\Fields\Url::class,
+        'url_localized' => \Panneau\Schemas\Fields\UrlLocalized::class,
 
-        'block' => \Folklore\Panneau\Schemas\Fields\Block::class,
-        'blocks' => \Folklore\Panneau\Schemas\Fields\Blocks::class,
-        'bubble' => \Folklore\Panneau\Schemas\Fields\Bubble::class,
-        'bubbles' => \Folklore\Panneau\Schemas\Fields\Bubbles::class,
-        'page' => \Folklore\Panneau\Schemas\Fields\Page::class,
-        'pages' => \Folklore\Panneau\Schemas\Fields\Pages::class,
+        'block' => \Panneau\Schemas\Fields\Block::class,
+        'blocks' => \Panneau\Schemas\Fields\Blocks::class,
+        'document' => \Panneau\Schemas\Fields\Document::class,
+        'documents' => \Panneau\Schemas\Fields\Documents::class,
 
-        'audio' => \Folklore\Panneau\Schemas\Fields\Audio::class,
-        'audios' => \Folklore\Panneau\Schemas\Fields\Audios::class,
-        'document' => \Folklore\Panneau\Schemas\Fields\Document::class,
-        'documents' => \Folklore\Panneau\Schemas\Fields\Documents::class,
-        'picture' => \Folklore\Panneau\Schemas\Fields\Picture::class,
-        'pictures' => \Folklore\Panneau\Schemas\Fields\Pictures::class,
-        'video' => \Folklore\Panneau\Schemas\Fields\Video::class,
-        'videos' => \Folklore\Panneau\Schemas\Fields\Videos::class,
+        'media_audio' => \Panneau\Schemas\Fields\Media\Audio::class,
+        'media_audios' => \Panneau\Schemas\Fields\Media\Audios::class,
+        'media_document' => \Panneau\Schemas\Fields\Media\Document::class,
+        'media_documents' => \Panneau\Schemas\Fields\Media\Documents::class,
+        'media_image' => \Panneau\Schemas\Fields\Media\Image::class,
+        'media_images' => \Panneau\Schemas\Fields\Media\Images::class,
+        'media_video' => \Panneau\Schemas\Fields\Media\Video::class,
+        'media_videos' => \Panneau\Schemas\Fields\Media\Videos::class,
     ],
 
     /**
-     * Bubbles
+     * Default Layout
      */
-    'bubbles' => [
-        'base' => \Folklore\Panneau\Schemas\Bubbles\Base::class,
-    ],
+    'layout' => 'default',
 
     /**
-     * Definition
+     * Layouts
      */
-    'definition' => [
-        'layout' => \Folklore\Panneau\Layouts\Normal::class,
-
-        'routes' => [
-            'panneau.home',
-            'panneau.account',
-            'panneau.auth.login',
-            'panneau.auth.logout',
-            'panneau.auth.password.request',
-            'panneau.auth.password.email',
-            'panneau.auth.password.reset',
-        ],
-    ],
-
-    /**
-     * Layout configuration used by the Normal layout
-     */
-    'layout' => [
-        'navbar' => [
-            'items' => [
-                [
-                    'id' => 'users',
-                    'type' => 'resource',
-                    'resource' => 'users'
-                ],
-                [
-                    'id' => 'user',
-                    'type' => 'user',
-                    'position' => 'right'
+    'layouts' => [
+        'default' => [
+            'driver' => 'normal',
+            'navbar' => [
+                'items' => [
+                    [
+                        'id' => 'documents',
+                        'type' => 'resource',
+                        'resource' => 'documents'
+                    ],
+                    [
+                        'id' => 'medias',
+                        'type' => 'resource',
+                        'resource' => 'medias'
+                    ],
+                    [
+                        'id' => 'users',
+                        'type' => 'resource',
+                        'resource' => 'users'
+                    ],
+                    [
+                        'id' => 'user',
+                        'type' => 'user',
+                        'position' => 'right'
+                    ]
                 ]
             ]
         ]
     ]
-
 ];

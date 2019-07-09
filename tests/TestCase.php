@@ -1,5 +1,7 @@
 <?php
 
+namespace Panneau\Tests;
+
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
@@ -25,7 +27,7 @@ class TestCase extends BaseTestCase
         ]);
     }
 
-    public function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -35,15 +37,17 @@ class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
+            \Folklore\Mediatheque\MediathequeServiceProvider::class,
             \Folklore\EloquentJsonSchema\JsonSchemaServiceProvider::class,
-            \Folklore\Panneau\PanneauServiceProvider::class
+            \Panneau\PanneauServiceProvider::class
         ];
     }
 
     protected function getPackageAliases($app)
     {
         return [
-            'Panneau' => \Folklore\Panneau\Support\Facades\Panneau::class,
+            'Panneau' => \Panneau\Support\Facades\Panneau::class,
+            'Mediatheque' => \Folklore\Mediatheque\Support\Facades\Mediatheque::class,
         ];
     }
 

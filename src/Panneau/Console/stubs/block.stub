@@ -1,0 +1,22 @@
+<?php
+
+namespace DummyNamespace;
+
+use Panneau\Support\Schemas\Block as BaseBlock;
+
+class DummyClass extends BaseBlock
+{
+    protected function attributes()
+    {
+        return [
+            'label' => trans('panneau.blocks.DummyClass.label')
+        ];
+    }
+
+    protected function properties()
+    {
+        return [
+
+        ];
+    }
+}

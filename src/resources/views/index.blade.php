@@ -49,9 +49,8 @@
 
     @section('body:styles')
         <script type="text/javascript">
-            panneau_config('locale', '{{ $locale }}');
-            panneau_config('messages', {!! json_encode($messages) !!});
             panneau_config('definition', {!! json_encode($definition) !!});
+            panneau_config('locale', '{{ $locale }}');
             panneau_config('user', {!! json_encode($user) !!});
         </script>
 

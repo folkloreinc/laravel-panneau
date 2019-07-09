@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Database\Eloquent\Model;
-use Folklore\Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
-use Folklore\Panneau\Support\Traits\HasFieldsSchema;
+use Panneau\Support\Interfaces\HasFieldsSchema as HasFieldsSchemaInterface;
+use Panneau\Support\Traits\HasFieldsSchema;
 
 class TestColumnModel extends Model implements HasFieldsSchemaInterface
 {

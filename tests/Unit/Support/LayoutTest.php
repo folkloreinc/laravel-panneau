@@ -1,6 +1,9 @@
 <?php
 
-use Folklore\Panneau\Support\Layout;
+namespace Panneau\Tests\Unit\Support;
+
+use Panneau\Tests\TestCase;
+use Panneau\Support\Layout;
 
 class LayoutTest extends TestCase
 {

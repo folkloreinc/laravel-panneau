@@ -1,10 +1,13 @@
 <?php
 
-use Folklore\Panneau\Models\Bubble;
+namespace Panneau\Tests\Feature\Http\Controllers;
+
+use Panneau\Tests\TestCase;
+use Panneau\Models\Bubble;
 
 class DefinitionControllerTest extends TestCase
 {
-    public function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         $this->withoutAuthentication();
@@ -17,7 +20,7 @@ class DefinitionControllerTest extends TestCase
             $response = $this->response;
         }
         $responseData = json_decode($response->getContent(), true);
-        $definitionData = json_decode(app('panneau')->getDefinitionLayout()->toJson(), true);
+        $definitionData = json_decode(app('panneau')->layout()->toJson(), true);
 
         $this->assertEquals(200, $response->status());
         $this->assertEquals($definitionData, $responseData);
@@ -31,10 +34,10 @@ class DefinitionControllerTest extends TestCase
         }
         $responseData = json_decode($response->getContent(), true);
 
-        $blocks = app('panneau')->getBlocks();
+        $blocks = app('panneau')->blocks();
         $definitions = [];
         foreach ($blocks as $block) {
-            $definitions[] = $block->toArray();
+            $definitions[$block->getName()] = $block->toArray();
         }
         $definitionData = json_decode(json_encode($definitions), true);
 
@@ -50,10 +53,10 @@ class DefinitionControllerTest extends TestCase
         }
         $responseData = json_decode($response->getContent(), true);
 
-        $blocks = app('panneau')->getBlocks();
+        $blocks = app('panneau')->blocks();
         $definitions = [];
         foreach ($blocks as $block) {
-            $definitions[] = $block->toFieldsArray();
+            $definitions[$block->getName()] = $block->toFieldsArray();
         }
         $definitionData = json_decode(json_encode($definitions), true);
 
@@ -61,18 +64,18 @@ class DefinitionControllerTest extends TestCase
         $this->assertEquals($definitionData, $responseData);
     }
 
-    public function testPages()
+    public function testDocuments()
     {
-        $response = $this->callAsJson('GET', 'panneau/definition/pages');
+        $response = $this->callAsJson('GET', 'panneau/definition/documents');
         if ($response === $this) {
             $response = $this->response;
         }
         $responseData = json_decode($response->getContent(), true);
 
-        $pages = app('panneau')->getPages();
+        $documents = app('panneau')->documents();
         $definitions = [];
-        foreach ($pages as $page) {
-            $definitions[] = $page->toArray();
+        foreach ($documents as $document) {
+            $definitions[$document->getName()] = $document->toArray();
         }
         $definitionData = json_decode(json_encode($definitions), true);
 
@@ -80,18 +83,18 @@ class DefinitionControllerTest extends TestCase
         $this->assertEquals($definitionData, $responseData);
     }
 
-    public function testPagesFields()
+    public function testDocumentsFields()
     {
-        $response = $this->callAsJson('GET', 'panneau/definition/pages?fields=true');
+        $response = $this->callAsJson('GET', 'panneau/definition/documents?fields=true');
         if ($response === $this) {
             $response = $this->response;
         }
         $responseData = json_decode($response->getContent(), true);
 
-        $pages = app('panneau')->getPages();
+        $documents = app('panneau')->documents();
         $definitions = [];
-        foreach ($pages as $page) {
-            $definitions[] = $page->toFieldsArray();
+        foreach ($documents as $document) {
+            $definitions[$document->getName()] = $document->toFieldsArray();
         }
         $definitionData = json_decode(json_encode($definitions), true);
 
