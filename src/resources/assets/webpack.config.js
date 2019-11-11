@@ -47,9 +47,11 @@ const getStyleLoaders = (cssOptions, preProcessor) => {
             loader: require.resolve(preProcessor),
             options: {
                 sourceMap: true,
-                includePaths: [
-                    path.join(process.env.PWD, './node_modules'),
-                ],
+                sassOptions: {
+                    includePaths: [
+                        path.join(process.env.PWD, './node_modules'),
+                    ],
+                },
             },
         });
     }
@@ -329,6 +331,7 @@ module.exports = {
     resolve: {
         extensions: ['.js', '.jsx'],
         modules: [
+            path.join(process.env.PWD, './node_modules/@panneau/core/node_modules'),
             path.join(process.env.PWD, './node_modules'),
         ],
     },
