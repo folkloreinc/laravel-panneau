@@ -44,6 +44,11 @@ class Definition extends BaseDefinition
         return $this->app['panneau']->fields();
     }
 
+    protected function blocks()
+    {
+        return $this->app['panneau']->blocks();
+    }
+
     protected function layout()
     {
         return $this->app['panneau']->layout();
@@ -56,14 +61,17 @@ class Definition extends BaseDefinition
 
         return [
             'name' => $this->getName(),
-            'locales' => $this->getLocales(),
-            'messages' => $this->getMessages(),
+            'localization' => [
+                'locales' => $this->getLocales(),
+                'messages' => $this->getMessages(),
+            ],
             'routes' =>
                 $routes instanceof Arrayable ? $routes->toArray() : $routes,
+            'layout' =>
+                $layout instanceof Arrayable ? $layout->toArray() : $layout,
             'resources' => $this->getResources()->toArray(),
             'fields' => $this->getFields()->toFieldsArray(),
-            'layout' =>
-                $layout instanceof Arrayable ? $layout->toArray() : $layout
+            'blocks' => $this->getBlocks()->toArray(),
         ];
     }
 }

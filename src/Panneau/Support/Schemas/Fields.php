@@ -2,43 +2,51 @@
 
 namespace Panneau\Support\Schemas;
 
-use Panneau\Support\Traits\SchemaPropertiesAsFieldsArray;
+use Illuminate\Contracts\Support\Arrayable;
+use Panneau\Support\Traits\SchemaPropertiesAsFields;
+use Panneau\Support\Traits\SchemaHasNamespace;
+use Panneau\Contracts\Support\FieldArrayable;
 use Panneau\Contracts\Support\FieldsArrayable;
 
-class Fields extends Schema implements FieldsArrayable
+class Fields extends Field implements FieldsArrayable
 {
-    use SchemaPropertiesAsFieldsArray;
+    use SchemaPropertiesAsFields, SchemaHasNamespace;
 
-    public function getFieldsType()
+    protected $fields = [];
+
+    public function addFields($fields)
     {
-        $fieldType = $this->getSchemaAttribute('fieldsType');
-        if (!is_null($fieldType)) {
-            return $fieldType;
-        }
-
-        $name = $this->getName();
-        return !empty($name) ? $name : snake_case(class_basename($this));
+        $this->fields = array_merge($this->fields, $fields);
+        return $this;
     }
 
-    public function getFieldsLabel()
+    public function addField($field)
     {
-        $fieldLabel = $this->getSchemaAttribute('fieldsLabel');
-        if (!is_null($fieldLabel)) {
-            return $fieldLabel;
-        }
+        $this->fields[] = $field;
+        return $this;
+    }
 
-        return array_get($this->getAttributes(), 'label', title_case($this->getName()));
+    public function withName($name)
+    {
+        $this->name = $name;
+        return $this;
     }
 
     public function toFieldsArray()
     {
         $attributes = $this->getAttributes();
-        $fields = $this->getPropertiesAsFieldsArray();
 
         return array_merge([], $attributes, [
-            'type' => $this->getFieldsType(),
-            'label' => $this->getFieldsLabel(),
-            'fields' => $fields
+            'type' => $this->getFieldType(),
+            'label' => $this->getLabel(),
+            'fields' => array_map(function ($field) {
+                if ($field instanceof FieldArrayable) {
+                    return $field->toFieldArray();
+                } elseif ($field instanceof Arrayable) {
+                    return $field->toArray();
+                }
+                return $field;
+            }, $this->getFields()),
         ]);
     }
 }

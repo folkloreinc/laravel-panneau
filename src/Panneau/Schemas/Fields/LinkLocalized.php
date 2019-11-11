@@ -11,11 +11,11 @@ class LinkLocalized extends Field
         return app('panneau')->locales();
     }
 
-    protected function properties()
+    protected function fields()
     {
         return [
-            'url' => field('url_localized'),
-            'label' => field('text_localized'),
+            UrlLocalized::make('url'),
+            TextLocalized::make('label'),
         ];
     }
 

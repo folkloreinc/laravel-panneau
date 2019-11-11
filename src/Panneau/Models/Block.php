@@ -17,9 +17,7 @@ class Block extends Model implements
 {
     use SoftDeletes;
     use HasMedias;
-    use HasJsonSchema {
-        getJsonSchemas as originalGetJsonSchemas;
-    }
+    use HasJsonSchema;
     use HasDocuments;
     use HasBlocks;
 
@@ -42,14 +40,8 @@ class Block extends Model implements
     ];
 
     protected $casts = [
-        'data' => 'json_schema:object',
+        'data' => 'array',
         'type' => 'string',
-    ];
-
-    protected $jsonSchemasReducers = [
-        \Panneau\Reducers\BlocksReducer::class,
-        \Panneau\Reducers\DocumentsReducer::class,
-        \Panneau\Reducers\MediasReducer::class,
     ];
 
     protected $sortable = [
@@ -57,18 +49,14 @@ class Block extends Model implements
         'sort_when_creating' => false,
     ];
 
-    public function getJsonSchemas()
+    public function data()
     {
-        if (panneau()->hasBlock($this->type)) {
-            return array_merge(
-                [
-                    'data' => app('panneau')
-                        ->block($this->type)
-                        ->setFieldsNamespace('data')
-                ],
-                $this->originalGetJsonSchemas()
-            );
-        }
-        return $this->originalGetJsonSchemas();
+        return $this->jsonSchema(
+            !is_null($this->type) ? app('panneau')->block($this->type) : BaseSchema::class
+        )->withReducer(
+            \Panneau\Reducers\BlocksReducer::class,
+            \Panneau\Reducers\DocumentsReducer::class,
+            \Panneau\Reducers\MediasReducer::class
+        );
     }
 }

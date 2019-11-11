@@ -16,10 +16,10 @@ class SchemasCollection extends TypesCollection implements FieldsArrayable
     {
         $array = [];
         foreach ($this->instancesByName() as $name => $schema) {
-            if ($schema instanceof FieldArrayable) {
-                $array[$name] = $schema->toFieldArray();
-            } elseif ($schema instanceof FieldsArrayable) {
+            if ($schema instanceof FieldsArrayable) {
                 $array[$name] = $schema->toFieldsArray();
+            } elseif ($schema instanceof FieldArrayable) {
+                $array[$name] = $schema->toFieldArray();
             } elseif ($schema instanceof Arrayable) {
                 $array[$name] = $schema->toArray();
             } else {

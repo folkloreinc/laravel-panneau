@@ -3,7 +3,6 @@
 namespace Panneau\Support\Schemas;
 
 use Folklore\EloquentJsonSchema\Support\JsonSchema;
-use Panneau\Support\Traits\SchemaPropertiesAsFieldsArray;
 
 class ModelField extends Field
 {

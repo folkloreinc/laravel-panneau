@@ -22,33 +22,11 @@ class ReducersTest extends TestCase
         parent::setUp();
 
         $this->runMigrations();
-
-        $this->documentSchema = new JsonSchema([
-            'type' => 'object',
-            'properties' => [
-                'slug' => \Panneau\Schemas\Fields\Text::class,
-                'title' => \Panneau\Schemas\Fields\Text::class,
-                'parent' => \Panneau\Schemas\Fields\Document::class,
-                'blocks' => \Panneau\Schemas\Fields\Blocks::class,
-            ],
-            'required' => ['title']
-        ]);
-
-        $this->blockSchema = new JsonSchema([
-            'type' => 'object',
-            'properties' => [
-                'title' => \Panneau\Schemas\Fields\Text::class,
-                'description' => \Panneau\Schemas\Fields\Text::class,
-            ],
-            'required' => ['title']
-        ]);
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-
-        BlockModel::setDefaultJsonSchemas([]);
     }
 
     public function testReducersGetSetSave()
@@ -81,14 +59,12 @@ class ReducersTest extends TestCase
         ];
 
         $model = new DocumentModel();
-        $model->setJsonSchema('data', $this->documentSchema);
         $model->fill($document);
         $model->save();
         $parentId = $model->id;
         $blockIds = [];
         foreach ($blocks as $block) {
             $model = new BlockModel();
-            $model->setJsonSchema('data', $this->blockSchema);
             $model->fill($block);
             $model->save();
             $blockIds[] = $model->id;
@@ -103,16 +79,15 @@ class ReducersTest extends TestCase
 
         // Test from raw data (equivalent to database)
         $model = new DocumentModel();
-        $model->setJsonSchema('data', $this->documentSchema);
         $model->setRawAttributes([
             'data' => json_encode($sourceData)
         ]);
 
-        $this->assertEquals(array_get($sourceData, 'title'), $model->data->title);
-        $this->assertInstanceOf(DocumentModel::class, $model->data->parent);
+        $this->assertEquals(array_get($sourceData, 'title'), $model->data['title']);
+        $this->assertInstanceOf(DocumentModel::class, $model->data['parent']);
         $this->assertEquals($parentId, $model->data->parent->id);
 
-        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->data->blocks));
+        $this->assertEquals(sizeof($sourceData['blocks']), sizeof($model->data['blocks']));
         $i = 0;
         foreach ($model->data->blocks as $block) {
             $this->assertInstanceOf(BlockModel::class, $block);
@@ -131,7 +106,6 @@ class ReducersTest extends TestCase
             ];
         }, $sourceData['blocks']);
         $model = new DocumentModel();
-        $model->setJsonSchema('data', $this->documentSchema);
         $model->fill([
             'data' => $sourceData
         ]);
@@ -198,27 +172,12 @@ class ReducersTest extends TestCase
             ]
         ];
 
-        BlockModel::setDefaultJsonSchemas([
-            'data' => $this->blockSchema,
-        ]);
-
         $documentModel = new DocumentModel();
-        $documentModel->setJsonSchema('data', $this->documentSchema);
         $documentModel->fill($documentData);
         $documentModel->save();
         $documentModel->load('blocks');
 
-        $blockId = $documentModel->data->blocks[0]->id;
-
-        // Disabled field should not be reduced
-        $documentModel->makeJsonSchemaAttributeDisabled('data');
-        $output = $documentModel->toArray();
-        $this->assertEquals($blockId, array_get($output, 'data.blocks.0'));
-
-        // Re-enabled field should be reduced
-        $documentModel->makeJsonSchemaAttributeEnabled('data');
-        $output = $documentModel->toArray();
-        $this->assertEquals($blockId, array_get($output, 'data.blocks.0.id'));
+        $blockId = $documentModel->data['blocks'][0]->id;
 
         // Hidden attributes should not output, but sub-fields should still append
         $documentModel->setHidden([]);

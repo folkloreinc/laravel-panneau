@@ -3,32 +3,27 @@
 namespace Panneau\Schemas\Documents;
 
 use Panneau\Support\Schemas\Document;
+use Panneau\Schemas\Fields\TextLocalized;
+use Panneau\Schemas\Fields\Document as DocumentField;
+use Panneau\Schemas\Fields\Blocks;
 
 class Page extends Document
 {
-    protected function attributes()
-    {
-        return [];
-    }
-
-    protected function properties()
+    protected function fields()
     {
         return [
-            'slug' => field('text_localized', [
-                'label' => trans('panneau::fields.slug_label'),
-            ]),
-
-            'title' => field('text_localized', [
-                'label' => trans('panneau::fields.title_label'),
-            ]),
-
-            'parent' => field('document', [
-                'label' => trans('panneau::fields.parent_label'),
-            ]),
-
-            'blocks' => field('blocks', [
-                'label' => trans('panneau::fields.blocks_label'),
-            ]),
+            TextLocalized::make('slug')->withLabel(
+                trans('panneau::fields.slug_label')
+            ),
+            TextLocalized::make('title')->withLabel(
+                trans('panneau::fields.title_label')
+            ),
+            DocumentField::make('parent')->withLabel(
+                trans('panneau::fields.parent_label')
+            ),
+            Blocks::make('blocks')->withLabel(
+                trans('panneau::fields.blocks_label')
+            )
         ];
     }
 }

@@ -3,24 +3,15 @@
 namespace Panneau\Schemas\Documents;
 
 use Panneau\Support\Schemas\Document;
+use Panneau\Schemas\Fields\TextLocalized;
 
 class Video extends Document
 {
-    protected function attributes()
-    {
-        return [];
-    }
-
-    protected function properties()
+    protected function fields()
     {
         return [
-            'slug' => field('text_localized', [
-                'label' => trans('panneau::fields.slug_label'),
-            ]),
-
-            'title' => field('text_localized', [
-                'label' => trans('panneau::fields.title_label'),
-            ]),
+            TextLocalized::make('slug')->withLabel(trans('panneau::fields.slug_label')),
+            TextLocalized::make('title')->withLabel(trans('panneau::fields.title_label')),
         ];
     }
 }

@@ -8,6 +8,6 @@ class UrlLocalized extends TextLocalized
 {
     protected function getLocaleField()
     {
-        return field('url')->setFieldsNamespace($this->getName());
+        return field('url')->setNamespace($this->getName());
     }
 }

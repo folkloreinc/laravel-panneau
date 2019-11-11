@@ -6,11 +6,11 @@ use Panneau\Support\Schemas\Field;
 
 class Link extends Field
 {
-    protected function properties()
+    protected function fields()
     {
         return [
-            'url' => field('text'),
-            'label' => field('text'),
+            Text::make('url'),
+            Text::make('label'),
         ];
     }
 }

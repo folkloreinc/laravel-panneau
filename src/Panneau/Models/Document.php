@@ -26,9 +26,7 @@ class Document extends Model implements
     use HasDocuments {
         parentsDocuments as parents;
     }
-    use HasJsonSchema {
-        getJsonSchemas as originalGetJsonSchemas;
-    }
+    use HasJsonSchema;
 
     protected $table = 'documents';
 
@@ -39,14 +37,8 @@ class Document extends Model implements
     protected $fillable = ['type', 'data'];
 
     protected $casts = [
-        'data' => 'json_schema:object',
+        'data' => 'array',
         'order' => 'integer'
-    ];
-
-    protected $jsonSchemasReducers = [
-        \Panneau\Reducers\BlocksReducer::class,
-        \Panneau\Reducers\DocumentsReducer::class,
-        \Panneau\Reducers\MediasReducer::class
     ];
 
     protected $sortable = [
@@ -54,23 +46,15 @@ class Document extends Model implements
         'sort_when_creating' => false
     ];
 
-    /**
-     * Get JSON Schemas
-     * @return array Map of the json schemas and columns
-     */
-    public function getJsonSchemas()
+    public function data()
     {
-        if (panneau()->hasDocument($this->type)) {
-            return array_merge(
-                [
-                    'data' => app('panneau')
-                        ->document($this->type)
-                        ->setFieldsNamespace('data')
-                ],
-                $this->originalGetJsonSchemas()
-            );
-        }
-        return $this->originalGetJsonSchemas();
+        return $this->jsonSchema(
+            !is_null($this->type) ? app('panneau')->document($this->type) : BaseSchema::class
+        )->withReducer(
+            \Panneau\Reducers\BlocksReducer::class,
+            \Panneau\Reducers\DocumentsReducer::class,
+            \Panneau\Reducers\MediasReducer::class
+        );
     }
 
     /**

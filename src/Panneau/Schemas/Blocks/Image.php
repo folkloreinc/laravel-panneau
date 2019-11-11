@@ -3,24 +3,16 @@
 namespace Panneau\Schemas\Blocks;
 
 use Panneau\Support\Schemas\Block;
+use Panneau\Schemas\Fields\TextLocalized;
+use Panneau\Schemas\Fields\Media\Image as ImageField;
 
 class Image extends Block
 {
-    protected function attributes()
-    {
-        return [];
-    }
-
-    protected function properties()
+    protected function fields()
     {
         return [
-            'title' => field('text_localized', [
-                'label' => trans('panneau::fields.title_label'),
-            ]),
-
-            'image' => field('media_image', [
-                'label' => trans('panneau::fields.image_label'),
-            ]),
+            TextLocalized::make('title')->withLabel(trans('panneau::fields.title_label')),
+            ImageField::make('image')->withLabel(trans('panneau::fields.image_label')),
         ];
     }
 }

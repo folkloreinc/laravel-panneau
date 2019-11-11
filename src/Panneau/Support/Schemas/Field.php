@@ -2,12 +2,36 @@
 
 namespace Panneau\Support\Schemas;
 
-use Panneau\Support\Traits\SchemaPropertiesAsFieldsArray;
+use Panneau\Support\Traits\SchemaPropertiesAsFields;
+use Panneau\Support\Traits\SchemaHasNamespace;
 use Panneau\Contracts\Support\FieldArrayable;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 
 class Field extends Schema implements FieldArrayable
 {
-    use SchemaPropertiesAsFieldsArray;
+    use SchemaPropertiesAsFields, SchemaHasNamespace;
+
+    protected $fieldType;
+
+    protected $label;
+
+    protected $fieldAttributes = [
+        'fieldType',
+        'label',
+        'namespace'
+    ];
+
+    public static function make($name = null, $attributes = [])
+    {
+        if (is_array($name)) {
+            $attributes = $name;
+        } else {
+            $attributes['name'] = $name;
+        }
+        return parent::make($attributes);
+    }
 
     public function getFieldType()
     {
@@ -16,30 +40,58 @@ class Field extends Schema implements FieldArrayable
             return $fieldType;
         }
 
-        $name = $this->getName();
-        return !empty($name) ? $name : snake_case(class_basename($this));
+        return Str::snake(class_basename($this));
     }
 
-    public function getFieldLabel()
+    public function getLabel()
     {
-        $fieldLabel = $this->getSchemaAttribute('fieldLabel');
-        if (!is_null($fieldLabel)) {
-            return $fieldLabel;
+        $label = $this->getSchemaAttribute('label');
+        if (!is_null($label)) {
+            return $label;
         }
 
-        return array_get($this->getAttributes(), 'label', title_case($this->getName()));
+        return array_get($this->getAttributes(), 'label', Str::title($this->getName()));
+    }
+
+    public function withLabel($label)
+    {
+        $this->label = $label;
+        return $this;
+    }
+
+    public function getName()
+    {
+        $name = $this->getSchemaAttribute('name');
+        if (!is_null($name)) {
+            return Str::snake($name);
+        }
+
+        return array_get($this->getAttributes(), 'name');
+    }
+
+    public function withName($name)
+    {
+        $this->name = $name;
+        return $this;
     }
 
     public function toFieldArray()
     {
+        $fields = $this->getFields();
         $attributes = $this->getAttributes();
-        $fields = $this->getPropertiesAsFieldsArray();
-
         return array_merge([], $attributes, [
+            'name' => $this->getNameWithNamespace(),
             'type' => $this->getFieldType(),
-            'label' => $this->getFieldLabel(),
+            'label' => $this->getLabel(),
         ], !is_null($fields) ? [
-            'fields' => $fields,
+            'fields' => array_map(function ($field) {
+                if ($field instanceof FieldArrayable) {
+                    return $field->toFieldArray();
+                } elseif ($field instanceof Arrayable) {
+                    return $field;
+                }
+                return $field;
+            }, $fields),
         ] : []);
     }
 
@@ -49,5 +101,26 @@ class Field extends Schema implements FieldArrayable
             'required' => $this->getSchemaAttribute('required'),
             'pattern' => $this->getSchemaAttribute('pattern'),
         ];
+    }
+
+    /**
+     * Dynamically call schema attributes accessors
+     *
+     * @param  string  $key
+     * @return void
+     */
+    public function __call($method, $parameters)
+    {
+        if (preg_match('/^(get|set|with)([A-Z].*)$/i', $method, $matches)) {
+            $methodAttribute = Str::snake($matches[2]);
+            $foundAttribute = Arr::first($this->fieldAttributes, function ($attribute) use ($methodAttribute) {
+                return $methodAttribute === Str::snake($attribute);
+            });
+            if (!is_null($foundAttribute)) {
+                $methodPrefix = $matches[1] === 'with' ? 'get' : $matches[1];
+                return call_user_func([$this, $methodPrefix.'SchemaAttribute'], $foundAttribute, ...$parameters);
+            }
+        }
+        return parent::__call($method, $parameters);
     }
 }

@@ -5,6 +5,7 @@ namespace Panneau\Support;
 use Panneau\Http\Requests\ResourceRequest;
 use Panneau\Contracts\Routing\Router;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Str;
 use Panneau\Contracts\Support\Nameable;
 
 class Resource extends Definition implements Nameable
@@ -18,9 +19,14 @@ class Resource extends Definition implements Nameable
     protected $lists;
     protected $messages;
 
+    protected function id()
+    {
+        return Str::snake(class_basename(get_class($this)));
+    }
+
     protected function name()
     {
-        return strtolower(class_basename(get_class($this)));
+        return class_basename(get_class($this));
     }
 
     protected function type()
@@ -76,6 +82,7 @@ class Resource extends Definition implements Nameable
     public function toArray()
     {
         $data = [
+            'id' => $this->getId(),
             'name' => $this->getName(),
             'type' => $this->getType(),
             'controller' => $this->getController(),

@@ -20,23 +20,6 @@ class BlockTest extends TestCase
         parent::setUp();
 
         $this->runMigrations();
-
-        $this->schema = new JsonSchema([
-            'type' => 'object',
-            'properties' => [
-                'title' => \Panneau\Schemas\Fields\TextLocalized::class,
-            ],
-            'required' => ['title']
-        ]);
-
-        $this->relationsSchema = new JsonSchema([
-            'type' => 'object',
-            'properties' => [
-                'title' => \Panneau\Schemas\Fields\TextLocalized::class,
-                'blocks' => \Panneau\Schemas\Fields\Blocks::class,
-            ],
-            'required' => ['title']
-        ]);
     }
 
     protected function tearDown(): void
@@ -52,7 +35,6 @@ class BlockTest extends TestCase
     public function testInvalidData()
     {
         $model = new Block();
-        $model->setJsonSchema('data', $this->schema);
         $model->data = [];
         $model->save();
     }
@@ -63,14 +45,13 @@ class BlockTest extends TestCase
      */
     public function testValidData()
     {
-        $data = json_decode(json_encode([
+        $data = [
             'title' => [
                 'en' => 'Test'
             ]
-        ]));
+        ];
 
         $model = new Block();
-        $model->setJsonSchema('data', $this->schema);
         $model->data = $data;
         $model->save();
 
@@ -87,21 +68,19 @@ class BlockTest extends TestCase
         $relation = new Block();
         $relation->save();
 
-        $modelData = json_decode(json_encode([
+        $modelData = [
             'title' => [
                 'en' => 'Test'
             ],
             'blocks' => [
                 $relation
             ]
-        ]));
+        ];
         $model = new Block();
-        $model->setJsonSchema('data', $this->relationsSchema);
         $model->data = $modelData;
         $model->save();
 
         $model = Block::with('blocks')->find($model->id);
-        $model->setJsonSchema('data', $this->relationsSchema);
         $this->assertEquals(1, sizeof($model->blocks));
         $this->assertEquals('data.blocks.0', $model->blocks[0]->pivot->handle);
         $this->assertEquals($modelData->title, $model->data->title);

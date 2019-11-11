@@ -2,6 +2,7 @@
 
 use Panneau\Support\SchemasManager;
 use Panneau\Contracts\Field\Factory as FieldFactory;
+use Panneau\Support\Schemas\Field;
 
 class FieldManager extends SchemasManager implements FieldFactory
 {
@@ -40,5 +41,22 @@ class FieldManager extends SchemasManager implements FieldFactory
     public function fields()
     {
         return $this->types();
+    }
+
+    /**
+     * Create a new type from config.
+     *
+     * @param  string  $name
+     * @return mixed
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected function createTypeFromConfig($name, $config)
+    {
+        $instance = parent::createTypeFromConfig($name, $config);
+        if ($instance instanceof Field) {
+            $instance->setFieldType($name);
+        }
+        return $instance;
     }
 }

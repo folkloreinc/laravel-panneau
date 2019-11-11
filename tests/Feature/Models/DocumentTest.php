@@ -23,18 +23,11 @@ class DocumentTest extends TestCase
         parent::setUp();
 
         $this->runMigrations();
-
-        $this->schema = new DocumentBaseSchema();
-
-        $this->relationsSchema = with(new DocumentBaseSchema())
-            ->addProperty('blocks', BlocksField::class);
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-
-        Document::setDefaultJsonSchemas([]);
     }
 
     /**
@@ -45,7 +38,6 @@ class DocumentTest extends TestCase
     public function testInvalidData()
     {
         $model = new Document();
-        $model->setJsonSchema('data', $this->schema);
         $model->data = [
             'title' => 1
         ];
@@ -58,14 +50,13 @@ class DocumentTest extends TestCase
      */
     public function testValidData()
     {
-        $data = json_decode(json_encode([
+        $data = [
             'title' => [
                 'en' => 'Test'
             ]
-        ]));
+        ];
 
         $model = new Document();
-        $model->setJsonSchema('data', $this->schema);
         $model->data = $data;
         $model->save();
 
@@ -79,19 +70,17 @@ class DocumentTest extends TestCase
      */
     public function testBlocksRelations()
     {
-        Document::setDefaultJsonSchema('data', $this->relationsSchema);
-
         $relation = new Block();
         $relation->save();
 
-        $modelData = json_decode(json_encode([
+        $modelData = [
             'title' => [
                 'en' => 'Test'
             ],
             'blocks' => [
                 $relation
             ]
-        ]));
+        ];
         $model = new Document();
         $model->data = $modelData;
         $model->save();

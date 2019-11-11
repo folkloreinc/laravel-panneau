@@ -96,7 +96,13 @@ trait ResourceHasJsonSchemas
             $model = $this->get('model');
             $model = is_string($model) ? resolve($model) : $model;
         }
-        $schemas = $model->getJsonSchemas();
+        $schemas = [];
+        $attributes = $model->getCasts();
+        foreach ($attributes as $attribute) {
+            if ($model->attributeHasJsonSchema($attribute)) {
+                $schemas[$attribute] = $model->getAttributeJsonSchema($attribute);
+            }
+        }
         return $schemas;
     }
 

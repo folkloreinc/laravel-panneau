@@ -3,24 +3,15 @@
 namespace Panneau\Schemas\Blocks;
 
 use Panneau\Support\Schemas\Block;
+use Panneau\Schemas\Fields\TextLocalized;
 
 class Text extends Block
 {
-    protected function attributes()
-    {
-        return [];
-    }
-
-    protected function properties()
+    protected function fields()
     {
         return [
-            'title' => field('text_localized', [
-                'label' => trans('panneau::fields.title_label'),
-            ]),
-
-            'body' => field('text_localized', [
-                'label' => trans('panneau::fields.body_label'),
-            ]),
+            TextLocalized::make('title')->withLabel(trans('panneau::fields.title_label')),
+            TextLocalized::make('body')->withLabel(trans('panneau::fields.body_label')),
         ];
     }
 }

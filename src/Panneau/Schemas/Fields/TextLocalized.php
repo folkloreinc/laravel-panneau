@@ -6,6 +6,11 @@ use Panneau\Support\Schemas\Field;
 
 class TextLocalized extends Field
 {
+    protected function type()
+    {
+        return ['string', 'object'];
+    }
+
     protected function getLocales()
     {
         return app('panneau')->locales();
@@ -13,7 +18,7 @@ class TextLocalized extends Field
 
     protected function getLocaleField()
     {
-        return field('text')->setFieldsNamespace($this->getName());
+        return field('text')->setNamespace($this->getName());
     }
 
     protected function properties()
