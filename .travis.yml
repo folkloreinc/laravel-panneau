@@ -5,58 +5,21 @@ cache:
     - $HOME/.composer/cache/files
 
 php:
-    - 5.6
-    - 7.0
-    - 7.1
+    - 7.4
+    - 8.0
 
-env:
-    - ILLUMINATE_VERSION=5.3.* PHPUNIT_VERSION=~5.0
-    - ILLUMINATE_VERSION=5.4.* PHPUNIT_VERSION=~5.7
-    - ILLUMINATE_VERSION=5.5.* PHPUNIT_VERSION=~6.0
-    - ILLUMINATE_VERSION=5.5.* PHPUNIT_VERSION=~6.0 COVERAGE=true
-    - ILLUMINATE_VERSION=5.6.* PHPUNIT_VERSION=~7.0 DATABASE_VERSION=v3.6.x-dev
+install:
+  - curl -s http://getcomposer.org/installer | php
+  - php composer.phar install --dev --no-interaction
 
-matrix:
-    # For each PHP version we exclude the coverage env, except for PHP 7.1
-    exclude:
-        # Don't test Laravel 5.5 on PHP 5.6
-        - php: 5.6
-          env: ILLUMINATE_VERSION=5.5.* PHPUNIT_VERSION=~6.0
-        - php: 5.6
-          env: ILLUMINATE_VERSION=5.5.* PHPUNIT_VERSION=~6.0 COVERAGE=true
-        - php: 5.6
-          env: ILLUMINATE_VERSION=5.6.* PHPUNIT_VERSION=~7.0 DATABASE_VERSION=v3.6.x-dev
-        # Test everything on PHP 7.0
-        - php: 7.0
-          env: ILLUMINATE_VERSION=5.5.* PHPUNIT_VERSION=~6.0 COVERAGE=true
-        - php: 7.0
-          env: ILLUMINATE_VERSION=5.6.* PHPUNIT_VERSION=~7.0 DATABASE_VERSION=v3.6.x-dev
-        # Test only Laravel 5.4 and 5.5 on PHP 7.1
-        - php: 7.1
-          env: ILLUMINATE_VERSION=5.2.* PHPUNIT_VERSION=~4.0
-        - php: 7.1
-          env: ILLUMINATE_VERSION=5.3.* PHPUNIT_VERSION=~5.0
-        - php: 7.1
-          env: ILLUMINATE_VERSION=5.5.* PHPUNIT_VERSION=~6.0
+before_script:
+  - mkdir -p coverage
 
-before_install:
-    - cp ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini ~/xdebug.ini
-    - phpenv config-rm xdebug.ini
-    - export TESTBENCH_VERSION=${ILLUMINATE_VERSION/5\./3\.}
-    - export DATABASE_VERSION=${DATABASE_VERSION:-${ILLUMINATE_VERSION/5\./3\.}}
-    - composer global require hirak/prestissimo --update-no-dev
-    - composer require "illuminate/support:${ILLUMINATE_VERSION}" --no-update --prefer-dist
-    - composer require "orchestra/testbench:${ILLUMINATE_VERSION/5\./3\.}" --no-update --prefer-dist
-    - composer require "orchestra/database:${DATABASE_VERSION}" --no-update --prefer-dist
-    - composer require "phpunit/phpunit:${PHPUNIT_VERSION}" --no-update --prefer-dist
+script:
+  - php vendor/bin/phpunit
 
-install: travis_retry composer install --no-interaction --prefer-dist
-
-before_script: phpenv config-add ~/xdebug.ini
-
-script: vendor/bin/phpunit
-
-after_success: sh -c "if [ ! -z ${COVERAGE+x} ]; then travis_retry php vendor/bin/php-coveralls; fi"
+after_success:
+  - travis_retry php vendor/bin/php-coveralls
 
 notifications:
     email: false

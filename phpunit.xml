@@ -21,13 +21,13 @@
     </testsuites>
     <filter>
         <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">./src/Folklore/Panneau</directory>
+            <directory suffix=".php">./src/Panneau</directory>
         </whitelist>
     </filter>
     <logging>
         <log type="coverage-clover" target="coverage/clover.xml"/>
     </logging>
     <php>
-        <env name="APP_KEY" value="AckfSECXIvnK5r28GVIWUAxmbBSjTsmF"/>
+        <env name="APP_KEY" value="TEST"/>
     </php>
 </phpunit>

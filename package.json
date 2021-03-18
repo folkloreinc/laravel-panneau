@@ -1,41 +1,17 @@
 {
     "name": "laravel-panneau",
     "private": true,
-    "description": "",
-    "main": "/src/resources/assets/js/index.js",
-    "scripts": {
-        "clean:panneau": "rm -rf ./src/vendor/",
-        "clean": "npm run clean:panneau",
-        "copy:panneau": "cp -R ./node_modules/panneau/dist/ ./src/vendor/",
-        "copy:translations": "node -r babel-register ./scripts/copyTranslations.js",
-        "copy": "npm run copy:panneau && npm run copy:translations",
-        "build": "npm run copy",
-        "prepare": "npm run clean && npm run build"
-    },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Folkloreatelier/laravel-panneau.git"
+        "url": "git+https://github.com/folkloreinc/laravel-panneau.git"
     },
-    "author": "",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/Folkloreatelier/laravel-panneau/issues"
+        "url": "https://github.com/folkloreinc/laravel-panneau/issues"
     },
-    "homepage": "https://github.com/Folkloreatelier/laravel-panneau#readme",
-    "dependencies": {
-        "panneau": "^0.4.37"
-    },
+    "homepage": "https://github.com/folkloreinc/laravel-panneau#readme",
     "devDependencies": {
-        "babel-eslint": "^8.2.5",
-        "babel-plugin-transform-object-rest-spread": "^6.26.0",
-        "babel-preset-env": "^1.7.0",
-        "babel-register": "^6.26.0",
-        "eslint": "^4.19.1",
-        "eslint-config-airbnb": "^16.1.0",
-        "eslint-plugin-import": "^2.13.0",
-        "eslint-plugin-jsx-a11y": "^6.1.0",
-        "eslint-plugin-react": "^7.10.0",
-        "glob": "^7.1.2",
-        "mkdirp": "^0.5.1"
+        "@prettier/plugin-php": "^0.16.1",
+        "prettier": "^2.2.1"
     }
 }

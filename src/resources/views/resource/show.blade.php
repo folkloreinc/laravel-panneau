@@ -1,1 +1,0 @@
-@extends('panneau::index')

@@ -35,36 +35,14 @@ class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
-            \Folklore\EloquentJsonSchema\JsonSchemaServiceProvider::class,
-            \Folklore\Panneau\PanneauServiceProvider::class
+            \Panneau\PanneauServiceProvider::class
         ];
     }
 
     protected function getPackageAliases($app)
     {
         return [
-            'Panneau' => \Folklore\Panneau\Support\Facades\Panneau::class,
+            'Panneau' => \Panneau\Support\Facade::class,
         ];
-    }
-
-    protected function withoutAuthentication()
-    {
-        $router = app('router');
-        if (method_exists($router, 'aliasMiddleware')) {
-            $router->aliasMiddleware('panneau.auth', \Authenticate::class);
-        } else {
-            $router->middleware('panneau.auth', \Authenticate::class);
-        }
-    }
-
-    protected function callAsJson($method, $uri, $data = [])
-    {
-        $content = json_encode($data);
-        $server = $this->transformHeadersToServerVars([
-            'CONTENT_LENGTH' => mb_strlen($content, '8bit'),
-            'CONTENT_TYPE' => 'application/json',
-            'Accept' => 'application/json',
-        ]);
-        return $this->call($method, $uri, [], [], [], $server, $content);
     }
 }
