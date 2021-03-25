@@ -18,16 +18,31 @@ class ServiceProvider extends BaseServiceProvider
      */
     public function register()
     {
+        $this->registerPanneau();
+
+        $this->registerRouter();
+
+        $this->mergeConfigFrom(__DIR__ . '/../config/panneau.php', 'panneau');
+    }
+
+    protected function registerPanneau()
+    {
         $this->app->singleton('panneau', function () {
             return new \Panneau\Panneau($this->app, $this->app['events']);
         });
         $this->app->alias('panneau', \Panneau\Contracts\Panneau::class);
+    }
 
+    protected function registerRouter()
+    {
         $this->app->singleton('panneau.router', function () {
-            return new \Panneau\Router($this->app['panneau'], $this->app['router']);
+            $panneau = $this->app['panneau'];
+            $router = new \Panneau\Router($panneau, $this->app['router']);
+            $panneau->booted(function () use ($router) {
+                $router->boot();
+            });
+            return $router;
         });
-
-        $this->mergeConfigFrom(__DIR__ . '/../config/panneau.php', 'panneau');
     }
 
     /**

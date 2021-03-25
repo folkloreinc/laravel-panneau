@@ -51,8 +51,6 @@ class Panneau implements PanneauContract
             return;
         }
 
-        $this->app['panneau.router']->boot();
-
         $this->booted = true;
 
         $this->fireAppCallbacks($this->bootedCallbacks);
