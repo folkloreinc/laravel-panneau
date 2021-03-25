@@ -2,12 +2,13 @@
 
 namespace Panneau;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
 use Panneau\Contracts\Definition as DefinitionContract;
 use Panneau\Contracts\Panneau as PanneauContract;
 
-class Definition implements DefinitionContract
+class Definition implements DefinitionContract, Arrayable
 {
     protected $panneau;
     protected $app;
@@ -62,5 +63,13 @@ class Definition implements DefinitionContract
     public function resources(): Collection
     {
         return $this->panneau->resources();
+    }
+
+    public function toArray()
+    {
+        return [
+            'routes' => $this->panneau->router()->routesToArray(),
+            'resources' => $this->resources()->toArray()
+        ];
     }
 }

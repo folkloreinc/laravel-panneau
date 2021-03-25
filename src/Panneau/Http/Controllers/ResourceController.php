@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Panneau\Http\Controllers;
+namespace Panneau\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Panneau\Http\Requests\ResourceStoreRequest;

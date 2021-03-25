@@ -5,3 +5,4 @@ composer.lock
 package-lock.json
 .DS_Store
 /coverage
+.phpunit.result.cache

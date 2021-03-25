@@ -1,6 +1,7 @@
 <?php
 
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+namespace Panneau\Tests;
+
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 class TestCase extends BaseTestCase
@@ -25,7 +26,7 @@ class TestCase extends BaseTestCase
         ]);
     }
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
@@ -35,7 +36,7 @@ class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
-            \Panneau\PanneauServiceProvider::class
+            \Panneau\ServiceProvider::class
         ];
     }
 

@@ -2,14 +2,14 @@
 
 namespace Panneau;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\UrlGenerator;
-use Panneau\Fields\LocalizedField;
+use Panneau\Support\LocalizedField;
 
-class PanneauServiceProvider extends ServiceProvider
+class ServiceProvider extends BaseServiceProvider
 {
     /**
      * Register any application services.
@@ -47,21 +47,21 @@ class PanneauServiceProvider extends ServiceProvider
             return config('panneau.locales');
         });
 
-        Panneau::boot();
+        $this->app['panneau']->boot();
     }
 
     protected function bootPublishes()
     {
-        $this->loadRoutesFrom(__DIR__.'/../routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/../routes.php');
 
-        $this->loadViewsFrom(__DIR__.'/../views', 'panneau');
+        $this->loadViewsFrom(__DIR__ . '/../views', 'panneau');
 
         $this->publishes([
             __DIR__ . '/../config/panneau.php' => config_path('panneau.php'),
         ]);
 
         $this->publishes([
-            __DIR__.'/../views' => resource_path('views/vendor/panneau'),
+            __DIR__ . '/../views' => resource_path('views/vendor/panneau'),
         ]);
     }
 
@@ -100,7 +100,7 @@ class PanneauServiceProvider extends ServiceProvider
             return $this->route($routePrefix . '.' . $route, ...$params);
         });
 
-        Panneau::serving(function () {
+        $this->app['panneau']->serving(function () {
             Route::macro('resource', function () {
                 $resource = $this->parameter('resource');
                 if (!is_null($resource)) {
@@ -127,7 +127,7 @@ class PanneauServiceProvider extends ServiceProvider
         $view = $this->app[ViewFactory::class];
 
         $view->share('isPanneau', false);
-        Panneau::serving(function () use ($view) {
+        $this->app['panneau']->serving(function () use ($view) {
             $view->share('isPanneau', true);
         });
     }

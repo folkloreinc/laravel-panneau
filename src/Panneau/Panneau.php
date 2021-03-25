@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Panneau;
+namespace Panneau;
 
 use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Contracts\Definition as DefinitionContract;
 use Panneau\Contracts\Resource as ResourceContract;
+use Panneau\Contracts\Router as RouterContract;
 use Panneau\Events\HandlingRequest;
 
 class Panneau implements PanneauContract
@@ -16,7 +17,7 @@ class Panneau implements PanneauContract
 
     protected $resources = [];
 
-    protected $resolvedResources = [];
+    protected $resolvedResources = null;
 
     protected $booted = false;
 
@@ -94,6 +95,7 @@ class Panneau implements PanneauContract
     {
         if (!is_null($resources)) {
             $this->resources = array_merge($this->resources, $resources);
+            $this->resolvedResources = null;
             return $this;
         }
 
@@ -105,7 +107,7 @@ class Panneau implements PanneauContract
 
     public function routes($options = [])
     {
-        $this->app['panneau.router']->resources($options['resources'] ?? []);
+        $this->router()->resources($options['resources'] ?? []);
     }
 
     public function definition(): DefinitionContract
@@ -113,7 +115,7 @@ class Panneau implements PanneauContract
         return new Definition($this, $this->app);
     }
 
-    public function router()
+    public function router(): RouterContract
     {
         return $this->app['panneau.router'];
     }

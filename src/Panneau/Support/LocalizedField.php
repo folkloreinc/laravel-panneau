@@ -26,6 +26,7 @@ abstract class LocalizedField extends Field
     {
         return [
             'locales' => static::getLocales(),
+            'without_form_group' => true,
         ];
     }
 
