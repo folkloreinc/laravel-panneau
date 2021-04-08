@@ -13,6 +13,12 @@ class DefinitionTest extends TestCase
      */
     public function testBasicTest()
     {
-        dd(app('panneau')->definition()->toArray());
+        $validDefinition = [];
+        $definition = app('panneau')
+            ->resources([\PageResource::class])
+            ->definition()
+            ->toArray();
+        dd($definition);
+        $this->assertEquals($validDefinition, $definition);
     }
 }

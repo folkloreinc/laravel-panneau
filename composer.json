@@ -46,7 +46,10 @@
     "autoload-dev": {
         "psr-4": {
             "Panneau\\Tests\\": "tests/"
-        }
+        },
+        "classmap": [
+            "tests/fixture/"
+        ]
     },
     "extra": {
         "laravel": {

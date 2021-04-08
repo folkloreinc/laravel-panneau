@@ -2,11 +2,13 @@
 
 namespace Panneau\Contracts;
 
+use JsonSerializable;
+
 interface Resource
 {
     public function id(): string;
 
-    public function label(): string;
+    public function name(): string;
 
     public function fields(): array;
 
@@ -18,7 +20,7 @@ interface Resource
 
     public function messages(): array;
 
-    public function newJsonResource(Item $resource): JsonSerializable;
+    public function newJsonResource(ResourceItem $resource): JsonSerializable;
 
     public function newJsonCollection($resources): JsonSerializable;
 }

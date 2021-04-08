@@ -2,6 +2,7 @@
 
 namespace Panneau\Support;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Support\Str;
@@ -10,7 +11,7 @@ use Panneau\Contracts\Repository;
 use Panneau\Contracts\ResourceItem;
 use JsonSerializable;
 
-abstract class Resource implements ResourceContract
+abstract class Resource implements ResourceContract, Arrayable
 {
     public static $repository;
 
@@ -37,7 +38,7 @@ abstract class Resource implements ResourceContract
         return Str::camel(class_basename(get_class($this)));
     }
 
-    public function label(): string
+    public function name(): string
     {
         return class_basename(get_class($this));
     }
@@ -120,7 +121,7 @@ abstract class Resource implements ResourceContract
         ];
     }
 
-    public function newJsonResource(Item $resource): JsonSerializable
+    public function newJsonResource(ResourceItem $resource): JsonSerializable
     {
         $resourceClass = static::$jsonResource;
         return new $resourceClass($resource);
@@ -134,5 +135,10 @@ abstract class Resource implements ResourceContract
         }
         $resourceClass = static::$jsonResource;
         return $resourceClass::collection($resources);
+    }
+
+    public function toArray()
+    {
+        return ['id' => $this->id(), 'name'];
     }
 }
