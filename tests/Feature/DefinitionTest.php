@@ -75,9 +75,9 @@ class DefinitionTest extends TestCase
         $this->assertInstanceOf(Collection::class, $routes);
 
         $index = 0;
-        foreach ($routes as $key=>$route) {
-            $this->assertMatchesRegularExpression('%' . $this->app['panneau.router']::PREFIX . '%', $key);
-            $this->assertEquals($routesToTest[$index], $key);
+        foreach ($routes as $routeName=>$route) {
+            $this->assertMatchesRegularExpression('%' . $this->app['panneau.router']::PREFIX . '%', $routeName);
+            $this->assertEquals($routesToTest[$index], $routeName);
             $index++;
         }
     }
