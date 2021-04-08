@@ -3,6 +3,7 @@
 namespace Panneau\Tests\Feature;
 
 use Panneau\Tests\TestCase;
+use Illuminate\Support\Collection;
 
 class DefinitionTest extends TestCase
 {
@@ -16,11 +17,11 @@ class DefinitionTest extends TestCase
     }
 
     /**
-     * A basic test example.
+     * Definition test resources
      *
      * @return void
      */
-    public function testBasicTest()
+    public function testResources()
     {
         $this->panneau->resources([
             \TestApp\Resources\PagesResource::class
@@ -28,6 +29,19 @@ class DefinitionTest extends TestCase
 
         $definition = $this->panneau->definition();
 
-        dd($definition->toArray());
+        $resources = $definition->resources();
+
+        $this->assertInstanceOf(Collection::class, $resources);
+        $this->assertEquals(1, $resources->count());
+
+        $this->panneau->resources([
+            \TestApp\Resources\PagesResource::class
+        ]);
+
+        $resources = $definition->resources();
+
+        $this->assertInstanceOf(Collection::class, $resources);
+        $this->assertEquals(2, $resources->count());
+        $this->assertContainsOnly(\TestApp\Resources\PagesResource::class, $resources);
     }
 }
