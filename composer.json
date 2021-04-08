@@ -45,7 +45,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Panneau\\Tests\\": "tests/"
+            "Panneau\\Tests\\": "tests/",
+            "TestApp\\": "tests/fixture"
         }
     },
     "extra": {

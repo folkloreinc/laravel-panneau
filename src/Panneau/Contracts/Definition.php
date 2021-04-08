@@ -3,8 +3,9 @@
 namespace Panneau\Contracts;
 
 use Illuminate\Support\Collection;
+use JsonSerializable;
 
-interface Definition
+interface Definition extends JsonSerializable
 {
     public function name(): string;
 

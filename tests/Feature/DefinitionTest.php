@@ -6,6 +6,15 @@ use Panneau\Tests\TestCase;
 
 class DefinitionTest extends TestCase
 {
+    protected $panneau;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $this->panneau = $this->app['panneau'];
+    }
+
     /**
      * A basic test example.
      *
@@ -13,6 +22,12 @@ class DefinitionTest extends TestCase
      */
     public function testBasicTest()
     {
-        dd(app('panneau')->definition()->toArray());
+        $this->panneau->resources([
+            \TestApp\Resources\PagesResource::class
+        ]);
+
+        $definition = $this->panneau->definition();
+
+        dd($definition->toArray());
     }
 }

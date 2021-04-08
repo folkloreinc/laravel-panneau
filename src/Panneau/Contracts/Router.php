@@ -6,5 +6,5 @@ interface Router
 {
     public function resources($options = []);
 
-    public function routesToArray(): array;
+    public function toRoutesArray(): array;
 }

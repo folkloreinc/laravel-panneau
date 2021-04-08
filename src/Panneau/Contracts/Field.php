@@ -3,8 +3,9 @@
 namespace Panneau\Contracts;
 
 use Illuminate\Http\Request;
+use JsonSerializable;
 
-interface Field
+interface Field extends JsonSerializable
 {
     public function name(): string;
 

@@ -3,11 +3,12 @@
 namespace Panneau\Support;
 
 use Panneau\Contracts\Field as FieldContract;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Closure;
 
-abstract class Field implements FieldContract
+abstract class Field implements FieldContract, Arrayable
 {
     protected $name;
 
@@ -219,5 +220,22 @@ abstract class Field implements FieldContract
             !is_null($computedRules) ? $computedRules : [],
             !is_null($propertyRules) ? $propertyRules : []
         );
+    }
+
+    public function toArray()
+    {
+        $data = [
+            'name' => $this->name(),
+            'type' => $this->type(),
+            'component' => $this->component(),
+            'required' => $this->required()
+        ];
+        $attributes = $this->attributes();
+        return !is_null($attributes) ? array_merge($data, $attributes) : $data;
+    }
+
+    public function jsonSerialize()
+    {
+        return $this->toArray();
     }
 }
