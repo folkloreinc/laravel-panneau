@@ -2,15 +2,18 @@
 
 namespace Panneau\Contracts;
 
+use Illuminate\Support\Collection;
 use JsonSerializable;
 
-interface Resource
+interface Resource extends JsonSerializable
 {
     public function id(): string;
 
     public function name(): string;
 
     public function fields(): array;
+
+    public function types(): ?Collection;
 
     public function repository(): Repository;
 

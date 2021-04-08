@@ -71,12 +71,18 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->loadViewsFrom(__DIR__ . '/../views', 'panneau');
 
+        $this->loadTranslationsFrom(__DIR__ . '/../lang', 'panneau');
+
         $this->publishes([
             __DIR__ . '/../config/panneau.php' => config_path('panneau.php'),
         ]);
 
         $this->publishes([
             __DIR__ . '/../views' => resource_path('views/vendor/panneau'),
+        ]);
+
+        $this->publishes([
+            __DIR__ . '/../lang' => resource_path('lang/vendor/panneau'),
         ]);
     }
 

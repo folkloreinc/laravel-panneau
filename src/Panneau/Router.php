@@ -80,20 +80,6 @@ class Router implements RouterContract
         });
     }
 
-    public function routesToArray(): array
-    {
-        return $this->getRoutes()->mapWithKeys(function ($route) {
-            $name = preg_replace(
-                '/^' . preg_quote(Router::PREFIX, '/') . '\./',
-                '',
-                $route->getName()
-            );
-            return [
-                $name => $this->getRoutePath($route),
-            ];
-        })->toArray();
-    }
-
     protected function getRoutePath($route)
     {
         $name = $route->getName();
@@ -133,5 +119,19 @@ class Router implements RouterContract
         }
 
         return $path;
+    }
+
+    public function toRoutesArray(): array
+    {
+        return $this->getRoutes()->mapWithKeys(function ($route) {
+            $name = preg_replace(
+                '/^' . preg_quote(Router::PREFIX, '/') . '\./',
+                '',
+                $route->getName()
+            );
+            return [
+                $name => $this->getRoutePath($route),
+            ];
+        })->toArray();
     }
 }

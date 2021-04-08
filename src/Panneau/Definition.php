@@ -68,8 +68,13 @@ class Definition implements DefinitionContract, Arrayable
     public function toArray()
     {
         return [
-            'routes' => $this->panneau->router()->routesToArray(),
+            'routes' => $this->panneau->router()->toRoutesArray(),
             'resources' => $this->resources()->toArray()
         ];
+    }
+
+    public function jsonSerialize()
+    {
+        return $this->toArray();
     }
 }
