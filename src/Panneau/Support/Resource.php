@@ -2,7 +2,6 @@
 
 namespace Panneau\Support;
 
-use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Support\Arrayable;
