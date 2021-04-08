@@ -87,23 +87,23 @@ abstract class Resource implements ResourceContract, Arrayable
     public function messages(): array
     {
         $id = $this->id();
-        $singularLabel = Str::lower(Str::singular($this->label()));
-        $pluralLabel = Str::lower(Str::plural($this->label()));
+        $singularName = Str::lower(Str::singular($this->name()));
+        $pluralName = Str::lower(Str::plural($this->name()));
         $plural = $this->translator->has('panneau::resources.' . $id . '_plural')
             ? $this->translator->get('panneau::resources.' . $id . '_plural')
-            : $pluralLabel;
+            : $pluralName;
         $singular = $this->translator->has('panneau::resources.' . $id . '_singular')
             ? $this->translator->get('panneau::resources.' . $id . '_singular')
-            : $singularLabel;
+            : $singularName;
         return [
             'plural' => $plural,
             'Plural' => $this->translator->has('panneau::resources.' . $id . '_Plural')
                 ? $this->translator->get('panneau::resources.' . $id . '_Plural')
                 : Str::title($plural),
-            'singular' => $singularLabel,
+            'singular' => $singularName,
             'Singular' => $this->translator->has('panneau::resources.' . $id . '_Singular')
                 ? $this->translator->get('panneau::resources.' . $id . '_Singular')
-                : Str::title($singularLabel),
+                : Str::title($singularName),
             'a_singular' => $this->translator->has('panneau::resources.' . $id . '_a_singular')
                 ? $this->translator->get('panneau::resources.' . $id . '_a_singular')
                 : $this->translator->get('panneau::resources.a_singular', [
@@ -147,7 +147,7 @@ abstract class Resource implements ResourceContract, Arrayable
     {
         $data = [
             'id' => $this->id(),
-            'label' => $this->label(),
+            'name' => $this->name(),
             'fields' => collect($this->fields())->toArray(),
             'messages' => $this->messages(),
         ];
