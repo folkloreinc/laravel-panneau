@@ -56,9 +56,17 @@ abstract class Resource implements ResourceContract, Arrayable
         }
 
         if (!isset($this->typesInstances)) {
-            $this->typesInstances = collect(static::$types)->map(function ($type) {
+            $this->typesInstances = collect(static::$types)->map(function ($type, $key) {
                 if (is_string($type)) {
-                    return 
+                    return $this->container->make($type, [
+                        'resource' => $this,
+                    ]);
+                }
+                if (is_array($type)) {
+                    return new ArrayResourceType(
+                        $this,
+                        array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
+                    );
                 }
                 return $type;
             });
@@ -147,8 +155,8 @@ abstract class Resource implements ResourceContract, Arrayable
     {
         if ($this->hasTypes() && $resource instanceof HasResourceType) {
             $typeId = $resource->resourceType();
-            $resourceType = collect($this->types())->first(function ($type) {
-
+            $resourceType = collect($this->types())->first(function ($type) use ($typeId) {
+                return $type->id() === $typeId;
             });
         }
         $resourceClass = static::$jsonResource;
