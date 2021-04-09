@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Panneau\Contracts\Resource as ResourceContract;
 use Panneau\Contracts\Repository;
 use Panneau\Contracts\ResourceItem;
+use Panneau\Contracts\HasResourceType;
 use JsonSerializable;
 
 abstract class Resource implements ResourceContract, Arrayable
@@ -27,6 +28,8 @@ abstract class Resource implements ResourceContract, Arrayable
     protected $translator;
 
     protected $repositoryInstance;
+
+    protected $typesInstances;
 
     public function __construct(Container $container, Translator $translator)
     {
@@ -48,7 +51,20 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function types(): ?Collection
     {
-        return null;
+        if (!isset(static::$types)) {
+            return null;
+        }
+
+        if (!isset($this->typesInstances)) {
+            $this->typesInstances = collect(static::$types)->map(function ($type) {
+                if (is_string($type)) {
+                    return 
+                }
+                return $type;
+            });
+        }
+
+        return $this->typesInstances;
     }
 
     public function repository(): Repository
@@ -129,6 +145,12 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function newJsonResource(ResourceItem $resource): JsonSerializable
     {
+        if ($this->hasTypes() && $resource instanceof HasResourceType) {
+            $typeId = $resource->resourceType();
+            $resourceType = collect($this->types())->first(function ($type) {
+
+            });
+        }
         $resourceClass = static::$jsonResource;
         return new $resourceClass($resource);
     }
@@ -161,5 +183,10 @@ abstract class Resource implements ResourceContract, Arrayable
     public function jsonSerialize()
     {
         return $this->toArray();
+    }
+
+    protected function hasTypes(): bool
+    {
+        return $this->types() !== null;
     }
 }

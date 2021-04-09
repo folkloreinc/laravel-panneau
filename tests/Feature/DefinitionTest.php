@@ -16,11 +16,11 @@ class DefinitionTest extends TestCase
     }
 
     /**
-     * A basic test example.
+     * Test definition resources
      *
      * @return void
      */
-    public function testBasicTest()
+    public function testResources()
     {
         $this->panneau->resources([
             \TestApp\Resources\PagesResource::class

@@ -11,11 +11,10 @@ class PagesResource extends Resource
 
     public static $jsonResource = \TestApp\Http\Resources\PageResource::class;
 
+    public static $types = [\TestApp\Resources\Pages\Home::class];
+
     public function fields(): array
     {
-        return [
-            Text::make('title'),
-            Text::make('body')->isTextarea(),
-        ];
+        return [Text::make('title'), Text::make('body')->isTextarea()];
     }
 }

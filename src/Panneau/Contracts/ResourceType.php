@@ -8,7 +8,7 @@ interface ResourceType extends JsonSerializable
 {
     public function id(): string;
 
-    public function label(): string;
+    public function name(): string;
 
     public function fields(): array;
 
