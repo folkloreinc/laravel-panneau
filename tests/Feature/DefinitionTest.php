@@ -57,6 +57,7 @@ class DefinitionTest extends TestCase
 
         $this->assertInstanceOf(Collection::class, $routes);
 
+        // Test that route key is the route name and that all routes start with the prefix
         foreach ($routes as $routeName => $route) {
             $this->assertEquals($routeName, $route->getName());
             $this->assertMatchesRegularExpression(
@@ -65,6 +66,7 @@ class DefinitionTest extends TestCase
             );
         }
 
+        // Test that all resources routes are present
         $routesToTest = [
             'panneau.resources.index',
             'panneau.resources.create',
@@ -75,7 +77,6 @@ class DefinitionTest extends TestCase
             'panneau.resources.destroy',
             'panneau.resources.delete',
         ];
-
         foreach ($routesToTest as $routeName) {
             $this->assertTrue(
                 $routes->contains(function ($route) use ($routeName) {
