@@ -53,29 +53,35 @@ class DefinitionTest extends TestCase
 
         $definition = $this->panneau->definition();
 
-        $routesToTest = [
-            0 => 'panneau.resources.index',
-            1 => 'panneau.resources.create',
-            2 => 'panneau.resources.store',
-            3 => 'panneau.resources.show',
-            4 => 'panneau.resources.edit',
-            5 => 'panneau.resources.update',
-            6 => 'panneau.resources.destroy',
-            7 => 'panneau.resources.delete',
-        ];
-
         $routes = $definition->routes();
 
         $this->assertInstanceOf(Collection::class, $routes);
 
-        $index = 0;
         foreach ($routes as $routeName => $route) {
+            $this->assertEquals($routeName, $route->getName());
             $this->assertMatchesRegularExpression(
                 '%' . $this->app['panneau.router']::PREFIX . '%',
                 $routeName
             );
-            $this->assertEquals($routesToTest[$index], $routeName);
-            $index++;
+        }
+
+        $routesToTest = [
+            'panneau.resources.index',
+            'panneau.resources.create',
+            'panneau.resources.store',
+            'panneau.resources.show',
+            'panneau.resources.edit',
+            'panneau.resources.update',
+            'panneau.resources.destroy',
+            'panneau.resources.delete',
+        ];
+
+        foreach ($routesToTest as $routeName) {
+            $this->assertTrue(
+                $routes->contains(function ($route) use ($routeName) {
+                    return $route->getName() === $routeName;
+                })
+            );
         }
     }
 }
