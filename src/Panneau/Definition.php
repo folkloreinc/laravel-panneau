@@ -70,10 +70,12 @@ class Definition implements DefinitionContract, Arrayable, Jsonable
     {
         return [
             'name' => $this->name(),
-            'locale' => $this->locale(),
             'routes' => $this->panneau->router()->toArray(),
             'resources' => $this->resources()->toArray(),
-            'messages' => $this->messages()->toArray(),
+            'localization' => [
+                'locale' => $this->locale(),
+                'messages' => $this->messages()->toArray(),
+            ],
         ];
     }
 
