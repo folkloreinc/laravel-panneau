@@ -189,7 +189,7 @@ abstract class Resource implements ResourceContract, Arrayable
             'name' => $this->name(),
             'fields' => collect($this->fields())->toArray(),
             'messages' => $this->messages(),
-            'has_routes' => !is_null($controller),
+            'has_routes' => !is_null($this->controller()),
             'index_is_paginated' => $this->indexIsPaginated(),
             'shows_in_navbar' => $this->showsInNavbar(),
             'can_create' => $this->canCreate(),

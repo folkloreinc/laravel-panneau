@@ -4,11 +4,19 @@ namespace Panneau\Contracts;
 
 interface Panneau
 {
-    public function routes($options = []);
+    public function boot();
 
-    public function resources(array $resources = null);
+    public function booted($callback);
+
+    public function serving($callback);
 
     public function definition(): Definition;
 
-    public function router();
+    public function resources(array $resources = null);
+
+    public function resource($id): ?Resource;
+
+    public function routes($options = []): void;
+
+    public function router(): Router;
 }

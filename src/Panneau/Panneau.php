@@ -31,16 +31,6 @@ class Panneau implements PanneauContract
     }
 
     /**
-     * Determine if the application has booted.
-     *
-     * @return bool
-     */
-    public function isBooted()
-    {
-        return $this->booted;
-    }
-
-    /**
      * Boot the application's service providers.
      *
      * @return void
@@ -76,17 +66,9 @@ class Panneau implements PanneauContract
         $this->events->listen(HandlingRequest::class, $listener);
     }
 
-    /**
-     * Call the booting callbacks for the application.
-     *
-     * @param  callable[]  $callbacks
-     * @return void
-     */
-    protected function fireAppCallbacks(array $callbacks)
+    public function definition(): DefinitionContract
     {
-        foreach ($callbacks as $callback) {
-            $callback($this);
-        }
+        return new Definition($this, $this->app);
     }
 
     public function resources(array $resources = null)
@@ -103,16 +85,18 @@ class Panneau implements PanneauContract
         return $this->resolvedResources;
     }
 
-    public function routes($options = [])
+    public function resource($id): ?ResourceContract
+    {
+        return $this->resources()->first(function ($resource) use ($id) {
+            return $resource->id() === $id;
+        });
+    }
+
+    public function routes($options = []): void
     {
         $this->router()->group(function () use ($options) {
             $this->router()->resources($options['resources'] ?? []);
         });
-    }
-
-    public function definition(): DefinitionContract
-    {
-        return new Definition($this, $this->app);
     }
 
     public function router(): RouterContract
@@ -120,11 +104,27 @@ class Panneau implements PanneauContract
         return $this->app['panneau.router'];
     }
 
-    public function resource($id): ?ResourceContract
+    /**
+     * Determine if the application has booted.
+     *
+     * @return bool
+     */
+    protected function isBooted()
     {
-        return $this->resources()->first(function ($resource) use ($id) {
-            return $resource->id() === $id;
-        });
+        return $this->booted;
+    }
+
+    /**
+     * Call the booting callbacks for the application.
+     *
+     * @param  callable[]  $callbacks
+     * @return void
+     */
+    protected function fireAppCallbacks(array $callbacks)
+    {
+        foreach ($callbacks as $callback) {
+            $callback($this);
+        }
     }
 
     protected function resolveResources()
