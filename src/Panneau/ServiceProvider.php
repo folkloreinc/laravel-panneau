@@ -163,7 +163,10 @@ class ServiceProvider extends BaseServiceProvider
 
         $view = $this->app[ViewFactory::class];
 
-        $view->composer('panneau::*', \Panneau\Composers\PanneauComposer::class);
+        $view->composer(
+            ['panneau::layout', 'panneau::app'],
+            \Panneau\Composers\PanneauComposer::class
+        );
         $view->composer('panneau::app', \Panneau\Composers\AppComposer::class);
 
         $view->share('isPanneau', false);
