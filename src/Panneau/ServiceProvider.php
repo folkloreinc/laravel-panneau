@@ -116,7 +116,7 @@ class ServiceProvider extends BaseServiceProvider
     {
         $app = $this->app;
 
-        Router::macro('panneau', function ($group) {
+        Router::macro('panneau', function ($group) use ($app) {
             return $app['panneau.router']->group($group);
         });
 
