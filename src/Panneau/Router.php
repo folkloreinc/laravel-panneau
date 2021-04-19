@@ -18,7 +18,7 @@ class Router implements RouterContract
 
     protected $prefix = 'panneau';
 
-    protected $middleware = [];
+    protected $middleware = null;
 
     public function __construct(PanneauContract $panneau, Registrar $registrar)
     {
@@ -43,11 +43,17 @@ class Router implements RouterContract
 
     public function group($group)
     {
-        $this->registrar
-            ->prefix($this->prefix)
-            ->middleware($this->middleware)
-            ->namespace('\Panneau\Http\Controllers')
-            ->group($group);
+        $registrar = $this->registrar->namespace('\Panneau\Http\Controllers');
+
+        if (isset($this->prefix)) {
+            $registrar->prefix($this->prefix);
+        }
+
+        if (isset($this->middleware)) {
+            $registrar->middleware($this->middleware);
+        }
+
+        return $registrar->group($group);
     }
 
     public function resources($options = [])

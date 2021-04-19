@@ -47,7 +47,7 @@ class ServiceProvider extends BaseServiceProvider
                     preg_replace('#/#', '.', $config->get('panneau.routes.prefix', 'panneau')) . '.'
                 )
             );
-            $router->setMiddleware($config->get('panneau.middleware'));
+            $router->setMiddleware($config->get('panneau.routes.middleware'));
 
             $panneau->booted(function () use ($router) {
                 $router->boot();
