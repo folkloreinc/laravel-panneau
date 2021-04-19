@@ -14,7 +14,7 @@ class AppComposer
      */
     public function compose(View $view)
     {
-        $view->with('props', [
+        $view->props = array_merge(isset($view->props) ? $view->props : [], [
             'definition' => $view->definition,
         ]);
     }
