@@ -39,7 +39,7 @@ class Router implements RouterContract
 
     public function resources($options = [])
     {
-        $middleware = $options['middleware'] ?? 'web';
+        $middleware = $options['middleware'] ?? [];
         $controller = $options['controller'] ?? '\\Panneau\Http\Controllers\ResourceController';
 
         $resourcesWithController = $this->panneau->resources()->filter(function ($resource) {

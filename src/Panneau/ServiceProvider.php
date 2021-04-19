@@ -58,6 +58,8 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->bootViews();
 
+        $this->bootRoutes();
+
         LocalizedField::setLocalesResolver(function () {
             return config('panneau.locales');
         });
@@ -67,23 +69,35 @@ class ServiceProvider extends BaseServiceProvider
 
     protected function bootPublishes()
     {
-        $this->loadRoutesFrom(__DIR__ . '/../routes.php');
-
-        $this->loadViewsFrom(__DIR__ . '/../views', 'panneau');
-
         $this->loadTranslationsFrom(__DIR__ . '/../lang', 'panneau');
 
-        $this->publishes([
-            __DIR__ . '/../config/panneau.php' => config_path('panneau.php'),
-        ]);
+        $this->publishes(
+            [
+                __DIR__ . '/../config/panneau.php' => config_path('panneau.php'),
+            ],
+            'config'
+        );
 
-        $this->publishes([
-            __DIR__ . '/../views' => resource_path('views/vendor/panneau'),
-        ]);
+        $this->publishes(
+            [
+                __DIR__ . '/../views' => resource_path('views/vendor/panneau'),
+            ],
+            'views'
+        );
 
-        $this->publishes([
-            __DIR__ . '/../lang' => resource_path('lang/vendor/panneau'),
-        ]);
+        $this->publishes(
+            [
+                __DIR__ . '/../lang' => resource_path('lang/vendor/panneau'),
+            ],
+            'lang'
+        );
+
+        $this->publishes(
+            [
+                __DIR__ . '/../routes.php' => base_path('routes/panneau.php'),
+            ],
+            'routes'
+        );
     }
 
     protected function bootMacros()
@@ -134,6 +148,8 @@ class ServiceProvider extends BaseServiceProvider
 
     protected function bootViews()
     {
+        $this->loadViewsFrom(__DIR__ . '/../views', 'panneau');
+
         $view = $this->app[ViewFactory::class];
 
         $view->composer('panneau::*', \Panneau\Composers\PanneauComposer::class);
@@ -143,5 +159,12 @@ class ServiceProvider extends BaseServiceProvider
         $this->app['panneau']->serving(function () use ($view) {
             $view->share('isPanneau', true);
         });
+    }
+
+    protected function bootRoutes()
+    {
+        $appPath = base_path('routes/panneau.php');
+        $packagePath = __DIR__ . '/../routes.php';
+        $this->loadRoutesFrom(file_exists($appPath) ? $appPath : $packagePath);
     }
 }
