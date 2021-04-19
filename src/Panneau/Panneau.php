@@ -105,7 +105,9 @@ class Panneau implements PanneauContract
 
     public function routes($options = [])
     {
-        $this->router()->resources($options['resources'] ?? []);
+        $this->router()->group(function () use ($options) {
+            $this->router()->resources($options['resources'] ?? []);
+        });
     }
 
     public function definition(): DefinitionContract

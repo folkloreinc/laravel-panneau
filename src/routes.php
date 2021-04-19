@@ -1,10 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use Panneau\Support\Facade as Panneau;
 
-Route::prefix('panneau')
-    ->middleware(\Panneau\Http\Middleware\DispatchHandlingRequestEvent::class)
-    ->namespace('\Panneau\Http\Controllers')
-    ->group(function () {
-        Panneau::routes();
-    });
+Panneau::routes();

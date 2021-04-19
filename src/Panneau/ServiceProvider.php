@@ -37,7 +37,15 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->app->singleton('panneau.router', function () {
             $panneau = $this->app['panneau'];
+            $config = $this->app['config'];
+
             $router = new \Panneau\Router($panneau, $this->app['router']);
+            $router->setPrefix($config->get('panneau.routes.prefix'));
+            $router->setNamePrefix(
+                $config->get('panneau.routes.name_prefix', $config->get('panneau.routes.prefix'))
+            );
+            $router->setMiddleware($config->get('panneau.middleware'));
+
             $panneau->booted(function () use ($router) {
                 $router->boot();
             });
@@ -163,8 +171,9 @@ class ServiceProvider extends BaseServiceProvider
 
     protected function bootRoutes()
     {
-        $appPath = base_path('routes/panneau.php');
-        $packagePath = __DIR__ . '/../routes.php';
-        $this->loadRoutesFrom(file_exists($appPath) ? $appPath : $packagePath);
+        $map = $this->app['config']->get('panneau.routes.map');
+        if (!is_null($map)) {
+            $this->loadRoutesFrom(file_exists($map) ? $map : __DIR__ . '/../routes.php');
+        }
     }
 }

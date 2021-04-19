@@ -10,11 +10,15 @@ use Illuminate\Routing\Route;
 
 class Router implements RouterContract
 {
-    const PREFIX = 'panneau';
-
     protected $panneau;
 
     protected $registrar;
+
+    protected $namePrefix = 'panneau';
+
+    protected $prefix = 'panneau';
+
+    protected $middleware = [];
 
     public function __construct(PanneauContract $panneau, Registrar $registrar)
     {
@@ -37,6 +41,15 @@ class Router implements RouterContract
         }
     }
 
+    public function group($group)
+    {
+        $this->registrar
+            ->prefix($this->prefix)
+            ->middleware($this->middleware)
+            ->namespace('\Panneau\Http\Controllers')
+            ->group($group);
+    }
+
     public function resources($options = [])
     {
         $middleware = $options['middleware'] ?? [];
@@ -53,11 +66,11 @@ class Router implements RouterContract
                     $resource->id() => 'id',
                 ])
                 ->middleware($middleware)
-                ->names(Router::PREFIX . '.resources.' . $resource->id());
+                ->names($this->namePrefix . '.resources.' . $resource->id());
             $this->registrar
                 ->get($resource->id() . '/{id}/delete', '\\' . $resource->controller() . '@delete')
                 ->middleware($middleware)
-                ->name(Router::PREFIX . '.resources.' . $resource->id() . '.delete');
+                ->name($this->namePrefix . '.resources.' . $resource->id() . '.delete');
         }
 
         $this->registrar
@@ -66,12 +79,12 @@ class Router implements RouterContract
                 '{resource}' => 'id',
             ])
             ->middleware($middleware)
-            ->names(Router::PREFIX . '.resources');
+            ->names($this->namePrefix . '.resources');
 
         $this->registrar
             ->get('{resource}/{id}/delete', $controller . '@delete')
             ->middleware($middleware)
-            ->name(Router::PREFIX . '.resources.delete');
+            ->name($this->namePrefix . '.resources.delete');
     }
 
     public function resourceFromRoute(Route $route): ResourceContract
@@ -82,7 +95,7 @@ class Router implements RouterContract
         }
         $routeName = $route->getName();
         return preg_match(
-            '/^' . Router::PREFIX . '\.resources\.([^\.]+)\.[^\.]+$/',
+            '/^' . $this->namePrefix . '\.resources\.([^\.]+)\.[^\.]+$/',
             $routeName,
             $matches
         ) === 1
@@ -94,7 +107,7 @@ class Router implements RouterContract
     {
         return collect($this->registrar->getRoutes()->getRoutesByName())->filter(function ($route) {
             $name = $route->getName();
-            return preg_match('/^' . preg_quote(Router::PREFIX, '/') . '\./', $name) === 1;
+            return preg_match('/^' . preg_quote($this->namePrefix, '/') . '\./', $name) === 1;
         });
     }
 
@@ -144,7 +157,7 @@ class Router implements RouterContract
         return $this->getRoutes()
             ->mapWithKeys(function ($route) {
                 $name = preg_replace(
-                    '/^' . preg_quote(Router::PREFIX, '/') . '\./',
+                    '/^' . preg_quote($this->namePrefix, '/') . '\./',
                     '',
                     $route->getName()
                 );
@@ -153,5 +166,20 @@ class Router implements RouterContract
                 ];
             })
             ->toArray();
+    }
+
+    public function setNamePrefix($prefix)
+    {
+        $this->namePrefix = $prefix;
+    }
+
+    public function setPrefix($prefix)
+    {
+        $this->prefix = $prefix;
+    }
+
+    public function setMiddleware($middleware)
+    {
+        $this->middleware = $middleware;
     }
 }

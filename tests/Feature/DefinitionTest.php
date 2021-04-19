@@ -61,7 +61,7 @@ class DefinitionTest extends TestCase
         foreach ($routes as $routeName => $route) {
             $this->assertEquals($routeName, $route->getName());
             $this->assertMatchesRegularExpression(
-                '%' . $this->app['panneau.router']::PREFIX . '%',
+                '%' . config('panneau.routes.prefix') . '%',
                 $routeName
             );
         }
