@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
+use Illuminate\Routing\Router;
 use Illuminate\Routing\UrlGenerator;
 use Panneau\Support\LocalizedField;
 
@@ -114,6 +115,10 @@ class ServiceProvider extends BaseServiceProvider
     protected function bootMacros()
     {
         $app = $this->app;
+
+        Router::macro('panneau', function (...$args) {
+            return $app['panneau.router']->group(...$args);
+        });
 
         $routeIsPanneau = function ($route) {
             if (is_null($route)) {
