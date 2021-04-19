@@ -139,16 +139,16 @@ abstract class Resource implements ResourceContract, Arrayable
         ];
     }
 
-    public function newJsonResource(ResourceItem $resource): JsonSerializable
+    public function newJsonResource(ResourceItem $item): JsonSerializable
     {
-        if ($this->hasTypes() && $resource instanceof HasResourceType) {
-            $typeId = $resource->resourceType();
+        if ($this->hasTypes() && $item instanceof HasResourceType) {
+            $typeId = $item->resourceType();
             $resourceType = collect($this->types())->first(function ($type) use ($typeId) {
                 return $type->id() === $typeId;
             });
         }
         $resourceClass = static::$jsonResource;
-        return new $resourceClass($resource);
+        return new $resourceClass($item);
     }
 
     public function newJsonCollection($resources): JsonSerializable

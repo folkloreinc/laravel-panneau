@@ -16,7 +16,7 @@ interface ResourceType extends JsonSerializable
 
     public function repository(): ?Repository;
 
-    public function newJsonResource(Item $resource): ?JsonSerializable;
+    public function newJsonResource(ResourceItem $item): ?JsonSerializable;
 
     public function newJsonCollection($resources): ?JsonSerializable;
 }

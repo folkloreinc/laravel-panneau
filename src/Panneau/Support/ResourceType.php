@@ -58,10 +58,10 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
         return $this->repositoryInstance;
     }
 
-    public function newJsonResource(Item $resource): ?JsonSerializable
+    public function newJsonResource(ResourceItem $item): ?JsonSerializable
     {
         $resourceClass = static::$jsonResource;
-        return !is_null($resourceClass) ? new $resourceClass($resource) : null;
+        return !is_null($resourceClass) ? new $resourceClass($item) : null;
     }
 
     public function newJsonCollection($resources): ?JsonSerializable
