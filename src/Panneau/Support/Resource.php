@@ -30,6 +30,8 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public static $indexIsPaginated = true;
 
+    public static $types;
+
     protected $container;
 
     protected $translator;
@@ -58,7 +60,7 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function types(): ?array
     {
-        return null;
+        return static::$types;
     }
 
     public function repository(): Repository
