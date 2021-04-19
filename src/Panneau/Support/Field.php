@@ -232,6 +232,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
         $data = [
             'name' => $this->name(),
+            'label' => $this->label(),
             'type' => $type,
             'component' => $this->component(),
             'required' => $this->required(),
