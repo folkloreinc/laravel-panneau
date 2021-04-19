@@ -3,12 +3,13 @@
 namespace Panneau;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
 use Panneau\Contracts\Definition as DefinitionContract;
 use Panneau\Contracts\Panneau as PanneauContract;
 
-class Definition implements DefinitionContract, Arrayable
+class Definition implements DefinitionContract, Arrayable, Jsonable
 {
     protected $panneau;
     protected $app;
@@ -76,5 +77,10 @@ class Definition implements DefinitionContract, Arrayable
     public function jsonSerialize()
     {
         return $this->toArray();
+    }
+
+    public function toJson($options = 0)
+    {
+        return json_encode($this->jsonSerialize(), $options);
     }
 }

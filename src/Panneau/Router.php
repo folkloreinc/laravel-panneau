@@ -4,7 +4,9 @@ namespace Panneau;
 
 use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Contracts\Router as RouterContract;
+use Panneau\Contracts\Resource as ResourceContract;
 use Illuminate\Contracts\Routing\Registrar;
+use Illuminate\Routing\Route;
 
 class Router implements RouterContract
 {
@@ -38,7 +40,7 @@ class Router implements RouterContract
     public function resources($options = [])
     {
         $middleware = $options['middleware'] ?? 'web';
-        $controller = $options['controller'] ?? '\\App\Panneau\Http\Controllers\ResourceController';
+        $controller = $options['controller'] ?? '\\Panneau\Http\Controllers\ResourceController';
 
         $resourcesWithController = $this->panneau->resources()->filter(function ($resource) {
             return !is_null($resource->controller());
@@ -70,6 +72,22 @@ class Router implements RouterContract
             ->get('{resource}/{id}/delete', $controller . '@delete')
             ->middleware($middleware)
             ->name(Router::PREFIX . '.resources.delete');
+    }
+
+    public function resourceFromRoute(Route $route): ResourceContract
+    {
+        $resource = $route->parameter('resource');
+        if (!is_null($resource)) {
+            return is_string($resource) ? $this->panneau->resource($resource) : $resource;
+        }
+        $routeName = $route->getName();
+        return preg_match(
+            '/^' . Router::PREFIX . '\.resources\.([^\.]+)\.[^\.]+$/',
+            $routeName,
+            $matches
+        ) === 1
+            ? $this->panneau->resource($matches[1])
+            : null;
     }
 
     public function getRoutes()
@@ -123,15 +141,17 @@ class Router implements RouterContract
 
     public function toRoutesArray(): array
     {
-        return $this->getRoutes()->mapWithKeys(function ($route) {
-            $name = preg_replace(
-                '/^' . preg_quote(Router::PREFIX, '/') . '\./',
-                '',
-                $route->getName()
-            );
-            return [
-                $name => $this->getRoutePath($route),
-            ];
-        })->toArray();
+        return $this->getRoutes()
+            ->mapWithKeys(function ($route) {
+                $name = preg_replace(
+                    '/^' . preg_quote(Router::PREFIX, '/') . '\./',
+                    '',
+                    $route->getName()
+                );
+                return [
+                    $name => $this->getRoutePath($route),
+                ];
+            })
+            ->toArray();
     }
 }

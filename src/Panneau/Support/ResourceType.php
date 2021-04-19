@@ -5,6 +5,7 @@ namespace Panneau\Support;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Panneau\Contracts\Resource as ResourceContract;
@@ -13,7 +14,7 @@ use Panneau\Contracts\Repository;
 use Panneau\Contracts\ResourceItem;
 use JsonSerializable;
 
-abstract class ResourceType implements ResourceTypeContract, Arrayable
+abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
 {
     public static $repository;
 
@@ -85,5 +86,10 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable
     public function jsonSerialize()
     {
         return $this->toArray();
+    }
+
+    public function toJson($options = 0)
+    {
+        return json_encode($this->jsonSerialize(), $options);
     }
 }

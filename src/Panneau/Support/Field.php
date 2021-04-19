@@ -4,11 +4,12 @@ namespace Panneau\Support;
 
 use Panneau\Contracts\Field as FieldContract;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Closure;
 
-abstract class Field implements FieldContract, Arrayable
+abstract class Field implements FieldContract, Arrayable, Jsonable
 {
     protected $name;
 
@@ -32,7 +33,7 @@ abstract class Field implements FieldContract, Arrayable
 
     protected $attributes = [];
 
-    protected $components = [];
+    protected $components = null;
 
     public static function make($name = null, $label = null)
     {
@@ -146,7 +147,10 @@ abstract class Field implements FieldContract, Arrayable
 
     public function withComponents($components)
     {
-        $this->components = array_merge($this->components, $components);
+        $this->components = array_merge(
+            !is_null($this->components) ? $this->components : [],
+            $components
+        );
         return $this;
     }
 
@@ -224,12 +228,39 @@ abstract class Field implements FieldContract, Arrayable
 
     public function toArray()
     {
+        $type = $this->type();
+
         $data = [
             'name' => $this->name(),
-            'type' => $this->type(),
+            'type' => $type,
             'component' => $this->component(),
-            'required' => $this->required()
+            'required' => $this->required(),
+            'default_value' => $this->defaultValue(),
+            'hidden_in_index' => $this->hiddenInIndex(),
+            'order_in_index' => $this->orderInIndex(),
         ];
+
+        $components = $this->components();
+        if (!is_null($components)) {
+            $data['components'] = $components;
+        }
+
+        $sibblingFields = $this->sibblingFields();
+        if (!is_null($sibblingFields)) {
+            $data['sibbling_fields'] = collect($sibblingFields)->toArray();
+        }
+
+        if ($type === 'object') {
+            $data['properties'] = collect($this->properties())
+                ->mapWithKeys(function ($property, $key) {
+                    $property = is_string($property) ? $property::make($key) : $property;
+                    return [
+                        $key => $property,
+                    ];
+                })
+                ->toArray();
+        }
+
         $attributes = $this->attributes();
         return !is_null($attributes) ? array_merge($data, $attributes) : $data;
     }
@@ -237,5 +268,10 @@ abstract class Field implements FieldContract, Arrayable
     public function jsonSerialize()
     {
         return $this->toArray();
+    }
+
+    public function toJson($options = 0)
+    {
+        return json_encode($this->jsonSerialize(), $options);
     }
 }

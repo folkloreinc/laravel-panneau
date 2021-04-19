@@ -5,6 +5,7 @@ namespace Panneau\Support;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Panneau\Contracts\Resource as ResourceContract;
@@ -158,6 +159,29 @@ abstract class Resource implements ResourceContract, Arrayable
         return $resourceClass::collection($resources);
     }
 
+    protected function hasTypes(): bool
+    {
+        return $this->types() !== null;
+    }
+
+    protected function getTypesInstances(): Collection
+    {
+        return collect($this->types())->map(function ($type, $key) {
+            if (is_string($type)) {
+                return $this->container->make($type, [
+                    'resource' => $this,
+                ]);
+            }
+            if (is_array($type)) {
+                return new ArrayResourceType(
+                    $this,
+                    array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
+                );
+            }
+            return $type;
+        });
+    }
+
     public function toArray()
     {
         $data = [
@@ -186,26 +210,8 @@ abstract class Resource implements ResourceContract, Arrayable
         return $this->toArray();
     }
 
-    protected function hasTypes(): bool
+    public function toJson($options = 0)
     {
-        return $this->types() !== null;
-    }
-
-    protected function getTypesInstances(): Collection
-    {
-        return collect($this->types())->map(function ($type, $key) {
-            if (is_string($type)) {
-                return $this->container->make($type, [
-                    'resource' => $this,
-                ]);
-            }
-            if (is_array($type)) {
-                return new ArrayResourceType(
-                    $this,
-                    array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
-                );
-            }
-            return $type;
-        });
+        return json_encode($this->jsonSerialize(), $options);
     }
 }

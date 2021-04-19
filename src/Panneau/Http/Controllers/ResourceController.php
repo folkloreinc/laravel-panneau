@@ -38,7 +38,10 @@ class ResourceController extends Controller
 
     protected function getPageCountFromRequest(Request $request, Resource $resource)
     {
-        return $request->input('count', $resource->indexIsPaginated() ? $this->defaultPageCount : null);
+        return $request->input(
+            'count',
+            $resource->indexIsPaginated() ? $this->defaultPageCount : null
+        );
     }
 
     /**
@@ -57,7 +60,7 @@ class ResourceController extends Controller
             $items = $repository->get($query, $page, $count);
             return $resource->newJsonCollection($items);
         }
-        return view('panneau');
+        return view('panneau::app');
     }
 
     /**
@@ -67,7 +70,7 @@ class ResourceController extends Controller
      */
     public function create(Request $request)
     {
-        return view('panneau');
+        return view('panneau::app');
     }
 
     /**
@@ -100,7 +103,7 @@ class ResourceController extends Controller
         if (is_null($item)) {
             return abort(404);
         }
-        return $request->wantsJson() ? $resource->newJsonResource($item) : view('panneau');
+        return $request->wantsJson() ? $resource->newJsonResource($item) : view('panneau::app');
     }
 
     /**

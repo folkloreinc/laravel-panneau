@@ -123,18 +123,7 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->app['panneau']->serving(function () {
             Route::macro('resource', function () {
-                $resource = $this->parameter('resource');
-                if (!is_null($resource)) {
-                    return is_string($resource) ? app('panneau')->resource($resource) : $resource;
-                }
-                $routeName = $this->getName();
-                return preg_match(
-                    '/^panneau\.resources\.([^\.]+)\.[^\.]+$/',
-                    $routeName,
-                    $matches
-                ) === 1
-                    ? app('panneau')->resource($matches[1])
-                    : null;
+                return app('panneau.router')->resourceFromRoute($this);
             });
 
             Request::macro('resource', function () {
@@ -146,6 +135,9 @@ class ServiceProvider extends BaseServiceProvider
     protected function bootViews()
     {
         $view = $this->app[ViewFactory::class];
+
+        $view->composer('panneau::*', \Panneau\Composers\PanneauComposer::class);
+        $view->composer('panneau::app', \Panneau\Composers\AppComposer::class);
 
         $view->share('isPanneau', false);
         $this->app['panneau']->serving(function () use ($view) {
