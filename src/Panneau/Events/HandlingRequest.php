@@ -3,9 +3,12 @@
 namespace Panneau\Events;
 
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Events\Dispatchable;
 
 class HandlingRequest
 {
+    use Dispatchable;
+
     public $request;
 
     /**
