@@ -14,7 +14,7 @@ class Router implements RouterContract
 
     protected $registrar;
 
-    protected $namePrefix = 'panneau';
+    protected $namePrefix = 'panneau.';
 
     protected $prefix = 'panneau';
 
@@ -66,11 +66,11 @@ class Router implements RouterContract
                     $resource->id() => 'id',
                 ])
                 ->middleware($middleware)
-                ->names($this->namePrefix . '.resources.' . $resource->id());
+                ->names($this->namePrefix . 'resources.' . $resource->id());
             $this->registrar
                 ->get($resource->id() . '/{id}/delete', '\\' . $resource->controller() . '@delete')
                 ->middleware($middleware)
-                ->name($this->namePrefix . '.resources.' . $resource->id() . '.delete');
+                ->name($this->namePrefix . 'resources.' . $resource->id() . '.delete');
         }
 
         $this->registrar
@@ -79,12 +79,12 @@ class Router implements RouterContract
                 '{resource}' => 'id',
             ])
             ->middleware($middleware)
-            ->names($this->namePrefix . '.resources');
+            ->names($this->namePrefix . 'resources');
 
         $this->registrar
             ->get('{resource}/{id}/delete', $controller . '@delete')
             ->middleware($middleware)
-            ->name($this->namePrefix . '.resources.delete');
+            ->name($this->namePrefix . 'resources.delete');
     }
 
     public function resourceFromRoute(Route $route): ResourceContract
@@ -95,7 +95,7 @@ class Router implements RouterContract
         }
         $routeName = $route->getName();
         return preg_match(
-            '/^' . $this->namePrefix . '\.resources\.([^\.]+)\.[^\.]+$/',
+            '/^' . preg_quote($this->namePrefix, '/') . 'resources\.([^\.]+)\.[^\.]+$/',
             $routeName,
             $matches
         ) === 1
@@ -107,7 +107,7 @@ class Router implements RouterContract
     {
         return collect($this->registrar->getRoutes()->getRoutesByName())->filter(function ($route) {
             $name = $route->getName();
-            return preg_match('/^' . preg_quote($this->namePrefix, '/') . '\./', $name) === 1;
+            return preg_match('/^' . preg_quote($this->namePrefix, '/') . '/', $name) === 1;
         });
     }
 
@@ -157,7 +157,7 @@ class Router implements RouterContract
         return $this->getRoutes()
             ->mapWithKeys(function ($route) {
                 $name = preg_replace(
-                    '/^' . preg_quote($this->namePrefix, '/') . '\./',
+                    '/^' . preg_quote($this->namePrefix, '/') . '/',
                     '',
                     $route->getName()
                 );
