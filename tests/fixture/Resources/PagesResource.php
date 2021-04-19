@@ -11,7 +11,9 @@ class PagesResource extends Resource
 
     public static $jsonResource = \TestApp\Http\Resources\PageResource::class;
 
-    public static $types = [\TestApp\Resources\Pages\Home::class];
+    public static $types = [
+        \TestApp\Resources\Pages\Home::class
+    ];
 
     public function fields(): array
     {

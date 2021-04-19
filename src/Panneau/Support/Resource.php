@@ -23,6 +23,12 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public static $jsonCollection;
 
+    public static $showsInNavbar = true;
+
+    public static $canCreate = true;
+
+    public static $indexIsPaginated = true;
+
     protected $container;
 
     protected $translator;
@@ -49,30 +55,9 @@ abstract class Resource implements ResourceContract, Arrayable
 
     abstract public function fields(): array;
 
-    public function types(): ?Collection
+    public function types(): ?array
     {
-        if (!isset(static::$types)) {
-            return null;
-        }
-
-        if (!isset($this->typesInstances)) {
-            $this->typesInstances = collect(static::$types)->map(function ($type, $key) {
-                if (is_string($type)) {
-                    return $this->container->make($type, [
-                        'resource' => $this,
-                    ]);
-                }
-                if (is_array($type)) {
-                    return new ArrayResourceType(
-                        $this,
-                        array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
-                    );
-                }
-                return $type;
-            });
-        }
-
-        return $this->typesInstances;
+        return null;
     }
 
     public function repository(): Repository
@@ -95,17 +80,17 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function showsInNavbar(): bool
     {
-        return true;
+        return static::$showsInNavbar;
     }
 
     public function canCreate(): bool
     {
-        return true;
+        return static::$canCreate;
     }
 
     public function indexIsPaginated(): bool
     {
-        return true;
+        return static::$indexIsPaginated;
     }
 
     public function messages(): array
@@ -180,10 +165,18 @@ abstract class Resource implements ResourceContract, Arrayable
             'name' => $this->name(),
             'fields' => collect($this->fields())->toArray(),
             'messages' => $this->messages(),
+            'has_routes' => !is_null($controller),
+            'index_is_paginated' => $this->indexIsPaginated(),
+            'shows_in_navbar' => $this->showsInNavbar(),
+            'can_create' => $this->canCreate(),
         ];
+        $components = $this->components();
+        if (isset($components)) {
+            $data['components'] = $components;
+        }
         $types = $this->types();
         if (isset($types)) {
-            $data['types'] = $types;
+            $data['types'] = $this->getTypesInstances($types)->toArray();
         }
         return $data;
     }
@@ -196,5 +189,23 @@ abstract class Resource implements ResourceContract, Arrayable
     protected function hasTypes(): bool
     {
         return $this->types() !== null;
+    }
+
+    protected function getTypesInstances(): Collection
+    {
+        return collect($this->types())->map(function ($type, $key) {
+            if (is_string($type)) {
+                return $this->container->make($type, [
+                    'resource' => $this,
+                ]);
+            }
+            if (is_array($type)) {
+                return new ArrayResourceType(
+                    $this,
+                    array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
+                );
+            }
+            return $type;
+        });
     }
 }
