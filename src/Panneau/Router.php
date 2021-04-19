@@ -152,7 +152,7 @@ class Router implements RouterContract
         return $path;
     }
 
-    public function toRoutesArray(): array
+    public function toArray(): array
     {
         return $this->getRoutes()
             ->mapWithKeys(function ($route) {
