@@ -23,5 +23,9 @@ interface Field extends JsonSerializable
 
     public function sibblingFields(): ?array;
 
-    public function getRules(Request $request): array;
+    public function exceptTypes(): ?array;
+
+    public function onlyTypes(): ?array;
+
+    public function getRulesFromRequest(Request $request): array;
 }

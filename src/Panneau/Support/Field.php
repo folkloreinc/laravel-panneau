@@ -35,6 +35,10 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     protected $components = null;
 
+    protected $exceptTypes = null;
+
+    protected $onlyTypes = null;
+
     public static function make($name = null, $label = null)
     {
         return new static($name, $label);
@@ -110,6 +114,16 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this->indexOrder;
     }
 
+    public function exceptTypes(): ?array
+    {
+        return $this->exceptTypes;
+    }
+
+    public function onlyTypes(): ?array
+    {
+        return $this->onlyTypes;
+    }
+
     public function withName($name)
     {
         $this->name = $name;
@@ -133,9 +147,9 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this;
     }
 
-    public function withSibblingFields($sibblingFields)
+    public function withSibblingFields($fields)
     {
-        $this->sibblingFields = $sibblingFields;
+        $this->sibblingFields = is_array($fields) ? $fields : func_get_args();
         return $this;
     }
 
@@ -164,6 +178,26 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function withOrderInIndex($order)
     {
         $this->indexOrder = $order;
+        return $this;
+    }
+
+    public function onlyForTypes($types)
+    {
+        $this->onlyTypes = collect($this->onlyTypes ?? [])
+            ->merge(is_array($types) ? $types : func_get_args())
+            ->unique()
+            ->values()
+            ->toArray();
+        return $this;
+    }
+
+    public function exceptForTypes($types)
+    {
+        $this->exceptTypes = collect($this->exceptTypes ?? [])
+            ->merge(is_array($types) ? $types : func_get_args())
+            ->unique()
+            ->values()
+            ->toArray();
         return $this;
     }
 
@@ -215,7 +249,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this;
     }
 
-    public function getRules(Request $request): array
+    public function getRulesFromRequest(Request $request): array
     {
         $computedRules = $this->rules($request);
         $rules = $this->rules;

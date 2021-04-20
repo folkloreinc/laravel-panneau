@@ -28,7 +28,7 @@ class ResourceUpdateRequest extends FormRequest
         $rules = collect($resource->fields())->mapWithKeys(function ($field) {
             $name = $field->name();
             $required = $field->required();
-            $fieldRules = $field->getRules($this);
+            $fieldRules = $field->getRulesFromRequest($this);
             $allRules = $required ? array_merge(['required'], $fieldRules) : $fieldRules;
             return !is_null($allRules) && sizeof($allRules)
                 ? [
