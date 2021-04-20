@@ -82,7 +82,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
             'name' => $this->name(),
             'fields' => collect($this->resource->fields())
                 ->filter(function ($field) use ($id) {
-                    $excepTypes = $field->excepTypes();
+                    $excepTypes = $field->exceptTypes();
                     $onlyTypes = $field->onlyTypes();
                     return (is_null($excepTypes) || !in_array($id, $excepTypes)) &&
                         (is_null($onlyTypes) || in_array($id, $onlyTypes));
