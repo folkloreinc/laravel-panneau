@@ -81,6 +81,11 @@ abstract class Resource implements ResourceContract, Arrayable
         return null;
     }
 
+    public function attributes(): ?array
+    {
+        return null;
+    }
+
     public function showsInNavbar(): bool
     {
         return static::$showsInNavbar;
@@ -204,7 +209,9 @@ abstract class Resource implements ResourceContract, Arrayable
         if (isset($types)) {
             $data['types'] = $this->getTypesInstances($types)->toArray();
         }
-        return $data;
+
+        $attributes = $this->attributes();
+        return !is_null($attributes) ? array_merge($data, $attributes) : $data;
     }
 
     public function jsonSerialize()
