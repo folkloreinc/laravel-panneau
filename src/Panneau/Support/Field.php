@@ -25,19 +25,21 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     protected $sibblingFields;
 
-    protected $hiddenInIndex = false;
-
-    protected $hiddenInForm = false;
-
-    protected $indexOrder = null;
-
-    protected $attributes = [];
-
     protected $components = null;
 
     protected $exceptTypes = null;
 
     protected $onlyTypes = null;
+
+    protected $attributes = [];
+
+    protected $meta = [
+        'hidden_in_index' => false,
+        'order_in_index' => null,
+        'hidden_in_form' => false,
+        'create_only' => false,
+        'update_only' => false,
+    ];
 
     public static function make($name = null, $label = null)
     {
@@ -50,10 +52,6 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $this->label = $label;
     }
 
-    abstract public function type(): string;
-
-    abstract public function component(): string;
-
     public function name(): string
     {
         return $this->name;
@@ -64,9 +62,18 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return !is_null($this->label) ? $this->label : Str::title($this->name);
     }
 
+    abstract public function type(): string;
+
+    abstract public function component(): string;
+
     public function required(): bool
     {
         return $this->required;
+    }
+
+    public function defaultValue()
+    {
+        return $this->defaultValue;
     }
 
     public function properties(): ?array
@@ -79,9 +86,9 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this->attributes;
     }
 
-    public function rules(Request $request): ?array
+    public function meta(): ?array
     {
-        return null;
+        return $this->meta;
     }
 
     public function components(): ?array
@@ -94,26 +101,6 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this->sibblingFields;
     }
 
-    public function hiddenInIndex(): bool
-    {
-        return $this->hiddenInIndex;
-    }
-
-    public function hiddenInForm(): bool
-    {
-        return $this->hiddenInForm;
-    }
-
-    public function defaultValue()
-    {
-        return $this->defaultValue;
-    }
-
-    public function orderInIndex(): ?int
-    {
-        return $this->indexOrder;
-    }
-
     public function exceptTypes(): ?array
     {
         return $this->exceptTypes;
@@ -122,6 +109,22 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function onlyTypes(): ?array
     {
         return $this->onlyTypes;
+    }
+
+    public function rules(Request $request): ?array
+    {
+        return null;
+    }
+
+    public function getRulesFromRequest(Request $request): array
+    {
+        $computedRules = $this->rules($request);
+        $rules = $this->rules;
+        $propertyRules = $rules instanceof Closure ? $rules($request) : $rules;
+        return array_merge(
+            !is_null($computedRules) ? $computedRules : [],
+            !is_null($propertyRules) ? $propertyRules : []
+        );
     }
 
     public function withName($name)
@@ -175,12 +178,6 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         ]);
     }
 
-    public function withOrderInIndex($order)
-    {
-        $this->indexOrder = $order;
-        return $this;
-    }
-
     public function onlyForTypes($types)
     {
         $this->onlyTypes = collect($this->onlyTypes ?? [])
@@ -215,25 +212,43 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     public function showInIndex()
     {
-        $this->hiddenInIndex = false;
+        $this->meta['hidden_in_index'] = false;
         return $this;
     }
 
     public function hideInIndex()
     {
-        $this->hiddenInIndex = true;
+        $this->meta['hidden_in_index'] = true;
+        return $this;
+    }
+
+    public function orderInIndex($order)
+    {
+        $this->meta['order_in_index'] = $order;
         return $this;
     }
 
     public function showInForm()
     {
-        $this->hiddenInForm = false;
+        $this->meta['hidden_in_form'] = false;
         return $this;
     }
 
     public function hideInForm()
     {
-        $this->hiddenInForm = true;
+        $this->meta['hidden_in_form'] = true;
+        return $this;
+    }
+
+    public function createOnly()
+    {
+        $this->meta['create_only'] = true;
+        return $this;
+    }
+
+    public function updateOnly()
+    {
+        $this->meta['update_only'] = true;
         return $this;
     }
 
@@ -249,15 +264,10 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this;
     }
 
-    public function getRulesFromRequest(Request $request): array
+    public function withMeta($meta)
     {
-        $computedRules = $this->rules($request);
-        $rules = $this->rules;
-        $propertyRules = $rules instanceof Closure ? $rules($request) : $rules;
-        return array_merge(
-            !is_null($computedRules) ? $computedRules : [],
-            !is_null($propertyRules) ? $propertyRules : []
-        );
+        $this->meta = array_merge($this->meta, $meta);
+        return $this;
     }
 
     public function toArray()
@@ -271,8 +281,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             'component' => $this->component(),
             'required' => $this->required(),
             'default_value' => $this->defaultValue(),
-            'hidden_in_index' => $this->hiddenInIndex(),
-            'order_in_index' => $this->orderInIndex(),
+            'meta' => $this->meta,
         ];
 
         $components = $this->components();

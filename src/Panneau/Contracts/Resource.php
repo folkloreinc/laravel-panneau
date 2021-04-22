@@ -24,6 +24,8 @@ interface Resource extends JsonSerializable
 
     public function attributes(): ?array;
 
+    public function meta(): ?array;
+
     public function newJsonResource(ResourceItem $resource): JsonSerializable;
 
     public function newJsonCollection($resources): JsonSerializable;

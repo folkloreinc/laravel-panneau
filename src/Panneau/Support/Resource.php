@@ -86,6 +86,11 @@ abstract class Resource implements ResourceContract, Arrayable
         return null;
     }
 
+    public function meta(): ?array
+    {
+        return $this->meta;
+    }
+
     public function showsInNavbar(): bool
     {
         return static::$showsInNavbar;
@@ -196,10 +201,12 @@ abstract class Resource implements ResourceContract, Arrayable
             'name' => $this->name(),
             'fields' => collect($this->fields())->toArray(),
             'messages' => $this->messages(),
-            'has_routes' => !is_null($this->controller()),
-            'index_is_paginated' => $this->indexIsPaginated(),
-            'shows_in_navbar' => $this->showsInNavbar(),
-            'can_create' => $this->canCreate(),
+            'meta' => [
+                'has_routes' => !is_null($this->controller()),
+                'index_is_paginated' => $this->indexIsPaginated(),
+                'shows_in_navbar' => $this->showsInNavbar(),
+                'can_create' => $this->canCreate(),
+            ]
         ];
         $components = $this->components();
         if (isset($components)) {
