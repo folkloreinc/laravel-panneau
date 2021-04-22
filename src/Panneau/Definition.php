@@ -34,7 +34,7 @@ class Definition implements DefinitionContract, Arrayable, Jsonable
     {
         $defaultNamespace = 'panneau';
         $locale = $this->locale();
-        $namespaces = $this->app['config']->get('panneau.messages', [$defaultNamespace]);
+        $namespaces = $this->app['config']->get('panneau.translations', [$defaultNamespace]);
         $messages = [];
 
         foreach ($namespaces as $namespace) {
@@ -47,7 +47,7 @@ class Definition implements DefinitionContract, Arrayable, Jsonable
                 if (sizeof($texts) === 1 && $key === 0) {
                     $key = $namespace;
                 } elseif ($namespace !== $defaultNamespace) {
-                    $key = $namespace . '.' . $key;
+                    $key = preg_replace('/^panneau\:\:/', '', $namespace) . '.' . $key;
                 }
                 $messages[$key] = preg_replace('/\:([a-z][a-z0-9\_\-]+)/', '{$1}', $value);
             }

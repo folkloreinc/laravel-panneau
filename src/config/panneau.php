@@ -8,7 +8,7 @@ return [
 
     ],
 
-    'translations' => ['panneau'],
+    'translations' => ['panneau::resources'],
 
     'routes' => [
         // Path to the routes file that will be automatically loaded. Set to null
