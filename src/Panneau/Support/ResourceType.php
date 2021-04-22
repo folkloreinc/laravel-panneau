@@ -22,6 +22,8 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
 
     public static $jsonCollection;
 
+    public static $canCreate = true;
+
     public static $types;
 
     protected $resource;
@@ -48,6 +50,11 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
     public function resource(): ResourceContract
     {
         return $this->resource;
+    }
+
+    public function canCreate(): bool
+    {
+        return static::$canCreate;
     }
 
     public function repository(): ?Repository
@@ -90,6 +97,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
                 ->merge($this->fields())
                 ->values()
                 ->toArray(),
+            'can_create' => $this->canCreate(),
         ];
     }
 
