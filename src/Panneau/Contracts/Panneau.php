@@ -19,4 +19,6 @@ interface Panneau
     public function routes($options = []): void;
 
     public function router(): Router;
+
+    public function settings(array $settings = null);
 }

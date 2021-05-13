@@ -6,10 +6,22 @@ use Illuminate\Http\Request;
 use Panneau\Http\Requests\ResourceStoreRequest;
 use Panneau\Http\Requests\ResourceUpdateRequest;
 use Panneau\Contracts\Resource;
+use Illuminate\Container\Container;
+use Illuminate\Routing\Contracts\ControllerDispatcher;
 
 class ResourceController extends Controller
 {
     protected $defaultPageCount = 10;
+
+    protected $container;
+
+    protected $dispatcher;
+
+    public function __construct(Container $container, ControllerDispatcher $dispatcher)
+    {
+        $this->container = $container;
+        $this->dispatcher = $dispatcher;
+    }
 
     protected function getResourceFromRequest(Request $request)
     {
@@ -44,6 +56,23 @@ class ResourceController extends Controller
         );
     }
 
+    protected function resourceHasController(Resource $resource)
+    {
+        return !is_null($resource->controller());
+    }
+
+    protected function dispatchRequestToResourceController(
+        Request $request,
+        Resource $resource,
+        $method
+    ) {
+        return $this->dispatcher->dispatch(
+            $request->route(),
+            $this->container->make($resource->controller()),
+            $method
+        );
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -52,6 +81,9 @@ class ResourceController extends Controller
     public function index(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'index');
+        }
         $repository = $resource->repository();
         if ($request->wantsJson()) {
             $query = $this->getIndexQueryFromRequest($request, $resource);
@@ -70,6 +102,10 @@ class ResourceController extends Controller
      */
     public function create(Request $request)
     {
+        $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'create');
+        }
         return view('panneau::app');
     }
 
@@ -82,6 +118,9 @@ class ResourceController extends Controller
     public function store(ResourceStoreRequest $request)
     {
         $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'store');
+        }
         $repository = $resource->repository();
         $data = $this->getStoreDataFromRequest($request);
         $item = $repository->create($data);
@@ -96,8 +135,11 @@ class ResourceController extends Controller
      */
     public function show(Request $request)
     {
-        $id = $request->route('id');
         $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'show');
+        }
+        $id = $request->route('id');
         $repository = $resource->repository();
         $item = $repository->findById($id);
         if (is_null($item)) {
@@ -114,6 +156,10 @@ class ResourceController extends Controller
      */
     public function edit(Request $request)
     {
+        $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'edit');
+        }
         return $this->show($request);
     }
 
@@ -126,8 +172,11 @@ class ResourceController extends Controller
      */
     public function update(ResourceUpdateRequest $request)
     {
-        $id = $request->route('id');
         $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'update');
+        }
+        $id = $request->route('id');
         $repository = $resource->repository();
         $item = $repository->findById($id);
         if (is_null($item)) {
@@ -146,6 +195,10 @@ class ResourceController extends Controller
      */
     public function delete(Request $request)
     {
+        $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'delete');
+        }
         return $this->show($request);
     }
 
@@ -157,8 +210,11 @@ class ResourceController extends Controller
      */
     public function destroy(Request $request)
     {
-        $id = $request->route('id');
         $resource = $this->getResourceFromRequest($request);
+        if ($this->resourceHasController($resource)) {
+            return $this->dispatchRequestToResourceController($resource, $request, 'destroy');
+        }
+        $id = $request->route('id');
         $repository = $resource->repository();
         $item = $repository->findById($id);
         if (is_null($item)) {

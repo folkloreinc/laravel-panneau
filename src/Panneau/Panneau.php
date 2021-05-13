@@ -17,6 +17,8 @@ class Panneau implements PanneauContract
 
     protected $resources = [];
 
+    protected $settings = null;
+
     protected $resolvedResources = null;
 
     protected $booted = false;
@@ -102,6 +104,15 @@ class Panneau implements PanneauContract
     public function router(): RouterContract
     {
         return $this->app['panneau.router'];
+    }
+
+    public function settings(array $settings = null)
+    {
+        if (!is_null($settings)) {
+            $this->settings = array_merge($this->settings ?? [], $settings);
+            return $this;
+        }
+        return $this->settings;
     }
 
     /**

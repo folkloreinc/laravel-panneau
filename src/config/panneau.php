@@ -1,14 +1,12 @@
 <?php
 
 return [
+    'resources' => [],
 
-    'locales' => ['en'],
-
-    'resources' => [
-
+    'intl' => [
+        'locales' => ['en'],
+        'translations' => ['panneau::resources'],
     ],
-
-    'translations' => ['panneau::resources'],
 
     'routes' => [
         // Path to the routes file that will be automatically loaded. Set to null
@@ -17,8 +15,6 @@ return [
 
         'prefix' => 'panneau',
 
-        'middleware' => [
-            \Panneau\Http\Middleware\DispatchHandlingRequestEvent::class,
-        ],
-    ]
+        'middleware' => [\Panneau\Http\Middleware\DispatchHandlingRequestEvent::class],
+    ],
 ];

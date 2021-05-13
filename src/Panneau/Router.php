@@ -30,9 +30,9 @@ class Router implements RouterContract
     {
         $resourcesIds = $this->panneau
             ->resources()
-            ->filter(function ($resource) {
-                return is_null($resource->controller());
-            })
+            // ->filter(function ($resource) {
+            //     return is_null($resource->controller());
+            // })
             ->map(function ($resource) {
                 return $resource->id();
             });
@@ -61,23 +61,23 @@ class Router implements RouterContract
         $middleware = $options['middleware'] ?? [];
         $controller = $options['controller'] ?? '\\Panneau\Http\Controllers\ResourceController';
 
-        $resourcesWithController = $this->panneau->resources()->filter(function ($resource) {
-            return !is_null($resource->controller());
-        });
-
-        foreach ($resourcesWithController as $resource) {
-            $this->registrar
-                ->resource($resource->id(), '\\' . $resource->controller())
-                ->parameters([
-                    $resource->id() => 'id',
-                ])
-                ->middleware($middleware)
-                ->names($this->namePrefix . 'resources.' . $resource->id());
-            $this->registrar
-                ->get($resource->id() . '/{id}/delete', '\\' . $resource->controller() . '@delete')
-                ->middleware($middleware)
-                ->name($this->namePrefix . 'resources.' . $resource->id() . '.delete');
-        }
+//         $resourcesWithController = $this->panneau->resources()->filter(function ($resource) {
+//             return !is_null($resource->controller());
+//         });
+//
+//         foreach ($resourcesWithController as $resource) {
+//             $this->registrar
+//                 ->resource($resource->id(), '\\' . $resource->controller())
+//                 ->parameters([
+//                     $resource->id() => 'id',
+//                 ])
+//                 ->middleware($middleware)
+//                 ->names($this->namePrefix . 'resources.' . $resource->id());
+//             $this->registrar
+//                 ->get($resource->id() . '/{id}/delete', '\\' . $resource->controller() . '@delete')
+//                 ->middleware($middleware)
+//                 ->name($this->namePrefix . 'resources.' . $resource->id() . '.delete');
+//         }
 
         $this->registrar
             ->resource('{resource}', $controller)

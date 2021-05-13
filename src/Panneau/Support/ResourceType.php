@@ -57,7 +57,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
         return static::$canCreate;
     }
 
-    public function repository(): ?Repository
+    public function makeRepository(): ?Repository
     {
         if (!isset($this->repositoryInstance) && isset(static::$repository)) {
             $this->repositoryInstance = $this->container->make(static::$repository);
@@ -65,13 +65,13 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
         return $this->repositoryInstance;
     }
 
-    public function newJsonResource(ResourceItem $item): ?JsonSerializable
+    public function makeJsonResource(ResourceItem $item): ?JsonSerializable
     {
         $resourceClass = static::$jsonResource;
         return !is_null($resourceClass) ? new $resourceClass($item) : null;
     }
 
-    public function newJsonCollection($resources): ?JsonSerializable
+    public function makeJsonCollection($resources): ?JsonSerializable
     {
         if (isset(static::$jsonCollection)) {
             $collectionClass = static::$jsonCollection;

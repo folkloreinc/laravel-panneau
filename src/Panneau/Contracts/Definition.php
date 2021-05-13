@@ -9,11 +9,11 @@ interface Definition extends JsonSerializable
 {
     public function name(): string;
 
-    public function locale(): string;
-
-    public function messages(): Collection;
+    public function routes(): Collection;
 
     public function resources(): Collection;
 
-    public function routes(): Collection;
+    public function intl(): PanneauIntl;
+
+    public function settings(): ?array;
 }

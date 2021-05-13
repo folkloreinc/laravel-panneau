@@ -33,7 +33,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     protected $attributes = [];
 
-    protected $meta = [
+    protected $settings = [
         'hidden_in_index' => false,
         'order_in_index' => null,
         'hidden_in_form' => false,
@@ -86,9 +86,9 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this->attributes;
     }
 
-    public function meta(): ?array
+    public function settings(): ?array
     {
-        return $this->meta;
+        return $this->settings;
     }
 
     public function components(): ?array
@@ -212,43 +212,43 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     public function showInIndex()
     {
-        $this->meta['hidden_in_index'] = false;
+        $this->settings['hidden_in_index'] = false;
         return $this;
     }
 
     public function hideInIndex()
     {
-        $this->meta['hidden_in_index'] = true;
+        $this->settings['hidden_in_index'] = true;
         return $this;
     }
 
     public function orderInIndex($order)
     {
-        $this->meta['order_in_index'] = $order;
+        $this->settings['order_in_index'] = $order;
         return $this;
     }
 
     public function showInForm()
     {
-        $this->meta['hidden_in_form'] = false;
+        $this->settings['hidden_in_form'] = false;
         return $this;
     }
 
     public function hideInForm()
     {
-        $this->meta['hidden_in_form'] = true;
+        $this->settings['hidden_in_form'] = true;
         return $this;
     }
 
     public function createOnly()
     {
-        $this->meta['create_only'] = true;
+        $this->settings['create_only'] = true;
         return $this;
     }
 
     public function updateOnly()
     {
-        $this->meta['update_only'] = true;
+        $this->settings['update_only'] = true;
         return $this;
     }
 
@@ -264,9 +264,9 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this;
     }
 
-    public function withMeta($meta)
+    public function withSettings($settings)
     {
-        $this->meta = array_merge($this->meta, $meta);
+        $this->settings = array_merge($this->settings, $settings);
         return $this;
     }
 
@@ -281,7 +281,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             'component' => $this->component(),
             'required' => $this->required(),
             'default_value' => $this->defaultValue(),
-            'meta' => $this->meta,
+            'settings' => $this->settings,
         ];
 
         $components = $this->components();

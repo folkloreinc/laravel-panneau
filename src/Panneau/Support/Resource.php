@@ -2,13 +2,15 @@
 
 namespace Panneau\Support;
 
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Translation\Translator;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Panneau\Contracts\Resource as ResourceContract;
+use Panneau\Contracts\Intl as IntlContract;
 use Panneau\Contracts\Repository;
 use Panneau\Contracts\ResourceItem;
 use Panneau\Contracts\HasResourceType;
@@ -24,26 +26,29 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public static $jsonCollection;
 
-    public static $showsInNavbar = true;
-
-    public static $canCreate = true;
-
-    public static $indexIsPaginated = true;
-
     public static $types;
 
-    protected $container;
+    public static $components;
 
-    protected $translator;
+    public static $routes;
+
+    public static $settings = [];
+
+    private static $defaultSettings = [
+        'hideInNavbar' => false,
+        'indexIsPaginated' => true,
+        'canCreate' => true,
+    ];
+
+    protected $container;
 
     protected $repositoryInstance;
 
     protected $typesInstances;
 
-    public function __construct(Container $container, Translator $translator)
+    public function __construct(Container $container)
     {
         $this->container = $container;
-        $this->translator = $translator;
     }
 
     public function id(): string
@@ -56,14 +61,39 @@ abstract class Resource implements ResourceContract, Arrayable
         return preg_replace('/Resource$/', '', class_basename(get_class($this)));
     }
 
-    abstract public function fields(): array;
-
     public function types(): ?array
     {
         return static::$types;
     }
 
-    public function repository(): Repository
+    abstract public function fields(): array;
+
+    public function components(): ?array
+    {
+        return static::$components;
+    }
+
+    public function intl(): IntlContract
+    {
+        return new ResourceIntl($this, $this->container->make(Translator::class));
+    }
+
+    public function settings(): ?array
+    {
+        return array_merge(self::$defaultSettings, static::$settings);
+    }
+
+    public function routes(): ?array
+    {
+        return static::$routes;
+    }
+
+    public function messages(): ?array
+    {
+        return null;
+    }
+
+    public function makeRepository(): Repository
     {
         if (!isset($this->repositoryInstance)) {
             $this->repositoryInstance = $this->container->make(static::$repository);
@@ -71,97 +101,29 @@ abstract class Resource implements ResourceContract, Arrayable
         return $this->repositoryInstance;
     }
 
-    public function controller(): ?string
+    public function makeController(): ?object
     {
-        return static::$controller;
+        return isset(static::$controller) ? $this->container->make(static::$controller) : null;
     }
 
-    public function components(): ?array
+    public function makeJsonResource(ResourceItem $item): JsonSerializable
     {
-        return null;
-    }
-
-    public function attributes(): ?array
-    {
-        return null;
-    }
-
-    public function meta(): ?array
-    {
-        return $this->meta;
-    }
-
-    public function showsInNavbar(): bool
-    {
-        return static::$showsInNavbar;
-    }
-
-    public function canCreate(): bool
-    {
-        return static::$canCreate;
-    }
-
-    public function indexIsPaginated(): bool
-    {
-        return static::$indexIsPaginated;
-    }
-
-    public function messages(): array
-    {
-        $id = $this->id();
-        $singularName = Str::lower(Str::singular($this->name()));
-        $pluralName = Str::lower(Str::plural($this->name()));
-        $plural = $this->translator->has('panneau::resources.' . $id . '_plural')
-            ? $this->translator->get('panneau::resources.' . $id . '_plural')
-            : $pluralName;
-        $singular = $this->translator->has('panneau::resources.' . $id . '_singular')
-            ? $this->translator->get('panneau::resources.' . $id . '_singular')
-            : $singularName;
-        return [
-            'plural' => $plural,
-            'Plural' => $this->translator->has('panneau::resources.' . $id . '_Plural')
-                ? $this->translator->get('panneau::resources.' . $id . '_Plural')
-                : Str::title($plural),
-            'singular' => $singularName,
-            'Singular' => $this->translator->has('panneau::resources.' . $id . '_Singular')
-                ? $this->translator->get('panneau::resources.' . $id . '_Singular')
-                : Str::title($singularName),
-            'a_singular' => $this->translator->has('panneau::resources.' . $id . '_a_singular')
-                ? $this->translator->get('panneau::resources.' . $id . '_a_singular')
-                : $this->translator->get('panneau::resources.a_singular', [
-                    'resource' => $singular,
-                ]),
-            'A_singular' => $this->translator->has('panneau::resources.' . $id . '_A_singular')
-                ? $this->translator->get('panneau::resources.' . $id . '_A_singular')
-                : $this->translator->get('panneau::resources.A_singular', [
-                    'resource' => $singular,
-                ]),
-            'the_singular' => $this->translator->has('panneau::resources.' . $id . '_the_singular')
-                ? $this->translator->get('panneau::resources.' . $id . '_the_singular')
-                : $this->translator->get('panneau::resources.the_singular', [
-                    'resource' => $singular,
-                ]),
-            'The_singular' => $this->translator->has('panneau::resources.' . $id . '_The_singular')
-                ? $this->translator->get('panneau::resources.' . $id . '_The_singular')
-                : $this->translator->get('panneau::resources.The_singular', [
-                    'resource' => $singular,
-                ]),
-        ];
-    }
-
-    public function newJsonResource(ResourceItem $item): JsonSerializable
-    {
-        if ($this->hasTypes() && $item instanceof HasResourceType) {
+        $types = $this->types();
+        if (isset($types) && $item instanceof HasResourceType) {
             $typeId = $item->resourceType();
-            $resourceType = collect($this->types())->first(function ($type) use ($typeId) {
+            $resourceType = collect($types)->first(function ($type) use ($typeId) {
                 return $type->id() === $typeId;
             });
+            $resource = isset($resourceType) ? $resourceType->makeJsonResource($item) : null;
+            if (isset($resource)) {
+                return $resource;
+            }
         }
         $resourceClass = static::$jsonResource;
         return new $resourceClass($item);
     }
 
-    public function newJsonCollection($resources): JsonSerializable
+    public function makeJsonCollection($resources): JsonSerializable
     {
         if (isset(static::$jsonCollection)) {
             $collectionClass = static::$jsonCollection;
@@ -169,11 +131,6 @@ abstract class Resource implements ResourceContract, Arrayable
         }
         $resourceClass = static::$jsonResource;
         return $resourceClass::collection($resources);
-    }
-
-    protected function hasTypes(): bool
-    {
-        return $this->types() !== null;
     }
 
     protected function getTypesInstances(): Collection
@@ -200,25 +157,30 @@ abstract class Resource implements ResourceContract, Arrayable
             'id' => $this->id(),
             'name' => $this->name(),
             'fields' => collect($this->fields())->toArray(),
-            'messages' => $this->messages(),
-            'meta' => [
-                'has_routes' => !is_null($this->controller()),
-                'index_is_paginated' => $this->indexIsPaginated(),
-                'shows_in_navbar' => $this->showsInNavbar(),
-                'can_create' => $this->canCreate(),
-            ]
         ];
-        $components = $this->components();
-        if (isset($components)) {
-            $data['components'] = $components;
-        }
+
         $types = $this->types();
         if (isset($types)) {
             $data['types'] = $this->getTypesInstances($types)->toArray();
         }
 
-        $attributes = $this->attributes();
-        return !is_null($attributes) ? array_merge($data, $attributes) : $data;
+        $intl = $this->intl();
+        $intl = $intl instanceof Arrayable ? $intl->toArray() : $intl;
+        if (isset($intl)) {
+            $data['intl'] = $intl;
+        }
+
+        $settings = $this->settings();
+        if (isset($settings)) {
+            $data['settings'] = $settings;
+        }
+
+        $components = $this->components();
+        if (isset($components)) {
+            $data['components'] = $components;
+        }
+
+        return $data;
     }
 
     public function jsonSerialize()

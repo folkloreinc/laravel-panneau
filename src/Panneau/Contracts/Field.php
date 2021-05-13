@@ -21,17 +21,9 @@ interface Field extends JsonSerializable
 
     public function properties(): ?array;
 
-    public function attributes(): ?array;
-
-    public function meta(): ?array;
-
     public function components(): ?array;
 
-    public function sibblingFields(): ?array;
-
-    public function exceptTypes(): ?array;
-
-    public function onlyTypes(): ?array;
+    public function settings(): ?array;
 
     public function getRulesFromRequest(Request $request): array;
 }

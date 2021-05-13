@@ -10,23 +10,23 @@ interface Resource extends JsonSerializable
 
     public function name(): string;
 
-    public function fields(): array;
-
     public function types(): ?array;
 
-    public function repository(): Repository;
-
-    public function controller(): ?string;
+    public function fields(): array;
 
     public function components(): ?array;
 
-    public function messages(): array;
+    public function intl(): ?Intl;
 
-    public function attributes(): ?array;
+    public function settings(): ?array;
 
-    public function meta(): ?array;
+    public function routes(): ?array;
 
-    public function newJsonResource(ResourceItem $resource): JsonSerializable;
+    public function makeController(): ?object;
 
-    public function newJsonCollection($resources): JsonSerializable;
+    public function makeRepository(): Repository;
+
+    public function makeJsonResource(ResourceItem $item): JsonSerializable;
+
+    public function makeJsonCollection($items): JsonSerializable;
 }

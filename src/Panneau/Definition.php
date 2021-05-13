@@ -7,6 +7,7 @@ use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
 use Panneau\Contracts\Definition as DefinitionContract;
+use Panneau\Contracts\PanneauIntl as PanneauIntlContract;
 use Panneau\Contracts\Panneau as PanneauContract;
 
 class Definition implements DefinitionContract, Arrayable, Jsonable
@@ -25,37 +26,6 @@ class Definition implements DefinitionContract, Arrayable, Jsonable
         return $this->app['config']->get('panneau.name', 'Panneau');
     }
 
-    public function locale(): string
-    {
-        return $this->app['config']->get('panneau.locale', $this->app->getLocale());
-    }
-
-    public function messages(): Collection
-    {
-        $defaultNamespace = 'panneau';
-        $locale = $this->locale();
-        $namespaces = $this->app['config']->get('panneau.translations', [$defaultNamespace]);
-        $messages = [];
-
-        foreach ($namespaces as $namespace) {
-            $texts = $this->app['translator']->get($namespace, [], $locale);
-            if (is_null($texts)) {
-                continue;
-            }
-            $texts = is_string($texts) ? [$texts] : Arr::dot($texts);
-            foreach ($texts as $key => $value) {
-                if (sizeof($texts) === 1 && $key === 0) {
-                    $key = $namespace;
-                } elseif ($namespace !== $defaultNamespace) {
-                    $key = preg_replace('/^panneau\:\:/', '', $namespace) . '.' . $key;
-                }
-                $messages[$key] = preg_replace('/\:([a-z][a-z0-9\_\-]+)/', '{$1}', $value);
-            }
-        }
-
-        return collect($messages);
-    }
-
     public function routes(): Collection
     {
         return $this->panneau->router()->getRoutes();
@@ -66,17 +36,33 @@ class Definition implements DefinitionContract, Arrayable, Jsonable
         return $this->panneau->resources();
     }
 
+    public function intl(): PanneauIntlContract
+    {
+        return new PanneauIntl($this, $this->app);
+    }
+
+    public function settings(): ?array
+    {
+        return $this->panneau->settings();
+    }
+
     public function toArray()
     {
-        return [
+        $intl = $this->intl();
+
+        $data = [
             'name' => $this->name(),
             'routes' => $this->panneau->router()->toArray(),
             'resources' => $this->resources()->toArray(),
-            'localization' => [
-                'locale' => $this->locale(),
-                'messages' => $this->messages()->toArray(),
-            ],
+            'intl' => $intl instanceof Arrayable ? $intl->toArray() : $intl,
         ];
+
+        $settings = $this->settings();
+        if (isset($settings)) {
+            $data['settings'] = $settings;
+        }
+
+        return $data;
     }
 
     public function jsonSerialize()
