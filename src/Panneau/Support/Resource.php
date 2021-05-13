@@ -93,6 +93,11 @@ abstract class Resource implements ResourceContract, Arrayable
         return null;
     }
 
+    public function indexIsPaginated(): bool
+    {
+        return data_get($this->settings(), 'indexIsPaginated', false);
+    }
+
     public function makeRepository(): Repository
     {
         if (!isset($this->repositoryInstance)) {

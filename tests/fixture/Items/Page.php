@@ -11,6 +11,11 @@ class Page extends Base implements PageContract
         return data_get($this->data, 'id', $this->faker->uuid());
     }
 
+    public function url(): string
+    {
+        return data_get($this->data, 'url', $this->faker->url());
+    }
+
     public function title(): string
     {
         return data_get($this->data, 'title', $this->faker->sentence());

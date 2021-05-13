@@ -97,8 +97,8 @@ abstract class Base implements RepositoryContract
 
     protected function generateItems(int $count)
     {
-        return collect(range(0, $count))->map(function () {
-            return $this->createItem($this->generateItemData());
+        return collect(range(0, $count))->map(function ($index) {
+            return $this->createItem($this->generateItemData($index));
         });
     }
 

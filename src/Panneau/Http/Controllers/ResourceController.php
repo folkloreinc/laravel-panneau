@@ -13,13 +13,10 @@ class ResourceController extends Controller
 {
     protected $defaultPageCount = 10;
 
-    protected $container;
-
     protected $dispatcher;
 
-    public function __construct(Container $container, ControllerDispatcher $dispatcher)
+    public function __construct(ControllerDispatcher $dispatcher)
     {
-        $this->container = $container;
         $this->dispatcher = $dispatcher;
     }
 
@@ -58,7 +55,7 @@ class ResourceController extends Controller
 
     protected function resourceHasController(Resource $resource)
     {
-        return !is_null($resource->controller());
+        return !is_null($resource->makeController());
     }
 
     protected function dispatchRequestToResourceController(
@@ -68,7 +65,7 @@ class ResourceController extends Controller
     ) {
         return $this->dispatcher->dispatch(
             $request->route(),
-            $this->container->make($resource->controller()),
+            $resource->makeController(),
             $method
         );
     }
@@ -84,13 +81,13 @@ class ResourceController extends Controller
         if ($this->resourceHasController($resource)) {
             return $this->dispatchRequestToResourceController($resource, $request, 'index');
         }
-        $repository = $resource->repository();
+        $repository = $resource->makeRepository();
         if ($request->wantsJson()) {
             $query = $this->getIndexQueryFromRequest($request, $resource);
             $page = $this->getPageFromRequest($request, $resource);
             $count = $this->getPageCountFromRequest($request, $resource);
             $items = $repository->get($query, $page, $count);
-            return $resource->newJsonCollection($items);
+            return $resource->makeJsonCollection($items);
         }
         return view('panneau::app');
     }
@@ -121,10 +118,10 @@ class ResourceController extends Controller
         if ($this->resourceHasController($resource)) {
             return $this->dispatchRequestToResourceController($resource, $request, 'store');
         }
-        $repository = $resource->repository();
+        $repository = $resource->makeRepository();
         $data = $this->getStoreDataFromRequest($request);
         $item = $repository->create($data);
-        return $resource->newJsonResource($item);
+        return $resource->makeJsonResource($item);
     }
 
     /**
@@ -140,12 +137,12 @@ class ResourceController extends Controller
             return $this->dispatchRequestToResourceController($resource, $request, 'show');
         }
         $id = $request->route('id');
-        $repository = $resource->repository();
+        $repository = $resource->makeRepository();
         $item = $repository->findById($id);
         if (is_null($item)) {
             return abort(404);
         }
-        return $request->wantsJson() ? $resource->newJsonResource($item) : view('panneau::app');
+        return $request->wantsJson() ? $resource->makeJsonResource($item) : view('panneau::app');
     }
 
     /**
@@ -177,14 +174,14 @@ class ResourceController extends Controller
             return $this->dispatchRequestToResourceController($resource, $request, 'update');
         }
         $id = $request->route('id');
-        $repository = $resource->repository();
+        $repository = $resource->makeRepository();
         $item = $repository->findById($id);
         if (is_null($item)) {
             return abort(404);
         }
         $data = $this->getUpdateDataFromRequest($request);
         $item = $repository->update($item->id(), $data);
-        return $resource->newJsonResource($item);
+        return $resource->makeJsonResource($item);
     }
 
     /**
@@ -215,7 +212,7 @@ class ResourceController extends Controller
             return $this->dispatchRequestToResourceController($resource, $request, 'destroy');
         }
         $id = $request->route('id');
-        $repository = $resource->repository();
+        $repository = $resource->makeRepository();
         $item = $repository->findById($id);
         if (is_null($item)) {
             return abort(404);
