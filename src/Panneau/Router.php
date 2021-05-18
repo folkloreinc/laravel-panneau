@@ -132,6 +132,18 @@ class Router implements RouterContract
             : null;
     }
 
+    public function routeName(string $name): string
+    {
+        return $this->namePrefix . $name;
+    }
+
+    public function routeIsFromPanneau(Route $route): bool
+    {
+        $name = $route->getName();
+        return !empty($name) &&
+            preg_match('/^' . preg_quote($this->namePrefix, '/') . '/', $name) === 1;
+    }
+
     public function getRoutes()
     {
         return collect($this->registrar->getRoutes()->getRoutesByName())->filter(function ($route) {

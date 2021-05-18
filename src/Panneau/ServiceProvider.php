@@ -115,20 +115,13 @@ class ServiceProvider extends BaseServiceProvider
     {
         $app = $this->app;
 
-        $routeIsPanneau = function ($route) {
-            if (is_null($route)) {
-                return false;
-            }
-            $name = $route->getName();
-            return !empty($name) && preg_match('/^panneau\./', $name) === 1;
-        };
-
-        Route::macro('isPanneau', function () use ($routeIsPanneau) {
-            return $routeIsPanneau($this);
+        Route::macro('isPanneau', function () use ($app) {
+            return $app['panneau.router']->routeIsFromPanneau($this);
         });
 
-        Request::macro('isPanneau', function () use ($routeIsPanneau) {
-            return $routeIsPanneau($this->route());
+        Request::macro('isPanneau', function () use ($app) {
+            $route = $this->route();
+            return !is_null($route) && $app['panneau.router']->routeIsFromPanneau($route);
         });
 
         Request::macro('isInPanneau', function () {
@@ -138,21 +131,27 @@ class ServiceProvider extends BaseServiceProvider
                 $user->can('view', \Panneau\Panneau::class);
         });
 
-        UrlGenerator::macro('resourceRoute', function ($resourceId, $route, ...$params) use ($app) {
-            $resource = $app['panneau']->resource($resourceId);
-            $controller = $resource->controller();
-            $routePrefix =
-                'panneau.resources' . (!is_null($controller) ? '.' . $resource->id() : '');
-            return $this->route($routePrefix . '.' . $route, ...$params);
+        UrlGenerator::macro('resourceRoute', function (
+            $resourceId,
+            $route,
+            $params = [],
+            ...$args
+        ) use ($app) {
+            return route(
+                $app['panneau.router']->routeName('resources.' . $route),
+                $params + ['resource' => $resourceId],
+                ...$args
+            );
         });
 
-        $this->app['panneau']->serving(function () {
-            Route::macro('resource', function () {
-                return app('panneau.router')->resourceFromRoute($this);
+        $this->app['panneau']->serving(function () use ($app) {
+            Route::macro('resource', function () use ($app) {
+                return $app['panneau.router']->resourceFromRoute($this);
             });
 
-            Request::macro('resource', function () {
-                return $this->route()->resource();
+            Request::macro('resource', function () use ($app) {
+                $route = $this->route();
+                return !is_null($route) ? $app['panneau.router']->resourceFromRoute($route) : null;
             });
         });
     }

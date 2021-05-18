@@ -12,4 +12,8 @@ interface Router extends Arrayable
     public function resources($options = []);
 
     public function resourceFromRoute(Route $route): ?Resource;
+
+    public function routeName(string $name): string;
+
+    public function routeIsFromPanneau(Route $route): bool;
 }
