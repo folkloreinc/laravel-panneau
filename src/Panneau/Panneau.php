@@ -98,6 +98,7 @@ class Panneau implements PanneauContract
     {
         $this->router()->group(function () use ($options) {
             $this->router()->resources($options['resources'] ?? []);
+            $this->router()->auth($options['auth'] ?? []);
         });
     }
 

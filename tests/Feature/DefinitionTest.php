@@ -76,6 +76,8 @@ class DefinitionTest extends TestCase
             'panneau.resources.update',
             'panneau.resources.destroy',
             'panneau.resources.delete',
+            'panneau.auth.login',
+            'panneau.auth.logout'
         ];
         foreach ($routesToTest as $routeName) {
             $this->assertTrue(

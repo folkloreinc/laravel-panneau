@@ -70,6 +70,37 @@ class Router implements RouterContract
         });
     }
 
+    public function auth($options = [])
+    {
+        // Authentication...
+        $this->registrar
+            ->get('/login', [\Panneau\Http\Controllers\AuthController::class, 'view'])
+            ->middleware(['guest:' . config('fortify.guard')])
+            ->name($this->namePrefix . 'auth.login');
+
+        $limiter = config('fortify.limiters.login');
+        $twoFactorLimiter = config('fortify.limiters.two-factor');
+
+        $this->registrar
+            ->post('/login', [
+                \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
+                'store',
+            ])
+            ->middleware(
+                array_filter([
+                    'guest:' . config('fortify.guard'),
+                    $limiter ? 'throttle:' . $limiter : null,
+                ])
+            );
+
+        $this->registrar
+            ->post('/logout', [
+                \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
+                'destroy',
+            ])
+            ->name($this->namePrefix . 'auth.logout');
+    }
+
     protected function registerResourceRoutes($id, $controller, $withNames = true)
     {
         $resourceRoutes = $this->registrar->resource($id, '\\' . $controller)->parameters([
