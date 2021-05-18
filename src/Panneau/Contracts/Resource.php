@@ -20,11 +20,9 @@ interface Resource extends JsonSerializable
 
     public function settings(): ?array;
 
-    public function routes(): ?array;
-
     public function indexIsPaginated(): bool;
 
-    public function makeController(): ?object;
+    public function controller(): ?string;
 
     public function makeRepository(): Repository;
 

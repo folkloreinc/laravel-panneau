@@ -30,8 +30,6 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public static $components;
 
-    public static $routes;
-
     public static $settings = [];
 
     private static $defaultSettings = [
@@ -83,11 +81,6 @@ abstract class Resource implements ResourceContract, Arrayable
         return array_merge(self::$defaultSettings, static::$settings);
     }
 
-    public function routes(): ?array
-    {
-        return static::$routes;
-    }
-
     public function messages(): ?array
     {
         return null;
@@ -106,9 +99,9 @@ abstract class Resource implements ResourceContract, Arrayable
         return $this->repositoryInstance;
     }
 
-    public function makeController(): ?object
+    public function controller(): ?string
     {
-        return isset(static::$controller) ? $this->container->make(static::$controller) : null;
+        return static::$controller;
     }
 
     public function makeJsonResource(ResourceItem $item): JsonSerializable

@@ -28,14 +28,9 @@ class Router implements RouterContract
 
     public function boot()
     {
-        $resourcesIds = $this->panneau
-            ->resources()
-            // ->filter(function ($resource) {
-            //     return is_null($resource->controller());
-            // })
-            ->map(function ($resource) {
-                return $resource->id();
-            });
+        $resourcesIds = $this->panneau->resources()->map(function ($resource) {
+            return $resource->id();
+        });
         if (!$resourcesIds->isEmpty()) {
             $this->registrar->pattern('resource', '(' . $resourcesIds->join('|') . ')');
         }
@@ -61,36 +56,33 @@ class Router implements RouterContract
         $middleware = $options['middleware'] ?? [];
         $controller = $options['controller'] ?? '\\Panneau\Http\Controllers\ResourceController';
 
-//         $resourcesWithController = $this->panneau->resources()->filter(function ($resource) {
-//             return !is_null($resource->controller());
-//         });
-//
-//         foreach ($resourcesWithController as $resource) {
-//             $this->registrar
-//                 ->resource($resource->id(), '\\' . $resource->controller())
-//                 ->parameters([
-//                     $resource->id() => 'id',
-//                 ])
-//                 ->middleware($middleware)
-//                 ->names($this->namePrefix . 'resources.' . $resource->id());
-//             $this->registrar
-//                 ->get($resource->id() . '/{id}/delete', '\\' . $resource->controller() . '@delete')
-//                 ->middleware($middleware)
-//                 ->name($this->namePrefix . 'resources.' . $resource->id() . '.delete');
-//         }
+        $this->registrar->middleware($middleware)->group(function () use ($controller) {
+            $this->panneau
+                ->resources()
+                ->filter(function ($resource) {
+                    return !is_null($resource->controller());
+                })
+                ->each(function ($resource) {
+                    $this->registerResourceRoutes($resource->id(), $resource->controller(), false);
+                });
 
-        $this->registrar
-            ->resource('{resource}', $controller)
-            ->parameters([
-                '{resource}' => 'id',
-            ])
-            ->middleware($middleware)
-            ->names($this->namePrefix . 'resources');
+            $this->registerResourceRoutes('{resource}', $controller);
+        });
+    }
 
-        $this->registrar
-            ->get('{resource}/{id}/delete', $controller . '@delete')
-            ->middleware($middleware)
-            ->name($this->namePrefix . 'resources.delete');
+    protected function registerResourceRoutes($id, $controller, $withNames = true)
+    {
+        $resourceRoutes = $this->registrar->resource($id, '\\' . $controller)->parameters([
+            $id => 'id',
+        ]);
+        if ($withNames) {
+            $resourceRoutes->names($this->namePrefix . 'resources');
+        }
+
+        $route = $this->registrar->get($id . '/{id}/delete', '\\' . $controller . '@delete');
+        if ($withNames) {
+            $route->name($this->namePrefix . 'resources.delete');
+        }
     }
 
     public function resourceFromRoute(Route $route): ResourceContract
