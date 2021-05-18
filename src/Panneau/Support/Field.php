@@ -34,11 +34,11 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     protected $attributes = [];
 
     protected $settings = [
-        'hidden_in_index' => false,
-        'order_in_index' => null,
-        'hidden_in_form' => false,
-        'create_only' => false,
-        'update_only' => false,
+        'hiddenInIndex' => false,
+        'orderInIndex' => null,
+        'hiddenInForm' => false,
+        'createOnly' => false,
+        'updateOnly' => false,
     ];
 
     public static function make($name = null, $label = null)
@@ -212,43 +212,43 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     public function showInIndex()
     {
-        $this->settings['hidden_in_index'] = false;
+        $this->settings['hiddenInIndex'] = false;
         return $this;
     }
 
     public function hideInIndex()
     {
-        $this->settings['hidden_in_index'] = true;
+        $this->settings['hiddenInIndex'] = true;
         return $this;
     }
 
     public function orderInIndex($order)
     {
-        $this->settings['order_in_index'] = $order;
+        $this->settings['orderInIndex'] = $order;
         return $this;
     }
 
     public function showInForm()
     {
-        $this->settings['hidden_in_form'] = false;
+        $this->settings['hiddenInForm'] = false;
         return $this;
     }
 
     public function hideInForm()
     {
-        $this->settings['hidden_in_form'] = true;
+        $this->settings['hiddenInForm'] = true;
         return $this;
     }
 
     public function createOnly()
     {
-        $this->settings['create_only'] = true;
+        $this->settings['createOnly'] = true;
         return $this;
     }
 
     public function updateOnly()
     {
-        $this->settings['update_only'] = true;
+        $this->settings['updateOnly'] = true;
         return $this;
     }
 
@@ -280,7 +280,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             'type' => $type,
             'component' => $this->component(),
             'required' => $this->required(),
-            'default_value' => $this->defaultValue(),
+            'defaultValue' => $this->defaultValue(),
             'settings' => $this->settings,
         ];
 
@@ -291,7 +291,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
         $sibblingFields = $this->sibblingFields();
         if (!is_null($sibblingFields)) {
-            $data['sibbling_fields'] = collect($sibblingFields)->toArray();
+            $data['sibblingFields'] = collect($sibblingFields)->toArray();
         }
 
         if ($type === 'object') {
