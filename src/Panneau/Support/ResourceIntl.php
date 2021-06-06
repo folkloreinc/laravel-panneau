@@ -80,7 +80,9 @@ class ResourceIntl implements IntlContract, Arrayable
     public function messages(): ?array
     {
         $namespace = $this->resource->translationsNamespace();
-        return !is_null($namespace) && $this->translator->has($namespace)
+        return !is_null($namespace) &&
+            $this->translator->has($namespace) &&
+            is_array($this->translator->get($namespace))
             ? Arr::except($this->translator->get($namespace), ['values'])
             : null;
     }
