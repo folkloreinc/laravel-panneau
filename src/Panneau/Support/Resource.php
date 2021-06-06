@@ -81,9 +81,9 @@ abstract class Resource implements ResourceContract, Arrayable
         return array_merge(self::$defaultSettings, static::$settings);
     }
 
-    public function messages(): ?array
+    public function translationsNamespace(): ?string
     {
-        return null;
+        return 'panneau::resources.'.$this->id();
     }
 
     public function indexIsPaginated(): bool

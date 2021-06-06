@@ -24,6 +24,8 @@ interface Resource extends JsonSerializable
 
     public function controller(): ?string;
 
+    public function translationsNamespace(): ?string;
+
     public function makeRepository(): Repository;
 
     public function makeJsonResource(ResourceItem $item): JsonSerializable;
