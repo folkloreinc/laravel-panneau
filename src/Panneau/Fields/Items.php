@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Panneau\Fields;
+namespace Panneau\Fields;
 
 use Panneau\Support\Field;
 
