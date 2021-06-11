@@ -101,18 +101,22 @@ class Router implements RouterContract
             ->name($this->namePrefix . 'auth.logout');
     }
 
-    protected function registerResourceRoutes($id, $controller, $withNames = true)
+    protected function registerResourceRoutes($id, $controller, $defaultRoutes = true)
     {
         $resourceRoutes = $this->registrar->resource($id, '\\' . $controller)->parameters([
             $id => 'id',
         ]);
-        if ($withNames) {
+        if ($defaultRoutes) {
             $resourceRoutes->names($this->namePrefix . 'resources');
+        } else {
+            $resourceRoutes->names($this->namePrefix . 'resources.' . $id);
         }
 
         $route = $this->registrar->get($id . '/{id}/delete', '\\' . $controller . '@delete');
-        if ($withNames) {
+        if ($defaultRoutes) {
             $route->name($this->namePrefix . 'resources.delete');
+        } else {
+            $resourceRoutes->names($this->namePrefix . 'resources.' . $id . '.delete');
         }
     }
 
