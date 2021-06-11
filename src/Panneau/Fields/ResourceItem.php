@@ -4,6 +4,7 @@ namespace Panneau\Fields;
 
 use Panneau\Support\Field;
 use Panneau\Contracts\Resource;
+use Panneau\Contracts\Panneau;
 
 abstract class ResourceItem extends Item
 {
@@ -11,7 +12,7 @@ abstract class ResourceItem extends Item
 
     public function makeResource(): Resource
     {
-        return panneau()->resource($this->resource);
+        return app(Panneau::class)->resource($this->resource);
     }
 
     public function fields(): array
