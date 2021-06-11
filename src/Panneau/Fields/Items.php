@@ -11,7 +11,7 @@ class Items extends Field
         return 'array';
     }
 
-    public function itemType(): ?string
+    public function itemField(): ?string
     {
         return null;
     }
@@ -23,17 +23,18 @@ class Items extends Field
 
     public function attributes(): ?array
     {
-        $itemType = $this->itemType();
-        $fields = !is_null($itemType) ? resolve($itemType)->fields() : null;
+        $itemField = $this->itemField();
+        $itemField = !is_null($itemField) ? resolve($itemField) : null;
+        $fields = !is_null($itemField) && $itemField instanceof Item ? $itemField->fields() : null;
         $itemResource =
-            !is_null($itemType) && $itemType instanceof ResourceItem
-                ? $itemType->makeResource()
+            !is_null($itemField) && $itemField instanceof ResourceItem
+                ? $itemField->makeResource()
                 : null;
         $resourceTypes =
             !is_null($itemResource) && $itemResource->hasTypes() ? $itemResource->getTypes() : null;
 
         $attributes = [
-            'without_form_group' => true,
+            'withoutFormGroup' => true,
         ];
         if (!is_null($fields)) {
             $attributes['itemFields'] = collect($fields)->toArray();
