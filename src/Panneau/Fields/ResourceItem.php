@@ -12,7 +12,7 @@ abstract class ResourceItem extends Item
 
     public function makeResource(): Resource
     {
-        return app(Panneau::class)->resource($this->resource);
+        return app(Panneau::class)->resource($this->resource());
     }
 
     public function fields(): array
