@@ -83,7 +83,7 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function translationsNamespace(): ?string
     {
-        return 'panneau::resources.'.$this->id();
+        return 'panneau::resources.' . $this->id();
     }
 
     public function indexIsPaginated(): bool
@@ -131,22 +131,39 @@ abstract class Resource implements ResourceContract, Arrayable
         return $resourceClass::collection($resources);
     }
 
-    protected function getTypesInstances(): Collection
+    public function hasTypes(): bool
     {
-        return collect($this->types())->map(function ($type, $key) {
-            if (is_string($type)) {
-                return $this->container->make($type, [
-                    'resource' => $this,
-                ]);
-            }
-            if (is_array($type)) {
-                return new ArrayResourceType(
-                    $this,
-                    array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
-                );
-            }
-            return $type;
-        });
+        $types = $this->types();
+        return !is_null($types);
+    }
+
+    public function getTypes(): ?Collection
+    {
+        if (!isset($this->typesInstances)) {
+            $this->typesInstances = $this->getTypesInstances();
+        }
+        return $this->typesInstances;
+    }
+
+    protected function getTypesInstances(): ?Collection
+    {
+        $types = $this->types();
+        return !is_null($types)
+            ? collect($types)->map(function ($type, $key) {
+                if (is_string($type)) {
+                    return $this->container->make($type, [
+                        'resource' => $this,
+                    ]);
+                }
+                if (is_array($type)) {
+                    return new ArrayResourceType(
+                        $this,
+                        array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
+                    );
+                }
+                return $type;
+            })
+            : null;
     }
 
     public function toArray()
@@ -157,9 +174,8 @@ abstract class Resource implements ResourceContract, Arrayable
             'fields' => collect($this->fields())->toArray(),
         ];
 
-        $types = $this->types();
-        if (isset($types)) {
-            $data['types'] = $this->getTypesInstances($types)->toArray();
+        if ($this->hasTypes()) {
+            $data['types'] = $this->getTypes()->toArray();
         }
 
         $intl = $this->intl();
