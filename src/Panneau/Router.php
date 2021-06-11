@@ -116,7 +116,7 @@ class Router implements RouterContract
         if ($defaultRoutes) {
             $route->name($this->namePrefix . 'resources.delete');
         } else {
-            $resourceRoutes->names($this->namePrefix . 'resources.' . $id . '.delete');
+            $route->name($this->namePrefix . 'resources.' . $id . '.delete');
         }
     }
 
