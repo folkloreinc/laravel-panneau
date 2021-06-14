@@ -3,6 +3,7 @@
 namespace Panneau\Contracts;
 
 use JsonSerializable;
+use Illuminate\Support\Collection;
 
 interface Resource extends JsonSerializable
 {
@@ -31,4 +32,8 @@ interface Resource extends JsonSerializable
     public function makeJsonResource(ResourceItem $item): JsonSerializable;
 
     public function makeJsonCollection($items): JsonSerializable;
+
+    public function hasTypes(): bool;
+
+    public function getTypes(): ?Collection;
 }
