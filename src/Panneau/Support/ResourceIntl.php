@@ -26,7 +26,7 @@ class ResourceIntl implements IntlContract, Arrayable
     public function values(): ?array
     {
         $namespace = $this->resource->translationsNamespace();
-        $valuesKey = $namespace . '.values';
+        $valuesKey = $namespace;
         $id = $this->resource->id();
         $resourceName = $this->resource->name();
         $name = $this->translator->has($valuesKey . '.name')
@@ -83,7 +83,17 @@ class ResourceIntl implements IntlContract, Arrayable
         return !is_null($namespace) &&
             $this->translator->has($namespace) &&
             is_array($this->translator->get($namespace))
-            ? Arr::except($this->translator->get($namespace), ['values'])
+            ? Arr::except($this->translator->get($namespace), [
+                'name',
+                'plural',
+                'Plural',
+                'singular',
+                'Singular',
+                'a_singular',
+                'A_singular',
+                'the_singular',
+                'The_singular',
+            ])
             : null;
     }
 
