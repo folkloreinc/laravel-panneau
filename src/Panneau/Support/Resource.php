@@ -30,6 +30,10 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public static $components;
 
+    public static $index;
+
+    public static $forms;
+
     public static $settings = [];
 
     private static $defaultSettings = [
@@ -69,6 +73,16 @@ abstract class Resource implements ResourceContract, Arrayable
     public function components(): ?array
     {
         return static::$components;
+    }
+
+    public function index(): ?array
+    {
+        return static::$index;
+    }
+
+    public function forms(): ?array
+    {
+        return static::$forms;
     }
 
     public function intl(): IntlContract
@@ -192,6 +206,16 @@ abstract class Resource implements ResourceContract, Arrayable
         $components = $this->components();
         if (isset($components)) {
             $data['components'] = $components;
+        }
+
+        $index = $this->index();
+        if (isset($index)) {
+            $data['index'] = $index;
+        }
+
+        $forms = $this->forms();
+        if (isset($forms)) {
+            $data['forms'] = $forms;
         }
 
         return $data;

@@ -34,8 +34,6 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     protected $attributes = [];
 
     protected $settings = [
-        'hiddenInIndex' => false,
-        'orderInIndex' => null,
         'hiddenInForm' => false,
         'createOnly' => false,
         'updateOnly' => false,
@@ -207,24 +205,6 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function isNotRequired()
     {
         $this->required = false;
-        return $this;
-    }
-
-    public function showInIndex()
-    {
-        $this->settings['hiddenInIndex'] = false;
-        return $this;
-    }
-
-    public function hideInIndex()
-    {
-        $this->settings['hiddenInIndex'] = true;
-        return $this;
-    }
-
-    public function orderInIndex($order)
-    {
-        $this->settings['orderInIndex'] = $order;
         return $this;
     }
 
