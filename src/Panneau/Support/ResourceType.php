@@ -84,6 +84,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
     public function toArray()
     {
         $id = $this->id();
+
         return [
             'id' => $id,
             'name' => $this->name(),

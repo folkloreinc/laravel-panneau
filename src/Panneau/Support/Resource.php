@@ -36,6 +36,8 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public static $settings = [];
 
+    public static $attributes = [];
+
     private static $defaultSettings = [
         'hideInNavbar' => false,
         'indexIsPaginated' => true,
@@ -93,6 +95,11 @@ abstract class Resource implements ResourceContract, Arrayable
     public function settings(): ?array
     {
         return array_merge(self::$defaultSettings, static::$settings);
+    }
+
+    public function attributes(): ?array
+    {
+        return static::$attributes;
     }
 
     public function translationsNamespace(): ?string
@@ -216,6 +223,11 @@ abstract class Resource implements ResourceContract, Arrayable
         $forms = $this->forms();
         if (isset($forms)) {
             $data['forms'] = $forms;
+        }
+
+        $attributes = $this->attributes();
+        if (isset($attributes) && !is_null($attributes)) {
+            return array_merge($data, $attributes);
         }
 
         return $data;
