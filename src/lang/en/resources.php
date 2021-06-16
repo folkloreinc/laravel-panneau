@@ -11,4 +11,6 @@ return [
     'A_singular' => 'A :resource',
     'the_singular' => 'the :resource',
     'The_singular' => 'The :resource',
+    'the_singular' => 'the :resource',
+    'The_singular' => 'The :resource',
 ];

@@ -74,6 +74,16 @@ class ResourceIntl implements IntlContract, Arrayable
                 : $this->translator->get('panneau::resources.The_singular', [
                     'resource' => $singular,
                 ]),
+            'the_plural' => $this->translator->has($valuesKey . '.the_plural')
+                ? $this->translator->get($valuesKey . '.the_plural')
+                : $this->translator->get('panneau::resources.the_plural', [
+                    'resource' => $plural,
+                ]),
+            'The_plural' => $this->translator->has($valuesKey . '.The_plural')
+                ? $this->translator->get($valuesKey . '.The_plural')
+                : $this->translator->get('panneau::resources.The_plural', [
+                    'resource' => $plural,
+                ]),
         ];
     }
 
@@ -93,6 +103,8 @@ class ResourceIntl implements IntlContract, Arrayable
                 'A_singular',
                 'the_singular',
                 'The_singular',
+                'the_plural',
+                'The_plural',
             ])
             : null;
     }
