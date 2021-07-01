@@ -168,8 +168,8 @@ class ResourceController extends Controller
             return abort(404);
         }
         $success = $repository->destroy($id);
-        return [
+        return response()->json([
             'success' => $success,
-        ];
+        ]);
     }
 }

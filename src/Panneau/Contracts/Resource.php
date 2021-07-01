@@ -21,6 +21,8 @@ interface Resource extends JsonSerializable
 
     public function settings(): ?array;
 
+    public function attributes(): ?array;
+
     public function indexIsPaginated(): bool;
 
     public function controller(): ?string;
