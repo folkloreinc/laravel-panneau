@@ -34,15 +34,20 @@ class ResourceController extends Controller
 
     protected function getPageFromRequest(Request $request, Resource $resource)
     {
-        return $request->input('page', $resource->indexIsPaginated() ? 1 : null);
+        return $request->input('page', $this->isPaginated($request, $resource) ? 1 : null);
     }
 
     protected function getPageCountFromRequest(Request $request, Resource $resource)
     {
         return $request->input(
             'count',
-            $resource->indexIsPaginated() ? $this->defaultPageCount : null
+            $this->isPaginated($request, $resource) ? $this->defaultPageCount : null
         );
+    }
+
+    protected function isPaginated(Request $request, Resource $resource) {
+        $paginated = $request->input('paginated', null);
+        return !is_null($paginated) ? filter_var($paginated, FILTER_VALIDATE_BOOLEAN) : $resource->indexIsPaginated();
     }
 
     /**
