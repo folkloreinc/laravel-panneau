@@ -23,7 +23,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     protected $properties;
 
-    protected $sibblingFields;
+    protected $siblingFields;
 
     protected $components = null;
 
@@ -94,9 +94,9 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this->components;
     }
 
-    public function sibblingFields(): ?array
+    public function siblingFields(): ?array
     {
-        return $this->sibblingFields;
+        return $this->siblingFields;
     }
 
     public function exceptTypes(): ?array
@@ -148,9 +148,9 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this;
     }
 
-    public function withSibblingFields($fields)
+    public function withSiblingFields($fields)
     {
-        $this->sibblingFields = is_array($fields) ? $fields : func_get_args();
+        $this->siblingFields = is_array($fields) ? $fields : func_get_args();
         return $this;
     }
 
@@ -269,9 +269,9 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             $data['components'] = $components;
         }
 
-        $sibblingFields = $this->sibblingFields();
-        if (!is_null($sibblingFields)) {
-            $data['sibblingFields'] = collect($sibblingFields)->toArray();
+        $siblingFields = $this->siblingFields();
+        if (!is_null($siblingFields)) {
+            $data['siblingFields'] = collect($siblingFields)->toArray();
         }
 
         if ($type === 'object') {
