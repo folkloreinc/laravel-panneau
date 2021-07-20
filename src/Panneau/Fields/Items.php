@@ -16,6 +16,11 @@ class Items extends Field
         return null;
     }
 
+    public function itemComponent(): ?string
+    {
+        return null;
+    }
+
     public function component(): string
     {
         return 'items';
@@ -23,9 +28,15 @@ class Items extends Field
 
     public function attributes(): ?array
     {
+        // Single field
+        $itemComponent = $this->itemComponent();
+
+        // Multiple fields
         $itemField = $this->itemField();
         $itemField = !is_null($itemField) ? resolve($itemField) : null;
         $fields = !is_null($itemField) && $itemField instanceof Item ? $itemField->fields() : null;
+
+        // With types
         $itemResource =
             !is_null($itemField) && $itemField instanceof ResourceItem
                 ? $itemField->makeResource()
@@ -38,6 +49,9 @@ class Items extends Field
         ];
         if (!is_null($fields)) {
             $attributes['itemFields'] = collect($fields)->toArray();
+        }
+        if (!is_null($itemComponent)) {
+            $attributes['itemComponent'] = $itemComponent;
         }
         if (!is_null($resourceTypes)) {
             $attributes['types'] = $resourceTypes->toArray();
