@@ -30,6 +30,7 @@ class Items extends Field
     {
         // Single field
         $itemComponent = $this->itemComponent();
+        $itemComponent = !is_null($itemComponent) ? resolve($itemComponent) : null;
 
         // Multiple fields
         $itemField = $this->itemField();
@@ -51,7 +52,7 @@ class Items extends Field
             $attributes['itemFields'] = collect($fields)->toArray();
         }
         if (!is_null($itemComponent)) {
-            $attributes['itemComponent'] = $itemComponent;
+            $attributes['itemComponent'] = $itemComponent->toArray();
         }
         if (!is_null($resourceTypes)) {
             $attributes['types'] = $resourceTypes->toArray();
