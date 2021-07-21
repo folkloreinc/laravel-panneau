@@ -29,9 +29,9 @@ class Items extends Field
     public function attributes(): ?array
     {
         // Single field
-        $field = $this->field();
-        $field = !is_null($field) ? resolve($field) : null;
-        $field = !is_null($field) && $itemField instanceof Field ? $field : null;
+        $singleField = $this->field();
+        $singleField = !is_null($singleField) ? resolve($singleField) : null;
+        $field = !is_null($singleField) && $singleField instanceof Field ? $singleField : null;
 
         // Multiple fields
         $itemField = $this->itemField();
