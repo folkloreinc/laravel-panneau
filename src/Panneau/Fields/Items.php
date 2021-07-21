@@ -16,7 +16,7 @@ class Items extends Field
         return null;
     }
 
-    public function itemComponent(): ?string
+    public function field(): ?string
     {
         return null;
     }
@@ -29,8 +29,9 @@ class Items extends Field
     public function attributes(): ?array
     {
         // Single field
-        $itemComponent = $this->itemComponent();
-        $itemComponent = !is_null($itemComponent) ? resolve($itemComponent) : null;
+        $field = $this->field();
+        $field = !is_null($field) ? resolve($field) : null;
+        $field = !is_null($field) && $itemField instanceof Field ? $field : null;
 
         // Multiple fields
         $itemField = $this->itemField();
@@ -48,15 +49,17 @@ class Items extends Field
         $attributes = [
             'withoutFormGroup' => true,
         ];
-        if (!is_null($fields)) {
+        
+        if (!is_null($field)) {
+            $attributes['itemField'] = $field->toArray();
+        } else if (!is_null($fields)) {
             $attributes['itemFields'] = collect($fields)->toArray();
         }
-        if (!is_null($itemComponent)) {
-            $attributes['itemComponent'] = $itemComponent->toArray();
-        }
+
         if (!is_null($resourceTypes)) {
             $attributes['types'] = $resourceTypes->toArray();
         }
+
         return $attributes;
     }
 }
