@@ -36,6 +36,17 @@ class ResourceUpdateRequest extends FormRequest
                 ]
                 : [];
         })->toArray();
-        return $rules;
+
+        $customRules = collect($resource->fields())->reduce(function ($rules, $field) {
+            $fieldRules = $field->getCustomRules($this);
+            if(is_array($fieldRules)) {
+                foreach($fieldRules as $name => $rule) {
+                    $rules[$name] = $rule;
+                }
+            }
+            return $rules;
+        }, []);
+        
+        return array_merge($rules, $customRules);
     }
 }

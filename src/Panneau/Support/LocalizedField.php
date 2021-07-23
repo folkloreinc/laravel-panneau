@@ -10,6 +10,8 @@ abstract class LocalizedField extends Field
 
     protected static $localesResolver = null;
 
+    protected $localesRequired = false;
+
     abstract public function field($locale);
 
     public function type(): string
@@ -30,6 +32,11 @@ abstract class LocalizedField extends Field
         ];
     }
 
+    public function requireLocales()
+    {
+        $this->localesRequired = true;
+    }
+
     public function properties(): ?array
     {
         $properties = [];
@@ -37,6 +44,19 @@ abstract class LocalizedField extends Field
             $properties[$locale] = $this->field($locale);
         }
         return $properties;
+    }
+
+    public function getCustomRules(Request $request): ?array
+    {
+        if ($this->localesRequired) {
+            $locales = $this->getLocales();
+            $rules = [];
+            foreach($locales as $locale) {
+                $rules[$this->name().'.'.$locale] = 'required';
+            }
+            return $rules;
+        }
+        return null;
     }
 
     public static function getLocales()

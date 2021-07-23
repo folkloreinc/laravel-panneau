@@ -125,6 +125,11 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         );
     }
 
+    public function getCustomRules(Request $request): ?array
+    {
+        return null;
+    }
+
     public function withName($name)
     {
         $this->name = $name;

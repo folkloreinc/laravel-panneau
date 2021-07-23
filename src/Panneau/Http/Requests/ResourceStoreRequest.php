@@ -38,6 +38,17 @@ class ResourceStoreRequest extends FormRequest
                     : [];
             })
             ->toArray();
+        
+        $customRules = collect($resource->fields())->reduce(function ($rules, $field) {
+            $fieldRules = $field->getCustomRules($this);
+            if(is_array($fieldRules)) {
+                foreach($fieldRules as $name => $rule) {
+                    $rules[$name] = $rule;
+                }
+            }
+            return $rules;
+        }, []);
+
         return $rules;
     }
 }
