@@ -11,7 +11,7 @@ abstract class LocalizedField extends Field
 
     protected static $localesResolver = null;
 
-    protected $localesRequired = false;
+    protected $localesRequired;
 
     abstract public function field($locale);
 
@@ -50,11 +50,13 @@ abstract class LocalizedField extends Field
 
     public function getCustomRules(Request $request): ?array
     {
-        if (isset($this->localesRequired) && !empty($this->localesRequired)) {
-            $locales = is_array($this->localesRequired) ? $this->localesRequired : $this->getLocales();
+        if (isset($this->localesRequired)) {
+            $locales = is_array($this->localesRequired)
+                ? $this->localesRequired
+                : $this->getLocales();
             $rules = [];
-            foreach($locales as $locale) {
-                $rules[$this->name().'.'.$locale] = 'required';
+            foreach ($locales as $locale) {
+                $rules[$this->name() . '.' . $locale] = ['required'];
             }
             return $rules;
         }

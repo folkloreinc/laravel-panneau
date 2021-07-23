@@ -25,8 +25,7 @@ class ResourceStoreRequest extends FormRequest
     public function rules()
     {
         $resource = $this->resource();
-        $rules = collect($resource->fields())
-            ->mapWithKeys(function ($field) {
+        $rules = collect($resource->fields())->mapWithKeys(function ($field) {
                 $name = $field->name();
                 $required = $field->required();
                 $fieldRules = $field->getRulesFromRequest($this);
@@ -49,6 +48,6 @@ class ResourceStoreRequest extends FormRequest
             return $rules;
         }, []);
 
-        return $rules;
+        return array_merge($rules, $customRules);
     }
 }
