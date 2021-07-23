@@ -36,6 +36,7 @@ abstract class LocalizedField extends Field
     public function requireLocales()
     {
         $this->localesRequired = true;
+        return $this;
     }
 
     public function properties(): ?array
