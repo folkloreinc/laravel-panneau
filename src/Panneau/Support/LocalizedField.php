@@ -2,6 +2,7 @@
 
 namespace Panneau\Support;
 
+use Illuminate\Http\Request;
 use Closure;
 
 abstract class LocalizedField extends Field
