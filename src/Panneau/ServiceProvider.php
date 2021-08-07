@@ -124,6 +124,21 @@ class ServiceProvider extends BaseServiceProvider
             return !is_null($route) && $app['panneau.router']->routeIsFromPanneau($route);
         });
 
+        Request::macro('isPanneauIndex', function () use ($app) {
+            $route = $this->route();
+            return !is_null($route) && $app['panneau.router']->routeIsPanneauIndex($route);
+        });
+
+        Request::macro('isPanneauStore', function () use ($app) {
+            $route = $this->route();
+            return !is_null($route) && $app['panneau.router']->routeIsPanneauStore($route);
+        });
+
+        Request::macro('isPanneauDelete', function () use ($app) {
+            $route = $this->route();
+            return !is_null($route) && $app['panneau.router']->routeIsPanneauDelete($route);
+        });
+
         Request::macro('isInPanneau', function () {
             $user = $this->user();
             return $this->isPanneau() &&

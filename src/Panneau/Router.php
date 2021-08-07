@@ -148,6 +148,36 @@ class Router implements RouterContract
             preg_match('/^' . preg_quote($this->namePrefix, '/') . '/', $name) === 1;
     }
 
+    public function routeIsPanneauIndex(Route $route): bool
+    {
+        $name = $route->getName();
+        return !empty($name) &&
+            preg_match(
+                '/^' . preg_quote($this->namePrefix, '/') . '(.+)' . '\.(index)' . '/',
+                $name
+            ) === 1;
+    }
+
+    public function routeIsPanneauStore(Route $route): bool
+    {
+        $name = $route->getName();
+        return !empty($name) &&
+            preg_match(
+                '/^' . preg_quote($this->namePrefix, '/') . '(.+)' . '\.(create|edit)' . '/',
+                $name
+            ) === 1;
+    }
+
+    public function routeIsPanneauDelete(Route $route): bool
+    {
+        $name = $route->getName();
+        return !empty($name) &&
+            preg_match(
+                '/^' . preg_quote($this->namePrefix, '/') . '(.+)' . '\.(delete)' . '/',
+                $name
+            ) === 1;
+    }
+
     public function getRoutes()
     {
         return collect($this->registrar->getRoutes()->getRoutesByName())->filter(function ($route) {

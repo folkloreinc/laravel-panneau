@@ -16,4 +16,10 @@ interface Router extends Arrayable
     public function routeName(string $name): string;
 
     public function routeIsFromPanneau(Route $route): bool;
+
+    public function routeIsPanneauIndex(Route $route): bool;
+
+    public function routeIsPanneauStore(Route $route): bool;
+
+    public function routeIsPanneauDelete(Route $route): bool;
 }
