@@ -2,22 +2,31 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\Field;
+use Panneau\Support\LocalizedField;
 
-class Text extends Field
+class TextLocalized extends LocalizedField
 {
     protected $textarea = false;
 
     protected $disabled = false;
 
-    public function type(): string
+    public function field($locale)
     {
-        return 'string';
+        $field = new Text($locale);
+        if ($this->textarea) {
+            $field->isTextarea();
+        }
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
-    public function component(): string
+    public function components(): ?array
     {
-        return $this->textarea ? 'textarea' : 'text';
+        return [
+            'display' => 'text-localized',
+        ];
     }
 
     public function isTextarea()
@@ -42,12 +51,5 @@ class Text extends Field
     {
         $this->disabled = false;
         return $this;
-    }
-
-    public function attributes(): ?array
-    {
-        return array_merge(parent::attributes(), [
-            'disabled' => $this->disabled,
-        ]);
     }
 }
