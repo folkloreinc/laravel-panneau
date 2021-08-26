@@ -83,10 +83,8 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
 
     public function toArray()
     {
-        $id = $this->id();
-
         return [
-            'id' => $id,
+            'id' => $this->id(),
             'name' => $this->name(),
             'fields' => $this->getFieldsCollection()->toArray(),
             'can_create' => $this->canCreate(),
@@ -105,6 +103,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
 
     protected function getFieldsCollection(): Collection
     {
+        $id = $this->id();
         return collect($this->resource->fields())
             ->filter(function ($field) use ($id) {
                 $excepTypes = $field->exceptTypes();
