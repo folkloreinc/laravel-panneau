@@ -88,16 +88,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
         return [
             'id' => $id,
             'name' => $this->name(),
-            'fields' => collect($this->resource->fields())
-                ->filter(function ($field) use ($id) {
-                    $excepTypes = $field->exceptTypes();
-                    $onlyTypes = $field->onlyTypes();
-                    return (is_null($excepTypes) || !in_array($id, $excepTypes)) &&
-                        (is_null($onlyTypes) || in_array($id, $onlyTypes));
-                })
-                ->merge($this->fields())
-                ->values()
-                ->toArray(),
+            'fields' => $this->getFieldsCollection()->toArray(),
             'can_create' => $this->canCreate(),
         ];
     }
@@ -110,5 +101,18 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
     public function toJson($options = 0)
     {
         return json_encode($this->jsonSerialize(), $options);
+    }
+
+    protected function getFieldsCollection(): Collection
+    {
+        return collect($this->resource->fields())
+            ->filter(function ($field) use ($id) {
+                $excepTypes = $field->exceptTypes();
+                $onlyTypes = $field->onlyTypes();
+                return (is_null($excepTypes) || !in_array($id, $excepTypes)) &&
+                    (is_null($onlyTypes) || in_array($id, $onlyTypes));
+            })
+            ->merge($this->fields())
+            ->values();
     }
 }
