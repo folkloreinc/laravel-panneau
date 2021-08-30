@@ -20,6 +20,8 @@ class Router implements RouterContract
 
     protected $middleware = null;
 
+    protected $customRoutes = [];
+
     public function __construct(PanneauContract $panneau, Registrar $registrar)
     {
         $this->panneau = $panneau;
@@ -180,10 +182,19 @@ class Router implements RouterContract
 
     public function getRoutes()
     {
-        return collect($this->registrar->getRoutes()->getRoutesByName())->filter(function ($route) {
+        $routesByName = collect($this->registrar->getRoutes()->getRoutesByName());
+
+        $prefixRoutes = $routesByName->filter(function ($route) {
             $name = $route->getName();
             return preg_match('/^' . preg_quote($this->namePrefix, '/') . '/', $name) === 1;
         });
+
+        $customRoutes = $routesByName->filter(function ($route) {
+            $name = $route->getName();
+            return in_array($name, $this->customRoutes);
+        });
+
+        return $prefixRoutes->merge($customRoutes);
     }
 
     protected function getRoutePath($route)
@@ -256,5 +267,10 @@ class Router implements RouterContract
     public function setMiddleware($middleware)
     {
         $this->middleware = $middleware;
+    }
+
+    public function setCustomRoutes($customRoutes)
+    {
+        $this->customRoutes = $customRoutes;
     }
 }

@@ -16,5 +16,7 @@ return [
         'prefix' => 'panneau',
 
         'middleware' => [\Panneau\Http\Middleware\DispatchHandlingRequestEvent::class],
+
+        'custom' => []
     ],
 ];
