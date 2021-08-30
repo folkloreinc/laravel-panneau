@@ -8,8 +8,6 @@ class TextLocalized extends LocalizedField
 {
     protected $textarea = false;
 
-    protected $disabled = false;
-
     public function field($locale)
     {
         $field = new Text($locale);
@@ -38,18 +36,6 @@ class TextLocalized extends LocalizedField
     public function isText()
     {
         $this->textarea = false;
-        return $this;
-    }
-
-    public function isDisabled()
-    {
-        $this->disabled = true;
-        return $this;
-    }
-
-    public function isEnabled()
-    {
-        $this->disabled = false;
         return $this;
     }
 }

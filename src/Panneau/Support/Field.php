@@ -19,6 +19,8 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     protected $required = false;
 
+    protected $disabled = false;
+
     protected $defaultValue;
 
     protected $properties;
@@ -213,6 +215,18 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this;
     }
 
+    public function isDisabled()
+    {
+        $this->disabled = true;
+        return $this;
+    }
+
+    public function isEnabled()
+    {
+        $this->disabled = false;
+        return $this;
+    }
+
     public function showInForm()
     {
         $this->settings['hiddenInForm'] = false;
@@ -265,6 +279,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             'type' => $type,
             'component' => $this->component(),
             'required' => $this->required(),
+            'disabled' => $this->disabled(),
             'defaultValue' => $this->defaultValue(),
             'settings' => $this->settings,
         ];

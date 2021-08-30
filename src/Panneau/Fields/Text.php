@@ -8,8 +8,6 @@ class Text extends Field
 {
     protected $textarea = false;
 
-    protected $disabled = false;
-
     public function type(): string
     {
         return 'string';
@@ -30,24 +28,5 @@ class Text extends Field
     {
         $this->textarea = false;
         return $this;
-    }
-
-    public function isDisabled()
-    {
-        $this->disabled = true;
-        return $this;
-    }
-
-    public function isEnabled()
-    {
-        $this->disabled = false;
-        return $this;
-    }
-
-    public function attributes(): ?array
-    {
-        return array_merge(parent::attributes(), [
-            'disabled' => $this->disabled,
-        ]);
     }
 }
