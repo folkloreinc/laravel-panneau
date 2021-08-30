@@ -71,6 +71,11 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this->required;
     }
 
+    public function disabled(): bool
+    {
+        return $this->disabled;
+    }
+
     public function defaultValue()
     {
         return $this->defaultValue;

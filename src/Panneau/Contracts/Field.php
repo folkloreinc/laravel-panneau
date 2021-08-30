@@ -17,6 +17,8 @@ interface Field extends JsonSerializable
 
     public function required(): bool;
 
+    public function disabled(): bool;
+
     public function defaultValue();
 
     public function properties(): ?array;
