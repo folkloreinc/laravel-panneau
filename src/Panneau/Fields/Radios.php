@@ -2,15 +2,8 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\Field;
-
-class Radios extends Field
+class Radios extends Select
 {
-    public function type(): string
-    {
-        return 'string';
-    }
-
     public function component(): string
     {
         return 'radios';
