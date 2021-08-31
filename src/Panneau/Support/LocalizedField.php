@@ -48,7 +48,7 @@ abstract class LocalizedField extends Field
         return $properties;
     }
 
-    public function getCustomRules(Request $request): ?array
+    public function rules(Request $request): ?array
     {
         if (isset($this->localesRequired)) {
             $locales = is_array($this->localesRequired)
