@@ -14,7 +14,7 @@ class Password extends Text
         return 'password';
     }
 
-    public function sibblingFields(): ?array
+    public function siblingFields(): ?array
     {
         return !$this->withoutConfirmation
             ? [
@@ -39,16 +39,5 @@ class Password extends Text
     {
         $this->withoutConfirmation = true;
         return $this;
-    }
-
-    public function attributes(): ?array
-    {
-        $sibblingFields = $this->sibblingFields();
-        if (!is_null($sibblingFields)) {
-            return array_merge(parent::attributes(), [
-                'sibblingFields' => collect($sibblingFields)->toArray(),
-            ]);
-        }
-        return parent::attributes();
     }
 }
