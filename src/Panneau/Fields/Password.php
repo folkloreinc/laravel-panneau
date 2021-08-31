@@ -19,7 +19,7 @@ class Password extends Text
         return !$this->withoutConfirmation
             ? [
                 Password::make($this->name() . '_confirmation')
-                    ->withTransLabel('panneau.fields.password_confirmation_label')
+                    ->withTransLabel('panneau::fields.password_confirmation')
                     ->withoutConfirmation(),
             ]
             : null;
