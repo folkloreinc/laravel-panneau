@@ -40,4 +40,15 @@ class Password extends Text
         $this->withoutConfirmation = true;
         return $this;
     }
+
+    public function attributes(): ?array
+    {
+        $sibblingFields = $this->sibblingFields();
+        if (!is_null()) {
+            return array_merge(parent::attributes(), [
+                'sibblingFields' => collect($sibblingFields)->toArray(),
+            ]);
+        }
+        return parent::attributes();
+    }
 }
