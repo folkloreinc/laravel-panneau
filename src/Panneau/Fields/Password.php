@@ -44,7 +44,7 @@ class Password extends Text
     public function attributes(): ?array
     {
         $sibblingFields = $this->sibblingFields();
-        if (!is_null()) {
+        if (!is_null($sibblingFields)) {
             return array_merge(parent::attributes(), [
                 'sibblingFields' => collect($sibblingFields)->toArray(),
             ]);
