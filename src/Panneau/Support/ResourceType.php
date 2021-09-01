@@ -22,13 +22,17 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
 
     public static $jsonCollection;
 
-    public static $canCreate = true;
-
     public static $types;
 
     protected $resource;
 
     protected $repositoryInstance;
+
+    public static $settings = [];
+
+    private static $defaultSettings = [
+        'canCreate' => true,
+    ];
 
     public function __construct(ResourceContract $resource)
     {
@@ -52,9 +56,9 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
         return $this->resource;
     }
 
-    public function canCreate(): bool
+    public function settings(): ?array
     {
-        return static::$canCreate;
+        return array_merge(self::$defaultSettings, static::$settings);
     }
 
     public function makeRepository(): ?Repository
@@ -83,12 +87,18 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
 
     public function toArray()
     {
-        return [
+        $data = [
             'id' => $this->id(),
             'name' => $this->name(),
-            'fields' => $this->getFieldsCollection()->toArray(),
-            'can_create' => $this->canCreate(),
+            'fields' => $this->getFieldsCollection()->toArray()
         ];
+
+        $settings = $this->settings();
+        if (isset($settings)) {
+            $data['settings'] = $settings;
+        }
+
+        return $data;
     }
 
     public function jsonSerialize()
