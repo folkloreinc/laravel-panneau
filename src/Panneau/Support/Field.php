@@ -52,7 +52,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $this->label = $label;
     }
 
-    public function name(): string
+    public function name(): ?string
     {
         return $this->name;
     }
@@ -274,7 +274,6 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $type = $this->type();
 
         $data = [
-            'name' => $this->name(),
             'label' => $this->label(),
             'type' => $type,
             'component' => $this->component(),
@@ -287,6 +286,11 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $components = $this->components();
         if (!is_null($components)) {
             $data['components'] = $components;
+        }
+
+        $name = $this->name();
+        if (!is_null($name)) {
+            $data['name'] = $name;
         }
 
         $siblingFields = $this->siblingFields();

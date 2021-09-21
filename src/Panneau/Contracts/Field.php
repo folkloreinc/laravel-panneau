@@ -7,7 +7,7 @@ use JsonSerializable;
 
 interface Field extends JsonSerializable
 {
-    public function name(): string;
+    public function name(): ?string;
 
     public function label(): ?string;
 
