@@ -21,6 +21,8 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     protected $disabled = false;
 
+    protected $nullable = false;
+
     protected $defaultValue;
 
     protected $properties;
@@ -76,6 +78,11 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return $this->disabled;
     }
 
+    public function nullable(): bool
+    {
+        return $this->nullable;
+    }
+
     public function defaultValue()
     {
         return $this->defaultValue;
@@ -127,6 +134,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $rules = $this->rules;
         $propertyRules = $rules instanceof Closure ? $rules($request) : $rules;
         return array_merge(
+            $this->nullable ? ['nullable'] : [],
             !is_null($computedRules) ? $computedRules : [],
             !is_null($propertyRules) ? $propertyRules : []
         );
@@ -224,6 +232,18 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function isEnabled()
     {
         $this->disabled = false;
+        return $this;
+    }
+
+    public function isNullable()
+    {
+        $this->nullable = true;
+        return $this;
+    }
+
+    public function isNotNullable()
+    {
+        $this->nullable = false;
         return $this;
     }
 
