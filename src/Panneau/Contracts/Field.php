@@ -11,6 +11,8 @@ interface Field extends JsonSerializable
 
     public function label(): ?string;
 
+    public function helpText(): ?string;
+
     public function type(): string;
 
     public function component(): string;

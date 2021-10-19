@@ -15,6 +15,8 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     protected $label;
 
+    protected $helpText;
+
     protected $rules;
 
     protected $required = false;
@@ -62,6 +64,11 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function label(): string
     {
         return !is_null($this->label) ? $this->label : Str::title($this->name);
+    }
+
+    public function helpText(): ?string
+    {
+        return isset($this->helpText) ? $this->helpText : null;
     }
 
     abstract public function type(): string;
@@ -155,6 +162,17 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function withTransLabel($label, $params = [])
     {
         return $this->withLabel(trans($label, $params));
+    }
+
+    public function withHelpText($helpText)
+    {
+        $this->helpText = $helpText;
+        return $this;
+    }
+
+    public function withTransHelpText($helpText, $params = [])
+    {
+        return $this->withHelpText(trans($helpText, $params));
     }
 
     public function withRules($rules)
@@ -295,6 +313,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
         $data = [
             'label' => $this->label(),
+            'helpText' => $this->helpText(),
             'type' => $type,
             'component' => $this->component(),
             'required' => $this->required(),
