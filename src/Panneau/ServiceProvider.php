@@ -99,7 +99,7 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->publishes(
             [
-                __DIR__ . '/../lang' => resource_path('lang/vendor/panneau'),
+                __DIR__ . '/../lang' => lang_path('vendor/panneau'),
             ],
             'lang'
         );
