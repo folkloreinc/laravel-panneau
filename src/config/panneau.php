@@ -17,6 +17,8 @@ return [
 
         'middleware' => [\Panneau\Http\Middleware\DispatchHandlingRequestEvent::class],
 
-        'custom' => []
+        'custom' => [],
+
+        'without_patterns' => false,
     ],
 ];
