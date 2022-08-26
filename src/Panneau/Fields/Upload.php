@@ -10,6 +10,8 @@ class Upload extends Field
 
     protected $withButton = false;
 
+    protected static $globalEndpoint = null;
+
     public function type(): string
     {
         return 'object';
@@ -24,7 +26,7 @@ class Upload extends Field
     {
         return array_merge(parent::attributes(), [
             'withButton' => $this->withButton,
-            'endpoint' => $this->endpoint ?? route('panneau.upload'),
+            'endpoint' => $this->endpoint ?? (self::$globalEndpoint ?? route('panneau.upload')),
         ]);
     }
 
@@ -38,5 +40,10 @@ class Upload extends Field
     {
         $this->withButton = true;
         return $this;
+    }
+
+    public static function setEndpoint($endpoint)
+    {
+        self::$globalEndpoint = $endpoint;
     }
 }
