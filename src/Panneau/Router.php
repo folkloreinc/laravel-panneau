@@ -202,6 +202,7 @@ class Router implements RouterContract
         $name = $route->getName();
         $patterns = $this->registrar->getPatterns();
         $parameters = $route->parameterNames();
+        $withoutPatterns = config('panneau.routes.without_patterns', false);
 
         preg_match_all('/\{(.*?)\}/', $route->getDomain() . $route->uri(), $matches);
         $optionalParameters = array_map(
@@ -225,7 +226,7 @@ class Router implements RouterContract
             if (in_array($parameter, $optionalParameters)) {
                 $path = preg_replace('/(' . preg_quote(':' . $parameter) . ')\b/i', '$1?', $path);
             }
-            if (isset($patterns[$parameter])) {
+            if (isset($patterns[$parameter]) && !$withoutPatterns) {
                 $pattern = preg_replace('/^\(?(.*?)\)?$/', '$1', $patterns[$parameter]);
                 $path = preg_replace(
                     '/(' . preg_quote(':' . $parameter) . ')(\?)?\b/i',
