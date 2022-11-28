@@ -90,7 +90,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
         $data = [
             'id' => $this->id(),
             'name' => $this->name(),
-            'fields' => $this->getFieldsCollection()->toArray()
+            'fields' => $this->getFieldsCollection()->toArray(),
         ];
 
         $settings = $this->settings();

@@ -13,6 +13,7 @@ use Panneau\Contracts\Panneau as PanneauContract;
 class Definition implements DefinitionContract, Arrayable, Jsonable
 {
     protected $panneau;
+
     protected $app;
 
     public function __construct(PanneauContract $panneau, $app)
