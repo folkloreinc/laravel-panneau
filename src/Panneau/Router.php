@@ -76,7 +76,10 @@ class Router implements RouterContract
     {
         // Authentication...
         $this->registrar
-            ->get('/login', [\Panneau\Http\Controllers\AuthController::class, 'view'])
+            ->get('/' . $this->prefix . '/login', [
+                \Panneau\Http\Controllers\AuthController::class,
+                'view',
+            ])
             ->middleware(['guest:' . config('fortify.guard')])
             ->name($this->namePrefix . 'auth.login');
 
@@ -84,7 +87,7 @@ class Router implements RouterContract
         $twoFactorLimiter = config('fortify.limiters.two-factor');
 
         $this->registrar
-            ->post('/login', [
+            ->post('/' . $this->prefix . '/login', [
                 \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
                 'store',
             ])
@@ -96,7 +99,7 @@ class Router implements RouterContract
             );
 
         $this->registrar
-            ->post('/logout', [
+            ->post('/' . $this->prefix . '/logout', [
                 \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
                 'destroy',
             ])
@@ -105,16 +108,17 @@ class Router implements RouterContract
 
     protected function registerResourceRoutes($id, $controller, $defaultRoutes = true)
     {
-        $resourceRoutes = $this->registrar->resource($id, '\\' . $controller)->parameters([
+        $resourceRoutes = $this->registrar->resource($id, $controller)->parameters([
             $id => 'id',
         ]);
+
         if ($defaultRoutes) {
             $resourceRoutes->names($this->namePrefix . 'resources');
         } else {
             $resourceRoutes->names($this->namePrefix . 'resources.' . $id);
         }
 
-        $route = $this->registrar->get($id . '/{id}/delete', '\\' . $controller . '@delete');
+        $route = $this->registrar->get($id . '/{id}/delete', $controller . '@delete');
         if ($defaultRoutes) {
             $route->name($this->namePrefix . 'resources.delete');
         } else {

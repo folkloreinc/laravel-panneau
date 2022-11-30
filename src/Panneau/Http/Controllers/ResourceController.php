@@ -45,9 +45,12 @@ class ResourceController extends Controller
         );
     }
 
-    protected function isPaginated(Request $request, Resource $resource) {
+    protected function isPaginated(Request $request, Resource $resource)
+    {
         $paginated = $request->input('paginated', null);
-        return !is_null($paginated) ? filter_var($paginated, FILTER_VALIDATE_BOOLEAN) : $resource->indexIsPaginated();
+        return !is_null($paginated)
+            ? filter_var($paginated, FILTER_VALIDATE_BOOLEAN)
+            : $resource->indexIsPaginated();
     }
 
     /**
