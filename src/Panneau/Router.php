@@ -76,10 +76,7 @@ class Router implements RouterContract
     {
         // Authentication...
         $this->registrar
-            ->get('/' . $this->prefix . '/login', [
-                \Panneau\Http\Controllers\AuthController::class,
-                'view',
-            ])
+            ->get('/login', [\Panneau\Http\Controllers\AuthController::class, 'view'])
             ->middleware(['guest:' . config('fortify.guard')])
             ->name($this->namePrefix . 'auth.login');
 
@@ -87,7 +84,7 @@ class Router implements RouterContract
         $twoFactorLimiter = config('fortify.limiters.two-factor');
 
         $this->registrar
-            ->post('/' . $this->prefix . '/login', [
+            ->post('/login', [
                 \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
                 'store',
             ])
@@ -99,7 +96,7 @@ class Router implements RouterContract
             );
 
         $this->registrar
-            ->post('/' . $this->prefix . '/logout', [
+            ->post('/logout', [
                 \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
                 'destroy',
             ])
