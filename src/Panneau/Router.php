@@ -76,7 +76,7 @@ class Router implements RouterContract
     {
         $loginController = data_get(
             'login_controller',
-            \Panneau\Http\Controllers\AuthController::class
+            \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class
         );
         $guard = data_get($options, 'guard', config('fortify.guard'));
 
