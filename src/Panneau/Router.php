@@ -74,32 +74,28 @@ class Router implements RouterContract
 
     public function auth($options = [])
     {
-        // Authentication...
+        $loginController = data_get(
+            'login_controller',
+            \Panneau\Http\Controllers\AuthController::class
+        );
+        $guard = data_get($options, 'guard', config('fortify.guard'));
+
         $this->registrar
-            ->get('/login', [\Panneau\Http\Controllers\AuthController::class, 'view'])
-            ->middleware(['guest:' . config('fortify.guard')])
+            ->get('/login', [$loginController, 'create'])
+            ->middleware(['guest:' . $guard])
             ->name($this->namePrefix . 'auth.login');
 
         $limiter = config('fortify.limiters.login');
-        $twoFactorLimiter = config('fortify.limiters.two-factor');
 
         $this->registrar
-            ->post('/login', [
-                \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
-                'store',
-            ])
+            ->post('/login', [$loginController, 'store'])
             ->middleware(
-                array_filter([
-                    'guest:' . config('fortify.guard'),
-                    $limiter ? 'throttle:' . $limiter : null,
-                ])
-            );
+                array_filter(['guest:' . $guard, $limiter ? 'throttle:' . $limiter : null])
+            )
+            ->name($this->namePrefix . 'auth.login.store');
 
         $this->registrar
-            ->post('/logout', [
-                \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
-                'destroy',
-            ])
+            ->post('/logout', [$loginController, 'destroy'])
             ->name($this->namePrefix . 'auth.logout');
     }
 
