@@ -75,6 +75,7 @@ class Router implements RouterContract
     public function auth($options = [])
     {
         $loginController = data_get(
+            $options,
             'login_controller',
             \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class
         );
