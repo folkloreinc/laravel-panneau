@@ -9,6 +9,8 @@ interface Router extends Arrayable
 {
     public function group($group);
 
+    public function auth($options = []);
+
     public function resources($options = []);
 
     public function resourceFromRoute(Route $route): ?Resource;

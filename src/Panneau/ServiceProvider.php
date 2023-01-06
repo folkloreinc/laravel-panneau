@@ -155,7 +155,7 @@ class ServiceProvider extends BaseServiceProvider
         ) use ($app) {
             return route(
                 $app['panneau.router']->routeName('resources.' . $route),
-                $params + ['resource' => $resourceId],
+                $params + ['panneau_resource' => $resourceId],
                 ...$args
             );
         });

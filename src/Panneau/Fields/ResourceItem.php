@@ -24,7 +24,7 @@ abstract class ResourceItem extends Item
     {
         return array_merge(parent::attributes(), [
             'requestUrl' => route('panneau.resources.index', [
-                'resource' => $this->resource(),
+                'panneau_resource' => $this->resource(),
             ]),
         ]);
     }
