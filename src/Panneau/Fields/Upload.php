@@ -26,6 +26,8 @@ class Upload extends Field
     {
         return array_merge(parent::attributes(), [
             'withButton' => $this->withButton,
+            'namePath' => 'name',
+            'sizePath' => 'metadata.size',
             'endpoint' => $this->endpoint ?? (self::$globalEndpoint ?? route('panneau.upload')),
         ]);
     }
