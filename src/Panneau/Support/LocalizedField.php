@@ -33,8 +33,9 @@ abstract class LocalizedField extends Field
         ];
     }
 
-    public function requireLocales(?array $locales = null)
+    public function isRequired(?array $locales = null)
     {
+        parent::isRequired();
         $this->localesRequired = $locales;
         return $this;
     }
@@ -48,19 +49,18 @@ abstract class LocalizedField extends Field
         return $properties;
     }
 
-    public function rules(Request $request): ?array
+    public function getRulesFromRequest(Request $request, array $rules = []): array
     {
-        if (isset($this->localesRequired)) {
+        $rules = parent::getRulesFromRequest($request);
+        if ($this->required()) {
             $locales = is_array($this->localesRequired)
                 ? $this->localesRequired
                 : $this->getLocales();
-            $rules = [];
             foreach ($locales as $locale) {
                 $rules[$this->name() . '.' . $locale] = ['required'];
             }
-            return $rules;
         }
-        return null;
+        return $rules;
     }
 
     public static function getLocales()

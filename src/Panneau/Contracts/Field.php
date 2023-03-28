@@ -29,5 +29,5 @@ interface Field extends JsonSerializable
 
     public function settings(): ?array;
 
-    public function getRulesFromRequest(Request $request): array;
+    public function getRulesFromRequest(Request $request, array $rules = []): array;
 }
