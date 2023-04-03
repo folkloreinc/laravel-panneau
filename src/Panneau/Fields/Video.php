@@ -8,4 +8,11 @@ class Video extends Upload
     {
         return 'video';
     }
+
+    public function components(): ?array
+    {
+        return [
+            'display' => 'video',
+        ];
+    }
 }
