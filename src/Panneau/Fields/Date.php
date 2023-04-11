@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 
 class Date extends Field
 {
+    // TODO
+    protected $format;
+
     public function type(): string
     {
         return 'string';
@@ -19,6 +22,6 @@ class Date extends Field
 
     public function rules(Request $request): ?array
     {
-        return ['date'];
+        return [];
     }
 }
