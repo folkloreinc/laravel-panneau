@@ -56,7 +56,7 @@ class PanneauIntl implements PanneauIntlContract, Arrayable, Jsonable
             foreach ($texts as $key => $value) {
                 if (sizeof($texts) === 1 && $key === 0) {
                     $key = $translation;
-                } elseif ($translation !== $defaultNamespace) {
+                } elseif ($translation !== $defaultNamespace && $translation !== '*') {
                     $key = preg_replace('/^panneau\:\:/', '', $translation) . '.' . $key;
                 }
                 $messages[$key] = preg_replace('/\:([a-z][a-z0-9\_\-]+)/', '{$1}', $value);
