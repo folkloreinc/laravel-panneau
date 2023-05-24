@@ -117,7 +117,7 @@ class ResourceIntl implements IntlContract, Arrayable
             $data['values'] = $values;
         }
         $messages = $this->messages();
-        if (isset($messages)) {
+        if (isset($messages) && !empty($messages)) {
             $data['messages'] = $messages;
         }
         return sizeof($data) > 0 ? $data : null;
