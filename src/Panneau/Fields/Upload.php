@@ -10,6 +10,8 @@ class Upload extends Field
 
     protected $withButton = false;
 
+    protected $withFind = false;
+
     protected static $globalEndpoint = null;
 
     public function type(): string
@@ -26,6 +28,7 @@ class Upload extends Field
     {
         return array_merge(parent::attributes(), [
             'withButton' => $this->withButton,
+            'withFind' => $this->withFind,
             'namePath' => 'name',
             'sizePath' => 'metadata.size',
             'endpoint' => $this->endpoint ?? (self::$globalEndpoint ?? route('panneau.upload')),
@@ -41,6 +44,12 @@ class Upload extends Field
     public function withButton()
     {
         $this->withButton = true;
+        return $this;
+    }
+
+    public function withFind()
+    {
+        $this->withFind = true;
         return $this;
     }
 
