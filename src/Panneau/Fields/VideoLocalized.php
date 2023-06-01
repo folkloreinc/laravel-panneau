@@ -2,16 +2,18 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\LocalizedField;
-
-class VideoLocalized extends LocalizedField
+class VideoLocalized extends UploadLocalized
 {
-    protected $withButton = false;
-
     public function field($locale)
     {
         $video = new Video($locale);
-        return $this->withButton ? $video->withButton() : $video;
+        if ($this->withButton) {
+            $video->withButton();
+        }
+        if ($this->withFind) {
+            $video->withFind();
+        }
+        return $video;
     }
 
     public function components(): ?array
@@ -19,11 +21,5 @@ class VideoLocalized extends LocalizedField
         return [
             'display' => 'video',
         ];
-    }
-
-    public function withButton()
-    {
-        $this->withButton = true;
-        return $this;
     }
 }

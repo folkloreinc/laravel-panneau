@@ -2,19 +2,16 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\LocalizedField;
-
-class AudioLocalized extends LocalizedField
+class AudioLocalized extends UploadLocalized
 {
-    protected $endpoint = false;
-
-    protected $withButton = false;
-
     public function field($locale)
     {
         $audio = new Audio($locale);
         if ($this->withButton) {
             $audio->withButton();
+        }
+        if ($this->withFind) {
+            $audio->withFind();
         }
         if (isset($this->endpoint)) {
             $audio->withEndpoint($this->endpoint);
@@ -27,17 +24,5 @@ class AudioLocalized extends LocalizedField
         return [
             'display' => 'image',
         ];
-    }
-
-    public function withEndpoint($endpoint)
-    {
-        $this->endpoint = $endpoint;
-        return $this;
-    }
-
-    public function withButton()
-    {
-        $this->withButton = true;
-        return $this;
     }
 }

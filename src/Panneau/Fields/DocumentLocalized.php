@@ -2,19 +2,16 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\LocalizedField;
-
-class DocumentLocalized extends LocalizedField
+class DocumentLocalized extends UploadLocalized
 {
-    protected $endpoint = false;
-
-    protected $withButton = false;
-
     public function field($locale)
     {
         $document = new Document($locale);
         if ($this->withButton) {
             $document->withButton();
+        }
+        if ($this->withFind) {
+            $document->withFind();
         }
         if (isset($this->endpoint)) {
             $document->withEndpoint($this->endpoint);
@@ -27,17 +24,5 @@ class DocumentLocalized extends LocalizedField
         return [
             'display' => 'document',
         ];
-    }
-
-    public function withEndpoint($endpoint)
-    {
-        $this->endpoint = $endpoint;
-        return $this;
-    }
-
-    public function withButton()
-    {
-        $this->withButton = true;
-        return $this;
     }
 }

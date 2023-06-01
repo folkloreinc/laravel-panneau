@@ -2,19 +2,16 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\LocalizedField;
-
-class ImageLocalized extends LocalizedField
+class ImageLocalized extends UploadLocalized
 {
-    protected $endpoint = false;
-
-    protected $withButton = false;
-
     public function field($locale)
     {
         $image = new Image($locale);
         if ($this->withButton) {
             $image->withButton();
+        }
+        if ($this->withFind) {
+            $image->withFind();
         }
         if (isset($this->endpoint)) {
             $image->withEndpoint($this->endpoint);
@@ -27,17 +24,5 @@ class ImageLocalized extends LocalizedField
         return [
             'display' => 'image',
         ];
-    }
-
-    public function withEndpoint($endpoint)
-    {
-        $this->endpoint = $endpoint;
-        return $this;
-    }
-
-    public function withButton()
-    {
-        $this->withButton = true;
-        return $this;
     }
 }
