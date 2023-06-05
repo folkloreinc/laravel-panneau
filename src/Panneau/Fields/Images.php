@@ -2,7 +2,7 @@
 
 namespace Panneau\Fields;
 
-class Images extends Items
+class Images extends UploadItems
 {
     public function field(): ?string
     {

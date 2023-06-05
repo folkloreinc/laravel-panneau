@@ -2,7 +2,7 @@
 
 namespace Panneau\Fields;
 
-class Videos extends Items
+class Videos extends UploadItems
 {
     public function field(): ?string
     {

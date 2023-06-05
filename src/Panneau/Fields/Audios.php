@@ -2,7 +2,7 @@
 
 namespace Panneau\Fields;
 
-class Audios extends Items
+class Audios extends UploadItems
 {
     public function field(): ?string
     {

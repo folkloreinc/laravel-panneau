@@ -11,7 +11,11 @@ return [
     'no_audios' => 'Aucune audio',
     'add_audio' => 'Ajouter une audio',
 
-    'video' => 'Video',
+    'video' => 'Vidéo',
     'no_videos' => 'Aucune vidéo',
     'add_video' => 'Ajouter une vidéo',
+
+    'document' => 'Document',
+    'no_documents' => 'Aucun document',
+    'add_document' => 'Ajouter un document',
 ];
