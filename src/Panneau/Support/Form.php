@@ -17,13 +17,6 @@ abstract class Form implements FormContract, Arrayable
 
     private static $defaultSettings = [];
 
-    protected $container;
-
-    public function __construct(Container $container)
-    {
-        $this->container = $container;
-    }
-
     public function id(): string
     {
         return Str::camel(preg_replace('/Form$/', '', class_basename(get_class($this))));
