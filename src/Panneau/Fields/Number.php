@@ -19,6 +19,6 @@ class Number extends Field
 
     public function rules(Request $request): ?array
     {
-        return ['numeric'];
+        return ['numeric', 'nullable'];
     }
 }

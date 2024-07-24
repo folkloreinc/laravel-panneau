@@ -19,6 +19,6 @@ class Url extends Text
 
     public function rules(Request $request): ?array
     {
-        return ['url'];
+        return ['url', 'nullable'];
     }
 }
