@@ -8,7 +8,11 @@ class EmbedLocalized extends LocalizedField
 {
     public function field($locale)
     {
-        return new Embed($locale);
+        $field = new Embed($locale);
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
     public function components(): ?array

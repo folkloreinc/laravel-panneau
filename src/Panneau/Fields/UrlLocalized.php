@@ -8,7 +8,11 @@ class UrlLocalized extends LocalizedField
 {
     public function field($locale)
     {
-        return new Url($locale);
+        $field = new Url($locale);
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
     public function components(): ?array

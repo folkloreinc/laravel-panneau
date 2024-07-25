@@ -6,17 +6,20 @@ class AudioLocalized extends UploadLocalized
 {
     public function field($locale)
     {
-        $audio = new Audio($locale);
+        $field = new Audio($locale);
         if ($this->withButton) {
-            $audio->withButton();
+            $field->withButton();
         }
         if ($this->withFind) {
-            $audio->withFind();
+            $field->withFind();
         }
         if (isset($this->endpoint)) {
-            $audio->withEndpoint($this->endpoint);
+            $field->withEndpoint($this->endpoint);
         }
-        return $audio;
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
     public function components(): ?array

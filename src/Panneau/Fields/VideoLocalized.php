@@ -6,14 +6,17 @@ class VideoLocalized extends UploadLocalized
 {
     public function field($locale)
     {
-        $video = new Video($locale);
+        $field = new Video($locale);
         if ($this->withButton) {
-            $video->withButton();
+            $field->withButton();
         }
         if ($this->withFind) {
-            $video->withFind();
+            $field->withFind();
         }
-        return $video;
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
     public function components(): ?array

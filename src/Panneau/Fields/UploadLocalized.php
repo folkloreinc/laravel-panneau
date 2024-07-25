@@ -14,17 +14,20 @@ class UploadLocalized extends LocalizedField
 
     public function field($locale)
     {
-        $upload = new Upload($locale);
+        $field = new Upload($locale);
         if ($this->withButton) {
-            $upload->withButton();
+            $field->withButton();
         }
         if ($this->withFind) {
-            $upload->withFind();
+            $field->withFind();
         }
         if (isset($this->endpoint)) {
-            $upload->withEndpoint($this->endpoint);
+            $field->withEndpoint($this->endpoint);
         }
-        return $upload;
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
     public function components(): ?array

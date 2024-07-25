@@ -9,6 +9,9 @@ class HtmlLocalized extends LocalizedField
     public function field($locale)
     {
         $field = new Html($locale);
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
         return $field;
     }
 

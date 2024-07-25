@@ -6,17 +6,20 @@ class DocumentLocalized extends UploadLocalized
 {
     public function field($locale)
     {
-        $document = new Document($locale);
+        $field = new Document($locale);
         if ($this->withButton) {
-            $document->withButton();
+            $field->withButton();
         }
         if ($this->withFind) {
-            $document->withFind();
+            $field->withFind();
         }
         if (isset($this->endpoint)) {
-            $document->withEndpoint($this->endpoint);
+            $field->withEndpoint($this->endpoint);
         }
-        return $document;
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
     public function components(): ?array

@@ -6,17 +6,20 @@ class ImageLocalized extends UploadLocalized
 {
     public function field($locale)
     {
-        $image = new Image($locale);
+        $field = new Image($locale);
         if ($this->withButton) {
-            $image->withButton();
+            $field->withButton();
         }
         if ($this->withFind) {
-            $image->withFind();
+            $field->withFind();
         }
         if (isset($this->endpoint)) {
-            $image->withEndpoint($this->endpoint);
+            $field->withEndpoint($this->endpoint);
         }
-        return $image;
+        if ($this->disabled) {
+            $field->isDisabled();
+        }
+        return $field;
     }
 
     public function components(): ?array
