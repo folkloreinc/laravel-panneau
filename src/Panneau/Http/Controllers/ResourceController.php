@@ -149,7 +149,7 @@ class ResourceController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for deleting the specified resource.
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
@@ -179,5 +179,32 @@ class ResourceController extends Controller
         return response()->json([
             'success' => $success,
         ]);
+    }
+
+    /**
+     * Show the form for duplicating the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function duplicate(Request $request)
+    {
+        $resource = $this->getResourceFromRequest($request);
+        return $this->show($request);
+    }
+
+    public function clone(Request $request)
+    {
+        $resource = $this->getResourceFromRequest($request);
+        $id = $request->route('id');
+        $repository = $resource->makeRepository();
+        $item = $repository->findById($id);
+        if (is_null($item)) {
+            return abort(404);
+        }
+        $data = $resource->makeJsonResource($item)->toJson();
+        $json = json_decode($data, true);
+        $copy = $repository->create($json);
+        return redirect(route(config('panneau.prefix', 'panneau') . '.resources.' . $resource->id() . '.edit', ['id' => $copy->id()]));
     }
 }
