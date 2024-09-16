@@ -112,11 +112,18 @@ class Router implements RouterContract
             $resourceRoutes->names($this->namePrefix . 'resources.' . $id);
         }
 
-        $route = $this->router->get($id . '/{id}/delete', $controller . '@delete');
+        $deleteRoute = $this->router->get($id . '/{id}/delete', $controller . '@delete');
         if ($defaultRoutes) {
-            $route->name($this->namePrefix . 'resources.delete');
+            $deleteRoute->name($this->namePrefix . 'resources.delete');
         } else {
-            $route->name($this->namePrefix . 'resources.' . $id . '.delete');
+            $deleteRoute->name($this->namePrefix . 'resources.' . $id . '.delete');
+        }
+
+        $duplicateRoute = $this->router->get($id . '/{id}/duplicate', $controller . '@duplicate');
+        if ($defaultRoutes) {
+            $duplicateRoute->name($this->namePrefix . 'resources.duplicate');
+        } else {
+            $duplicateRoute->name($this->namePrefix . 'resources.' . $id . '.duplicate');
         }
     }
 
