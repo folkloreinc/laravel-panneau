@@ -7,6 +7,7 @@ use Panneau\Http\Requests\ResourceStoreRequest;
 use Panneau\Http\Requests\ResourceUpdateRequest;
 use Panneau\Contracts\Resource;
 use Illuminate\Container\Container;
+use JsonSerializable;
 
 class ResourceController extends Controller
 {
@@ -43,6 +44,13 @@ class ResourceController extends Controller
             'count',
             $this->isPaginated($request, $resource) ? $this->defaultPageCount : null
         );
+    }
+
+    protected function getCloneJsonResourceFromItem(Request $request, Resource $resource, $item)
+    {
+        $jsonResource = $resource->makeJsonResource($item);
+        $data = $jsonResource->toJson();
+        return json_decode($data, true);
     }
 
     protected function isPaginated(Request $request, Resource $resource)
@@ -202,9 +210,8 @@ class ResourceController extends Controller
         if (is_null($item)) {
             return abort(404);
         }
-        $data = $resource->makeJsonResource($item)->toJson();
-        $json = json_decode($data, true);
-        $copy = $repository->create($json);
+        $data = $this->getCloneJsonResourceFromItem($request, $resource, $item);
+        $copy = $repository->create($data);
         return redirect(route(config('panneau.prefix', 'panneau') . '.resources.' . $resource->id() . '.edit', ['id' => $copy->id()]));
     }
 }
