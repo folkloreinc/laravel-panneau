@@ -125,6 +125,13 @@ class Router implements RouterContract
         } else {
             $duplicateRoute->name($this->namePrefix . 'resources.' . $id . '.duplicate');
         }
+
+        $cloneRoute = $this->router->post($id . '/{id}/clone', $controller . '@clone');
+        if ($defaultRoutes) {
+            $cloneRoute->name($this->namePrefix . 'resources.clone');
+        } else {
+            $cloneRoute->name($this->namePrefix . 'resources.' . $id . '.clone');
+        }
     }
 
     public function resourceFromRoute(Route $route): ResourceContract
