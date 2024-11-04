@@ -40,23 +40,23 @@ class Router implements RouterContract
 
     public function group($group)
     {
-        $router = $this->router->namespace('\Panneau\Http\Controllers');
+        $routerGroup = $this->router;
 
         if (isset($this->prefix)) {
-            $router->prefix($this->prefix);
+            $routerGroup = $routerGroup->prefix($this->prefix);
         }
 
         if (isset($this->middleware)) {
-            $router->middleware($this->middleware);
+            $routerGroup = $routerGroup->middleware($this->middleware);
         }
 
-        return $router->group($group);
+        return $routerGroup->group($group);
     }
 
     public function resources($options = [])
     {
         $middleware = $options['middleware'] ?? [];
-        $controller = $options['controller'] ?? '\\Panneau\Http\Controllers\ResourceController';
+        $controller = $options['controller'] ?? \Panneau\Http\Controllers\ResourceController::class;
 
         $this->router->middleware($middleware)->group(function () use ($controller) {
             $this->panneau
@@ -112,21 +112,21 @@ class Router implements RouterContract
             $resourceRoutes->names($this->namePrefix . 'resources.' . $id);
         }
 
-        $deleteRoute = $this->router->get($id . '/{id}/delete', $controller . '@delete');
+        $deleteRoute = $this->router->get($id . '/{id}/delete', [$controller, 'delete']);
         if ($defaultRoutes) {
             $deleteRoute->name($this->namePrefix . 'resources.delete');
         } else {
             $deleteRoute->name($this->namePrefix . 'resources.' . $id . '.delete');
         }
 
-        $duplicateRoute = $this->router->get($id . '/{id}/duplicate', $controller . '@duplicate');
+        $duplicateRoute = $this->router->get($id . '/{id}/duplicate', [$controller, 'duplicate']);
         if ($defaultRoutes) {
             $duplicateRoute->name($this->namePrefix . 'resources.duplicate');
         } else {
             $duplicateRoute->name($this->namePrefix . 'resources.' . $id . '.duplicate');
         }
 
-        $cloneRoute = $this->router->post($id . '/{id}/clone', $controller . '@clone');
+        $cloneRoute = $this->router->post($id . '/{id}/clone', [$controller, 'clone']);
         if ($defaultRoutes) {
             $cloneRoute->name($this->namePrefix . 'resources.clone');
         } else {
