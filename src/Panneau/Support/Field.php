@@ -367,6 +367,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return !is_null($attributes) ? array_merge($data, $attributes) : $data;
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();

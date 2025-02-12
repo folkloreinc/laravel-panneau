@@ -233,6 +233,7 @@ abstract class Resource implements ResourceContract, Arrayable
         return $data;
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();

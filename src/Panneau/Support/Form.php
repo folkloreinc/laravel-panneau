@@ -70,6 +70,7 @@ abstract class Form implements FormContract, Arrayable
         return $data;
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();

@@ -123,6 +123,7 @@ class ResourceIntl implements IntlContract, Arrayable
         return sizeof($data) > 0 ? $data : null;
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();

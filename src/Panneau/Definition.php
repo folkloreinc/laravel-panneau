@@ -66,6 +66,7 @@ class Definition implements DefinitionContract, Arrayable, Jsonable
         return $data;
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();

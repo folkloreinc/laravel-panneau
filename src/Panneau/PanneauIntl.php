@@ -76,6 +76,7 @@ class PanneauIntl implements PanneauIntlContract, Arrayable, Jsonable
         ];
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();

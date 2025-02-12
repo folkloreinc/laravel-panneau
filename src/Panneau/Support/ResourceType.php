@@ -101,6 +101,7 @@ abstract class ResourceType implements ResourceTypeContract, Arrayable, Jsonable
         return $data;
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();
