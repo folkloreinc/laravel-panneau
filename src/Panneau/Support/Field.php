@@ -142,15 +142,17 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         return null;
     }
 
-    public function getRulesFromRequest(Request $request, array $rules = []): array
-    {
+    public function getRulesFromRequest(
+        Request $request,
+        array $rules = [],
+        ?string $parent = null
+    ): array {
         $computedRules = $this->rules($request);
         $rules = $this->rules;
         $propertyRules = $rules instanceof Closure ? $rules($request) : $rules;
         $fieldRules = array_merge(
             $this->nullable ? ['nullable'] : [],
             !is_null($computedRules) ? $computedRules : [],
-            !is_null($propertyRules) ? $propertyRules : [],
             !is_null($propertyRules) ? $propertyRules : []
         );
 
