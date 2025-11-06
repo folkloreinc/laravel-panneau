@@ -8,6 +8,8 @@ use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Closure;
+use Panneau\Fields\Fields;
+use Panneau\Fields\Item;
 
 abstract class Field implements FieldContract, Arrayable, Jsonable
 {
@@ -148,18 +150,29 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $fieldRules = array_merge(
             $this->nullable ? ['nullable'] : [],
             !is_null($computedRules) ? $computedRules : [],
+            !is_null($propertyRules) ? $propertyRules : [],
             !is_null($propertyRules) ? $propertyRules : []
         );
 
-        $name = $this->name();
         $required = $this->required();
-
         $allRules = $required ? array_merge(['required'], $fieldRules) : $fieldRules;
+
+        $name = isset($parent) && !empty($parent) ? $parent . '.' . $this->name() : $this->name();
+        $subRules =
+            $this instanceof Fields || $this instanceof Item
+                ? collect($this->fields())->reduce(function ($acc, $field) use ($request, $name) {
+                    return array_merge($acc, $field->getRulesFromRequest($request, $acc, $name));
+                }, [])
+                : [];
+
         return !is_null($allRules) && sizeof($allRules)
-            ? [
-                $name => $allRules,
-            ]
-            : [];
+            ? array_merge(
+                [
+                    $name => $allRules,
+                ],
+                $subRules
+            )
+            : $subRules;
     }
 
     public function withName($name)

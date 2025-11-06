@@ -49,15 +49,19 @@ abstract class LocalizedField extends Field
         return $properties;
     }
 
-    public function getRulesFromRequest(Request $request, array $rules = []): array
-    {
-        $rules = parent::getRulesFromRequest($request);
+    public function getRulesFromRequest(
+        Request $request,
+        array $rules = [],
+        ?string $parent = null
+    ): array {
+        $rules = parent::getRulesFromRequest($request, [], $parent);
         if ($this->required()) {
             $locales = is_array($this->localesRequired)
                 ? $this->localesRequired
                 : $this->getLocales();
             foreach ($locales as $locale) {
-                $rules[$this->name() . '.' . $locale] = ['required'];
+                $name = !empty($parent) ? $parent . '.' . $this->name() : $this->name();
+                $rules[$name . '.' . $locale] = ['required'];
             }
         }
         return $rules;
