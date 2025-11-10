@@ -156,7 +156,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             !is_null($propertyRules) ? $propertyRules : []
         );
 
-        $required = $this->required();
+        $required = $this->required() && is_null($parent); // only top-level fields can be required
         $allRules = $required ? array_merge(['required'], $fieldRules) : $fieldRules;
 
         $name = isset($parent) && !empty($parent) ? $parent . '.' . $this->name() : $this->name();

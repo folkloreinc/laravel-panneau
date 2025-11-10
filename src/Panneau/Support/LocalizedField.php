@@ -55,7 +55,7 @@ abstract class LocalizedField extends Field
         ?string $parent = null
     ): array {
         $rules = parent::getRulesFromRequest($request, [], $parent);
-        if ($this->required()) {
+        if ($this->required() && is_null($parent)) {
             $locales = is_array($this->localesRequired)
                 ? $this->localesRequired
                 : $this->getLocales();
@@ -75,7 +75,7 @@ abstract class LocalizedField extends Field
         return static::$locales;
     }
 
-    public static function setLocalesResolver(Closure $resolver = null)
+    public static function setLocalesResolver(?Closure $resolver = null)
     {
         static::$localesResolver = $resolver;
     }
