@@ -163,7 +163,10 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $subRules =
             $this instanceof Fields || $this instanceof Item
                 ? collect($this->fields())->reduce(function ($acc, $field) use ($request, $name) {
-                    return array_merge($acc, $field->getRulesFromRequest($request, $acc, $name));
+                    return array_merge(
+                        $acc,
+                        !is_array($field) ? $field->getRulesFromRequest($request, $acc, $name) : []
+                    );
                 }, [])
                 : [];
 
