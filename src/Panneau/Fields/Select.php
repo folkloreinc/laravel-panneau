@@ -7,6 +7,9 @@ use Panneau\Support\Field;
 class Select extends Field
 {
     protected $options = [];
+
+    protected $multiple = false;
+
     protected $withoutReset = false;
 
     public function type(): string
@@ -31,6 +34,7 @@ class Select extends Field
         return array_merge(parent::attributes(), [
             'options' => $this->options(),
             'withoutReset' => $this->withoutReset,
+            'multiple' => $this->multiple,
         ]);
     }
 
@@ -48,6 +52,12 @@ class Select extends Field
     public function withoutReset()
     {
         $this->withoutReset = true;
+        return $this;
+    }
+
+    public function multiple()
+    {
+        $this->multiple = true;
         return $this;
     }
 }
