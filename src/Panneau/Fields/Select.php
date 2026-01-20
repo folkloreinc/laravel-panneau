@@ -8,9 +8,9 @@ class Select extends Field
 {
     protected $options = [];
 
-    protected $multiple = false;
-
     protected $withoutReset = false;
+
+    protected $multiple = false;
 
     public function type(): string
     {
