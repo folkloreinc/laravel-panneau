@@ -41,6 +41,7 @@ class ServiceProvider extends BaseServiceProvider
 
             $router = new \Panneau\Router($panneau, $this->app['router']);
             $router->setPrefix($config->get('panneau.routes.prefix'));
+            $router->setDomain($config->get('panneau.routes.domain'));
             $router->setNamePrefix(
                 $config->get(
                     'panneau.routes.name_prefix',

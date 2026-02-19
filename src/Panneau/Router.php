@@ -18,6 +18,8 @@ class Router implements RouterContract
 
     protected $prefix = 'panneau';
 
+    protected $domain = null;
+
     protected $middleware = null;
 
     protected $customRoutes = [];
@@ -41,6 +43,10 @@ class Router implements RouterContract
     public function group($group)
     {
         $routerGroup = $this->router;
+
+        if (isset($this->domain)) {
+            $routerGroup = $routerGroup->domain($this->domain);
+        }
 
         if (isset($this->prefix)) {
             $routerGroup = $routerGroup->prefix($this->prefix);
@@ -275,6 +281,11 @@ class Router implements RouterContract
     public function setNamePrefix($prefix)
     {
         $this->namePrefix = $prefix;
+    }
+
+    public function setDomain($domain)
+    {
+        $this->domain = $domain;
     }
 
     public function setPrefix($prefix)
