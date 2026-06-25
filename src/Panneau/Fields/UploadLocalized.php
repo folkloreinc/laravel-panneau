@@ -6,11 +6,11 @@ use Panneau\Support\LocalizedField;
 
 class UploadLocalized extends LocalizedField
 {
-    protected $endpoint = false;
+    protected ?string $endpoint = null;
 
     protected $withButton = false;
 
-    public function field($locale)
+    public function field(string $locale)
     {
         $field = new Upload($locale);
         if ($this->withButton) {
@@ -32,7 +32,7 @@ class UploadLocalized extends LocalizedField
         ];
     }
 
-    public function withEndpoint($endpoint)
+    public function withEndpoint(?string $endpoint)
     {
         $this->endpoint = $endpoint;
         return $this;

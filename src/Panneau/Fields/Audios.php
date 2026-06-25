@@ -6,7 +6,7 @@ class Audios extends Medias
 {
     public function field(): ?string
     {
-        return Audio::class;
+        return $this->uploadOnly ? AudioUpload::class : Audio::class;
     }
 
     public function attributes(): ?array

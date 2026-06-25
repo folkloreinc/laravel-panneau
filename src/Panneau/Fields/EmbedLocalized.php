@@ -6,7 +6,7 @@ use Panneau\Support\LocalizedField;
 
 class EmbedLocalized extends LocalizedField
 {
-    public function field($locale)
+    public function field(string $locale)
     {
         $field = new Embed($locale);
         if ($this->disabled) {

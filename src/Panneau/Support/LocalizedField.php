@@ -13,7 +13,7 @@ abstract class LocalizedField extends Field
 
     protected $localesRequired;
 
-    abstract public function field($locale);
+    abstract public function field(string $locale);
 
     public function type(): string
     {

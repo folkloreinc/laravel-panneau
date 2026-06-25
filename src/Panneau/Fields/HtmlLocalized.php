@@ -6,7 +6,7 @@ use Panneau\Support\LocalizedField;
 
 class HtmlLocalized extends LocalizedField
 {
-    public function field($locale)
+    public function field(string $locale)
     {
         $field = new Html($locale);
         if ($this->disabled) {

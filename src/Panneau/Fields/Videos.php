@@ -6,7 +6,7 @@ class Videos extends Medias
 {
     public function field(): ?string
     {
-        return Video::class;
+        return $this->uploadOnly ? VideoUpload::class : Video::class;
     }
 
     public function attributes(): ?array

@@ -6,7 +6,7 @@ use Panneau\Support\LocalizedField;
 
 class UrlLocalized extends LocalizedField
 {
-    public function field($locale)
+    public function field(string $locale)
     {
         $field = new Url($locale);
         if ($this->disabled) {

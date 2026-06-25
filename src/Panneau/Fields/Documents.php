@@ -6,7 +6,7 @@ class Documents extends Medias
 {
     public function field(): ?string
     {
-        return Document::class;
+        return $this->uploadOnly ? DocumentUpload::class : Document::class;
     }
 
     public function attributes(): ?array

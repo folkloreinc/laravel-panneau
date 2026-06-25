@@ -6,7 +6,7 @@ class Images extends Medias
 {
     public function field(): ?string
     {
-        return Image::class;
+        return $this->uploadOnly ? ImageUpload::class : Image::class;
     }
 
     public function attributes(): ?array

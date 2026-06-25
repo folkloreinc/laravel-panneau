@@ -8,7 +8,7 @@ class TextLocalized extends LocalizedField
 {
     protected $textarea = false;
 
-    public function field($locale)
+    public function field(string $locale)
     {
         $field = new Text($locale);
         if ($this->textarea) {
