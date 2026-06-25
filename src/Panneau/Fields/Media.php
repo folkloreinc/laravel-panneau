@@ -11,6 +11,13 @@ class Media extends Upload
         return $this->uploadOnly ? 'upload' : 'media';
     }
 
+    public function components(): ?array
+    {
+        return [
+            'display' => 'media',
+        ];
+    }
+
     public function uploadOnly()
     {
         $this->uploadOnly = true;

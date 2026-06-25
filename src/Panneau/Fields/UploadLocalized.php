@@ -25,13 +25,6 @@ class UploadLocalized extends LocalizedField
         return $field;
     }
 
-    public function components(): ?array
-    {
-        return [
-            'display' => 'image',
-        ];
-    }
-
     public function withEndpoint(?string $endpoint)
     {
         $this->endpoint = $endpoint;
