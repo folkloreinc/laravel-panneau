@@ -2,7 +2,7 @@
 
 namespace Panneau\Fields;
 
-class Documents extends UploadItems
+class Documents extends Medias
 {
     public function field(): ?string
     {

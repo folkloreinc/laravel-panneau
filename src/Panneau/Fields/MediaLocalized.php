@@ -2,17 +2,21 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\LocalizedField;
-
-class UploadLocalized extends LocalizedField
+class MediaLocalized extends UploadLocalized
 {
     protected $endpoint = false;
 
     protected $withButton = false;
 
+    protected $uploadOnly = false;
+
+    protected $fieldClass = Media::class;
+    protected $uploadFieldClass = Upload::class;
+
     public function field($locale)
     {
-        $field = new Upload($locale);
+        $fieldClass = $this->uploadOnly ? $this->uploadFieldClass : $this->fieldClass;
+        $field = new $fieldClass($locale);
         if ($this->withButton) {
             $field->withButton();
         }
@@ -25,22 +29,9 @@ class UploadLocalized extends LocalizedField
         return $field;
     }
 
-    public function components(): ?array
+    public function uploadOnly()
     {
-        return [
-            'display' => 'image',
-        ];
-    }
-
-    public function withEndpoint($endpoint)
-    {
-        $this->endpoint = $endpoint;
-        return $this;
-    }
-
-    public function withButton()
-    {
-        $this->withButton = true;
+        $this->uploadOnly = true;
         return $this;
     }
 }

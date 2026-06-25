@@ -2,10 +2,10 @@
 
 namespace Panneau\Fields;
 
-class Document extends Upload
+class Document extends Media
 {
     public function component(): string
     {
-        return 'document';
+        return $this->uploadOnly ? 'document_upload' : 'document';
     }
 }

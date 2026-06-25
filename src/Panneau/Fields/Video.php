@@ -2,11 +2,11 @@
 
 namespace Panneau\Fields;
 
-class Video extends Upload
+class Video extends Media
 {
     public function component(): string
     {
-        return 'video';
+        return $this->uploadOnly ? 'video_upload' : 'video';
     }
 
     public function components(): ?array

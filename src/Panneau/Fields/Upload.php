@@ -6,13 +6,11 @@ use Panneau\Support\Field;
 
 class Upload extends Field
 {
-    protected $endpoint = null;
+    protected ?string $endpoint = null;
 
-    protected $withButton = false;
+    protected bool $withButton = false;
 
-    protected $withFind = false;
-
-    protected static $globalEndpoint = null;
+    protected static ?string $globalEndpoint = null;
 
     public function type(): string
     {
@@ -27,15 +25,14 @@ class Upload extends Field
     public function attributes(): ?array
     {
         return array_merge(parent::attributes(), [
-            'withButton' => $this->withButton,
-            'withFind' => $this->withFind,
             'namePath' => 'name',
+            'withButton' => $this->withButton,
             'sizePath' => 'metadata.size',
-            'endpoint' => $this->endpoint ?? (self::$globalEndpoint ?? route('panneau.upload')),
+            'endpoint' => $this->endpoint ?? (self::getEndpoint() ?? route('panneau.upload')),
         ]);
     }
 
-    public function withEndpoint($endpoint)
+    public function withEndpoint(?string $endpoint)
     {
         $this->endpoint = $endpoint;
         return $this;
@@ -47,14 +44,13 @@ class Upload extends Field
         return $this;
     }
 
-    public function withFind()
-    {
-        $this->withFind = true;
-        return $this;
-    }
-
-    public static function setEndpoint($endpoint)
+    public static function setEndpoint(?string $endpoint)
     {
         self::$globalEndpoint = $endpoint;
+    }
+
+    public static function getEndpoint()
+    {
+        return self::$globalEndpoint;
     }
 }

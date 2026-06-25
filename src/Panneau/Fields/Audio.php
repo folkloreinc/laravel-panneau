@@ -2,10 +2,10 @@
 
 namespace Panneau\Fields;
 
-class Audio extends Upload
+class Audio extends Media
 {
     public function component(): string
     {
-        return 'audio';
+        return $this->uploadOnly ? 'audio_upload' : 'audio';
     }
 }

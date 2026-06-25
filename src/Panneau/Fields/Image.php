@@ -2,11 +2,11 @@
 
 namespace Panneau\Fields;
 
-class Image extends Upload
+class Image extends Media
 {
     public function component(): string
     {
-        return 'image';
+        return $this->uploadOnly ? 'image_upload' : 'image';
     }
 
     public function components(): ?array
