@@ -50,11 +50,11 @@ class ServiceProvider extends BaseServiceProvider
             );
             $router->setMiddleware($config->get('panneau.routes.middleware'));
             $router->setCustomRoutes($config->get('panneau.routes.custom', []));
-
-            $panneau->booted(function () use ($router) {
-                $router->boot();
-            });
             return $router;
+        });
+
+        $this->app['panneau']->booted(function () {
+            $this->app['panneau.router']->boot();
         });
     }
 

@@ -10,10 +10,6 @@ use Illuminate\Routing\Route;
 
 class Router implements RouterContract
 {
-    protected $panneau;
-
-    protected $router;
-
     protected $namePrefix = 'panneau.';
 
     protected $prefix = 'panneau';
@@ -24,10 +20,8 @@ class Router implements RouterContract
 
     protected $customRoutes = [];
 
-    public function __construct(PanneauContract $panneau, BaseRouter $router)
+    public function __construct(protected PanneauContract $panneau, protected BaseRouter $router)
     {
-        $this->panneau = $panneau;
-        $this->router = $router;
     }
 
     public function boot()
@@ -54,6 +48,10 @@ class Router implements RouterContract
 
         if (isset($this->middleware)) {
             $routerGroup = $routerGroup->middleware($this->middleware);
+        }
+
+        if (isset($this->namePrefix) && !empty($this->namePrefix)) {
+            $routerGroup = $routerGroup->name($this->namePrefix);
         }
 
         return $routerGroup->group($group);
@@ -90,7 +88,7 @@ class Router implements RouterContract
         $this->router
             ->get('/login', [$loginController, 'create'])
             ->middleware(['guest:' . $guard])
-            ->name($this->namePrefix . 'auth.login');
+            ->name('auth.login');
 
         $limiter = config('fortify.limiters.login');
 
@@ -99,11 +97,11 @@ class Router implements RouterContract
             ->middleware(
                 array_filter(['guest:' . $guard, $limiter ? 'throttle:' . $limiter : null])
             )
-            ->name($this->namePrefix . 'auth.login.store');
+            ->name('auth.login.store');
 
         $this->router
             ->post('/logout', [$loginController, 'destroy'])
-            ->name($this->namePrefix . 'auth.logout');
+            ->name('auth.logout');
     }
 
     protected function registerResourceRoutes($id, $controller, $defaultRoutes = true)
@@ -113,30 +111,30 @@ class Router implements RouterContract
         ]);
 
         if ($defaultRoutes) {
-            $resourceRoutes->names($this->namePrefix . 'resources');
+            $resourceRoutes->names('resources');
         } else {
-            $resourceRoutes->names($this->namePrefix . 'resources.' . $id);
+            $resourceRoutes->names('resources.' . $id);
         }
 
         $deleteRoute = $this->router->get($id . '/{id}/delete', [$controller, 'delete']);
         if ($defaultRoutes) {
-            $deleteRoute->name($this->namePrefix . 'resources.delete');
+            $deleteRoute->name('resources.delete');
         } else {
-            $deleteRoute->name($this->namePrefix . 'resources.' . $id . '.delete');
+            $deleteRoute->name('resources.' . $id . '.delete');
         }
 
         $duplicateRoute = $this->router->get($id . '/{id}/duplicate', [$controller, 'duplicate']);
         if ($defaultRoutes) {
-            $duplicateRoute->name($this->namePrefix . 'resources.duplicate');
+            $duplicateRoute->name('resources.duplicate');
         } else {
-            $duplicateRoute->name($this->namePrefix . 'resources.' . $id . '.duplicate');
+            $duplicateRoute->name('resources.' . $id . '.duplicate');
         }
 
         $cloneRoute = $this->router->post($id . '/{id}/clone', [$controller, 'clone']);
         if ($defaultRoutes) {
-            $cloneRoute->name($this->namePrefix . 'resources.clone');
+            $cloneRoute->name('resources.clone');
         } else {
-            $cloneRoute->name($this->namePrefix . 'resources.' . $id . '.clone');
+            $cloneRoute->name('resources.' . $id . '.clone');
         }
     }
 

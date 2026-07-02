@@ -11,12 +11,17 @@ class Items extends Field
         return 'array';
     }
 
-    public function itemField(): ?string
+    public function field(): ?string
     {
         return null;
     }
 
-    public function field(): ?string
+    public function fields(): ?array
+    {
+        return null;
+    }
+
+    public function types(): ?array
     {
         return null;
     }
@@ -29,19 +34,19 @@ class Items extends Field
     public function attributes(): ?array
     {
         // Single field
-        $singleField = $this->field();
-        $singleField = !is_null($singleField) ? resolve($singleField) : null;
-        $field = !is_null($singleField) && $singleField instanceof Field ? $singleField : null;
+        $field = $this->field();
+        $field = !is_null($field) ? resolve($field) : null;
+        $singleField =
+            !is_null($field) && $field instanceof Field && !$field instanceof Fields
+                ? $field
+                : null;
+        $fields = !is_null($field) && $field instanceof Fields ? $field->fields() : $this->fields();
 
-        // Multiple fields
-        $itemField = $this->itemField();
-        $itemField = !is_null($itemField) ? resolve($itemField) : null;
-        $fields = !is_null($itemField) && $itemField instanceof Item ? $itemField->fields() : null;
 
         // With types
         $itemResource =
-            !is_null($itemField) && $itemField instanceof ResourceItem
-                ? $itemField->makeResource()
+            !is_null($singleField) && $singleField instanceof ResourceItem
+                ? $singleField->makeResource()
                 : null;
         $resourceTypes =
             !is_null($itemResource) && $itemResource->hasTypes() ? $itemResource->getTypes() : null;
@@ -49,15 +54,18 @@ class Items extends Field
         $attributes = [
             'withoutFormGroup' => true,
         ];
-        
-        if (!is_null($field)) {
-            $attributes['itemField'] = $field->toArray();
-        } else if (!is_null($fields)) {
+
+        if (!is_null($singleField)) {
+            $attributes['itemField'] = $singleField->toArray();
+        } elseif (!is_null($fields)) {
             $attributes['itemFields'] = collect($fields)->toArray();
         }
 
+        $types = $this->types();
         if (!is_null($resourceTypes)) {
             $attributes['types'] = $resourceTypes->toArray();
+        } elseif (!is_null($types)) {
+            $attributes['types'] = $types;
         }
 
         return $attributes;
