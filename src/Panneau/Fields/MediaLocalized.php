@@ -4,10 +4,6 @@ namespace Panneau\Fields;
 
 class MediaLocalized extends UploadLocalized
 {
-    protected $endpoint = false;
-
-    protected $withButton = false;
-
     protected $uploadOnly = false;
 
     protected $fieldClass = Media::class;
