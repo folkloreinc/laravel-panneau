@@ -4,13 +4,14 @@ namespace Panneau\Fields;
 
 class MediaLocalized extends UploadLocalized
 {
-    protected $endpoint = false;
+    protected ?string $endpoint = null;
 
     protected $withButton = false;
 
     protected $uploadOnly = false;
 
     protected $fieldClass = Media::class;
+
     protected $uploadFieldClass = Upload::class;
 
     public function field(string $locale)
@@ -20,7 +21,7 @@ class MediaLocalized extends UploadLocalized
         if ($this->withButton) {
             $field->withButton();
         }
-        if (isset($this->endpoint)) {
+        if (isset($this->endpoint) && method_exists($field, 'withEndpoint')) {
             $field->withEndpoint($this->endpoint);
         }
         if ($this->disabled) {
