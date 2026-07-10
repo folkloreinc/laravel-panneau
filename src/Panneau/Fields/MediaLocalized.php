@@ -4,7 +4,7 @@ namespace Panneau\Fields;
 
 class MediaLocalized extends UploadLocalized
 {
-    protected ?string $endpoint = null;
+    protected ?string $endpoint = null; // For compat
 
     protected $withButton = false;
 
