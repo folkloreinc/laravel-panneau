@@ -73,7 +73,7 @@ class Panneau implements PanneauContract
         return new Definition($this, $this->app);
     }
 
-    public function resources(array $resources = null)
+    public function resources(?array $resources = null)
     {
         if (!is_null($resources)) {
             $this->resources = array_merge($this->resources, $resources);
@@ -107,7 +107,7 @@ class Panneau implements PanneauContract
         return $this->app['panneau.router'];
     }
 
-    public function settings(array $settings = null)
+    public function settings(?array $settings = null)
     {
         if (!is_null($settings)) {
             $this->settings = array_merge($this->settings ?? [], $settings);

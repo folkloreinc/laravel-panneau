@@ -12,7 +12,7 @@ interface Panneau
 
     public function definition(): Definition;
 
-    public function resources(array $resources = null);
+    public function resources(?array $resources = null);
 
     public function resource($id): ?Resource;
 
@@ -20,5 +20,5 @@ interface Panneau
 
     public function router(): Router;
 
-    public function settings(array $settings = null);
+    public function settings(?array $settings = null);
 }
