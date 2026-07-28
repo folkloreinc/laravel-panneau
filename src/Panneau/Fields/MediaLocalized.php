@@ -7,6 +7,7 @@ class MediaLocalized extends UploadLocalized
     protected $uploadOnly = false;
 
     protected $fieldClass = Media::class;
+
     protected $uploadFieldClass = Upload::class;
 
     public function field(string $locale)
