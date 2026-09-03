@@ -13,6 +13,8 @@ abstract class LocalizedField extends Field
 
     protected $localesRequired;
 
+    protected $fieldAttributes = [];
+
     abstract public function field(string $locale);
 
     public function type(): string
@@ -33,6 +35,12 @@ abstract class LocalizedField extends Field
         ];
     }
 
+    public function withFieldAttributes(array $attributes): self
+    {
+        $this->fieldAttributes = $attributes;
+        return $this;
+    }
+
     public function isRequired(?array $locales = null)
     {
         parent::isRequired();
@@ -44,7 +52,7 @@ abstract class LocalizedField extends Field
     {
         $properties = [];
         foreach (static::getLocales() as $locale) {
-            $properties[$locale] = $this->field($locale);
+            $properties[$locale] = $this->field($locale)->withAttributes($this->fieldAttributes);
         }
         return $properties;
     }
