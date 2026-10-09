@@ -5,11 +5,13 @@ namespace Panneau\Support;
 use Panneau\Contracts\Field as FieldContract;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Closure;
 use Panneau\Fields\Fields;
 use Panneau\Fields\Item;
+use Panneau\Fields\Items;
 
 abstract class Field implements FieldContract, Arrayable, Jsonable
 {
@@ -178,6 +180,83 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
                 $subRules
             )
             : $subRules;
+    }
+
+    /**
+     * Prepare the value received from the form, before it is validated and saved.
+     */
+    public function prepareValue($value)
+    {
+        return $value;
+    }
+
+    /**
+     * Prepare the value of this field, and of its sub fields, in the request data.
+     */
+    public function prepareRequestData(array $data, ?string $parent = null): array
+    {
+        $name = $this->name();
+        if (is_null($name) && $this instanceof Fields) {
+            return static::prepareFieldsRequestData($this->fields() ?? [], $data, $parent);
+        }
+        $path = !empty($parent) ? $parent . '.' . $name : $name;
+        if (is_null($name) || !Arr::has($data, $path)) {
+            return $data;
+        }
+        Arr::set($data, $path, $this->prepareRequestValue(Arr::get($data, $path)));
+        return $data;
+    }
+
+    protected function prepareRequestValue($value)
+    {
+        if (is_array($value)) {
+            $value = $this->prepareSubFieldsValue($value);
+        }
+        return $this->prepareValue($value);
+    }
+
+    protected function prepareSubFieldsValue(array $value): array
+    {
+        // Object with fields
+        if ($this instanceof Fields || $this instanceof Item) {
+            $value = static::prepareFieldsRequestData($this->fields() ?? [], $value);
+        }
+
+        // Object with properties (ex: localized fields)
+        $properties = $this->type() === 'object' ? $this->properties() : null;
+        foreach ($properties ?? [] as $key => $property) {
+            $property = is_string($property) ? $property::make($key) : $property;
+            if ($property instanceof Field && array_key_exists($key, $value)) {
+                $value[$key] = $property->prepareRequestValue($value[$key]);
+            }
+        }
+
+        // List of items, with a single field or with fields
+        if ($this instanceof Items && Arr::isList($value)) {
+            $itemField = !is_null($this->field()) ? resolve($this->field()) : null;
+            $itemFields = $itemField instanceof Fields ? $itemField->fields() : $this->fields();
+            $value = array_map(function ($item) use ($itemField, $itemFields) {
+                if ($itemField instanceof Field && !$itemField instanceof Fields) {
+                    return $itemField->prepareRequestValue($item);
+                }
+                return !is_null($itemFields) && is_array($item)
+                    ? static::prepareFieldsRequestData($itemFields, $item)
+                    : $item;
+            }, $value);
+        }
+
+        return $value;
+    }
+
+    public static function prepareFieldsRequestData(
+        array $fields,
+        array $data,
+        ?string $parent = null
+    ): array {
+        return collect($fields)->reduce(function ($data, $field) use ($parent) {
+            $field = is_string($field) ? resolve($field) : $field;
+            return $field instanceof Field ? $field->prepareRequestData($data, $parent) : $data;
+        }, $data);
     }
 
     public function withName($name)

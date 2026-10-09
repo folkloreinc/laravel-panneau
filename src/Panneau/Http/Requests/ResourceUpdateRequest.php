@@ -3,9 +3,12 @@
 namespace Panneau\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Panneau\Http\Requests\Concerns\PreparesFieldsValues;
 
 class ResourceUpdateRequest extends FormRequest
 {
+    use PreparesFieldsValues;
+
     /**
      * Determine if the user is authorized to make this request.
      *
