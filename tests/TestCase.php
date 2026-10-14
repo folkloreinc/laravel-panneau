@@ -31,6 +31,9 @@ class TestCase extends BaseTestCase
         parent::setUp();
 
         app('panneau')->routes();
+
+        // Routes registered after the app has booted need their name lookups refreshed
+        app('router')->getRoutes()->refreshNameLookups();
     }
 
     protected function getPackageProviders($app)
