@@ -13,9 +13,9 @@ return [
 
     'video' => 'Video',
     'no_videos' => 'No video',
-    'add_video' => 'Add a vidéo',
+    'add_video' => 'Add a video',
 
-    'image' => 'Document',
-    'no_images' => 'No document',
-    'add_image' => 'Add a document',
+    'document' => 'Document',
+    'no_documents' => 'No document',
+    'add_document' => 'Add a document',
 ];
