@@ -26,6 +26,8 @@ class ResourceItems extends Items
 
     public function types(): ?array
     {
-        return $this->makeResource()->hasTypes() ? $this->makeResource()->getTypes() : null;
+        return $this->makeResource()->hasTypes()
+            ? $this->makeResource()->getTypes()->toArray()
+            : null;
     }
 }
