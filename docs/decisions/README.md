@@ -6,7 +6,7 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 |---|---|---|
 | [0001](0001-reference-implementation.md) | `laravel-panneau` is the reference implementation of the protocol | Accepted |
 | [0002](0002-secure-by-default.md) | Secure by default | Accepted |
-| [0003](0003-resources.md) | Resources use instance methods and Eloquent, with no item contract | Accepted |
+| [0003](0003-resources.md) | Resources are backed by repositories, with no item contract | Accepted |
 | [0004](0004-install-command.md) | `panneau:install` replaces the generated boilerplate | Accepted |
 | [0005](0005-auth.md) | Auth modes and guards | Accepted |
 | [0006](0006-supported-versions.md) | PHP 8.3+ and Laravel 12+ | Proposed |

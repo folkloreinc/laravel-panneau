@@ -2,7 +2,7 @@
 
 Status: accepted direction for 5.0. The examples show the intended API; names can still change during Phase 1.
 
-`laravel-panneau` 5 is the reference implementation of the [Panneau protocol](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/protocol.md). It turns PHP resource classes into a definition, and Eloquent models into protocol responses.
+`laravel-panneau` 5 is the reference implementation of the [Panneau protocol](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/protocol.md). It turns PHP resource classes into a definition, and the items of a repository (Entities, Eloquent models or any object) into protocol responses.
 
 ## Installation
 
@@ -30,26 +30,35 @@ With `--upgrade`, it migrates a v1 project's configuration and removes the files
 
 ## Resources
 
-A resource describes how a model appears in the admin. Configuration is done through instance methods, not static properties.
+A resource describes how a set of items appears in the admin: its fields, layout, list and actions. It is **backed by a repository, not by a model** (see [decisions/0003](decisions/0003-resources.md)). Configuration is done through instance methods, not static properties.
+
+### With Folklore entities and repositories
+
+Folklore projects keep their Entities and Repositories. The resource points to the repository contract, and the `Entities` adapter registered by the `laravel-folklore` plugin does the rest.
 
 ```php
-final class PageResource extends Resource
+final class PagesResource extends Resource
 {
-    public function model(): string
+    public function repository(): string
     {
-        return Page::class;
+        return \Folklore\Contracts\Repositories\Pages::class; // resolved from the container
+    }
+
+    public function itemClass(): string
+    {
+        return \Folklore\Contracts\Entities\Page::class; // for policies and types
     }
 
     public function fields(): array
     {
         return [
             Text::make('title')->localized()->required()->max(120),
-            Slug::make('slug')->from('title')->localized(),
+            PageSlug::make('slug')->localized(),
             RichText::make('body')->localized(),
             Media::make('image')->accept('image/*'),
             Select::make('status')->options(PageStatus::class)->required(),
             DateTime::make('published_at'),
-            Relation::make('author')->resource(AuthorResource::class),
+            Relation::make('author')->resource(AuthorsResource::class),
         ];
     }
 
@@ -79,22 +88,81 @@ final class PageResource extends Resource
 
     public function actions(): array
     {
-        return [PublishPages::class];
+        return [PublishPages::class, DeleteAction::class];
     }
 
-    public function query(Builder $query, Request $request): Builder
+    public function scope(Request $request): array
     {
-        return $query->whereBelongsTo($request->user()->workspace);
+        return ['organisation_id' => $request->user()->organisationId()]; // passed to setGlobalQuery()
+    }
+
+    public function toItem(object $page): array
+    {
+        return PageResource::make($page)->resolve(); // the project's existing JsonResource
     }
 }
 ```
 
+### With an Eloquent model
+
+A project without entities can start from a model. `model()` replaces `repository()`, and the package's `EloquentRepository` is used.
+
+```php
+final class TagsResource extends Resource
+{
+    public function model(): string
+    {
+        return Tag::class;
+    }
+
+    public function fields(): array
+    {
+        return [Text::make('name')->required(), Slug::make('slug')->from('name')];
+    }
+
+    public function scope(Request $request): array
+    {
+        return ['workspace_id' => $request->user()->workspace_id];
+    }
+}
+```
+
+The resource can move to a repository later without changing its fields, layout, list or actions.
+
+### Repositories
+
+`ResourceRepository` is the only data contract Panneau knows:
+
+```php
+interface ResourceRepository
+{
+    public function query(ResourceQuery $query): Paginator; // filters, sort, search, page, scope
+    public function find(string $id, array $scope): ?object;
+    public function create(array $values, array $scope): object;
+    public function update(object $item, array $values): object;
+    public function delete(object $item): void;
+    public function id(object $item): string;
+    public function version(object $item): ?string; // null disables If-Match
+}
+```
+
+- **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, and `ChunkedQuery` (for queued actions). Actions and features that need one are only offered when the repository has it.
+- **Adapters:**
+  - `EloquentRepository` (package) implements the contract for a model.
+  - The `laravel-folklore` adapter wraps any `Folklore\Contracts\Repositories\Entities`. It maps the `ResourceQuery` to `get(params, page, count)` (`queryColumns`, `order`, `order_direction`, the `offset_paginator`), and values to `create()` and `update()`. It reads the version from `updated_at` through `HasModel`, or from the Entity's `version()`.
+  - Other packages or projects register their own adapters by contract: `Panneau::repositoryAdapter(Contract::class, Adapter::class)`. Niche, for example, would register one for its workspace-scoped repositories.
+- **Items** are any object. Panneau never asks them to implement one of its interfaces.
+
+### Resource behaviour
+
 - **Registration.** Resources are registered in the service provider (`Panneau::resources([...])`), or discovered in `app/Panneau/Resources`.
-- **Data access.** Eloquent is the default. A resource can return a custom `ResourceRepository` from `repository()` when the data is not an Eloquent model.
-- **Scoping.** `query()` scopes every operation: list, show, update, delete and actions. This is where tenant isolation goes.
-- **Public ids.** `routeKey()` chooses the attribute used as the public id, such as a `uid` column for prefixed ULIDs.
-- **Serialization.** By default, an item is serialized from its declared fields only, plus `id`, `version` and `abilities`. `toItem()` can be overridden, or a `JsonResource` can be used.
-- **Hooks.** `creating`, `created`, `updating`, `updated`, `deleting` and `saved` replace most of the custom controllers of v1.
+- **Scoping.** `scope()` gives the repository its scope for every operation: list, find, create, update, delete and actions. This is where tenant or organisation isolation goes.
+- **Public ids.** The repository's `id()` decides the public id: a numeric id, a UUID, or a `uid` column with prefixed ULIDs.
+- **Serialization:**
+  - `toItem()` or `jsonResource()` serializes an item; Panneau adds `id`, `version` and `abilities`.
+  - With `EloquentRepository` and no `toItem()`, items are serialized from their declared fields only.
+- **Policies.** Policies receive the item. For Entities, they are registered on the Entity contract (`Gate::policy(PageContract::class, PagePolicy::class)`); Laravel resolves policies through interfaces. `itemClass()` is the class used for resource-level abilities (`viewAny`, `create`).
+- **Hooks.** `creating`, `created`, `updating`, `updated`, `deleting` and `saved` receive the values and the item. They replace most of the custom controllers of v1.
 - **Types.** Variants of a resource with their own fields, such as page types, are declared with `types()`.
 
 ## Fields
@@ -109,7 +177,8 @@ final class PageResource extends Resource
   - `localized()`, `readOnly()`, `visibleWhen()`;
   - `createOnly()`, `updateOnly()`.
 - **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
-- **Persistence** can be customized per field (`fillUsing`, `resolveUsing`). `Relation` syncs Eloquent relations, and `Media` stores media references.
+- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Folklore repositories already handle these values: `data` JSON attributes, relations and media.
+- **Eloquent.** With `EloquentRepository`, persistence can be customized per field (`fillUsing`, `resolveUsing`). `Relation` syncs Eloquent relations, and `Media` stores media references.
 - **Field types from other packages** (such as the `laravel-folklore` plugin) extend `Field` and declare the protocol type and the JS plugin that renders them.
 
 ## Actions
@@ -134,12 +203,12 @@ final class PublishPages extends Action
         return Confirm::make(__('Publish :count pages?'));
     }
 
-    public function authorize(User $user, Model $page): bool
+    public function authorize(User $user, object $page): bool
     {
         return $user->can('publish', $page);
     }
 
-    public function handle(Collection $pages, ActionValues $values, ActionResult $result): ActionResult
+    public function handle(Collection $pages, ActionValues $values, ActionResult $result): ActionResult // Entities in Folklore projects
     {
         foreach ($pages as $page) {
             if ($page->title === null) {
@@ -160,7 +229,7 @@ final class PublishPages extends Action
 - **Declaration.** `label()`, `icon()`, `scope()`, `placement()`, `destructive()`, `confirm()`, `fields()` and `layout()` are serialized into the definition. The action id is derived from the class name (`publish-pages`), or set with `id()`.
 - **Kinds.** Server actions extend `Action`. `LinkAction::make('preview')->url(...)` and `ClientAction::make('copy-link')->component('copy-link')` cover the two other kinds, with no PHP logic.
 - **Selection:**
-  - The controller resolves the selection through the resource's `query()`, then applies the ids, or the list filters and search of a query selection, then the exclusions.
+  - The controller resolves the selection through the resource's repository and `scope()`: it applies the ids, or the list filters and search of a query selection, then the exclusions.
   - A selection never reaches items outside the resource's scope.
 - **Authorization:**
   - `authorize()` runs for every item. By default it calls the Policy method named after the action (`publishPages`), and falls back to `update`.
@@ -176,13 +245,13 @@ final class PublishPages extends Action
   - an optional download, served through a temporary signed URL.
 - **Queued actions:**
   - An action that implements `ShouldQueue` runs on the queue. It does the same when the selection is larger than `config('panneau.actions.sync_limit')` (500 by default).
-  - Models are processed in chunks (`chunkSize()`), through a job batch.
+  - Items are processed in chunks (`chunkSize()`), through a job batch. This needs a repository with the `ChunkedQuery` capability.
   - Progress and results are stored in a `panneau_action_runs` table, and `ActionRunFinished` is dispatched at the end.
   - An action that can't be queued refuses selections above the limit with a `422`.
 - **Built-in actions:**
-  - `DuplicateAction`: `replicate()` plus the resource's `duplicating` hook.
+  - `DuplicateAction`: for repositories that are `Duplicable` (`replicate()` with Eloquent), plus the resource's `duplicating` hook.
   - `DeleteAction`.
-  - `RestoreAction`: for models with soft deletes.
+  - `RestoreAction`: for repositories that are `Restorable`.
   - `ExportAction`: CSV, or XLSX with an optional dependency; queued.
   - `ImportAction`: file field and column mapping; validates each row with the resource's rules; queued.
 
@@ -195,8 +264,8 @@ final class PublishPages extends Action
   - definition, resources, actions and action runs;
   - media, auth, account;
   - search, dashboard widgets, preview.
-- **Authorization.** Every operation calls the model's Policy (`viewAny`, `view`, `create`, `update`, `delete`). Actions authorize each item (see [Actions](#actions)). A resource whose model has no policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
-- **Validation.** Requests validate against the field rules, and only `validated()` data reaches the model.
+- **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
+- **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
 - **Query.** Filters, sorts and search only accept what the resource's list declares. The query string can't reach arbitrary columns.
 - **Responses:**
   - Errors on Panneau routes are rendered as `application/problem+json`.
@@ -221,15 +290,17 @@ See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://g
 
 ## Search and dashboard
 
-- **Global search** uses the resources' `search()` columns. It goes through Laravel Scout when the model is searchable: the MySQL database engine, or Meilisearch. Without Scout, it uses `LIKE` queries.
+- **Global search** uses the resources' `search()` columns. It goes through the repository's `Searchable` capability. `EloquentRepository` and the Folklore adapter use Laravel Scout when the model is searchable (MySQL database engine or Meilisearch), and `LIKE` queries otherwise.
 - **Dashboard widgets** are classes that declare their type and options, and return their data. They are registered per role in the service provider.
 
 ## laravel-folklore
 
-- **Contracts.** `laravel-folklore`'s `Entity` and `Entities` contracts stop extending Panneau's.
+- **Entities and repositories stay.** They remain the way Folklore projects access data. Only their contracts stop extending Panneau's: `Entity` keeps its own `id()`, and `Entities` no longer extends `Panneau\Contracts\Repository`.
 - **Plugin.** Its Panneau integration becomes a plugin that registers:
+  - the `ResourceRepository` adapter for `Folklore\Contracts\Repositories\Entities`;
   - the `Page`, `Pages`, `Block`, `Blocks` and `PageSlug` fields;
-  - the media adapter it needs.
+  - the media adapter it needs;
+  - the policies' base class for Entity contracts, if useful.
 
   The plugin ships with its JS counterpart, so projects stop copying the `PageSlug` components.
 
