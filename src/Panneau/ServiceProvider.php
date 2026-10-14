@@ -74,7 +74,8 @@ class ServiceProvider extends BaseServiceProvider
         $this->bootRoutes();
 
         LocalizedField::setLocalesResolver(function () {
-            return config('panneau.locales');
+            // panneau.locales is not in the published config, but projects may set it
+            return config('panneau.locales') ?? config('panneau.intl.locales');
         });
 
         $this->app['panneau']->boot();
