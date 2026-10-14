@@ -7,7 +7,7 @@ The migration strategy, order and v1 → 5 mapping are in [`panneau-js/docs/migr
 3. **Run `php artisan panneau:install --upgrade`.** It converts `config/panneau.php`, creates the service provider and routes file, and lists the generated v1 files that the package now provides.
 4. **Run the Rector rules.** They convert static properties to methods, rename field classes and turn `*Localized` fields into `->localized()`.
 5. **Move the rest by hand:**
-   - custom controllers to hooks and actions;
+   - custom controllers to hooks and `Action` classes: exports and imports to `ExportAction` and `ImportAction`, other operations on items to custom actions;
    - `routes/panneau.php` custom routes to actions or plugin pages;
    - `JsonResource` classes to `toItem()`, where it simplifies.
 6. **Write a Policy for every model** exposed as a resource. Nothing is reachable without one.

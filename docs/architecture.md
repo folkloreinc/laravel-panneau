@@ -112,14 +112,90 @@ final class PageResource extends Resource
 - **Persistence** can be customized per field (`fillUsing`, `resolveUsing`). `Relation` syncs Eloquent relations, and `Media` stores media references.
 - **Field types from other packages** (such as the `laravel-folklore` plugin) extend `Field` and declare the protocol type and the JS plugin that renders them.
 
+## Actions
+
+Laravel side of the [shared decision on actions](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0017-actions.md). An action is a class listed in the resource's `actions()`.
+
+```php
+final class PublishPages extends Action
+{
+    public function scope(): array
+    {
+        return [ActionScope::Item, ActionScope::Selection];
+    }
+
+    public function fields(): array
+    {
+        return [Boolean::make('notify')->label(__('Notify subscribers'))];
+    }
+
+    public function confirm(): ?Confirm
+    {
+        return Confirm::make(__('Publish :count pages?'));
+    }
+
+    public function authorize(User $user, Model $page): bool
+    {
+        return $user->can('publish', $page);
+    }
+
+    public function handle(Collection $pages, ActionValues $values, ActionResult $result): ActionResult
+    {
+        foreach ($pages as $page) {
+            if ($page->title === null) {
+                $result->failed($page, __('The title is required.'));
+
+                continue;
+            }
+
+            $page->publish(notify: $values->boolean('notify'));
+            $result->succeeded($page);
+        }
+
+        return $result->refresh(ActionRefresh::Items);
+    }
+}
+```
+
+- **Declaration.** `label()`, `icon()`, `scope()`, `placement()`, `destructive()`, `confirm()`, `fields()` and `layout()` are serialized into the definition. The action id is derived from the class name (`publish-pages`), or set with `id()`.
+- **Kinds.** Server actions extend `Action`. `LinkAction::make('preview')->url(...)` and `ClientAction::make('copy-link')->component('copy-link')` cover the two other kinds, with no PHP logic.
+- **Selection:**
+  - The controller resolves the selection through the resource's `query()`, then applies the ids, or the list filters and search of a query selection, then the exclusions.
+  - A selection never reaches items outside the resource's scope.
+- **Authorization:**
+  - `authorize()` runs for every item. By default it calls the Policy method named after the action (`publishPages`), and falls back to `update`.
+  - Items that are not allowed are reported as `skipped` with the reason `forbidden`.
+  - `authorizeResource()` decides whether the action appears at all.
+  - Item abilities serialize the allowed actions.
+- **Validation.** Parameters are validated like resource fields, with portable rules and server-only rules. `handle()` receives only validated values.
+- **Results.** `ActionResult` collects:
+  - succeeded, failed and skipped items;
+  - a message;
+  - what to refresh;
+  - an optional redirect;
+  - an optional download, served through a temporary signed URL.
+- **Queued actions:**
+  - An action that implements `ShouldQueue` runs on the queue. It does the same when the selection is larger than `config('panneau.actions.sync_limit')` (500 by default).
+  - Models are processed in chunks (`chunkSize()`), through a job batch.
+  - Progress and results are stored in a `panneau_action_runs` table, and `ActionRunFinished` is dispatched at the end.
+  - An action that can't be queued refuses selections above the limit with a `422`.
+- **Built-in actions:**
+  - `DuplicateAction`: `replicate()` plus the resource's `duplicating` hook.
+  - `DeleteAction`.
+  - `RestoreAction`: for models with soft deletes.
+  - `ExportAction`: CSV, or XLSX with an optional dependency; queued.
+  - `ImportAction`: file field and column mapping; validates each row with the resource's rules; queued.
+
+  Resources enable them in `actions()`, and can extend them.
+
 ## HTTP layer
 
 - **Routes are opt-in.** Nothing is registered until the project calls `Panneau::routes()`, usually in `routes/panneau.php`. Every route gets the middleware from `config('panneau.middleware')`, `['web', 'panneau.auth']` by default. See [decisions/0002](decisions/0002-secure-by-default.md).
 - **Generic controllers implement the protocol:**
-  - definition, resources, actions;
+  - definition, resources, actions and action runs;
   - media, auth, account;
   - search, dashboard widgets, preview.
-- **Authorization.** Every operation calls the model's Policy (`viewAny`, `view`, `create`, `update`, `delete`, plus one ability per action). A resource whose model has no policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
+- **Authorization.** Every operation calls the model's Policy (`viewAny`, `view`, `create`, `update`, `delete`). Actions authorize each item (see [Actions](#actions)). A resource whose model has no policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the model.
 - **Query.** Filters, sorts and search only accept what the resource's list declares. The query string can't reach arbitrary columns.
 - **Responses:**

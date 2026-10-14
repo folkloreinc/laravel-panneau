@@ -19,7 +19,7 @@ The package only knows a `Repository` contract and `ResourceItem` items. Each pr
 - **Eloquent is the default data source.** A resource can return a custom `ResourceRepository` for other sources.
 - **No item contract.** Items are models, or any object the repository knows how to serialize.
 - **Package-level settings** (locales, upload endpoints, URL resolvers) come from config or from the container, never from static setters.
-- **Resource actions** (`Action` classes, with their own fields and abilities) replace custom routes for operations on items.
+- **Resource actions** (`Action` classes, with their own fields and abilities) replace custom routes for operations on items, selections and whole resources. See the [shared decision on actions](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0017-actions.md) and [architecture.md](../architecture.md#actions).
 
 ## Consequences
 
