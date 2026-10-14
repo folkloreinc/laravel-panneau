@@ -324,7 +324,10 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     public function withProperties($properties)
     {
-        $this->properties = array_merge($this->properties, $properties);
+        $this->properties = array_merge(
+            !is_null($this->properties) ? $this->properties : [],
+            $properties
+        );
         return $this;
     }
 
