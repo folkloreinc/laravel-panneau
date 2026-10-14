@@ -39,6 +39,8 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public static $attributes = [];
 
+    public static $onlyDeclaredFields = null;
+
     private static $defaultSettings = [
         'hideInNavbar' => false,
         'indexIsPaginated' => true,
@@ -106,6 +108,11 @@ abstract class Resource implements ResourceContract, Arrayable
     public function translationsNamespace(): ?string
     {
         return 'panneau::resources.' . $this->id();
+    }
+
+    public function onlyDeclaredFields(): bool
+    {
+        return static::$onlyDeclaredFields ?? config('panneau.only_declared_fields', false);
     }
 
     public function indexIsPaginated(): bool
