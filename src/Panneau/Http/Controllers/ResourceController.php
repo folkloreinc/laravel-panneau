@@ -53,6 +53,26 @@ class ResourceController extends Controller
         return json_decode($data, true);
     }
 
+    protected function authorizeResourceAction(
+        Request $request,
+        Resource $resource,
+        string $ability,
+        $item = null
+    ) {
+        if (method_exists($resource, 'authorize') && !$resource->authorize($ability, $request, $item)) {
+            abort(403);
+        }
+    }
+
+    protected function authorizeItemAction(Request $request, Resource $resource, string $ability)
+    {
+        $item = $resource->makeRepository()->findById($request->route('id'));
+        if (is_null($item)) {
+            abort(404);
+        }
+        $this->authorizeResourceAction($request, $resource, $ability, $item);
+    }
+
     protected function isPaginated(Request $request, Resource $resource)
     {
         $paginated = $request->input('paginated', null);
@@ -69,6 +89,7 @@ class ResourceController extends Controller
     public function index(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
+        $this->authorizeResourceAction($request, $resource, 'viewAny');
         $repository = $resource->makeRepository();
         if ($request->wantsJson()) {
             $query = $this->getIndexQueryFromRequest($request, $resource);
@@ -87,6 +108,8 @@ class ResourceController extends Controller
      */
     public function create(Request $request)
     {
+        $resource = $this->getResourceFromRequest($request);
+        $this->authorizeResourceAction($request, $resource, 'create');
         return view('panneau::app');
     }
 
@@ -99,6 +122,7 @@ class ResourceController extends Controller
     public function store(ResourceStoreRequest $request)
     {
         $resource = $this->getResourceFromRequest($request);
+        $this->authorizeResourceAction($request, $resource, 'create');
         $repository = $resource->makeRepository();
         $data = $this->getStoreDataFromRequest($request);
         $item = $repository->create($data);
@@ -120,6 +144,7 @@ class ResourceController extends Controller
         if (is_null($item)) {
             return abort(404);
         }
+        $this->authorizeResourceAction($request, $resource, 'view', $item);
         return $request->wantsJson() ? $resource->makeJsonResource($item) : view('panneau::app');
     }
 
@@ -132,6 +157,7 @@ class ResourceController extends Controller
     public function edit(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
+        $this->authorizeItemAction($request, $resource, 'update');
         return $this->show($request);
     }
 
@@ -151,6 +177,7 @@ class ResourceController extends Controller
         if (is_null($item)) {
             return abort(404);
         }
+        $this->authorizeResourceAction($request, $resource, 'update', $item);
         $data = $this->getUpdateDataFromRequest($request);
         $item = $repository->update($item->id(), $data);
         return $resource->makeJsonResource($item);
@@ -165,6 +192,7 @@ class ResourceController extends Controller
     public function delete(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
+        $this->authorizeItemAction($request, $resource, 'delete');
         return $this->show($request);
     }
 
@@ -183,6 +211,7 @@ class ResourceController extends Controller
         if (is_null($item)) {
             return abort(404);
         }
+        $this->authorizeResourceAction($request, $resource, 'delete', $item);
         $success = $repository->destroy($id);
         return response()->json([
             'success' => $success,
@@ -198,6 +227,7 @@ class ResourceController extends Controller
     public function duplicate(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
+        $this->authorizeItemAction($request, $resource, 'clone');
         return $this->show($request);
     }
 
@@ -210,6 +240,7 @@ class ResourceController extends Controller
         if (is_null($item)) {
             return abort(404);
         }
+        $this->authorizeResourceAction($request, $resource, 'clone', $item);
         $data = $this->getCloneJsonResourceFromItem($request, $resource, $item);
         $copy = $repository->create($data);
         return redirect(route(config('panneau.prefix', 'panneau') . '.resources.' . $resource->id() . '.edit', ['id' => $copy->id()]));
