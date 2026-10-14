@@ -31,6 +31,9 @@ class TestCase extends BaseTestCase
         parent::setUp();
 
         app('panneau')->routes();
+
+        // Routes registered after boot keep stale name lookups until they are refreshed.
+        app('router')->getRoutes()->refreshNameLookups();
     }
 
     protected function getPackageProviders($app)

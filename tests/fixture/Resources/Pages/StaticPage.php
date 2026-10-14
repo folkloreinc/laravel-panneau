@@ -5,7 +5,7 @@ namespace TestApp\Resources\Pages;
 use Panneau\Support\ResourceType;
 use Panneau\Fields\Text;
 
-class Home extends ResourceType
+class StaticPage extends ResourceType
 {
     public function fields(): array
     {
