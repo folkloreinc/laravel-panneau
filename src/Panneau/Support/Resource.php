@@ -2,22 +2,20 @@
 
 namespace Panneau\Support;
 
-use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
-use Panneau\Contracts\Resource as ResourceContract;
+use Illuminate\Support\Str;
+use JsonSerializable;
+use Panneau\Contracts\HasResourceType;
 use Panneau\Contracts\Intl as IntlContract;
 use Panneau\Contracts\Repository;
+use Panneau\Contracts\Resource as ResourceContract;
 use Panneau\Contracts\ResourceItem;
-use Panneau\Contracts\HasResourceType;
-use JsonSerializable;
 
-abstract class Resource implements ResourceContract, Arrayable
+abstract class Resource implements Arrayable, ResourceContract
 {
     public static $repository;
 
@@ -107,7 +105,7 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function translationsNamespace(): ?string
     {
-        return 'panneau::resources.' . $this->id();
+        return 'panneau::resources.'.$this->id();
     }
 
     public function onlyDeclaredFields(): bool
@@ -132,9 +130,10 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function makeRepository(): Repository
     {
-        if (!isset($this->repositoryInstance)) {
+        if (! isset($this->repositoryInstance)) {
             $this->repositoryInstance = $this->container->make(static::$repository);
         }
+
         return $this->repositoryInstance;
     }
 
@@ -157,6 +156,7 @@ abstract class Resource implements ResourceContract, Arrayable
             }
         }
         $resourceClass = static::$jsonResource;
+
         return new $resourceClass($item);
     }
 
@@ -164,30 +164,35 @@ abstract class Resource implements ResourceContract, Arrayable
     {
         if (isset(static::$jsonCollection)) {
             $collectionClass = static::$jsonCollection;
+
             return new $collectionClass($resources);
         }
         $resourceClass = static::$jsonResource;
+
         return $resourceClass::collection($resources);
     }
 
     public function hasTypes(): bool
     {
         $types = $this->types();
-        return !is_null($types);
+
+        return ! is_null($types);
     }
 
     public function getTypes(): ?Collection
     {
-        if (!isset($this->typesInstances)) {
+        if (! isset($this->typesInstances)) {
             $this->typesInstances = $this->getTypesInstances();
         }
+
         return $this->typesInstances;
     }
 
     protected function getTypesInstances(): ?Collection
     {
         $types = $this->types();
-        return !is_null($types)
+
+        return ! is_null($types)
             ? collect($types)->map(function ($type, $key) {
                 if (is_string($type)) {
                     return $this->container->make($type, [
@@ -197,9 +202,10 @@ abstract class Resource implements ResourceContract, Arrayable
                 if (is_array($type)) {
                     return new ArrayResourceType(
                         $this,
-                        array_merge(!is_numeric($key) ? ['id' => $key] : [], $type)
+                        array_merge(! is_numeric($key) ? ['id' => $key] : [], $type)
                     );
                 }
+
                 return $type;
             })
             : null;
@@ -244,7 +250,7 @@ abstract class Resource implements ResourceContract, Arrayable
         }
 
         $attributes = $this->attributes();
-        if (isset($attributes) && !is_null($attributes)) {
+        if (isset($attributes) && ! is_null($attributes)) {
             return array_merge($data, $attributes);
         }
 

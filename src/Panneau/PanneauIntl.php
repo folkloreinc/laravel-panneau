@@ -4,14 +4,14 @@ namespace Panneau;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
-use Panneau\Contracts\PanneauIntl as PanneauIntlContract;
 use Panneau\Contracts\Definition as DefinitionContract;
+use Panneau\Contracts\PanneauIntl as PanneauIntlContract;
 
-class PanneauIntl implements PanneauIntlContract, Arrayable, Jsonable
+class PanneauIntl implements Arrayable, Jsonable, PanneauIntlContract
 {
     protected $definition;
+
     protected $app;
 
     public function __construct(DefinitionContract $definition, $app)
@@ -54,10 +54,10 @@ class PanneauIntl implements PanneauIntlContract, Arrayable, Jsonable
             }
             $texts = is_string($texts) ? [$texts] : Arr::dot($texts);
             foreach ($texts as $key => $value) {
-                if (sizeof($texts) === 1 && $key === 0) {
+                if (count($texts) === 1 && $key === 0) {
                     $key = $translation;
                 } elseif ($translation !== $defaultNamespace && $translation !== '*') {
-                    $key = preg_replace('/^panneau\:\:/', '', $translation) . '.' . $key;
+                    $key = preg_replace('/^panneau\:\:/', '', $translation).'.'.$key;
                 }
                 $messages[$key] = preg_replace('/\:([a-z][a-z0-9\_\-]+)/', '{$1}', $value);
             }

@@ -6,7 +6,6 @@ use Panneau\Support\Field;
 
 class Html extends Field
 {
-
     public function type(): string
     {
         return 'string';

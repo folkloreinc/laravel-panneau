@@ -3,8 +3,8 @@
 namespace Panneau;
 
 use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
-use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Contracts\Definition as DefinitionContract;
+use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Contracts\Resource as ResourceContract;
 use Panneau\Contracts\Router as RouterContract;
 use Panneau\Events\HandlingRequest;
@@ -75,15 +75,17 @@ class Panneau implements PanneauContract
 
     public function resources(?array $resources = null)
     {
-        if (!is_null($resources)) {
+        if (! is_null($resources)) {
             $this->resources = array_merge($this->resources, $resources);
             $this->resolvedResources = null;
+
             return $this;
         }
 
-        if (!isset($this->resolvedResources)) {
+        if (! isset($this->resolvedResources)) {
             $this->resolvedResources = $this->resolveResources();
         }
+
         return $this->resolvedResources;
     }
 
@@ -109,10 +111,12 @@ class Panneau implements PanneauContract
 
     public function settings(?array $settings = null)
     {
-        if (!is_null($settings)) {
+        if (! is_null($settings)) {
             $this->settings = array_merge($this->settings ?? [], $settings);
+
             return $this;
         }
+
         return $this->settings;
     }
 

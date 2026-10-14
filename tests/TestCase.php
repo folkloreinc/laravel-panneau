@@ -2,14 +2,17 @@
 
 namespace Panneau\Tests;
 
+use Illuminate\Foundation\Application;
 use Orchestra\Testbench\TestCase as BaseTestCase;
+use Panneau\ServiceProvider;
+use Panneau\Support\Facade;
 
 class TestCase extends BaseTestCase
 {
     /**
      * Define environment setup.
      *
-     * @param  \Illuminate\Foundation\Application  $app
+     * @param  Application  $app
      * @return void
      */
     protected function getEnvironmentSetUp($app)
@@ -20,13 +23,13 @@ class TestCase extends BaseTestCase
         // Database
         $app['config']->set('database.default', 'testbench');
         $app['config']->set('database.connections.testbench', [
-            'driver'   => 'sqlite',
+            'driver' => 'sqlite',
             'database' => ':memory:',
-            'prefix'   => '',
+            'prefix' => '',
         ]);
     }
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -39,14 +42,14 @@ class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
-            \Panneau\ServiceProvider::class
+            ServiceProvider::class,
         ];
     }
 
     protected function getPackageAliases($app)
     {
         return [
-            'Panneau' => \Panneau\Support\Facade::class,
+            'Panneau' => Facade::class,
         ];
     }
 }

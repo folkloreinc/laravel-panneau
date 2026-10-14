@@ -1,19 +1,20 @@
 <?php
+
 namespace Panneau\Tests\Feature;
 
 use Panneau\Tests\TestCase;
-use Illuminate\Support\Collection;
+use TestApp\Resources\PagesResource;
 
 class ControllerTest extends TestCase
 {
     protected $panneau;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
         $this->panneau = $this->app['panneau'];
-        $this->panneau->resources([\TestApp\Resources\PagesResource::class]);
+        $this->panneau->resources([PagesResource::class]);
     }
 
     /**
@@ -21,7 +22,7 @@ class ControllerTest extends TestCase
      *
      * @return void
      */
-    public function testIndex()
+    public function test_index()
     {
         $response = $this->json('GET', '/panneau/pages');
         // $response->dump();

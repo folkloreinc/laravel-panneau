@@ -12,6 +12,7 @@ class UrlLocalized extends LocalizedField
         if ($this->disabled) {
             $field->isDisabled();
         }
+
         return $field;
     }
 

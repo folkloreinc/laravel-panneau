@@ -2,11 +2,11 @@
 
 namespace TestApp\Repositories;
 
+use Faker\Factory as FakerFactory;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Panneau\Contracts\Repository as RepositoryContract;
 use Panneau\Contracts\ResourceItem as ResourceItemContract;
-use Illuminate\Support\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Faker\Factory as FakerFactory;
 
 abstract class Base implements RepositoryContract
 {
@@ -35,9 +35,10 @@ abstract class Base implements RepositoryContract
             return $this->filterItem($item, $query);
         });
         if (is_null($page)) {
-            return !is_null($count) ? $items->take($count) : $items;
+            return ! is_null($count) ? $items->take($count) : $items;
         }
         $pageItems = $items->forPage($page, $count);
+
         return new LengthAwarePaginator($pageItems, $items->count(), $count, $page);
     }
 
@@ -57,6 +58,7 @@ abstract class Base implements RepositoryContract
         $currentItem = $this->items->get($index);
         $newItem = $this->updateItem($currentItem, $data);
         $this->items->put($index, $newItem);
+
         return $newItem;
     }
 
@@ -65,6 +67,7 @@ abstract class Base implements RepositoryContract
         $this->items = $this->items->filter(function ($item) use ($id) {
             return $item->id() !== $id;
         });
+
         return true;
     }
 
@@ -77,6 +80,7 @@ abstract class Base implements RepositoryContract
         $currentData = [
             'id' => $item->id(),
         ];
+
         return $this->createItem(array_merge($currentData, $data));
     }
 
@@ -90,6 +94,7 @@ abstract class Base implements RepositoryContract
                     $this->generateItems($this->minimumItemsCount - $itemsCount)
                 )
                 : $providedItems;
+
         return $items->map(function ($item) {
             return is_array($item) ? $this->createItem($item) : $item;
         });
@@ -105,7 +110,7 @@ abstract class Base implements RepositoryContract
     protected function filterItem(ResourceItemContract $item, array $query): bool
     {
         return collect($query)->reduce(function ($match, $value, $key) use ($item) {
-            return $match && $item->{$key}() === $value;
+            return $match && $value === $item->{$key}();
         }, true);
     }
 }

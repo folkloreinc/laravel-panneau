@@ -1,4 +1,5 @@
 <?php
+
 namespace Panneau\Support;
 
 use Illuminate\Support\Facades\Facade as BaseFacade;

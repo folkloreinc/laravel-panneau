@@ -26,18 +26,21 @@ class RecordingRepository implements RepositoryContract
     public function create(array $data): ResourceItemContract
     {
         static::$calls[] = ['create', $data];
+
         return new PageItem(array_merge(['id' => '2'], $data));
     }
 
     public function update(string $id, array $data): ?ResourceItemContract
     {
         static::$calls[] = ['update', $id, $data];
+
         return new PageItem(array_merge(['id' => $id], $data));
     }
 
     public function destroy(string $id): bool
     {
         static::$calls[] = ['destroy', $id];
+
         return true;
     }
 }

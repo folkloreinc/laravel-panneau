@@ -2,8 +2,8 @@
 
 namespace Panneau\Contracts;
 
-use Illuminate\Routing\Route;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Routing\Route;
 
 interface Router extends Arrayable
 {

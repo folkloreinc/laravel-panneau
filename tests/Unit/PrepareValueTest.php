@@ -12,7 +12,7 @@ use Panneau\Tests\TestCase;
 
 class PrepareValueTest extends TestCase
 {
-    public function testDateTimeIsConvertedToAppTimezone()
+    public function test_date_time_is_converted_to_app_timezone()
     {
         config(['app.timezone' => 'UTC']);
         $field = DateTime::make('startsAt');
@@ -27,7 +27,7 @@ class PrepareValueTest extends TestCase
         );
     }
 
-    public function testDateTimeIsConvertedToNonUtcAppTimezone()
+    public function test_date_time_is_converted_to_non_utc_app_timezone()
     {
         config(['app.timezone' => 'America/Toronto']);
         $field = DateTime::make('startsAt');
@@ -38,7 +38,7 @@ class PrepareValueTest extends TestCase
         );
     }
 
-    public function testDateTimeKeepsEmptyOrInvalidValues()
+    public function test_date_time_keeps_empty_or_invalid_values()
     {
         $field = DateTime::make('startsAt');
 
@@ -47,14 +47,14 @@ class PrepareValueTest extends TestCase
         $this->assertEquals('not a date', $field->prepareValue('not a date'));
     }
 
-    public function testDateIsNotConverted()
+    public function test_date_is_not_converted()
     {
         config(['app.timezone' => 'UTC']);
 
         $this->assertEquals('2026-10-01', Date::make('publishedAt')->prepareValue('2026-10-01'));
     }
 
-    public function testNestedFieldsArePrepared()
+    public function test_nested_fields_are_prepared()
     {
         config(['app.timezone' => 'UTC']);
 
@@ -62,7 +62,8 @@ class PrepareValueTest extends TestCase
             Text::make('title'),
             DateTime::make('startsAt'),
             Fields::make('event')->withFields([DateTime::make('endsAt')]),
-            new class('dates') extends Items {
+            new class('dates') extends Items
+            {
                 public function fields(): ?array
                 {
                     return [DateTime::make('startsAt')];
@@ -88,7 +89,7 @@ class PrepareValueTest extends TestCase
         );
     }
 
-    public function testMissingValuesAreNotAdded()
+    public function test_missing_values_are_not_added()
     {
         $data = Field::prepareFieldsRequestData([DateTime::make('startsAt')], ['title' => 'Show']);
 

@@ -3,14 +3,13 @@
 namespace Panneau\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
+use Panneau\Contracts\Resource;
 use Panneau\Fields\Fields;
-use Panneau\Support\Field;
 use Panneau\Http\Requests\ResourceStoreRequest;
 use Panneau\Http\Requests\ResourceUpdateRequest;
-use Panneau\Contracts\Resource;
-use Illuminate\Container\Container;
-use JsonSerializable;
+use Panneau\Support\Field;
 
 class ResourceController extends Controller
 {
@@ -37,6 +36,7 @@ class ResourceController extends Controller
         $onlyDeclaredFields = method_exists($resource, 'onlyDeclaredFields')
             ? $resource->onlyDeclaredFields()
             : config('panneau.only_declared_fields', false);
+
         return $onlyDeclaredFields
             ? Arr::only($data, $this->getDeclaredFieldsNames($resource))
             : $data;
@@ -64,6 +64,7 @@ class ResourceController extends Controller
         }
 
         $names = $this->getFieldsNames($fields);
+
         return $resource->hasTypes() ? array_merge($names, ['type']) : $names;
     }
 
@@ -73,12 +74,13 @@ class ResourceController extends Controller
             ->flatMap(function ($field) {
                 $field = is_string($field) ? resolve($field) : $field;
                 $name = $field instanceof Field ? $field->name() : data_get($field, 'name');
-                if (!empty($name)) {
+                if (! empty($name)) {
                     // Keep the top-level key of dotted names (ex: "meta.title")
                     return [explode('.', $name)[0]];
                 }
                 // Fields without a name (ex: sections) save their sub fields at the top level
                 $subFields = $field instanceof Fields ? $field->fields() : data_get($field, 'fields');
+
                 return is_array($subFields) ? $this->getFieldsNames($subFields) : [];
             })
             ->unique()
@@ -108,6 +110,7 @@ class ResourceController extends Controller
     {
         $jsonResource = $resource->makeJsonResource($item);
         $data = $jsonResource->toJson();
+
         return json_decode($data, true);
     }
 
@@ -117,7 +120,7 @@ class ResourceController extends Controller
         string $ability,
         $item = null
     ) {
-        if (method_exists($resource, 'authorize') && !$resource->authorize($ability, $request, $item)) {
+        if (method_exists($resource, 'authorize') && ! $resource->authorize($ability, $request, $item)) {
             abort(403);
         }
     }
@@ -134,7 +137,8 @@ class ResourceController extends Controller
     protected function isPaginated(Request $request, Resource $resource)
     {
         $paginated = $request->input('paginated', null);
-        return !is_null($paginated)
+
+        return ! is_null($paginated)
             ? filter_var($paginated, FILTER_VALIDATE_BOOLEAN)
             : $resource->indexIsPaginated();
     }
@@ -142,7 +146,7 @@ class ResourceController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index(Request $request)
     {
@@ -154,28 +158,31 @@ class ResourceController extends Controller
             $page = $this->getPageFromRequest($request, $resource);
             $count = $this->getPageCountFromRequest($request, $resource);
             $items = $repository->get($query, $page, $count);
+
             return $resource->makeJsonCollection($items);
         }
+
         return view('panneau::app');
     }
 
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
         $this->authorizeResourceAction($request, $resource, 'create');
+
         return view('panneau::app');
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param  Request  $request
+     * @return Response
      */
     public function store(ResourceStoreRequest $request)
     {
@@ -184,6 +191,7 @@ class ResourceController extends Controller
         $repository = $resource->makeRepository();
         $data = $this->getStoreDataFromRequest($request);
         $item = $repository->create($data);
+
         return $resource->makeJsonResource($item);
     }
 
@@ -191,7 +199,7 @@ class ResourceController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show(Request $request)
     {
@@ -203,6 +211,7 @@ class ResourceController extends Controller
             return abort(404);
         }
         $this->authorizeResourceAction($request, $resource, 'view', $item);
+
         return $request->wantsJson() ? $resource->makeJsonResource($item) : view('panneau::app');
     }
 
@@ -210,21 +219,22 @@ class ResourceController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
         $this->authorizeItemAction($request, $resource, 'update');
+
         return $this->show($request);
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(ResourceUpdateRequest $request)
     {
@@ -238,6 +248,7 @@ class ResourceController extends Controller
         $this->authorizeResourceAction($request, $resource, 'update', $item);
         $data = $this->getUpdateDataFromRequest($request);
         $item = $repository->update($item->id(), $data);
+
         return $resource->makeJsonResource($item);
     }
 
@@ -245,12 +256,13 @@ class ResourceController extends Controller
      * Show the form for deleting the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function delete(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
         $this->authorizeItemAction($request, $resource, 'delete');
+
         return $this->show($request);
     }
 
@@ -258,7 +270,7 @@ class ResourceController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(Request $request)
     {
@@ -271,6 +283,7 @@ class ResourceController extends Controller
         }
         $this->authorizeResourceAction($request, $resource, 'delete', $item);
         $success = $repository->destroy($id);
+
         return response()->json([
             'success' => $success,
         ]);
@@ -280,12 +293,13 @@ class ResourceController extends Controller
      * Show the form for duplicating the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function duplicate(Request $request)
     {
         $resource = $this->getResourceFromRequest($request);
         $this->authorizeItemAction($request, $resource, 'clone');
+
         return $this->show($request);
     }
 
@@ -301,6 +315,7 @@ class ResourceController extends Controller
         $this->authorizeResourceAction($request, $resource, 'clone', $item);
         $data = $this->getCloneJsonResourceFromItem($request, $resource, $item);
         $copy = $repository->create($data);
-        return redirect(route(config('panneau.prefix', 'panneau') . '.resources.' . $resource->id() . '.edit', ['id' => $copy->id()]));
+
+        return redirect(route(config('panneau.prefix', 'panneau').'.resources.'.$resource->id().'.edit', ['id' => $copy->id()]));
     }
 }

@@ -21,12 +21,14 @@ class Text extends Field
     public function isTextarea()
     {
         $this->textarea = true;
+
         return $this;
     }
 
     public function isText()
     {
         $this->textarea = false;
+
         return $this;
     }
 }

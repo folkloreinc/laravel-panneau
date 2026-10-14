@@ -2,17 +2,20 @@
 
 namespace TestApp\Resources;
 
-use Panneau\Support\Resource;
 use Panneau\Fields\Text;
+use Panneau\Support\Resource;
+use TestApp\Http\Resources\PageResource;
+use TestApp\Repositories\PagesRepository;
+use TestApp\Resources\Pages\Home;
 
 class PagesResource extends Resource
 {
-    public static $repository = \TestApp\Repositories\PagesRepository::class;
+    public static $repository = PagesRepository::class;
 
-    public static $jsonResource = \TestApp\Http\Resources\PageResource::class;
+    public static $jsonResource = PageResource::class;
 
     public static $types = [
-        \TestApp\Resources\Pages\Home::class
+        Home::class,
     ];
 
     public function fields(): array

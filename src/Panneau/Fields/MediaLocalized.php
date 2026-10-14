@@ -23,12 +23,14 @@ class MediaLocalized extends UploadLocalized
         if ($this->disabled) {
             $field->isDisabled();
         }
+
         return $field;
     }
 
     public function uploadOnly()
     {
         $this->uploadOnly = true;
+
         return $this;
     }
 }

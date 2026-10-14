@@ -17,6 +17,7 @@ class TextLocalized extends LocalizedField
         if ($this->disabled) {
             $field->isDisabled();
         }
+
         return $field;
     }
 
@@ -30,12 +31,14 @@ class TextLocalized extends LocalizedField
     public function isTextarea()
     {
         $this->textarea = true;
+
         return $this;
     }
 
     public function isText()
     {
         $this->textarea = false;
+
         return $this;
     }
 }

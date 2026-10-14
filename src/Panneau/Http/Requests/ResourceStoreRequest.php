@@ -17,7 +17,8 @@ class ResourceStoreRequest extends FormRequest
     public function authorize()
     {
         $user = $this->user();
-        return !is_null($user);
+
+        return ! is_null($user);
     }
 
     /**
@@ -28,6 +29,7 @@ class ResourceStoreRequest extends FormRequest
     public function rules()
     {
         $resource = $this->resource();
+
         return collect($resource->fields())
             ->reduce(function ($acc, $field) {
                 return array_merge($acc, $field->getRulesFromRequest($this, $acc));

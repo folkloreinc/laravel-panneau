@@ -2,18 +2,18 @@
 
 namespace Panneau\Support;
 
-use Panneau\Contracts\Field as FieldContract;
+use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Closure;
+use Panneau\Contracts\Field as FieldContract;
 use Panneau\Fields\Fields;
 use Panneau\Fields\Item;
 use Panneau\Fields\Items;
 
-abstract class Field implements FieldContract, Arrayable, Jsonable
+abstract class Field implements Arrayable, FieldContract, Jsonable
 {
     protected $name;
 
@@ -67,7 +67,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
     public function label(): string
     {
-        return !is_null($this->label) ? $this->label : Str::title($this->name);
+        return ! is_null($this->label) ? $this->label : Str::title($this->name);
     }
 
     public function helpText(): ?string
@@ -154,25 +154,25 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         $propertyRules = $rules instanceof Closure ? $rules($request) : $rules;
         $fieldRules = array_merge(
             $this->nullable ? ['nullable'] : [],
-            !is_null($computedRules) ? $computedRules : [],
-            !is_null($propertyRules) ? $propertyRules : []
+            ! is_null($computedRules) ? $computedRules : [],
+            ! is_null($propertyRules) ? $propertyRules : []
         );
 
         $required = $this->required() && is_null($parent); // only top-level fields can be required
         $allRules = $required ? array_merge(['required'], $fieldRules) : $fieldRules;
 
-        $name = isset($parent) && !empty($parent) ? $parent . '.' . $this->name() : $this->name();
+        $name = isset($parent) && ! empty($parent) ? $parent.'.'.$this->name() : $this->name();
         $subRules =
             $this instanceof Fields || $this instanceof Item
                 ? collect($this->fields())->reduce(function ($acc, $field) use ($request, $name) {
                     return array_merge(
                         $acc,
-                        !is_array($field) ? $field->getRulesFromRequest($request, $acc, $name) : []
+                        ! is_array($field) ? $field->getRulesFromRequest($request, $acc, $name) : []
                     );
                 }, [])
                 : [];
 
-        return !is_null($allRules) && sizeof($allRules)
+        return ! is_null($allRules) && count($allRules)
             ? array_merge(
                 [
                     $name => $allRules,
@@ -199,11 +199,12 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         if (is_null($name) && $this instanceof Fields) {
             return static::prepareFieldsRequestData($this->fields() ?? [], $data, $parent);
         }
-        $path = !empty($parent) ? $parent . '.' . $name : $name;
-        if (is_null($name) || !Arr::has($data, $path)) {
+        $path = ! empty($parent) ? $parent.'.'.$name : $name;
+        if (is_null($name) || ! Arr::has($data, $path)) {
             return $data;
         }
         Arr::set($data, $path, $this->prepareRequestValue(Arr::get($data, $path)));
+
         return $data;
     }
 
@@ -212,6 +213,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         if (is_array($value)) {
             $value = $this->prepareSubFieldsValue($value);
         }
+
         return $this->prepareValue($value);
     }
 
@@ -233,13 +235,14 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
 
         // List of items, with a single field or with fields
         if ($this instanceof Items && Arr::isList($value)) {
-            $itemField = !is_null($this->field()) ? resolve($this->field()) : null;
+            $itemField = ! is_null($this->field()) ? resolve($this->field()) : null;
             $itemFields = $itemField instanceof Fields ? $itemField->fields() : $this->fields();
             $value = array_map(function ($item) use ($itemField, $itemFields) {
-                if ($itemField instanceof Field && !$itemField instanceof Fields) {
+                if ($itemField instanceof Field && ! $itemField instanceof Fields) {
                     return $itemField->prepareRequestValue($item);
                 }
-                return !is_null($itemFields) && is_array($item)
+
+                return ! is_null($itemFields) && is_array($item)
                     ? static::prepareFieldsRequestData($itemFields, $item)
                     : $item;
             }, $value);
@@ -255,6 +258,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     ): array {
         return collect($fields)->reduce(function ($data, $field) use ($parent) {
             $field = is_string($field) ? resolve($field) : $field;
+
             return $field instanceof Field ? $field->prepareRequestData($data, $parent) : $data;
         }, $data);
     }
@@ -262,12 +266,14 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function withName($name)
     {
         $this->name = $name;
+
         return $this;
     }
 
     public function withLabel($label)
     {
         $this->label = $label;
+
         return $this;
     }
 
@@ -279,6 +285,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function withHelpText($helpText)
     {
         $this->helpText = $helpText;
+
         return $this;
     }
 
@@ -290,27 +297,31 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
     public function withRules($rules)
     {
         $this->rules = $rules;
+
         return $this;
     }
 
     public function withSiblingFields($fields)
     {
         $this->siblingFields = is_array($fields) ? $fields : func_get_args();
+
         return $this;
     }
 
     public function withDefaultValue($defaultValue)
     {
         $this->defaultValue = $defaultValue;
+
         return $this;
     }
 
     public function withComponents($components)
     {
         $this->components = array_merge(
-            !is_null($this->components) ? $this->components : [],
+            ! is_null($this->components) ? $this->components : [],
             $components
         );
+
         return $this;
     }
 
@@ -328,6 +339,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             ->unique()
             ->values()
             ->toArray();
+
         return $this;
     }
 
@@ -338,84 +350,98 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             ->unique()
             ->values()
             ->toArray();
+
         return $this;
     }
 
     public function isRequired()
     {
         $this->required = true;
+
         return $this;
     }
 
     public function isNotRequired()
     {
         $this->required = false;
+
         return $this;
     }
 
     public function isDisabled()
     {
         $this->disabled = true;
+
         return $this;
     }
 
     public function isEnabled()
     {
         $this->disabled = false;
+
         return $this;
     }
 
     public function isNullable()
     {
         $this->nullable = true;
+
         return $this;
     }
 
     public function isNotNullable()
     {
         $this->nullable = false;
+
         return $this;
     }
 
     public function showInForm()
     {
         $this->settings['hiddenInForm'] = false;
+
         return $this;
     }
 
     public function hideInForm()
     {
         $this->settings['hiddenInForm'] = true;
+
         return $this;
     }
 
     public function createOnly()
     {
         $this->settings['createOnly'] = true;
+
         return $this;
     }
 
     public function updateOnly()
     {
         $this->settings['updateOnly'] = true;
+
         return $this;
     }
 
     public function withProperties($properties)
     {
         $this->properties = array_merge($this->properties, $properties);
+
         return $this;
     }
 
     public function withAttributes($attributes)
     {
         $this->attributes = array_merge($this->attributes, $attributes);
+
         return $this;
     }
 
     public function withSettings($settings)
     {
         $this->settings = array_merge($this->settings, $settings);
+
         return $this;
     }
 
@@ -435,17 +461,17 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         ];
 
         $components = $this->components();
-        if (!is_null($components)) {
+        if (! is_null($components)) {
             $data['components'] = $components;
         }
 
         $name = $this->name();
-        if (!is_null($name)) {
+        if (! is_null($name)) {
             $data['name'] = $name;
         }
 
         $siblingFields = $this->siblingFields();
-        if (!is_null($siblingFields)) {
+        if (! is_null($siblingFields)) {
             $data['siblingFields'] = collect($siblingFields)->toArray();
         }
 
@@ -453,6 +479,7 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
             $data['properties'] = collect($this->properties())
                 ->mapWithKeys(function ($property, $key) {
                     $property = is_string($property) ? $property::make($key) : $property;
+
                     return [
                         $key => $property,
                     ];
@@ -461,7 +488,8 @@ abstract class Field implements FieldContract, Arrayable, Jsonable
         }
 
         $attributes = $this->attributes();
-        return !is_null($attributes) ? array_merge($data, $attributes) : $data;
+
+        return ! is_null($attributes) ? array_merge($data, $attributes) : $data;
     }
 
     #[\ReturnTypeWillChange]

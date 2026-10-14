@@ -2,12 +2,11 @@
 
 namespace Panneau\Support;
 
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use Panneau\Contracts\Form as FormContract;
 
-abstract class Form implements FormContract, Arrayable
+abstract class Form implements Arrayable, FormContract
 {
     public static $components;
 
@@ -63,7 +62,7 @@ abstract class Form implements FormContract, Arrayable
         }
 
         $attributes = $this->attributes();
-        if (isset($attributes) && !is_null($attributes)) {
+        if (isset($attributes) && ! is_null($attributes)) {
             return array_merge($data, $attributes);
         }
 

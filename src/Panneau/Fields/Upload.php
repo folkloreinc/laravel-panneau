@@ -4,7 +4,6 @@ namespace Panneau\Fields;
 
 use Closure;
 use Panneau\Support\Field;
-use Panneau\Support\Facade as Panneau;
 
 class Upload extends Field
 {
@@ -30,8 +29,7 @@ class Upload extends Field
             'namePath' => 'name',
             'withButton' => $this->withButton,
             'sizePath' => 'metadata.size',
-            'endpoint' =>
-                $this->endpoint ??
+            'endpoint' => $this->endpoint ??
                 (self::$endpointResolver
                     ? (self::$endpointResolver)($this)
                     : panneau_route('upload')),
@@ -41,18 +39,20 @@ class Upload extends Field
     public function withEndpoint(?string $endpoint)
     {
         $this->endpoint = $endpoint;
+
         return $this;
     }
 
     public function withButton()
     {
         $this->withButton = true;
+
         return $this;
     }
 
     public static function setEndpoint(?string $endpoint)
     {
-        self::$endpointResolver = fn() => $endpoint;
+        self::$endpointResolver = fn () => $endpoint;
     }
 
     public static function setEndpointResolver(callable $resolver)

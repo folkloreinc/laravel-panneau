@@ -9,7 +9,7 @@ use TestApp\Resources\RestrictedResource;
 
 class ResourceAuthorizationTest extends TestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -20,7 +20,7 @@ class ResourceAuthorizationTest extends TestCase
         $this->actingAs(new GenericUser(['id' => 1]));
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         RestrictedResource::$deniedAbilities = [];
         RestrictedResource::$checks = [];
@@ -28,7 +28,7 @@ class ResourceAuthorizationTest extends TestCase
         parent::tearDown();
     }
 
-    public function testResourceIsAskedForEachAction()
+    public function test_resource_is_asked_for_each_action()
     {
         $this->getJson('/panneau/restricted')->assertSuccessful();
         $this->getJson('/panneau/restricted/1')->assertSuccessful();
@@ -42,7 +42,7 @@ class ResourceAuthorizationTest extends TestCase
         );
     }
 
-    public function testEditDeleteAndDuplicatePagesCheckTheirAbility()
+    public function test_edit_delete_and_duplicate_pages_check_their_ability()
     {
         $this->getJson('/panneau/restricted/1/edit')->assertSuccessful();
         $this->getJson('/panneau/restricted/1/delete')->assertSuccessful();
@@ -54,7 +54,7 @@ class ResourceAuthorizationTest extends TestCase
         );
     }
 
-    public function testDeniedActionsReturn403()
+    public function test_denied_actions_return403()
     {
         RestrictedResource::$deniedAbilities = ['viewAny', 'view', 'create', 'update', 'delete', 'clone'];
 
@@ -72,7 +72,7 @@ class ResourceAuthorizationTest extends TestCase
         $this->assertEquals([], RecordingRepository::$calls);
     }
 
-    public function testMissingItemReturns404BeforeAuthorization()
+    public function test_missing_item_returns404_before_authorization()
     {
         RestrictedResource::$deniedAbilities = ['update'];
 

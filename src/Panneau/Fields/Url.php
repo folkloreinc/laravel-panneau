@@ -2,7 +2,6 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\Field;
 use Illuminate\Http\Request;
 
 class Url extends Text

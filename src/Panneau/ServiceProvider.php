@@ -2,11 +2,13 @@
 
 namespace Panneau;
 
-use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\UrlGenerator;
+use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Panneau\Composers\AppComposer;
+use Panneau\Composers\PanneauComposer;
 use Panneau\Support\LocalizedField;
 
 class ServiceProvider extends BaseServiceProvider
@@ -22,15 +24,15 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->registerRouter();
 
-        $this->mergeConfigFrom(__DIR__ . '/../config/panneau.php', 'panneau');
+        $this->mergeConfigFrom(__DIR__.'/../config/panneau.php', 'panneau');
     }
 
     protected function registerPanneau()
     {
         $this->app->singleton('panneau', function () {
-            return new \Panneau\Panneau($this->app, $this->app['events']);
+            return new Panneau($this->app, $this->app['events']);
         });
-        $this->app->alias('panneau', \Panneau\Contracts\Panneau::class);
+        $this->app->alias('panneau', Contracts\Panneau::class);
     }
 
     protected function registerRouter()
@@ -39,17 +41,18 @@ class ServiceProvider extends BaseServiceProvider
             $panneau = $this->app['panneau'];
             $config = $this->app['config'];
 
-            $router = new \Panneau\Router($panneau, $this->app['router']);
+            $router = new Router($panneau, $this->app['router']);
             $router->setPrefix($config->get('panneau.routes.prefix'));
             $router->setDomain($config->get('panneau.routes.domain'));
             $router->setNamePrefix(
                 $config->get(
                     'panneau.routes.name_prefix',
-                    preg_replace('#/#', '.', $config->get('panneau.routes.prefix', 'panneau')) . '.'
+                    preg_replace('#/#', '.', $config->get('panneau.routes.prefix', 'panneau')).'.'
                 )
             );
             $router->setMiddleware($config->get('panneau.routes.middleware'));
             $router->setCustomRoutes($config->get('panneau.routes.custom', []));
+
             return $router;
         });
 
@@ -82,32 +85,32 @@ class ServiceProvider extends BaseServiceProvider
 
     protected function bootPublishes()
     {
-        $this->loadTranslationsFrom(__DIR__ . '/../lang', 'panneau');
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'panneau');
 
         $this->publishes(
             [
-                __DIR__ . '/../config/panneau.php' => config_path('panneau.php'),
+                __DIR__.'/../config/panneau.php' => config_path('panneau.php'),
             ],
             'config'
         );
 
         $this->publishes(
             [
-                __DIR__ . '/../views' => resource_path('views/vendor/panneau'),
+                __DIR__.'/../views' => resource_path('views/vendor/panneau'),
             ],
             'views'
         );
 
         $this->publishes(
             [
-                __DIR__ . '/../lang' => lang_path('vendor/panneau'),
+                __DIR__.'/../lang' => lang_path('vendor/panneau'),
             ],
             'lang'
         );
 
         $this->publishes(
             [
-                __DIR__ . '/../routes.php' => base_path('routes/panneau.php'),
+                __DIR__.'/../routes.php' => base_path('routes/panneau.php'),
             ],
             'routes'
         );
@@ -123,29 +126,34 @@ class ServiceProvider extends BaseServiceProvider
 
         Request::macro('isPanneau', function () use ($app) {
             $route = $this->route();
-            return !is_null($route) && $app['panneau.router']->routeIsFromPanneau($route);
+
+            return ! is_null($route) && $app['panneau.router']->routeIsFromPanneau($route);
         });
 
         Request::macro('isPanneauIndex', function () use ($app) {
             $route = $this->route();
-            return !is_null($route) && $app['panneau.router']->routeIsPanneauIndex($route);
+
+            return ! is_null($route) && $app['panneau.router']->routeIsPanneauIndex($route);
         });
 
         Request::macro('isPanneauStore', function () use ($app) {
             $route = $this->route();
-            return !is_null($route) && $app['panneau.router']->routeIsPanneauStore($route);
+
+            return ! is_null($route) && $app['panneau.router']->routeIsPanneauStore($route);
         });
 
         Request::macro('isPanneauDelete', function () use ($app) {
             $route = $this->route();
-            return !is_null($route) && $app['panneau.router']->routeIsPanneauDelete($route);
+
+            return ! is_null($route) && $app['panneau.router']->routeIsPanneauDelete($route);
         });
 
         Request::macro('isInPanneau', function () {
             $user = $this->user();
+
             return $this->isPanneau() &&
-                !is_null($user) &&
-                $user->can('view', \Panneau\Panneau::class);
+                ! is_null($user) &&
+                $user->can('view', Panneau::class);
         });
 
         UrlGenerator::macro('resourceRoute', function (
@@ -155,7 +163,7 @@ class ServiceProvider extends BaseServiceProvider
             ...$args
         ) use ($app) {
             return route(
-                $app['panneau.router']->routeName('resources.' . $route),
+                $app['panneau.router']->routeName('resources.'.$route),
                 $params + ['panneau_resource' => $resourceId],
                 ...$args
             );
@@ -168,22 +176,23 @@ class ServiceProvider extends BaseServiceProvider
 
             Request::macro('resource', function () use ($app) {
                 $route = $this->route();
-                return !is_null($route) ? $app['panneau.router']->resourceFromRoute($route) : null;
+
+                return ! is_null($route) ? $app['panneau.router']->resourceFromRoute($route) : null;
             });
         });
     }
 
     protected function bootViews()
     {
-        $this->loadViewsFrom(__DIR__ . '/../views', 'panneau');
+        $this->loadViewsFrom(__DIR__.'/../views', 'panneau');
 
         $view = $this->app[ViewFactory::class];
 
         $view->composer(
             ['panneau::layout', 'panneau::app'],
-            \Panneau\Composers\PanneauComposer::class
+            PanneauComposer::class
         );
-        $view->composer('panneau::app', \Panneau\Composers\AppComposer::class);
+        $view->composer('panneau::app', AppComposer::class);
 
         $view->share('isPanneau', false);
         $this->app['panneau']->serving(function () use ($view) {
@@ -194,8 +203,8 @@ class ServiceProvider extends BaseServiceProvider
     protected function bootRoutes()
     {
         $map = $this->app['config']->get('panneau.routes.map');
-        if (!is_null($map)) {
-            $this->loadRoutesFrom(file_exists($map) ? $map : __DIR__ . '/../routes.php');
+        if (! is_null($map)) {
+            $this->loadRoutesFrom(file_exists($map) ? $map : __DIR__.'/../routes.php');
         }
     }
 }

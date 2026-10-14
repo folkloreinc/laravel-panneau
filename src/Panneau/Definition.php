@@ -5,12 +5,11 @@ namespace Panneau;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Arr;
 use Panneau\Contracts\Definition as DefinitionContract;
-use Panneau\Contracts\PanneauIntl as PanneauIntlContract;
 use Panneau\Contracts\Panneau as PanneauContract;
+use Panneau\Contracts\PanneauIntl as PanneauIntlContract;
 
-class Definition implements DefinitionContract, Arrayable, Jsonable
+class Definition implements Arrayable, DefinitionContract, Jsonable
 {
     protected $panneau;
 

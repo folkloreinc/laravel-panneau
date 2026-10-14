@@ -29,7 +29,7 @@ class OnlyDeclaredFieldsTest extends TestCase
         'type' => 'feature',
     ];
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -39,14 +39,14 @@ class OnlyDeclaredFieldsTest extends TestCase
         $this->actingAs(new GenericUser(['id' => 1]));
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         ArticlesResource::$onlyDeclaredFields = null;
 
         parent::tearDown();
     }
 
-    public function testAllDataIsSavedByDefault()
+    public function test_all_data_is_saved_by_default()
     {
         $this->postJson('/panneau/articles', $this->data)->assertSuccessful();
         $this->putJson('/panneau/articles/1', $this->data)->assertSuccessful();
@@ -57,7 +57,7 @@ class OnlyDeclaredFieldsTest extends TestCase
         );
     }
 
-    public function testOnlyDeclaredFieldsAreSavedWhenEnabledInConfig()
+    public function test_only_declared_fields_are_saved_when_enabled_in_config()
     {
         config()->set('panneau.only_declared_fields', true);
 
@@ -71,7 +71,7 @@ class OnlyDeclaredFieldsTest extends TestCase
         );
     }
 
-    public function testOnlyDeclaredFieldsAreSavedWhenEnabledOnResource()
+    public function test_only_declared_fields_are_saved_when_enabled_on_resource()
     {
         ArticlesResource::$onlyDeclaredFields = true;
 
@@ -80,7 +80,7 @@ class OnlyDeclaredFieldsTest extends TestCase
         $this->assertEquals([['create', $this->declaredData]], RecordingRepository::$calls);
     }
 
-    public function testResourceSettingOverridesConfig()
+    public function test_resource_setting_overrides_config()
     {
         config()->set('panneau.only_declared_fields', true);
         ArticlesResource::$onlyDeclaredFields = false;

@@ -22,18 +22,21 @@ class UploadLocalized extends LocalizedField
         if ($this->disabled) {
             $field->isDisabled();
         }
+
         return $field;
     }
 
     public function withEndpoint(?string $endpoint)
     {
         $this->endpoint = $endpoint;
+
         return $this;
     }
 
     public function withButton()
     {
         $this->withButton = true;
+
         return $this;
     }
 }

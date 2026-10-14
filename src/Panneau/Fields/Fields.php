@@ -21,6 +21,7 @@ class Fields extends Field
     public function withFields($fields)
     {
         $this->fields = $fields;
+
         return $this;
     }
 
@@ -35,16 +36,18 @@ class Fields extends Field
         $fields = $this->fields();
 
         $attributes = [];
-        if (!is_null($fields)) {
+        if (! is_null($fields)) {
             $attributes['fields'] = collect($fields)
                 ->map(function ($field) {
                     if (is_string($field)) {
                         $field = resolve($field);
                     }
+
                     return $field->toArray();
                 })
                 ->values();
         }
+
         return $attributes;
     }
 }
