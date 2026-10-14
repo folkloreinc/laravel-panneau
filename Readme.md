@@ -97,3 +97,23 @@ public function map()
 - Routes: `routes/panneau.php`
 - Views: `resources/views/vendor/panneau/`
 - Assets: `resources/assets/vendor/panneau/`
+
+## Saving only declared fields
+
+By default, `ResourceController` passes every key of a store or update request to the repository, including keys that don't match a field of the resource. Enable `only_declared_fields` to pass only the data of declared fields (the resource's fields, its types' fields, its forms' fields and `type`):
+
+```php
+// config/panneau.php
+'only_declared_fields' => true,
+```
+
+Or per resource:
+
+```php
+class Pages extends \Panneau\Support\Resource
+{
+    public static $onlyDeclaredFields = true;
+}
+```
+
+Check that your repositories don't rely on keys that aren't declared as fields before enabling it: those keys are no longer passed to `create()` and `update()`.

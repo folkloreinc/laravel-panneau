@@ -3,6 +3,12 @@
 return [
     'resources' => [],
 
+    // Save only the request data that matches a field declared on the resource (its
+    // fields, its types' fields and its forms' fields). Other keys sent with a store or
+    // update request are not passed to the repository. Can also be set per resource with
+    // the static $onlyDeclaredFields property.
+    'only_declared_fields' => false,
+
     'intl' => [
         'locales' => ['en'],
         'translations' => ['panneau::resources'],
