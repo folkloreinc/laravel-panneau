@@ -306,4 +306,4 @@ See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://g
 
 ## Supported versions
 
-PHP 8.3+ and Laravel 12+ are proposed for 5.x (see [decisions/0006](decisions/0006-supported-versions.md)). The CI tests every supported PHP × Laravel combination.
+5.x requires PHP 8.3+ and Laravel 12+ (see [decisions/0006](decisions/0006-supported-versions.md)). The CI tests every supported PHP × Laravel combination.
