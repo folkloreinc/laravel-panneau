@@ -15,6 +15,9 @@ return [
 
         'prefix' => 'panneau',
 
+        // Middleware of the Panneau routes. These routes have no authentication by
+        // default: add 'web' and 'auth' here, or register the resources routes in your
+        // own group with these middleware (see the Readme).
         'middleware' => [\Panneau\Http\Middleware\DispatchHandlingRequestEvent::class],
 
         'custom' => [],
