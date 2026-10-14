@@ -6,6 +6,7 @@ use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
@@ -37,6 +38,8 @@ abstract class Resource implements ResourceContract, Arrayable
     public static $settings = [];
 
     public static $attributes = [];
+
+    public static $onlyDeclaredFields = null;
 
     private static $defaultSettings = [
         'hideInNavbar' => false,
@@ -107,9 +110,24 @@ abstract class Resource implements ResourceContract, Arrayable
         return 'panneau::resources.' . $this->id();
     }
 
+    public function onlyDeclaredFields(): bool
+    {
+        return static::$onlyDeclaredFields ?? config('panneau.only_declared_fields', false);
+    }
+
     public function indexIsPaginated(): bool
     {
         return data_get($this->settings(), 'indexIsPaginated', false);
+    }
+
+    /**
+     * Determine if the request can perform an action on the resource or on one of its
+     * items. The abilities are viewAny, view, create, update, delete and clone. Every
+     * action is allowed by default: override this method to restrict them.
+     */
+    public function authorize(string $ability, Request $request, ?ResourceItem $item = null): bool
+    {
+        return true;
     }
 
     public function makeRepository(): Repository
