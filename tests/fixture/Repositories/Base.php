@@ -24,7 +24,7 @@ abstract class Base implements RepositoryContract
 
     public function findById(string $id): ?ResourceItemContract
     {
-        return $this->items->first(function ($item) {
+        return $this->items->first(function ($item) use ($id) {
             return $item->id() === $id;
         });
     }
@@ -62,7 +62,7 @@ abstract class Base implements RepositoryContract
 
     public function destroy(string $id): bool
     {
-        $this->items = $this->items->fitler(function ($item) use ($id) {
+        $this->items = $this->items->filter(function ($item) use ($id) {
             return $item->id() !== $id;
         });
         return true;
