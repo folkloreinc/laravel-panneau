@@ -3,6 +3,9 @@
 namespace Panneau\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Panneau\Fields\Fields;
+use Panneau\Support\Field;
 use Panneau\Http\Requests\ResourceStoreRequest;
 use Panneau\Http\Requests\ResourceUpdateRequest;
 use Panneau\Contracts\Resource;
@@ -20,12 +23,67 @@ class ResourceController extends Controller
 
     protected function getStoreDataFromRequest(Request $request)
     {
-        return $request->except(['_token']);
+        return $this->getDeclaredFieldsData($request, $request->except(['_token']));
     }
 
     protected function getUpdateDataFromRequest(Request $request)
     {
-        return $request->except(['id', '_token']);
+        return $this->getDeclaredFieldsData($request, $request->except(['id', '_token']));
+    }
+
+    protected function getDeclaredFieldsData(Request $request, array $data): array
+    {
+        $resource = $this->getResourceFromRequest($request);
+        $onlyDeclaredFields = method_exists($resource, 'onlyDeclaredFields')
+            ? $resource->onlyDeclaredFields()
+            : config('panneau.only_declared_fields', false);
+        return $onlyDeclaredFields
+            ? Arr::only($data, $this->getDeclaredFieldsNames($resource))
+            : $data;
+    }
+
+    protected function getDeclaredFieldsNames(Resource $resource): array
+    {
+        $fields = $resource->fields();
+
+        if ($resource->hasTypes()) {
+            $fields = array_merge(
+                $fields,
+                $resource
+                    ->getTypes()
+                    ->flatMap(function ($type) {
+                        return $type->fields();
+                    })
+                    ->all()
+            );
+        }
+
+        $forms = method_exists($resource, 'forms') ? $resource->forms() : null;
+        foreach ($forms ?? [] as $form) {
+            $fields = array_merge($fields, data_get($form, 'fields') ?? []);
+        }
+
+        $names = $this->getFieldsNames($fields);
+        return $resource->hasTypes() ? array_merge($names, ['type']) : $names;
+    }
+
+    protected function getFieldsNames(array $fields): array
+    {
+        return collect($fields)
+            ->flatMap(function ($field) {
+                $field = is_string($field) ? resolve($field) : $field;
+                $name = $field instanceof Field ? $field->name() : data_get($field, 'name');
+                if (!empty($name)) {
+                    // Keep the top-level key of dotted names (ex: "meta.title")
+                    return [explode('.', $name)[0]];
+                }
+                // Fields without a name (ex: sections) save their sub fields at the top level
+                $subFields = $field instanceof Fields ? $field->fields() : data_get($field, 'fields');
+                return is_array($subFields) ? $this->getFieldsNames($subFields) : [];
+            })
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected function getIndexQueryFromRequest(Request $request, Resource $resource)
