@@ -14,7 +14,7 @@ class Documents extends Medias
         return array_merge(parent::attributes(), [
             'newItemValue' => null,
             'addItemLabel' => trans('panneau::fields.add_document'),
-            'noItemLabel' => trans('panneau::fields.no_document'),
+            'noItemLabel' => trans('panneau::fields.no_documents'),
             'itemLabel' => trans('panneau::fields.document'),
         ]);
     }
