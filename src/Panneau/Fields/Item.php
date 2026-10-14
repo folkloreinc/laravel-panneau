@@ -25,6 +25,15 @@ class Item extends Field
         return 'item';
     }
 
+    /**
+     * Sub fields of the item, used for validation and to prepare its value. Items
+     * without sub fields (ex: an item picked from a list) return null.
+     */
+    public function fields(): ?array
+    {
+        return null;
+    }
+
     public function attributes(): ?array
     {
         return array_merge(parent::attributes(), [
