@@ -14,7 +14,7 @@ class Audios extends Medias
         return array_merge(parent::attributes(), [
             'newItemValue' => null,
             'addItemLabel' => trans('panneau::fields.add_audio'),
-            'noItemLabel' => trans('panneau::fields.no_audio'),
+            'noItemLabel' => trans('panneau::fields.no_audios'),
             'itemLabel' => trans('panneau::fields.audio'),
         ]);
     }
