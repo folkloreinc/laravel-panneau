@@ -108,7 +108,20 @@ class ResourceController extends Controller
     {
         $jsonResource = $resource->makeJsonResource($item);
         $data = $jsonResource->toJson();
-        return json_decode($data, true);
+        // The copy is a new item: don't pass the id of the original
+        return Arr::except(json_decode($data, true), ['id']);
+    }
+
+    protected function getResourceRouteUrl(Resource $resource, string $name, array $parameters = [])
+    {
+        $router = app('panneau.router');
+        // Resources with their own controller have their own named routes
+        return !is_null($resource->controller())
+            ? route($router->routeName('resources.' . $resource->id() . '.' . $name), $parameters)
+            : route(
+                $router->routeName('resources.' . $name),
+                array_merge($parameters, ['panneau_resource' => $resource->id()])
+            );
     }
 
     protected function authorizeResourceAction(
@@ -301,6 +314,9 @@ class ResourceController extends Controller
         $this->authorizeResourceAction($request, $resource, 'clone', $item);
         $data = $this->getCloneJsonResourceFromItem($request, $resource, $item);
         $copy = $repository->create($data);
-        return redirect(route(config('panneau.prefix', 'panneau') . '.resources.' . $resource->id() . '.edit', ['id' => $copy->id()]));
+        if ($request->wantsJson()) {
+            return $resource->makeJsonResource($copy);
+        }
+        return redirect($this->getResourceRouteUrl($resource, 'edit', ['id' => $copy->id()]));
     }
 }
