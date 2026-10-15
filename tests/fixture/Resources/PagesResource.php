@@ -2,7 +2,7 @@
 
 namespace TestApp\Resources;
 
-use Panneau\Fields\Text;
+use Panneau\Legacy\Fields\Text;
 use Panneau\Support\Resource;
 use TestApp\Http\Resources\PageResource;
 use TestApp\Repositories\PagesRepository;

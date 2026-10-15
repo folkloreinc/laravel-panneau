@@ -25,10 +25,10 @@ parameters:
 			path: src/Panneau/Composers/PanneauComposer.php
 
 		-
-			message: '#^Method Panneau\\Fields\\ResourceItems\:\:types\(\) should return array\|null but returns Illuminate\\Support\\Collection\|null\.$#'
+			message: '#^Method Panneau\\Legacy\\Fields\\ResourceItems\:\:types\(\) should return array\|null but returns Illuminate\\Support\\Collection\|null\.$#'
 			identifier: return.type
 			count: 1
-			path: src/Panneau/Fields/ResourceItems.php
+			path: src/Panneau/Legacy/Fields/ResourceItems.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Http\\Request\:\:resource\(\)\.$#'

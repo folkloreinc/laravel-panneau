@@ -2,7 +2,7 @@
 
 namespace TestApp\Resources\Pages;
 
-use Panneau\Fields\Text;
+use Panneau\Legacy\Fields\Text;
 use Panneau\Support\ResourceType;
 
 class StaticPage extends ResourceType
