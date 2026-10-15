@@ -2,8 +2,11 @@
 
 namespace Panneau\Definition;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Foundation\Application;
+use Panneau\Actions\Action;
+use Panneau\Auth\Authorizer;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Group;
@@ -30,16 +33,17 @@ final class DefinitionBuilder
 
     public function __construct(
         private readonly ResourceRegistry $resources,
+        private readonly Authorizer $authorizer,
         private readonly Config $config,
         private readonly Application $app,
     ) {}
 
     /**
-     * The definition, in the current locale.
+     * The definition for a user, in the current locale, with their abilities.
      *
      * @return array<string, mixed>
      */
-    public function build(): array
+    public function build(?Authenticatable $user = null): array
     {
         return [
             'protocol' => self::PROTOCOL_VERSION,
@@ -47,8 +51,40 @@ final class DefinitionBuilder
             'locale' => $this->app->getLocale(),
             'locales' => $this->locales(),
             'api' => ['baseUrl' => $this->apiBaseUrl()],
-            'resources' => array_map($this->resource(...), $this->resources->all()),
+            'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
+            'auth' => $this->auth(),
+            'user' => $user !== null ? $this->user($user) : null,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function auth(): array
+    {
+        $mode = $this->config->get('panneau.auth.mode') === 'panneau' ? 'panneau' : 'external';
+        $loginUrl = $this->config->get('panneau.auth.login_url');
+
+        return [
+            'mode' => $mode,
+            'loginUrl' => $mode === 'external' && is_string($loginUrl) ? $loginUrl : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function user(Authenticatable $user): array
+    {
+        $name = data_get($user, 'name');
+        $email = data_get($user, 'email');
+
+        return array_filter([
+            'id' => (string) $user->getAuthIdentifier(),
+            'name' => is_string($name) ? $name : (is_string($email) ? $email : ''),
+            'email' => is_string($email) ? $email : null,
+            'abilities' => ['panneau.view' => true],
+        ], fn (mixed $value): bool => $value !== null);
     }
 
     public function name(): string
@@ -81,11 +117,11 @@ final class DefinitionBuilder
     }
 
     /**
-     * A resource in the definition, without its abilities.
+     * A resource in the definition, with the abilities of a user.
      *
      * @return array<string, mixed>
      */
-    public function resource(Resource $resource): array
+    public function resource(Resource $resource, ?Authenticatable $user = null): array
     {
         $fields = $resource->fields();
         $definition = [
@@ -111,10 +147,15 @@ final class DefinitionBuilder
         }
         $definition['list'] = $list;
 
+        $abilities = $this->authorizer->resourceAbilities($user, $resource);
         $actions = $this->resources->actions($resource);
         if (count($actions) > 0) {
-            $definition['actions'] = array_map(fn (ActionDeclaration $action): array => $this->action($action), $actions);
+            $definition['actions'] = array_map(
+                fn (ActionDeclaration $action): array => $this->action($action, $user, $abilities['viewAny']),
+                $actions,
+            );
         }
+        $definition['abilities'] = $abilities;
 
         $features = $resource->features();
         $features['search'] ??= $this->resources->searchable($resource);
@@ -131,9 +172,12 @@ final class DefinitionBuilder
     /**
      * @return array<string, mixed>
      */
-    public function action(ActionDeclaration $action): array
+    public function action(ActionDeclaration $action, ?Authenticatable $user = null, bool $canViewResource = true): array
     {
         $definition = $action->toDefinition();
+        if ($action instanceof Action) {
+            $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action)];
+        }
         if (isset($definition['fields']) && is_array($definition['fields'])) {
             $definition['fields'] = array_map(fn (array $field): array => $this->resolveFieldReferences($field), $definition['fields']);
         }

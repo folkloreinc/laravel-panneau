@@ -3,159 +3,78 @@
 namespace Panneau;
 
 use Closure;
-use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
-use Panneau\Contracts\Definition as DefinitionContract;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Contracts\Container\Container;
+use Illuminate\Routing\Router;
+use Panneau\Auth\Authorizer;
 use Panneau\Contracts\Panneau as PanneauContract;
-use Panneau\Contracts\Resource as ResourceContract;
-use Panneau\Contracts\Router as RouterContract;
-use Panneau\Events\HandlingRequest;
+use Panneau\Definition\DefinitionBuilder;
+use Panneau\Http\Controllers\ActionController;
+use Panneau\Http\Controllers\DefinitionController;
+use Panneau\Http\Controllers\ResourceController;
+use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Repositories\RepositoryAdapters;
+use Panneau\Resources\Resource;
+use Panneau\Resources\ResourceRegistry;
 
 class Panneau implements PanneauContract
 {
-    protected $app;
+    public function __construct(private readonly Container $container) {}
 
-    protected $events;
-
-    protected $resources = [];
-
-    protected $settings = null;
-
-    protected $resolvedResources = null;
-
-    protected $booted = false;
-
-    protected $bootedCallbacks = [];
-
-    public function __construct($app, EventsDispatcher $events)
+    public function resources(array $resources): static
     {
-        $this->app = $app;
-        $this->events = $events;
-        $this->resources = $this->app['config']->get('panneau.resources', []);
-    }
-
-    /**
-     * Boot the application's service providers.
-     *
-     * @return void
-     */
-    public function boot()
-    {
-        if ($this->isBooted()) {
-            return;
-        }
-
-        $this->booted = true;
-
-        $this->fireAppCallbacks($this->bootedCallbacks);
-    }
-
-    /**
-     * Register a new "booted" listener.
-     *
-     * @param  callable  $callback
-     * @return void
-     */
-    public function booted($callback)
-    {
-        $this->bootedCallbacks[] = $callback;
-
-        if ($this->isBooted()) {
-            $this->fireAppCallbacks([$callback]);
-        }
-    }
-
-    public function serving($listener)
-    {
-        $this->events->listen(HandlingRequest::class, $listener);
-    }
-
-    public function definition(): DefinitionContract
-    {
-        return new Definition($this, $this->app);
-    }
-
-    public function resources(?array $resources = null)
-    {
-        if (! is_null($resources)) {
-            $this->resources = array_merge($this->resources, $resources);
-            $this->resolvedResources = null;
-
-            return $this;
-        }
-
-        if (! isset($this->resolvedResources)) {
-            $this->resolvedResources = $this->resolveResources();
-        }
-
-        return $this->resolvedResources;
-    }
-
-    public function resource($id): ?ResourceContract
-    {
-        return $this->resources()->first(function ($resource) use ($id) {
-            return $resource->id() === $id;
-        });
-    }
-
-    public function repositoryAdapter(string $contract, string|Closure $adapter): static
-    {
-        $this->app->make(RepositoryAdapters::class)->register($contract, $adapter);
+        $this->container->make(ResourceRegistry::class)->register($resources);
 
         return $this;
     }
 
-    public function routes($options = []): void
+    public function resource(string $id): ?Resource
     {
-        $this->router()->group(function () use ($options) {
-            $this->router()->resources($options['resources'] ?? []);
-            $this->router()->auth($options['auth'] ?? []);
+        return $this->container->make(ResourceRegistry::class)->find($id);
+    }
+
+    public function repositoryAdapter(string $contract, string|Closure $adapter): static
+    {
+        $this->container->make(RepositoryAdapters::class)->register($contract, $adapter);
+
+        return $this;
+    }
+
+    public function allowWithoutPolicies(bool $allow = true): static
+    {
+        $this->container->make(Authorizer::class)->allowWithoutPolicies($allow);
+
+        return $this;
+    }
+
+    public function routes(): void
+    {
+        $config = $this->container->make(Config::class);
+        $router = $this->container->make(Router::class);
+        $middleware = $config->get('panneau.middleware', ['web', 'panneau.auth']);
+        $domain = $config->get('panneau.domain');
+
+        $router->group(array_filter([
+            'prefix' => trim((string) $config->get('panneau.path', 'panneau'), '/'),
+            'domain' => is_string($domain) ? $domain : null,
+            'middleware' => [RenderProblems::class, ...(is_array($middleware) ? $middleware : [])],
+            'as' => 'panneau.',
+        ]), function (Router $router): void {
+            $router->prefix('api')->as('api.')->group(function (Router $router): void {
+                $router->get('definition', DefinitionController::class)->name('definition');
+                $router->get('resources/{resource}', [ResourceController::class, 'index'])->name('resources.index');
+                $router->post('resources/{resource}', [ResourceController::class, 'store'])->name('resources.store');
+                $router->post('resources/{resource}/actions/{action}', ActionController::class)->name('resources.actions');
+                $router->get('resources/{resource}/{id}', [ResourceController::class, 'show'])->name('resources.show');
+                $router->patch('resources/{resource}/{id}', [ResourceController::class, 'update'])->name('resources.update');
+                $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy');
+            });
         });
     }
 
-    public function router(): RouterContract
+    public function definition(?Authenticatable $user = null): array
     {
-        return $this->app['panneau.router'];
-    }
-
-    public function settings(?array $settings = null)
-    {
-        if (! is_null($settings)) {
-            $this->settings = array_merge($this->settings ?? [], $settings);
-
-            return $this;
-        }
-
-        return $this->settings;
-    }
-
-    /**
-     * Determine if the application has booted.
-     *
-     * @return bool
-     */
-    protected function isBooted()
-    {
-        return $this->booted;
-    }
-
-    /**
-     * Call the booting callbacks for the application.
-     *
-     * @param  callable[]  $callbacks
-     * @return void
-     */
-    protected function fireAppCallbacks(array $callbacks)
-    {
-        foreach ($callbacks as $callback) {
-            $callback($this);
-        }
-    }
-
-    protected function resolveResources()
-    {
-        return collect($this->resources)->map(function ($resource) {
-            return is_string($resource) ? $this->app->make($resource) : $resource;
-        });
+        return $this->container->make(DefinitionBuilder::class)->build($user);
     }
 }

@@ -194,4 +194,49 @@ abstract class Resource
 
         return null;
     }
+
+    /**
+     * Called before an item is created, with the validated values. Returns the values given
+     * to the repository.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    public function creating(array $values, Request $request): array
+    {
+        return $values;
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    public function created(object $item, array $values, Request $request): void {}
+
+    /**
+     * Called before an item is updated, with the validated values. Returns the values given
+     * to the repository.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    public function updating(object $item, array $values, Request $request): array
+    {
+        return $values;
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    public function updated(object $item, array $values, Request $request): void {}
+
+    /**
+     * Called after an item is created or updated.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    public function saved(object $item, array $values, Request $request): void {}
+
+    public function deleting(object $item): void {}
+
+    public function deleted(object $item): void {}
 }

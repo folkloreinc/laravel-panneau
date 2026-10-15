@@ -5,6 +5,7 @@ namespace TestApp\Panneau\Resources;
 use Illuminate\Http\Request;
 use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ClientAction;
+use Panneau\Actions\DeleteAction;
 use Panneau\Actions\LinkAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
@@ -95,6 +96,7 @@ class PostsResource extends Resource
     {
         return [
             PublishPosts::class,
+            DeleteAction::class,
             LinkAction::make('preview')->url('/posts/{id}/preview')->placement([ActionPlacement::Form]),
             ClientAction::make('copy-link')->component('copy-link'),
         ];

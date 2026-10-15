@@ -265,6 +265,8 @@ final class PublishPages extends Action
 ## HTTP layer
 
 - **Routes are opt-in.** Nothing is registered until the project calls `Panneau::routes()`, usually in `routes/panneau.php`. Every route gets the middleware from `config('panneau.middleware')`, `['web', 'panneau.auth']` by default. See [decisions/0002](decisions/0002-secure-by-default.md).
+  - The API is under `{panneau.path}/api` (`/panneau/api` by default), with routes named `panneau.api.*`.
+  - `panneau.auth` requires a user on the guard of `panneau.auth.guard`, and the `viewPanneau` gate. Without that gate, nobody gets in.
 - **Generic controllers implement the protocol:**
   - definition, resources, actions and action runs;
   - media, auth, account;
@@ -273,9 +275,14 @@ final class PublishPages extends Action
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
 - **Query.** Filters, sorts and search only accept what the resource's list declares. The query string can't reach arbitrary columns.
 - **Responses:**
-  - Errors on Panneau routes are rendered as `application/problem+json`.
+  - Errors on Panneau routes are rendered as `application/problem+json`, including those of the other middleware. Other routes keep the app's error rendering.
   - Single items send an `ETag`.
-  - Updates check `If-Match` and answer `412` on a version conflict.
+  - Updates check `If-Match` and answer `412` on a version conflict, with the current item. Without `If-Match`, the update goes through.
+- **Action requests:**
+  - A selection of ids reports missing and forbidden items as `skipped`. When it has a single id, they are a `404` or `403` instead.
+  - A query selection goes through the list's filters and search, and the resource's scope.
+  - Selections above `panneau.actions.sync_limit` are refused with a `422` until queued actions exist.
+  - Parameter errors are keyed by their path inside `values` (`note`, not `values.note`), like the errors of a form.
 - **Contract tests.** Feature tests validate every response against the protocol's OpenAPI document.
 
 ## Auth

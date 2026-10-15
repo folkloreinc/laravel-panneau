@@ -40,12 +40,9 @@
         "phpunit/phpunit": "^11.5|^12.0"
     },
     "autoload": {
-        "psr-0": {
-            "Panneau": "src/"
-        },
-        "files": [
-            "src/Panneau/Support/helpers.php"
-        ]
+        "psr-4": {
+            "Panneau\\": "src/Panneau/"
+        }
     },
     "autoload-dev": {
         "psr-4": {

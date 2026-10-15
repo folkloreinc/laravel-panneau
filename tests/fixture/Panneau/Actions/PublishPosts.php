@@ -10,6 +10,7 @@ use Panneau\Actions\ActionResult;
 use Panneau\Actions\ActionValues;
 use Panneau\Actions\Confirm;
 use Panneau\Fields\Boolean;
+use Panneau\Fields\Text;
 
 class PublishPosts extends Action
 {
@@ -30,7 +31,7 @@ class PublishPosts extends Action
 
     public function fields(): array
     {
-        return [Boolean::make('notify')->label('Notify subscribers')];
+        return [Boolean::make('notify')->label('Notify subscribers'), Text::make('note')->max(10)];
     }
 
     public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult
@@ -42,6 +43,7 @@ class PublishPosts extends Action
                 continue;
             }
             $post->status = 'published';
+            $post->body = $values->boolean('notify') ? 'Notified' : $post->body;
             $post->save();
         }
 
