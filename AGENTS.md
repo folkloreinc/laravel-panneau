@@ -45,6 +45,15 @@ composer test
 ```
 
 - PHPUnit with Orchestra Testbench. Fixtures live in `tests/fixture` (namespace `TestApp`).
+- **Contract tests.** Every response under `/panneau/api` in the feature tests is checked against the protocol's `openapi.json` (copied in `tests/protocol`, refreshed with `tests/protocol/update.sh`). A test fails on an undocumented operation or status, or a body that doesn't match.
+- **Conformance.** CI serves the fixture app (`testbench.yaml`) and runs `runConformance()` from `@panneau/protocol/conformance`, at the commit of `tests/protocol/VERSION`. To run it locally:
+
+  ```bash
+  vendor/bin/testbench workbench:build
+  vendor/bin/testbench serve --port=8000 &
+  tests/conformance/build.sh <panneau-js checkout> build/conformance.mjs
+  node tests/conformance/run.mjs build/conformance.mjs http://127.0.0.1:8000/panneau/api
+  ```
 - **Every change comes with tests.** A bug fix adds a regression test that fails without the fix.
 - Before pushing, run `composer lint`, `composer analyse` and `composer test`, and say in the PR what you ran.
 

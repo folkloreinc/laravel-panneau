@@ -27,6 +27,13 @@ jobs:
             - name: Validate composer.json
               run: composer validate --strict
 
+            - name: Cache Composer downloads
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer/files
+                  key: composer-${{ runner.os }}-lint-${{ hashFiles('composer.json') }}
+                  restore-keys: composer-${{ runner.os }}-lint-
+
             - name: Install dependencies
               run: composer update --prefer-dist --no-interaction --no-progress
 
@@ -52,6 +59,13 @@ jobs:
                   php-version: ${{ matrix.php }}
                   coverage: none
 
+            - name: Cache Composer downloads
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer/files
+                  key: composer-${{ runner.os }}-${{ matrix.php }}-${{ matrix.laravel }}-${{ hashFiles('composer.json') }}
+                  restore-keys: composer-${{ runner.os }}-${{ matrix.php }}-${{ matrix.laravel }}-
+
             - name: Install dependencies
               run: |
                   composer require "illuminate/support:${{ matrix.laravel }}" --no-update --no-interaction
@@ -65,3 +79,61 @@ jobs:
 
             - name: Run tests
               run: vendor/bin/phpunit
+
+    conformance:
+        name: Protocol conformance
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v5
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+
+            - name: Cache Composer downloads
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer/files
+                  key: composer-${{ runner.os }}-conformance-${{ hashFiles('composer.json') }}
+                  restore-keys: composer-${{ runner.os }}-conformance-
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-interaction --no-progress
+
+            # The schemas in tests/protocol and the conformance kit come from the same commit
+            - name: Read the protocol version
+              id: protocol
+              run: echo "ref=$(cat tests/protocol/VERSION)" >> "$GITHUB_OUTPUT"
+
+            - name: Check out @panneau/protocol
+              uses: actions/checkout@v5
+              with:
+                  repository: folkloreinc/panneau-js
+                  ref: ${{ steps.protocol.outputs.ref }}
+                  path: build/panneau-js
+                  sparse-checkout: packages/protocol
+
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+
+            - name: Bundle the conformance kit
+              run: tests/conformance/build.sh build/panneau-js build/conformance.mjs
+
+            - name: Build and serve the fixture app
+              run: |
+                  vendor/bin/testbench workbench:build
+                  vendor/bin/testbench serve --port=8000 > build/serve.log 2>&1 &
+                  for attempt in $(seq 1 30); do
+                      curl --silent --output /dev/null http://127.0.0.1:8000/panneau/api/definition && exit 0
+                      sleep 1
+                  done
+                  echo "The app did not start." && exit 1
+
+            - name: Run the conformance kit
+              run: node tests/conformance/run.mjs build/conformance.mjs http://127.0.0.1:8000/panneau/api
+
+            - name: Show the server log
+              if: failure()
+              run: cat build/serve.log
