@@ -2,12 +2,14 @@
 
 namespace Panneau;
 
+use Closure;
 use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use Panneau\Contracts\Definition as DefinitionContract;
 use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Contracts\Resource as ResourceContract;
 use Panneau\Contracts\Router as RouterContract;
 use Panneau\Events\HandlingRequest;
+use Panneau\Repositories\RepositoryAdapters;
 
 class Panneau implements PanneauContract
 {
@@ -94,6 +96,13 @@ class Panneau implements PanneauContract
         return $this->resources()->first(function ($resource) use ($id) {
             return $resource->id() === $id;
         });
+    }
+
+    public function repositoryAdapter(string $contract, string|Closure $adapter): static
+    {
+        $this->app->make(RepositoryAdapters::class)->register($contract, $adapter);
+
+        return $this;
     }
 
     public function routes($options = []): void

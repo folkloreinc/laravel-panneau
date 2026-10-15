@@ -9,6 +9,7 @@ use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Composers\AppComposer;
 use Panneau\Composers\PanneauComposer;
+use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Support\LocalizedField;
 
 class ServiceProvider extends BaseServiceProvider
@@ -22,6 +23,8 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->registerPanneau();
 
+        $this->registerRepositoryAdapters();
+
         $this->registerRouter();
 
         $this->mergeConfigFrom(__DIR__.'/../config/panneau.php', 'panneau');
@@ -33,6 +36,11 @@ class ServiceProvider extends BaseServiceProvider
             return new Panneau($this->app, $this->app['events']);
         });
         $this->app->alias('panneau', Contracts\Panneau::class);
+    }
+
+    protected function registerRepositoryAdapters(): void
+    {
+        $this->app->singleton(RepositoryAdapters::class);
     }
 
     protected function registerRouter()

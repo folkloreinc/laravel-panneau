@@ -2,6 +2,9 @@
 
 namespace Panneau\Contracts;
 
+use Closure;
+use Illuminate\Contracts\Container\Container;
+
 interface Panneau
 {
     public function boot();
@@ -15,6 +18,17 @@ interface Panneau
     public function resources(?array $resources = null);
 
     public function resource($id): ?Resource;
+
+    /**
+     * Registers an adapter that turns every repository implementing a contract into a
+     * `ResourceRepository`. The adapter is a class, built from the container with the
+     * repository as its `$repository` constructor parameter, or a closure that receives the
+     * repository and the container.
+     *
+     * @param  class-string  $contract
+     * @param  class-string<ResourceRepository>|(Closure(object, Container): ResourceRepository)  $adapter
+     */
+    public function repositoryAdapter(string $contract, string|Closure $adapter): static;
 
     public function routes($options = []): void;
 
