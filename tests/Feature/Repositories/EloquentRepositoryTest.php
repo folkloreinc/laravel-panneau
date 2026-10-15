@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Feature\Repositories;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use Panneau\Contracts\Repositories\Restorable;
@@ -11,8 +12,10 @@ use Panneau\Query\SortDirection;
 use Panneau\Repositories\EloquentRepository;
 use Panneau\Repositories\SoftDeletingEloquentRepository;
 use Panneau\Tests\TestCase;
+use TestApp\Models\Author;
 use TestApp\Models\Document;
 use TestApp\Models\Post;
+use TestApp\Models\Tag;
 
 class EloquentRepositoryTest extends TestCase
 {
@@ -278,5 +281,44 @@ class EloquentRepositoryTest extends TestCase
         $this->assertFalse($restored->trashed());
         $this->assertNotNull($documents->find($id, []));
         $this->assertNull($documents->findDeleted($id, []));
+    }
+
+    public function test_belongs_to_relations_receive_public_ids(): void
+    {
+        $author = Author::query()->create(['name' => 'Ada']);
+
+        $post = $this->posts->create(['title' => 'Post', 'author' => (string) $author->id], []);
+        $this->assertSame($author->id, $post->author_id);
+
+        $post = $this->posts->update($post, ['author' => null]);
+        $this->assertNull($post->author_id);
+    }
+
+    public function test_belongs_to_many_relations_are_synced_by_public_id(): void
+    {
+        $news = Tag::query()->create(['slug' => 'news', 'name' => 'News']);
+        $tech = Tag::query()->create(['slug' => 'tech', 'name' => 'Tech']);
+
+        $post = $this->posts->create(['title' => 'Post', 'tags' => ['news', 'tech']], []);
+        $this->assertEqualsCanonicalizing([$news->id, $tech->id], $post->tags()->pluck('tags.id')->all());
+
+        $post = $this->posts->update($post, ['tags' => ['tech']]);
+        $this->assertSame([$tech->id], $post->tags()->pluck('tags.id')->all());
+
+        $post = $this->posts->update($post, ['tags' => null]);
+        $this->assertSame([], $post->tags()->pluck('tags.id')->all());
+    }
+
+    public function test_methods_that_are_not_relations_are_never_called(): void
+    {
+        $post = $this->createPost(['status' => 'draft']);
+
+        try {
+            $this->posts->update($post, ['archive' => 'yes']);
+        } catch (QueryException) {
+            // There is no "archive" column
+        }
+
+        $this->assertSame('draft', Post::query()->find($post->id)?->status);
     }
 }

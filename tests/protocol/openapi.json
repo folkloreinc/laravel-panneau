@@ -1,0 +1,3838 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Panneau protocol",
+        "version": "1",
+        "description": "The HTTP API between a Panneau frontend and its backend. Paths are relative to `api.baseUrl` of the definition. Authentication is up to the backend (session cookie or bearer token). Errors use `application/problem+json`."
+    },
+    "paths": {
+        "/definition": {
+            "get": {
+                "operationId": "getDefinition",
+                "summary": "The definition for the current user, in the current locale.",
+                "responses": {
+                    "200": {
+                        "description": "The definition.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Definition"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/resources/{resource}": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "get": {
+                "operationId": "listItems",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "description": "Page number, from 1.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "required": false,
+                        "description": "Items per page.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated fields; a `-` prefix sorts descending.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "required": false,
+                        "style": "deepObject",
+                        "explode": true,
+                        "description": "`filter[status]=published`, `filter[tags][]=a`.",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "description": "Search.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated fields to include in each item.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of items.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "createItem",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "The created item.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemResponse"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "ETag": {
+                                "description": "The version of the item.",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/resources/{resource}/{id}": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "Item id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "get": {
+                "operationId": "getItem",
+                "responses": {
+                    "200": {
+                        "description": "The item.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemResponse"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "ETag": {
+                                "description": "The version of the item.",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "updateItem",
+                "description": "Partial update: only the values sent are changed.",
+                "parameters": [
+                    {
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": false,
+                        "description": "The version the client edited.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The updated item.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemResponse"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "ETag": {
+                                "description": "The version of the item.",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "412": {
+                        "description": "Version conflict: `If-Match` does not match the current version, which is in `current`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "deleteItem",
+                "responses": {
+                    "204": {
+                        "description": "Deleted."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/resources/{resource}/{id}/preview": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "Item id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "previewItem",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "A short-lived preview URL.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PreviewResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/resources/{resource}/actions/{action}": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "action",
+                    "in": "path",
+                    "required": true,
+                    "description": "Action id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "runAction",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The result.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ActionResult"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "The action runs in the background.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ActionRunResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/actions/runs": {
+            "get": {
+                "operationId": "listActionRuns",
+                "summary": "The current user's recent runs.",
+                "responses": {
+                    "200": {
+                        "description": "Runs, newest first.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ActionRun"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/actions/runs/{run}": {
+            "parameters": [
+                {
+                    "name": "run",
+                    "in": "path",
+                    "required": true,
+                    "description": "Run id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "get": {
+                "operationId": "getActionRun",
+                "responses": {
+                    "200": {
+                        "description": "The run.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ActionRunResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "cancelActionRun",
+                "responses": {
+                    "204": {
+                        "description": "Cancelled."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/media": {
+            "get": {
+                "operationId": "listMedia",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "description": "Page number, from 1.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "required": false,
+                        "description": "Items per page.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated fields; a `-` prefix sorts descending.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "required": false,
+                        "style": "deepObject",
+                        "explode": true,
+                        "description": "`filter[status]=published`, `filter[tags][]=a`.",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "description": "Search.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated fields to include in each item.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of media.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "uploadMedia",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "contentMediaType": "application/octet-stream"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "The created media.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/media/tags": {
+            "get": {
+                "operationId": "listMediaTags",
+                "responses": {
+                    "200": {
+                        "description": "Tags in use.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/media/{id}": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "Media id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "get": {
+                "operationId": "getMedia",
+                "responses": {
+                    "200": {
+                        "description": "The media.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "updateMedia",
+                "description": "Updates metadata, tags or the image `transform`.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The updated media.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "deleteMedia",
+                "responses": {
+                    "204": {
+                        "description": "Moved to the trash."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/media/{id}/file": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "Media id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "replaceMediaFile",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "contentMediaType": "application/octet-stream"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The media.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/media/{id}/restore": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "Media id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "restoreMedia",
+                "responses": {
+                    "200": {
+                        "description": "The restored media.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/session": {
+            "get": {
+                "operationId": "getSession",
+                "responses": {
+                    "200": {
+                        "description": "The current user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Session"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "operationId": "login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "remember": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logged in.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Session"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "A second factor is required: answer `/auth/two-factor/challenge`.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "twoFactor": {
+                                            "type": "boolean",
+                                            "const": true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "operationId": "logout",
+                "responses": {
+                    "204": {
+                        "description": "Logged out."
+                    }
+                }
+            }
+        },
+        "/auth/providers/{provider}/redirect": {
+            "parameters": [
+                {
+                    "name": "provider",
+                    "in": "path",
+                    "required": true,
+                    "description": "Provider id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "get": {
+                "operationId": "redirectToProvider",
+                "parameters": [
+                    {
+                        "name": "next",
+                        "in": "query",
+                        "required": false,
+                        "description": "Local path to go to after login.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect to the provider."
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/forgot": {
+            "post": {
+                "operationId": "forgotPassword",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "A reset link was sent, if the account exists."
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/reset": {
+            "post": {
+                "operationId": "resetPassword",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "token",
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "The password was reset."
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/two-factor/challenge": {
+            "post": {
+                "operationId": "twoFactorChallenge",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string"
+                                    },
+                                    "recoveryCode": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logged in.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Session"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/passkeys/options": {
+            "post": {
+                "operationId": "passkeyOptions",
+                "responses": {
+                    "200": {
+                        "description": "WebAuthn request options.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/passkeys/login": {
+            "post": {
+                "operationId": "passkeyLogin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logged in.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Session"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/account": {
+            "get": {
+                "operationId": "getAccount",
+                "responses": {
+                    "200": {
+                        "description": "The current user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "updateAccount",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The updated user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search": {
+            "get": {
+                "operationId": "search",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": true,
+                        "description": "Search terms.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Results grouped by resource.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SearchResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/dashboard/widgets/{widget}": {
+            "parameters": [
+                {
+                    "name": "widget",
+                    "in": "path",
+                    "required": true,
+                    "description": "Widget id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "get": {
+                "operationId": "getWidgetData",
+                "responses": {
+                    "200": {
+                        "description": "The widget's data. Its shape depends on the widget type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier. Clients never parse or generate ids."
+            },
+            "Abilities": {
+                "type": "object",
+                "propertyNames": {
+                    "type": "string"
+                },
+                "additionalProperties": {
+                    "type": "boolean"
+                },
+                "description": "What the current user can do, keyed by ability (`viewAny`, `create`, `update`, `delete`, or an action id)."
+            },
+            "RouteReference": {
+                "type": "object",
+                "properties": {
+                    "route": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Name of a route in the definition."
+                    },
+                    "params": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "type": [
+                                "string",
+                                "number"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "route"
+                ],
+                "additionalProperties": {}
+            },
+            "Condition": {
+                "type": "object",
+                "properties": {
+                    "field": {
+                        "description": "Field name, or a dot path.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "equals": {},
+                    "in": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "notIn": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "filled": {
+                        "type": "boolean"
+                    },
+                    "all": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Condition"
+                        }
+                    },
+                    "any": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Condition"
+                        }
+                    }
+                },
+                "additionalProperties": {},
+                "description": "A condition on form values: compare one field (`equals`, `in`, `notIn`, `filled`), or combine conditions with `all` or `any`."
+            },
+            "Option": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean"
+                        ]
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "value",
+                    "label"
+                ],
+                "additionalProperties": {}
+            },
+            "Rule": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "required"
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "enum": [
+                                    "min",
+                                    "max"
+                                ]
+                            },
+                            "value": {
+                                "type": "number"
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "pattern"
+                            },
+                            "value": {
+                                "type": "string"
+                            },
+                            "flags": {
+                                "type": "string"
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "enum": [
+                                    "email",
+                                    "url"
+                                ]
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "in"
+                            },
+                            "value": {
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                }
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "accept"
+                            },
+                            "value": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "maxSize"
+                            },
+                            "value": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "enum": [
+                                    "before",
+                                    "after"
+                                ]
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "string",
+                                        "description": "An ISO 8601 date or date-time."
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        },
+                                        "required": [
+                                            "field"
+                                        ],
+                                        "additionalProperties": {},
+                                        "description": "Another field of the form."
+                                    }
+                                ]
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string"
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {},
+                        "description": "A rule added in a later version of the protocol. Clients that don't know it ignore it; the server still enforces it."
+                    }
+                ],
+                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes."
+            },
+            "BlockType": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Field"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "fields"
+                ],
+                "additionalProperties": {}
+            },
+            "Field": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "A built-in field type, or a type provided by a plugin."
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "help": {
+                        "type": "string"
+                    },
+                    "placeholder": {
+                        "type": "string"
+                    },
+                    "default": {},
+                    "localized": {
+                        "description": "The value is an object keyed by locale.",
+                        "type": "boolean"
+                    },
+                    "readOnly": {
+                        "type": "boolean"
+                    },
+                    "createOnly": {
+                        "type": "boolean"
+                    },
+                    "updateOnly": {
+                        "type": "boolean"
+                    },
+                    "rules": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Rule"
+                        }
+                    },
+                    "visibleWhen": {
+                        "$ref": "#/components/schemas/Condition"
+                    },
+                    "options": {
+                        "description": "`select`: the choices.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Option"
+                        }
+                    },
+                    "multiple": {
+                        "description": "`select`, `relation`, `media`: the value is an array.",
+                        "type": "boolean"
+                    },
+                    "resource": {
+                        "description": "`relation`: id of the related resource.",
+                        "type": "string"
+                    },
+                    "accept": {
+                        "description": "`media`: accepted MIME types.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "from": {
+                        "description": "`slug`: the field the slug is generated from.",
+                        "type": "string"
+                    },
+                    "display": {
+                        "description": "Display used in lists, when it differs from the default one of the type.",
+                        "type": "string"
+                    },
+                    "fields": {
+                        "description": "`group` and `repeater`: the nested fields.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Field"
+                        }
+                    },
+                    "types": {
+                        "description": "`repeater`: typed blocks, each with its own fields.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BlockType"
+                        }
+                    },
+                    "settings": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    }
+                },
+                "required": [
+                    "name",
+                    "type"
+                ],
+                "additionalProperties": {},
+                "description": "A field of a form."
+            },
+            "LayoutNode": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "A built-in node type, or a type provided by a plugin."
+                    },
+                    "name": {
+                        "description": "`field`: the name of the field.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "label": {
+                        "description": "`section`, `tab`: the title.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "text": {
+                        "description": "`text`: a static paragraph.",
+                        "type": "string"
+                    },
+                    "component": {
+                        "description": "`component`: a component provided by a plugin.",
+                        "type": "string"
+                    },
+                    "props": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    },
+                    "width": {
+                        "description": "Width on a 12-column grid, inside a `row`.",
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                    },
+                    "collapsible": {
+                        "type": "boolean"
+                    },
+                    "collapsed": {
+                        "type": "boolean"
+                    },
+                    "visibleWhen": {
+                        "$ref": "#/components/schemas/Condition"
+                    },
+                    "children": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LayoutNode"
+                        }
+                    }
+                },
+                "required": [
+                    "type"
+                ],
+                "additionalProperties": {},
+                "description": "A node of a form layout. Containers (`row`, `column`, `section`, `tabs`, `tab`, `sidebar`) have `children`. Fields that no node references are appended at the end of the form."
+            },
+            "Column": {
+                "type": "object",
+                "properties": {
+                    "field": {
+                        "description": "The field shown in the column.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "id": {
+                        "description": "Id of a column that is not a field.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "display": {
+                        "description": "How the value is displayed.",
+                        "type": "string"
+                    },
+                    "sortable": {
+                        "type": "boolean"
+                    },
+                    "width": {
+                        "type": [
+                            "number",
+                            "string"
+                        ]
+                    },
+                    "align": {
+                        "type": "string",
+                        "enum": [
+                            "start",
+                            "center",
+                            "end"
+                        ]
+                    }
+                },
+                "additionalProperties": {}
+            },
+            "Filter": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Sent as `filter[id]`."
+                    },
+                    "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Built-in: `text`, `select`, `toggle`, `date`, `date-range`, `relation`."
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Option"
+                        }
+                    },
+                    "resource": {
+                        "type": "string"
+                    },
+                    "multiple": {
+                        "type": "boolean"
+                    },
+                    "default": {}
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "additionalProperties": {}
+            },
+            "ListDefinition": {
+                "type": "object",
+                "properties": {
+                    "columns": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Column"
+                        }
+                    },
+                    "filters": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Filter"
+                        }
+                    },
+                    "sorts": {
+                        "description": "Fields the list can be sorted by.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "defaultSort": {
+                        "description": "Same format as the `sort` query parameter: `-published_at,title`.",
+                        "type": "string"
+                    },
+                    "search": {
+                        "description": "Whether the `q` parameter is supported.",
+                        "type": "boolean"
+                    },
+                    "layouts": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "perPage": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "perPageOptions": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                        }
+                    },
+                    "inlineEdit": {
+                        "description": "Fields editable in the list.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "selectable": {
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": {}
+            },
+            "ActionScope": {
+                "type": "string",
+                "enum": [
+                    "item",
+                    "selection",
+                    "resource"
+                ]
+            },
+            "ActionPlacement": {
+                "type": "string",
+                "enum": [
+                    "row",
+                    "toolbar",
+                    "form",
+                    "menu"
+                ]
+            },
+            "ActionConfirm": {
+                "anyOf": [
+                    {
+                        "type": "boolean"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "title": {
+                                "type": "string"
+                            },
+                            "message": {
+                                "description": "ICU message. `{count}` is the number of items.",
+                                "type": "string"
+                            },
+                            "confirmLabel": {
+                                "type": "string"
+                            },
+                            "cancelLabel": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": {}
+                    }
+                ]
+            },
+            "Action": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "default": "server",
+                        "description": "`server` calls the action endpoint; `link` navigates; `client` runs a plugin handler.",
+                        "type": "string",
+                        "enum": [
+                            "server",
+                            "link",
+                            "client"
+                        ]
+                    },
+                    "scope": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ActionScope"
+                        }
+                    },
+                    "placement": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ActionPlacement"
+                        }
+                    },
+                    "destructive": {
+                        "type": "boolean"
+                    },
+                    "confirm": {
+                        "$ref": "#/components/schemas/ActionConfirm"
+                    },
+                    "fields": {
+                        "description": "Parameters, shown in a modal.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Field"
+                        }
+                    },
+                    "layout": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LayoutNode"
+                        }
+                    },
+                    "queued": {
+                        "description": "The action always answers `202` with a run.",
+                        "type": "boolean"
+                    },
+                    "url": {
+                        "description": "`link`: URL template, with `{id}` for the item.",
+                        "type": "string"
+                    },
+                    "route": {
+                        "description": "`link`: name of a route in the definition.",
+                        "type": "string"
+                    },
+                    "component": {
+                        "description": "`client`: the plugin handler.",
+                        "type": "string"
+                    },
+                    "abilities": {
+                        "description": "`run`: whether the current user can run the action on the resource.",
+                        "$ref": "#/components/schemas/Abilities"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "scope"
+                ],
+                "additionalProperties": {},
+                "description": "An operation on one item, a selection, or the whole resource."
+            },
+            "ResourceFeatures": {
+                "type": "object",
+                "properties": {
+                    "drafts": {
+                        "type": "boolean"
+                    },
+                    "revisions": {
+                        "type": "boolean"
+                    },
+                    "preview": {
+                        "anyOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "mode": {
+                                        "type": "string",
+                                        "enum": [
+                                            "component",
+                                            "iframe"
+                                        ]
+                                    },
+                                    "component": {
+                                        "description": "`component`: the plugin preview.",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "mode"
+                                ],
+                                "additionalProperties": {}
+                            }
+                        ]
+                    },
+                    "search": {
+                        "description": "Whether the resource is in the global search.",
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": {}
+            },
+            "Resource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "label": {
+                        "type": "object",
+                        "properties": {
+                            "singular": {
+                                "type": "string"
+                            },
+                            "plural": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "singular",
+                            "plural"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "itemTitle": {
+                        "description": "The field used as the title of an item, in lists and pickers.",
+                        "type": "string"
+                    },
+                    "fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Field"
+                        }
+                    },
+                    "form": {
+                        "type": "object",
+                        "properties": {
+                            "layout": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/LayoutNode"
+                                }
+                            }
+                        },
+                        "additionalProperties": {}
+                    },
+                    "list": {
+                        "$ref": "#/components/schemas/ListDefinition"
+                    },
+                    "actions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Action"
+                        }
+                    },
+                    "abilities": {
+                        "$ref": "#/components/schemas/Abilities"
+                    },
+                    "features": {
+                        "$ref": "#/components/schemas/ResourceFeatures"
+                    },
+                    "types": {
+                        "description": "Variants of the resource, each with its own extra fields.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BlockType"
+                        }
+                    },
+                    "settings": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "fields"
+                ],
+                "additionalProperties": {},
+                "description": "A set of items managed in the admin."
+            },
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/Id"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "avatarUrl": {
+                        "type": "string"
+                    },
+                    "abilities": {
+                        "$ref": "#/components/schemas/Abilities"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "additionalProperties": {}
+            },
+            "AuthProvider": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "description": "Where the login with this provider starts.",
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label"
+                ],
+                "additionalProperties": {}
+            },
+            "Auth": {
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "panneau",
+                            "external"
+                        ],
+                        "description": "`panneau`: Panneau's own login pages. `external`: the site handles login."
+                    },
+                    "loginUrl": {
+                        "description": "`external`: where unauthenticated users are sent.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "password": {
+                        "type": "boolean"
+                    },
+                    "providers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AuthProvider"
+                        }
+                    },
+                    "passwordReset": {
+                        "type": "boolean"
+                    },
+                    "twoFactor": {
+                        "type": "boolean"
+                    },
+                    "passkeys": {
+                        "type": "boolean"
+                    },
+                    "emailVerification": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "mode"
+                ],
+                "additionalProperties": {}
+            },
+            "MenuItem": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Built-in: `resources`, `resource`, `page`, `link`, `separator`, `group`."
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "resource": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "external": {
+                        "type": "boolean"
+                    },
+                    "children": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MenuItem"
+                        }
+                    }
+                },
+                "required": [
+                    "type"
+                ],
+                "additionalProperties": {},
+                "description": "An entry of a menu."
+            },
+            "Page": {
+                "type": "object",
+                "properties": {
+                    "component": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "A page provided by a plugin, or a built-in page."
+                    },
+                    "path": {
+                        "description": "Path of a custom page.",
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "props": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    }
+                },
+                "required": [
+                    "component"
+                ],
+                "additionalProperties": {}
+            },
+            "Widget": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Built-in: `stat`, `chart`, `recent-items`, `shortcuts`, `welcome`."
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "width": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                    },
+                    "settings": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "additionalProperties": {}
+            },
+            "Uploads": {
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "multipart",
+                            "tus",
+                            "presigned"
+                        ]
+                    },
+                    "endpoint": {
+                        "type": "string"
+                    },
+                    "maxSize": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    }
+                },
+                "required": [
+                    "mode"
+                ],
+                "additionalProperties": {}
+            },
+            "Definition": {
+                "type": "object",
+                "properties": {
+                    "protocol": {
+                        "type": "number",
+                        "const": 1
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "locale": {
+                        "type": "string",
+                        "minLength": 2,
+                        "description": "BCP 47 locale of the labels and messages."
+                    },
+                    "locales": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 2
+                        },
+                        "description": "Locales of localized content fields."
+                    },
+                    "api": {
+                        "type": "object",
+                        "properties": {
+                            "baseUrl": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "baseUrl"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    "resources": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Resource"
+                        }
+                    },
+                    "pages": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/Page"
+                        }
+                    },
+                    "menus": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/components/schemas/MenuItem"
+                            }
+                        }
+                    },
+                    "routes": {
+                        "description": "Named paths of the frontend, for `link` actions and redirects.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "auth": {
+                        "$ref": "#/components/schemas/Auth"
+                    },
+                    "dashboard": {
+                        "type": "object",
+                        "properties": {
+                            "widgets": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Widget"
+                                }
+                            }
+                        },
+                        "required": [
+                            "widgets"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    "search": {
+                        "type": "object",
+                        "properties": {
+                            "enabled": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "enabled"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    "uploads": {
+                        "$ref": "#/components/schemas/Uploads"
+                    },
+                    "theme": {
+                        "type": "object",
+                        "properties": {
+                            "colorScheme": {
+                                "type": "string",
+                                "enum": [
+                                    "light",
+                                    "dark",
+                                    "auto"
+                                ]
+                            }
+                        },
+                        "additionalProperties": {}
+                    },
+                    "user": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/User"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "protocol",
+                    "name",
+                    "locale",
+                    "locales",
+                    "api",
+                    "resources"
+                ],
+                "additionalProperties": {},
+                "description": "Everything a frontend needs to render the admin for the current user."
+            },
+            "Item": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/Id"
+                    },
+                    "version": {
+                        "description": "Changes on every update. `null` when the backend has no versions.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "abilities": {
+                        "$ref": "#/components/schemas/Abilities"
+                    }
+                },
+                "required": [
+                    "id",
+                    "version",
+                    "abilities"
+                ],
+                "additionalProperties": {},
+                "description": "An item of a resource. Its other properties are the values of its fields."
+            },
+            "Pagination": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "perPage": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "total": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "lastPage": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    }
+                },
+                "required": [
+                    "page",
+                    "perPage",
+                    "total",
+                    "lastPage"
+                ],
+                "additionalProperties": {}
+            },
+            "ItemResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/Item"
+                    }
+                },
+                "required": [
+                    "data"
+                ],
+                "additionalProperties": {}
+            },
+            "ListResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Item"
+                        }
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Pagination"
+                    }
+                },
+                "required": [
+                    "data",
+                    "meta"
+                ],
+                "additionalProperties": {}
+            },
+            "Problem": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "description": "A URI reference that identifies the problem type."
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "integer",
+                        "minimum": 400,
+                        "maximum": 599
+                    },
+                    "detail": {
+                        "type": "string"
+                    },
+                    "instance": {
+                        "type": "string"
+                    },
+                    "errors": {
+                        "description": "`422`: messages keyed by the dot path of the invalid value.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "current": {
+                        "description": "`412`: the current version of the item.",
+                        "$ref": "#/components/schemas/Item"
+                    }
+                },
+                "required": [
+                    "type",
+                    "title",
+                    "status"
+                ],
+                "additionalProperties": {},
+                "description": "An error, as RFC 9457 problem details (`application/problem+json`)."
+            },
+            "Selection": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "ids": {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Id"
+                                }
+                            }
+                        },
+                        "required": [
+                            "ids"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "object",
+                                "properties": {
+                                    "filter": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                            "type": "string"
+                                        },
+                                        "additionalProperties": {}
+                                    },
+                                    "q": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": {}
+                            },
+                            "except": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Id"
+                                }
+                            }
+                        },
+                        "required": [
+                            "query"
+                        ],
+                        "additionalProperties": {}
+                    }
+                ]
+            },
+            "ActionRequest": {
+                "type": "object",
+                "properties": {
+                    "selection": {
+                        "description": "Omitted for actions on the whole resource.",
+                        "$ref": "#/components/schemas/Selection"
+                    },
+                    "values": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    }
+                },
+                "additionalProperties": {}
+            },
+            "ActionItemResult": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/Id"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "failed",
+                            "skipped"
+                        ]
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "description": "`skipped`: `forbidden`, `not_found` or `unchanged`.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "status"
+                ],
+                "additionalProperties": {}
+            },
+            "ActionResult": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "summary": {
+                        "type": "object",
+                        "properties": {
+                            "succeeded": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                            },
+                            "failed": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                            },
+                            "skipped": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                            }
+                        },
+                        "required": [
+                            "succeeded",
+                            "failed",
+                            "skipped"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    "results": {
+                        "description": "The items that did not succeed.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ActionItemResult"
+                        }
+                    },
+                    "refresh": {
+                        "type": "string",
+                        "enum": [
+                            "none",
+                            "items",
+                            "list"
+                        ]
+                    },
+                    "redirect": {
+                        "anyOf": [
+                            {
+                                "anyOf": [
+                                    {
+                                        "type": "string"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/RouteReference"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "download": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "url": {
+                                        "type": "string"
+                                    },
+                                    "filename": {
+                                        "type": "string"
+                                    },
+                                    "expiresAt": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "url"
+                                ],
+                                "additionalProperties": {}
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "additionalProperties": {}
+            },
+            "ActionRun": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/Id"
+                    },
+                    "action": {
+                        "type": "string"
+                    },
+                    "resource": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "queued",
+                            "running",
+                            "succeeded",
+                            "partial",
+                            "failed",
+                            "cancelled"
+                        ]
+                    },
+                    "progress": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "total": {
+                        "anyOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "result": {
+                        "description": "Set once the run has finished.",
+                        "$ref": "#/components/schemas/ActionResult"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "finishedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "action",
+                    "resource",
+                    "status",
+                    "progress",
+                    "total"
+                ],
+                "additionalProperties": {}
+            },
+            "ActionRunResponse": {
+                "type": "object",
+                "properties": {
+                    "run": {
+                        "$ref": "#/components/schemas/ActionRun"
+                    }
+                },
+                "required": [
+                    "run"
+                ],
+                "additionalProperties": {}
+            },
+            "MediaTransform": {
+                "type": "object",
+                "properties": {
+                    "crop": {
+                        "description": "In pixels of the original image.",
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "number"
+                            },
+                            "y": {
+                                "type": "number"
+                            },
+                            "width": {
+                                "type": "number"
+                            },
+                            "height": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "x",
+                            "y",
+                            "width",
+                            "height"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    "rotate": {
+                        "anyOf": [
+                            {
+                                "type": "number",
+                                "const": 0
+                            },
+                            {
+                                "type": "number",
+                                "const": 90
+                            },
+                            {
+                                "type": "number",
+                                "const": 180
+                            },
+                            {
+                                "type": "number",
+                                "const": 270
+                            }
+                        ]
+                    },
+                    "flipX": {
+                        "type": "boolean"
+                    },
+                    "flipY": {
+                        "type": "boolean"
+                    },
+                    "focalPoint": {
+                        "description": "Relative to the width and height, from 0 to 1.",
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "y": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            }
+                        },
+                        "required": [
+                            "x",
+                            "y"
+                        ],
+                        "additionalProperties": {}
+                    }
+                },
+                "additionalProperties": {}
+            },
+            "Media": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/Id"
+                    },
+                    "version": {
+                        "description": "Changes on every update. `null` when the backend has no versions.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "abilities": {
+                        "$ref": "#/components/schemas/Abilities"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "`image`, `video`, `audio`, `document`, `font`, or another type."
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "mime": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "thumbnailUrl": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "variants": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string"
+                                },
+                                "width": {
+                                    "type": "number"
+                                },
+                                "height": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "url"
+                            ],
+                            "additionalProperties": {}
+                        }
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    },
+                    "transform": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/MediaTransform"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "version",
+                    "abilities",
+                    "type",
+                    "name",
+                    "mime",
+                    "size",
+                    "url"
+                ],
+                "additionalProperties": {}
+            },
+            "MediaResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/Media"
+                    }
+                },
+                "required": [
+                    "data"
+                ],
+                "additionalProperties": {}
+            },
+            "MediaListResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Media"
+                        }
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Pagination"
+                    }
+                },
+                "required": [
+                    "data",
+                    "meta"
+                ],
+                "additionalProperties": {}
+            },
+            "Session": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "$ref": "#/components/schemas/User"
+                    }
+                },
+                "required": [
+                    "user"
+                ],
+                "additionalProperties": {}
+            },
+            "SearchResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "resource": {
+                                    "type": "string"
+                                },
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Item"
+                                    }
+                                },
+                                "total": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                }
+                            },
+                            "required": [
+                                "resource",
+                                "items"
+                            ],
+                            "additionalProperties": {}
+                        }
+                    }
+                },
+                "required": [
+                    "data"
+                ],
+                "additionalProperties": {}
+            },
+            "PreviewResponse": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    },
+                    "expiresAt": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "url"
+                ],
+                "additionalProperties": {}
+            }
+        }
+    }
+}

@@ -1,0 +1,202 @@
+<?php
+
+namespace Panneau\Tests\Feature\Definition;
+
+use Panneau\Definition\DefinitionBuilder;
+use Panneau\Resources\ResourceRegistry;
+use Panneau\Tests\Concerns\ValidatesProtocol;
+use Panneau\Tests\TestCase;
+use TestApp\Panneau\Resources\AuthorsResource;
+use TestApp\Panneau\Resources\PostsResource;
+use TestApp\Panneau\Resources\TagsResource;
+
+class DefinitionBuilderTest extends TestCase
+{
+    use ValidatesProtocol;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app['config']->set('panneau.locales', ['fr', 'en']);
+        $this->app['config']->set('panneau.name', 'Test admin');
+        $this->app->make(ResourceRegistry::class)->register([
+            PostsResource::class,
+            AuthorsResource::class,
+            TagsResource::class,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function definition(): array
+    {
+        return $this->app->make(DefinitionBuilder::class)->build();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resource(string $id): array
+    {
+        foreach ($this->definition()['resources'] as $resource) {
+            if ($resource['id'] === $id) {
+                return $resource;
+            }
+        }
+        $this->fail('No resource '.$id);
+    }
+
+    public function test_the_definition_matches_the_protocol(): void
+    {
+        $this->assertValidDefinition($this->definition());
+    }
+
+    public function test_an_empty_definition_matches_the_protocol(): void
+    {
+        $this->app->forgetInstance(ResourceRegistry::class);
+
+        $definition = $this->definition();
+
+        $this->assertSame([], $definition['resources']);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_the_top_level_properties(): void
+    {
+        $definition = $this->definition();
+
+        $this->assertSame(1, $definition['protocol']);
+        $this->assertSame('Test admin', $definition['name']);
+        $this->assertSame('en', $definition['locale']);
+        $this->assertSame(['fr', 'en'], $definition['locales']);
+        $this->assertSame(['baseUrl' => '/panneau/api'], $definition['api']);
+    }
+
+    public function test_locales_default_to_the_app_locale(): void
+    {
+        $this->app['config']->set('panneau.locales', null);
+        $this->app->setLocale('fr');
+
+        $this->assertSame(['fr'], $this->definition()['locales']);
+    }
+
+    public function test_a_resource(): void
+    {
+        $posts = $this->resource('posts');
+
+        $this->assertSame(['singular' => 'post', 'plural' => 'posts'], $posts['label']);
+        $this->assertSame('title', $posts['itemTitle']);
+        $this->assertSame(
+            ['title', 'subtitle', 'body', 'status', 'featured', 'published_at', 'author', 'tags', 'seo', 'blocks'],
+            array_column($posts['fields'], 'name'),
+        );
+        $this->assertSame(['search' => true], $posts['features']);
+    }
+
+    public function test_fields(): void
+    {
+        $fields = array_column($this->resource('posts')['fields'], null, 'name');
+
+        $this->assertSame([
+            'name' => 'title',
+            'type' => 'text',
+            'label' => 'Title',
+            'rules' => [['rule' => 'required'], ['rule' => 'max', 'value' => 120]],
+        ], $fields['title']);
+        $this->assertTrue($fields['subtitle']['localized']);
+        $this->assertSame([
+            ['value' => 'draft', 'label' => 'Draft'],
+            ['value' => 'published', 'label' => 'Published'],
+            ['value' => 'archived', 'label' => 'Archived'],
+        ], $fields['status']['options']);
+        $this->assertSame('draft', $fields['status']['default']);
+        $this->assertSame(['name' => 'author', 'type' => 'relation', 'resource' => 'authors'], $fields['author']);
+        $this->assertSame(['name' => 'tags', 'type' => 'relation', 'resource' => 'tags', 'multiple' => true], $fields['tags']);
+        $this->assertSame(['title', 'description'], array_column($fields['seo']['fields'], 'name'));
+        $this->assertSame(['quote', 'image'], array_column($fields['blocks']['types'], 'id'));
+        $this->assertSame(
+            ['name' => 'image', 'type' => 'media', 'rules' => [['rule' => 'accept', 'value' => ['image/*']], ['rule' => 'required']], 'accept' => ['image/*']],
+            $fields['blocks']['types'][1]['fields'][0],
+        );
+    }
+
+    public function test_the_form_layout(): void
+    {
+        $layout = $this->resource('posts')['form']['layout'];
+
+        $this->assertSame('tabs', $layout[0]['type']);
+        $this->assertSame(
+            ['type' => 'row', 'children' => [
+                ['type' => 'field', 'name' => 'title', 'width' => 8],
+                ['type' => 'field', 'name' => 'status', 'width' => 4],
+            ]],
+            $layout[0]['children'][0]['children'][0],
+        );
+        $this->assertSame(
+            ['type' => 'section', 'label' => 'SEO', 'collapsible' => true, 'children' => [['type' => 'field', 'name' => 'seo']]],
+            $layout[0]['children'][1]['children'][0],
+        );
+        $this->assertSame('sidebar', $layout[1]['type']);
+    }
+
+    public function test_a_resource_without_layout_has_no_form(): void
+    {
+        $this->assertArrayNotHasKey('form', $this->resource('authors'));
+    }
+
+    public function test_the_list(): void
+    {
+        $list = $this->resource('posts')['list'];
+
+        $this->assertSame([
+            ['field' => 'title', 'sortable' => true],
+            ['field' => 'status'],
+            ['field' => 'published_at', 'sortable' => true],
+        ], $list['columns']);
+        $this->assertSame(['status', 'featured', 'author_id'], array_column($list['filters'], 'id'));
+        $this->assertSame('authors', $list['filters'][2]['resource']);
+        $this->assertSame(['title', 'published_at'], $list['sorts']);
+        $this->assertSame('-published_at', $list['defaultSort']);
+        $this->assertTrue($list['search']);
+    }
+
+    public function test_default_columns(): void
+    {
+        $this->assertSame([['field' => 'name']], $this->resource('authors')['list']['columns']);
+        $this->assertSame([['field' => 'name'], ['field' => 'slug']], $this->resource('tags')['list']['columns']);
+        $this->assertFalse($this->resource('authors')['list']['search']);
+    }
+
+    public function test_actions(): void
+    {
+        $actions = array_column($this->resource('posts')['actions'], null, 'id');
+
+        $this->assertSame([
+            'id' => 'publish-posts',
+            'label' => 'Publish posts',
+            'icon' => 'send',
+            'kind' => 'server',
+            'scope' => ['item', 'selection'],
+            'placement' => ['row', 'toolbar'],
+            'confirm' => ['message' => 'Publish {count, plural, one {# post} other {# posts}}?', 'confirmLabel' => 'Publish'],
+            'fields' => [['name' => 'notify', 'type' => 'boolean', 'label' => 'Notify subscribers']],
+        ], $actions['publish-posts']);
+        $this->assertSame([
+            'id' => 'preview',
+            'label' => 'Preview',
+            'kind' => 'link',
+            'scope' => ['item'],
+            'placement' => ['form'],
+            'url' => '/posts/{id}/preview',
+        ], $actions['preview']);
+        $this->assertSame([
+            'id' => 'copy-link',
+            'label' => 'Copy link',
+            'kind' => 'client',
+            'scope' => ['item'],
+            'component' => 'copy-link',
+        ], $actions['copy-link']);
+    }
+}

@@ -1,0 +1,218 @@
+<?php
+
+namespace Panneau\Definition;
+
+use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Contracts\Foundation\Application;
+use Panneau\Contracts\ActionDeclaration;
+use Panneau\Fields\Field;
+use Panneau\Fields\Group;
+use Panneau\Fields\Relation;
+use Panneau\Fields\Repeater;
+use Panneau\Layout\Node;
+use Panneau\Resources\Resource;
+use Panneau\Resources\ResourceRegistry;
+
+/**
+ * Builds the protocol's definition from the registered resources and the config.
+ */
+final class DefinitionBuilder
+{
+    /**
+     * The version of the protocol this package implements.
+     */
+    public const PROTOCOL_VERSION = 1;
+
+    /**
+     * Field types shown as columns when a list declares none.
+     */
+    private const DEFAULT_COLUMN_TYPES = ['text', 'email', 'url', 'slug', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color'];
+
+    public function __construct(
+        private readonly ResourceRegistry $resources,
+        private readonly Config $config,
+        private readonly Application $app,
+    ) {}
+
+    /**
+     * The definition, in the current locale.
+     *
+     * @return array<string, mixed>
+     */
+    public function build(): array
+    {
+        return [
+            'protocol' => self::PROTOCOL_VERSION,
+            'name' => $this->name(),
+            'locale' => $this->app->getLocale(),
+            'locales' => $this->locales(),
+            'api' => ['baseUrl' => $this->apiBaseUrl()],
+            'resources' => array_map($this->resource(...), $this->resources->all()),
+        ];
+    }
+
+    public function name(): string
+    {
+        $name = $this->config->get('panneau.name') ?? $this->config->get('app.name');
+
+        return is_string($name) ? $name : 'Panneau';
+    }
+
+    /**
+     * The locales of localized fields: `panneau.locales`, or the app's locale.
+     *
+     * @return list<string>
+     */
+    public function locales(): array
+    {
+        $locales = $this->config->get('panneau.locales');
+        if (is_array($locales) && count($locales) > 0) {
+            return array_values(array_map(strval(...), $locales));
+        }
+
+        return [$this->app->getLocale()];
+    }
+
+    public function apiBaseUrl(): string
+    {
+        $url = $this->config->get('panneau.api.base_url');
+
+        return is_string($url) ? $url : '/'.trim((string) $this->config->get('panneau.path', 'panneau'), '/').'/api';
+    }
+
+    /**
+     * A resource in the definition, without its abilities.
+     *
+     * @return array<string, mixed>
+     */
+    public function resource(Resource $resource): array
+    {
+        $fields = $resource->fields();
+        $definition = [
+            'id' => $resource->id(),
+            'label' => ['singular' => $resource->singularLabel(), 'plural' => $resource->pluralLabel()],
+        ];
+        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'itemTitle' => $resource->itemTitle()] as $key => $value) {
+            if ($value !== null) {
+                $definition[$key] = $value;
+            }
+        }
+        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field), $fields);
+
+        $layout = $resource->layout();
+        if (count($layout) > 0) {
+            $definition['form'] = ['layout' => array_map(fn (Node $node): array => $node->toDefinition(), $layout)];
+        }
+
+        $list = $this->resources->list($resource)->toDefinition($this->resources->searchable($resource));
+        $list['columns'] ??= $this->defaultColumns($resource);
+        if (isset($list['filters']) && is_array($list['filters'])) {
+            $list['filters'] = array_map(fn (array $filter): array => $this->resolveResource($filter), $list['filters']);
+        }
+        $definition['list'] = $list;
+
+        $actions = $this->resources->actions($resource);
+        if (count($actions) > 0) {
+            $definition['actions'] = array_map(fn (ActionDeclaration $action): array => $this->action($action), $actions);
+        }
+
+        $features = $resource->features();
+        $features['search'] ??= $this->resources->searchable($resource);
+        $definition['features'] = $features;
+
+        $settings = $resource->settings();
+        if (count($settings) > 0) {
+            $definition['settings'] = $settings;
+        }
+
+        return $definition;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function action(ActionDeclaration $action): array
+    {
+        $definition = $action->toDefinition();
+        if (isset($definition['fields']) && is_array($definition['fields'])) {
+            $definition['fields'] = array_map(fn (array $field): array => $this->resolveFieldReferences($field), $definition['fields']);
+        }
+
+        return $definition;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function field(Field $field): array
+    {
+        return $this->resolveFieldReferences($field->toDefinition());
+    }
+
+    /**
+     * Turns the resource classes of relation fields into resource ids, in nested fields too.
+     *
+     * @param  array<array-key, mixed>  $field
+     * @return array<array-key, mixed>
+     */
+    private function resolveFieldReferences(array $field): array
+    {
+        if (($field['type'] ?? null) === 'relation') {
+            $field = $this->resolveResource($field);
+        }
+        if (isset($field['fields']) && is_array($field['fields'])) {
+            $field['fields'] = array_map(fn (array $child): array => $this->resolveFieldReferences($child), $field['fields']);
+        }
+        if (isset($field['types']) && is_array($field['types'])) {
+            $field['types'] = array_map(function (array $type): array {
+                $type['fields'] = array_map(fn (array $child): array => $this->resolveFieldReferences($child), $type['fields'] ?? []);
+
+                return $type;
+            }, $field['types']);
+        }
+
+        return $field;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $definition
+     * @return array<array-key, mixed>
+     */
+    private function resolveResource(array $definition): array
+    {
+        if (isset($definition['resource']) && is_string($definition['resource'])) {
+            $definition['resource'] = $this->resources->idOf($definition['resource']);
+        }
+
+        return $definition;
+    }
+
+    /**
+     * Columns for a list that declares none: the item title, then the first simple fields.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function defaultColumns(Resource $resource): array
+    {
+        $sorts = $this->resources->list($resource)->getSorts();
+        $names = [];
+        $title = $resource->itemTitle();
+        if ($title !== null) {
+            $names[] = $title;
+        }
+        foreach ($resource->fields() as $field) {
+            if (count($names) >= 4) {
+                break;
+            }
+            if (! $field instanceof Group && ! $field instanceof Repeater && ! $field instanceof Relation
+                && in_array($field->type(), self::DEFAULT_COLUMN_TYPES, true) && ! in_array($field->name(), $names, true)) {
+                $names[] = $field->name();
+            }
+        }
+
+        return array_map(
+            fn (string $name): array => in_array($name, $sorts, true) ? ['field' => $name, 'sortable' => true] : ['field' => $name],
+            $names,
+        );
+    }
+}

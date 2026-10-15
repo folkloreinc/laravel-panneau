@@ -5,6 +5,9 @@ namespace Panneau\Repositories;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use InvalidArgumentException;
 use Panneau\Contracts\Repositories\ChunkedQuery;
@@ -13,12 +16,16 @@ use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\ResourceRepository;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
+use ReflectionMethod;
+use ReflectionNamedType;
 
 /**
  * A repository for an Eloquent model. The only part of Panneau that knows Eloquent.
  *
  * - The public id is the model's route key (`getRouteKeyName()`).
  * - The scope is applied as `where` clauses, and filled in on create.
+ * - Values are set as attributes, except for `BelongsTo` and `BelongsToMany` relations
+ *   (methods with a declared return type), which receive the public ids of related items.
  * - Filters are `where` clauses on the column named after the filter (`whereIn` for a list).
  * - Search is a `LIKE` on the search fields.
  * - The version is a hash of the model's attributes.
@@ -83,6 +90,7 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
             $model->setAttribute($column, $value);
         }
         $model->save();
+        $this->syncRelations($model, $values);
 
         return $model->refresh();
     }
@@ -92,6 +100,7 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
         $model = $this->ensureModel($item);
         $this->fill($model, $values);
         $model->save();
+        $this->syncRelations($model, $values);
 
         return $model->refresh();
     }
@@ -244,7 +253,8 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
 
     /**
      * Fills the model with validated values. Each value is set as the attribute of the same
-     * name, so casts and mutators apply.
+     * name, so casts and mutators apply. A `BelongsTo` relation is associated with the related
+     * item of the given id; `BelongsToMany` relations are synced after saving.
      *
      * @param  TModel  $model
      * @param  array<string, mixed>  $values
@@ -252,8 +262,68 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
     protected function fill(Model $model, array $values): void
     {
         foreach ($values as $name => $value) {
-            $model->setAttribute($name, $value);
+            $relation = $this->relation($model, $name);
+            if ($relation instanceof BelongsTo) {
+                $relation->associate(is_scalar($value) ? $this->findRelated($relation, (string) $value) : null);
+            } elseif ($relation === null) {
+                $model->setAttribute($name, $value);
+            }
         }
+    }
+
+    /**
+     * Syncs the `BelongsToMany` relations of the values, once the model is saved.
+     *
+     * @param  TModel  $model
+     * @param  array<string, mixed>  $values
+     */
+    protected function syncRelations(Model $model, array $values): void
+    {
+        foreach ($values as $name => $value) {
+            $relation = $this->relation($model, $name);
+            if ($relation instanceof BelongsToMany) {
+                $ids = is_array($value) ? array_values(array_filter($value, is_scalar(...))) : [];
+                $related = $relation->getRelated();
+                $relation->sync(
+                    count($ids) > 0
+                        ? $related->newQuery()->whereIn($related->getRouteKeyName(), $ids)->pluck($related->getKeyName())->all()
+                        : [],
+                );
+            }
+        }
+    }
+
+    /**
+     * The relation of the model named after a field, when the model declares it with a
+     * return type. Other methods are never called.
+     *
+     * @param  TModel  $model
+     * @return Relation<Model, Model, mixed>|null
+     */
+    protected function relation(Model $model, string $name): ?Relation
+    {
+        if (! method_exists($model, $name)) {
+            return null;
+        }
+        $method = new ReflectionMethod($model, $name);
+        $type = $method->getReturnType();
+        if (! $method->isPublic() || $method->isStatic() || $method->getNumberOfRequiredParameters() > 0
+            || ! $type instanceof ReflectionNamedType || ! is_a($type->getName(), Relation::class, true)) {
+            return null;
+        }
+        $relation = $model->{$name}();
+
+        return $relation instanceof Relation ? $relation : null;
+    }
+
+    /**
+     * @param  BelongsTo<Model, Model>  $relation
+     */
+    private function findRelated(BelongsTo $relation, string $id): ?Model
+    {
+        $related = $relation->getRelated();
+
+        return $related->newQuery()->where($related->getRouteKeyName(), $id)->first();
     }
 
     /**

@@ -177,8 +177,13 @@ interface ResourceRepository
   - `localized()`, `readOnly()`, `visibleWhen()`;
   - `createOnly()`, `updateOnly()`.
 - **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
-- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Folklore repositories already handle these values: `data` JSON attributes, relations and media.
-- **Eloquent.** With `EloquentRepository`, persistence can be customized per field (`fillUsing`, `resolveUsing`). `Relation` syncs Eloquent relations, and `Media` stores media references.
+- **Validation.** Rules are built for the submitted values, so they follow the form:
+  - fields hidden by `visibleWhen`, read-only fields, and `createOnly`/`updateOnly` fields outside their mode are neither validated nor saved;
+  - a partial update (`PATCH`) only validates the fields it sends;
+  - localized values are validated per locale (`title.fr`), and blocks per index and type (`blocks.2.image`), so errors use the protocol's dot paths.
+- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items. Folklore repositories already handle these values: `data` JSON attributes, relations and media.
+- **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, and related items become references (`{ "id": "12", "label": "Ada" }`).
+- **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
 - **Field types from other packages** (such as the `laravel-folklore` plugin) extend `Field` and declare the protocol type and the JS plugin that renders them.
 
 ## Actions

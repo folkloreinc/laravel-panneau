@@ -3,6 +3,16 @@
 use Panneau\Http\Middleware\DispatchHandlingRequestEvent;
 
 return [
+    // Panneau 5
+
+    // Name of the admin, in the definition. Defaults to the app's name.
+    'name' => null,
+
+    // Locales of localized fields. Defaults to the app's locale.
+    'locales' => null,
+
+    // Panneau 1
+
     'resources' => [],
 
     // Save only the request data that matches a field declared on the resource (its
