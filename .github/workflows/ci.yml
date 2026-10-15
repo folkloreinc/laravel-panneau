@@ -12,6 +12,10 @@ concurrency:
 permissions:
     contents: read
 
+env:
+    # Authenticated downloads from GitHub have a higher rate limit
+    COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ github.token }}"}}'
+
 jobs:
     lint:
         name: Pint and Larastan
