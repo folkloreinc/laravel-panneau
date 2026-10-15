@@ -15,6 +15,9 @@ use Throwable;
  * Panneau route, so it also covers the errors of the other middleware. Other routes keep the
  * app's own error rendering.
  *
+ * The API only speaks JSON: requests are marked as accepting it, so the app's exception handler
+ * never answers with a redirect (to a login route, or back after a validation error).
+ *
  * @internal
  */
 final class RenderProblems
@@ -23,6 +26,7 @@ final class RenderProblems
 
     public function handle(Request $request, Closure $next): Response
     {
+        $request->headers->set('Accept', 'application/json');
         $response = $next($request);
         $exception = property_exists($response, 'exception') ? $response->exception : null;
         if (! $exception instanceof Throwable || $exception instanceof HttpResponseException) {

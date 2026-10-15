@@ -6,8 +6,10 @@ use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Panneau\Http\Problem;
+use Panneau\Support\Facade;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\TestCase;
+use TestApp\Panneau\Resources\TagsResource;
 
 class RoutesTest extends TestCase
 {
@@ -49,6 +51,30 @@ class RoutesTest extends TestCase
             ->assertStatus(401)
             ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
             ->assertExactJson(['type' => 'about:blank', 'title' => 'Unauthorized', 'status' => 401]);
+    }
+
+    public function test_guests_get_a_401_problem_without_asking_for_json(): void
+    {
+        Panneau::routes();
+
+        // The app has no "login" route: a redirect would fail
+        $this->get('/panneau/api/definition')
+            ->assertStatus(401)
+            ->assertHeader('Content-Type', Problem::CONTENT_TYPE);
+    }
+
+    public function test_validation_errors_are_problems_without_asking_for_json(): void
+    {
+        Panneau::routes();
+        Gate::define('viewPanneau', fn ($user): bool => true);
+        Facade::allowWithoutPolicies();
+        Facade::resources([new TagsResource]);
+        $this->actingAs(new GenericUser(['id' => 1]));
+
+        $this->post('/panneau/api/resources/tags', [])
+            ->assertStatus(422)
+            ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
+            ->assertJsonStructure(['errors' => ['name']]);
     }
 
     public function test_users_need_the_view_panneau_gate(): void
