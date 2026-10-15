@@ -12,5 +12,6 @@ base="https://raw.githubusercontent.com/folkloreinc/panneau-js/${sha}/packages/p
 
 curl -fsSL "${base}/definition.schema.json" -o "${dir}/definition.schema.json"
 curl -fsSL "${base}/openapi.json" -o "${dir}/openapi.json"
+curl -fsSL "${base}/boot.schema.json" -o "${dir}/boot.schema.json"
 echo "${sha}" > "${dir}/VERSION"
 echo "Updated the protocol schemas to folkloreinc/panneau-js@${sha}"

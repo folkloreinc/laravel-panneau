@@ -36,6 +36,9 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->publishes([__DIR__.'/../config/panneau.php' => config_path('panneau.php')], 'panneau-config');
 
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'panneau');
+        $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/panneau')], 'panneau-views');
+
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
 
         if ($this->app->runningInConsole()) {

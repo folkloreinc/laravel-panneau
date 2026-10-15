@@ -11,7 +11,7 @@ composer require folklore/laravel-panneau
 php artisan panneau:install
 ```
 
-`panneau:install` asks a few questions (or takes them as options: `--guard`, `--login-url`, `--resource`):
+`panneau:install` asks a few questions (or takes them as options: `--guard`, `--login-url`, `--resource`; `--no-js` skips the JS part):
 
 - **guard** of the admin users;
 - **login URL** where unauthenticated users are sent;
@@ -24,7 +24,12 @@ It then writes, keeping existing files unless `--force`:
 - `app/Providers/PanneauServiceProvider.php`, which registers the resources, defines the `viewPanneau` gate (closed until the project opens it) and loads the routes file; it is added to `bootstrap/providers.php`;
 - `routes/panneau.php`, which mounts the routes with their middleware;
 - a first resource and its policy, if asked (the model's hidden attributes never become fields);
-- once the Panneau 5 JS packages are released: a JS entry point (`resources/js/panneau.tsx`) added to the Vite config, and the `@panneau/*` packages added to `package.json`.
+- `resources/js/panneau.tsx`, the JS entry that mounts `@panneau/app` (`createPanneauApp()`), where the project adds its plugins.
+
+It also edits two project files, keeping their formatting and what they already have:
+
+- **`vite.config.js`** (or `.ts`, `.mjs`, `.mts`): the entry is added to the `input` of `laravel()`, and the `react()` plugin of `@vitejs/plugin-react` to `plugins`. When the file doesn't have that shape, it says what to add instead.
+- **`package.json`:** `@panneau/app`, `react`, `react-dom` and `@tanstack/react-query` in `dependencies`, and `@vitejs/plugin-react` in `devDependencies`. Packages already there keep their version, except an older major of `@panneau/app`. Until 5.0.0, the range is explicit (`^5.0.0-alpha.0`): v5 is published on the `alpha` tag, and `latest` is v4.
 
 With `--upgrade`, it migrates a v1 project's configuration and removes the files the package now provides (see [decisions/0004](decisions/0004-install-command.md)).
 
@@ -267,6 +272,11 @@ final class PublishPages extends Action
 - **Routes are opt-in.** Nothing is registered until the project calls `Panneau::routes()`, usually in `routes/panneau.php`. Every route gets the middleware from `config('panneau.middleware')`, `['web', 'panneau.auth']` by default. See [decisions/0002](decisions/0002-secure-by-default.md).
   - The API is under `{panneau.path}/api` (`/panneau/api` by default), with routes named `panneau.api.*`.
   - `panneau.auth` requires a user on the guard of `panneau.auth.guard`, and the `viewPanneau` gate. Without that gate, nobody gets in.
+  - Every other path under `{panneau.path}` serves the page of the app (route `panneau.app`), since the app routes on the client. The route is registered last: the project's own routes under that path go before `Panneau::routes()`.
+- **The page of the app** follows the entry contract of `@panneau/app` ([panneau-js decision 0019](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0019-app-entry.md)):
+  - a Blade view (`panneau::app`, or `panneau.app.view`) with the project's Vite entry (`panneau.app.entry`) and an empty `<div id="panneau">`;
+  - the boot config in `<script type="application/json" id="panneau-boot">`: `apiBaseUrl`, `basePath`, `locale`, `loginUrl`, and the definition for the user unless `panneau.app.inline_definition` is off, so the app renders without fetching it. `Panneau::bootConfig()` builds it for projects that render the app in their own page. The tests check it against the protocol's `boot.schema.json`;
+  - guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. The API answers them with a `401`.
 - **Generic controllers implement the protocol:**
   - definition, resources, actions and action runs;
   - media, auth, account;

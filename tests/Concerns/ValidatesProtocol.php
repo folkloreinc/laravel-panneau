@@ -26,6 +26,10 @@ trait ValidatesProtocol
                 'https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json',
                 __DIR__.'/../protocol/openapi.json',
             );
+            $resolver?->registerFile(
+                'https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/boot.schema.json',
+                __DIR__.'/../protocol/boot.schema.json',
+            );
             self::$protocolValidator = $validator;
         }
 
@@ -57,6 +61,20 @@ trait ValidatesProtocol
     {
         $this->assertMatchesSchema($definition, 'https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/definition.schema.json');
         $this->assertSame([], self::lintDefinition($definition), 'The definition has invalid references.');
+    }
+
+    /**
+     * Asserts that a boot config matches boot.schema.json, and that its definition is valid,
+     * as the protocol's validateBootConfig() checks.
+     *
+     * @param  array<string, mixed>  $boot
+     */
+    protected function assertValidBootConfig(array $boot): void
+    {
+        $this->assertMatchesSchema($boot, 'https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/boot.schema.json');
+        if (isset($boot['definition'])) {
+            $this->assertValidDefinition($boot['definition']);
+        }
     }
 
     /**
