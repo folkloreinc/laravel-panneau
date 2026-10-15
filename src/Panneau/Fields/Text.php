@@ -2,33 +2,17 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\Field;
+use Panneau\Forms\ValidationContext;
 
 class Text extends Field
 {
-    protected $textarea = false;
-
     public function type(): string
     {
-        return 'string';
+        return 'text';
     }
 
-    public function component(): string
+    protected function valueRules(ValidationContext $context): array
     {
-        return $this->textarea ? 'textarea' : 'text';
-    }
-
-    public function isTextarea()
-    {
-        $this->textarea = true;
-
-        return $this;
-    }
-
-    public function isText()
-    {
-        $this->textarea = false;
-
-        return $this;
+        return ['string'];
     }
 }

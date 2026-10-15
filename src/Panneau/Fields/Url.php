@@ -2,22 +2,16 @@
 
 namespace Panneau\Fields;
 
-use Illuminate\Http\Request;
-
 class Url extends Text
 {
+    public function __construct(string $name)
+    {
+        parent::__construct($name);
+        $this->rule('url');
+    }
+
     public function type(): string
     {
-        return 'string';
-    }
-
-    public function component(): string
-    {
         return 'url';
-    }
-
-    public function rules(Request $request): ?array
-    {
-        return ['url', 'nullable'];
     }
 }

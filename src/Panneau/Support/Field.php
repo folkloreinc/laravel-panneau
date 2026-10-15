@@ -9,9 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Panneau\Contracts\Field as FieldContract;
-use Panneau\Fields\Fields;
-use Panneau\Fields\Item;
-use Panneau\Fields\Items;
+use Panneau\Legacy\Fields\Fields;
+use Panneau\Legacy\Fields\Item;
+use Panneau\Legacy\Fields\Items;
 
 abstract class Field implements Arrayable, FieldContract, Jsonable
 {

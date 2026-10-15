@@ -10,6 +10,8 @@ use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Composers\AppComposer;
 use Panneau\Composers\PanneauComposer;
 use Panneau\Repositories\RepositoryAdapters;
+use Panneau\Resources\ItemSerializer;
+use Panneau\Resources\ResourceRegistry;
 use Panneau\Support\LocalizedField;
 
 class ServiceProvider extends BaseServiceProvider
@@ -41,6 +43,8 @@ class ServiceProvider extends BaseServiceProvider
     protected function registerRepositoryAdapters(): void
     {
         $this->app->singleton(RepositoryAdapters::class);
+        $this->app->singleton(ResourceRegistry::class);
+        $this->app->singleton(ItemSerializer::class);
     }
 
     protected function registerRouter()

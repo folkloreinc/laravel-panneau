@@ -2,11 +2,11 @@
 
 namespace Panneau\Tests\Unit;
 
-use Panneau\Fields\Date;
-use Panneau\Fields\DateTime;
-use Panneau\Fields\Fields;
-use Panneau\Fields\Items;
-use Panneau\Fields\Text;
+use Panneau\Legacy\Fields\Date;
+use Panneau\Legacy\Fields\DateTime;
+use Panneau\Legacy\Fields\Fields;
+use Panneau\Legacy\Fields\Items;
+use Panneau\Legacy\Fields\Text;
 use Panneau\Support\Field;
 use Panneau\Tests\TestCase;
 

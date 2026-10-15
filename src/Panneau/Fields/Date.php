@@ -2,26 +2,26 @@
 
 namespace Panneau\Fields;
 
-use Illuminate\Http\Request;
-use Panneau\Support\Field;
+use DateTimeInterface;
+use Panneau\Forms\ValidationContext;
 
+/**
+ * A date, as `YYYY-MM-DD`.
+ */
 class Date extends Field
 {
-    // TODO
-    protected $format;
-
     public function type(): string
-    {
-        return 'string';
-    }
-
-    public function component(): string
     {
         return 'date';
     }
 
-    public function rules(Request $request): ?array
+    protected function valueRules(ValidationContext $context): array
     {
-        return [];
+        return ['date_format:Y-m-d'];
+    }
+
+    protected function serializeValue(mixed $value): mixed
+    {
+        return $value instanceof DateTimeInterface ? $value->format('Y-m-d') : parent::serializeValue($value);
     }
 }

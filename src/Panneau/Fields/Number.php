@@ -2,23 +2,29 @@
 
 namespace Panneau\Fields;
 
-use Illuminate\Http\Request;
-use Panneau\Support\Field;
+use Panneau\Forms\ValidationContext;
 
 class Number extends Field
 {
-    public function type(): string
-    {
-        return 'string';
-    }
+    protected bool $integer = false;
 
-    public function component(): string
+    public function type(): string
     {
         return 'number';
     }
 
-    public function rules(Request $request): ?array
+    /**
+     * Only whole numbers.
+     */
+    public function integer(bool $integer = true): static
     {
-        return ['numeric', 'nullable'];
+        $this->integer = $integer;
+
+        return $this->settings(['step' => 1]);
+    }
+
+    protected function valueRules(ValidationContext $context): array
+    {
+        return [$this->integer ? 'integer' : 'numeric'];
     }
 }

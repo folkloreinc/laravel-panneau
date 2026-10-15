@@ -2,10 +2,10 @@
 
 namespace Panneau\Tests\Unit;
 
-use Panneau\Fields\AudioUpload;
-use Panneau\Fields\DocumentUpload;
-use Panneau\Fields\ImageUpload;
-use Panneau\Fields\VideoUpload;
+use Panneau\Legacy\Fields\AudioUpload;
+use Panneau\Legacy\Fields\DocumentUpload;
+use Panneau\Legacy\Fields\ImageUpload;
+use Panneau\Legacy\Fields\VideoUpload;
 use Panneau\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 

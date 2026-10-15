@@ -6,9 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 use Panneau\Contracts\Resource;
-use Panneau\Fields\Fields;
 use Panneau\Http\Requests\ResourceStoreRequest;
 use Panneau\Http\Requests\ResourceUpdateRequest;
+use Panneau\Legacy\Fields\Fields;
 use Panneau\Support\Field;
 
 class ResourceController extends Controller
