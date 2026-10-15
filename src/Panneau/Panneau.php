@@ -6,11 +6,13 @@ use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Http\Controllers\ActionController;
+use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Middleware\RenderProblems;
@@ -53,14 +55,15 @@ class Panneau implements PanneauContract
         $config = $this->container->make(Config::class);
         $router = $this->container->make(Router::class);
         $middleware = $config->get('panneau.middleware', ['web', 'panneau.auth']);
+        $middleware = is_array($middleware) ? $middleware : [];
         $domain = $config->get('panneau.domain');
-
-        $router->group(array_filter([
+        $group = array_filter([
             'prefix' => trim((string) $config->get('panneau.path', 'panneau'), '/'),
             'domain' => is_string($domain) ? $domain : null,
-            'middleware' => [RenderProblems::class, ...(is_array($middleware) ? $middleware : [])],
             'as' => 'panneau.',
-        ]), function (Router $router): void {
+        ]);
+
+        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router): void {
             $router->prefix('api')->as('api.')->group(function (Router $router): void {
                 $router->get('definition', DefinitionController::class)->name('definition');
                 $router->get('resources/{resource}', [ResourceController::class, 'index'])->name('resources.index');
@@ -71,6 +74,28 @@ class Panneau implements PanneauContract
                 $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy');
             });
         });
+
+        // The page of the app, for every path the app routes on the client. Registered last,
+        // without RenderProblems: guests are redirected and errors are the app's error pages.
+        $router->group([...$group, 'middleware' => $middleware], function (Router $router): void {
+            $router->get('{path?}', AppController::class)->where('path', '(?!api(?:/|$)).*')->name('app');
+        });
+    }
+
+    public function bootConfig(?Authenticatable $user = null, bool $withDefinition = true): array
+    {
+        $config = $this->container->make(Config::class);
+        $definition = $this->container->make(DefinitionBuilder::class);
+        $path = trim((string) $config->get('panneau.path', 'panneau'), '/');
+
+        return array_filter([
+            'protocol' => DefinitionBuilder::PROTOCOL_VERSION,
+            'apiBaseUrl' => $definition->apiBaseUrl(),
+            'basePath' => '/'.$path,
+            'locale' => $this->container->make(Application::class)->getLocale(),
+            'definition' => $withDefinition ? $definition->build($user) : null,
+            'loginUrl' => $definition->auth()['loginUrl'],
+        ], fn (mixed $value): bool => $value !== null);
     }
 
     public function definition(?Authenticatable $user = null): array

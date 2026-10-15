@@ -133,6 +133,145 @@ class InstallCommandTest extends TestCase
         $this->assertSame(1, substr_count($this->read('bootstrap/providers.php'), 'PanneauServiceProvider'));
     }
 
+    /**
+     * The package.json of the Laravel 12 skeleton.
+     */
+    private const PACKAGE_JSON = <<<'JSON'
+        {
+            "$schema": "https://www.schemastore.org/package.json",
+            "private": true,
+            "type": "module",
+            "scripts": {
+                "build": "vite build",
+                "dev": "vite"
+            },
+            "devDependencies": {
+                "@tailwindcss/vite": "^4.0.0",
+                "laravel-vite-plugin": "^2.0.0",
+                "tailwindcss": "^4.0.0",
+                "vite": "^7.0.7"
+            }
+        }
+
+        JSON;
+
+    private const VITE_CONFIG = <<<'JS'
+        import { defineConfig } from 'vite';
+        import laravel from 'laravel-vite-plugin';
+
+        export default defineConfig({
+            plugins: [
+                laravel({
+                    input: ['resources/css/app.css', 'resources/js/app.js'],
+                    refresh: true,
+                }),
+            ],
+        });
+
+        JS;
+
+    private const OPTIONS = ['--guard' => 'web', '--login-url' => '/login', '--resource' => ''];
+
+    public function test_it_installs_the_js_entry(): void
+    {
+        file_put_contents($this->project.'/package.json', self::PACKAGE_JSON);
+        file_put_contents($this->project.'/vite.config.js', self::VITE_CONFIG);
+
+        $this->artisan('panneau:install', self::OPTIONS)
+            ->expectsOutputToContain('Run npm install')
+            ->assertSuccessful();
+
+        $entry = $this->read('resources/js/panneau.tsx');
+        $this->assertStringContainsString("import { createPanneauApp } from '@panneau/app';", $entry);
+        $this->assertStringContainsString("element: document.getElementById('panneau')!,", $entry);
+
+        $this->assertSame(<<<'JSON'
+            {
+                "$schema": "https://www.schemastore.org/package.json",
+                "private": true,
+                "type": "module",
+                "scripts": {
+                    "build": "vite build",
+                    "dev": "vite"
+                },
+                "devDependencies": {
+                    "@tailwindcss/vite": "^4.0.0",
+                    "@vitejs/plugin-react": "^5.2.0",
+                    "laravel-vite-plugin": "^2.0.0",
+                    "tailwindcss": "^4.0.0",
+                    "vite": "^7.0.7"
+                },
+                "dependencies": {
+                    "@panneau/app": "^5.0.0-alpha.0",
+                    "@tanstack/react-query": "^5.0.0",
+                    "react": "^19.2.0",
+                    "react-dom": "^19.2.0"
+                }
+            }
+
+            JSON, $this->read('package.json'));
+
+        $vite = $this->read('vite.config.js');
+        $this->assertStringContainsString("import react from '@vitejs/plugin-react';", $vite);
+        $this->assertStringContainsString("input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/panneau.tsx'],", $vite);
+        $this->assertStringContainsString("        }),\n        react(),\n    ],", $vite);
+
+        // A second run changes nothing
+        $files = [$this->read('package.json'), $vite];
+        $this->artisan('panneau:install', self::OPTIONS)->assertSuccessful();
+        $this->assertSame($files, [$this->read('package.json'), $this->read('vite.config.js')]);
+    }
+
+    public function test_it_replaces_panneau_4_and_keeps_the_other_versions(): void
+    {
+        file_put_contents($this->project.'/package.json', json_encode([
+            'dependencies' => ['@panneau/app' => '^4.1.0', 'react' => '^18.3.0', 'axios' => '^1.0.0'],
+            'devDependencies' => ['@tanstack/react-query' => '^5.50.0', 'vite' => '^7.0.0'],
+            'scripts' => (object) [],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        file_put_contents($this->project.'/package.json', str_replace('    ', '  ', $this->read('package.json')));
+
+        $this->artisan('panneau:install', self::OPTIONS)
+            ->expectsOutputToContain('package.json has react ^18.3.0: Panneau needs ^19.2.0.')
+            ->assertSuccessful();
+
+        $json = $this->read('package.json');
+        $this->assertStringContainsString("\n  \"dependencies\": {\n    \"@panneau/app\": \"^5.0.0-alpha.0\",", $json);
+        $this->assertStringContainsString('"scripts": {}', $json);
+        $package = json_decode($json, true);
+        $this->assertSame(['@panneau/app' => '^5.0.0-alpha.0', 'axios' => '^1.0.0', 'react' => '^18.3.0', 'react-dom' => '^19.2.0'], $package['dependencies']);
+        $this->assertSame(['@tanstack/react-query' => '^5.50.0', '@vitejs/plugin-react' => '^5.2.0', 'vite' => '^7.0.0'], $package['devDependencies']);
+    }
+
+    public function test_it_tells_what_to_add_when_it_cannot(): void
+    {
+        $vite = "import config from './vite.shared.js';\n\nexport default config;\n";
+        file_put_contents($this->project.'/vite.config.ts', $vite);
+
+        $this->artisan('panneau:install', self::OPTIONS)
+            ->expectsOutputToContain('No valid package.json: add @panneau/app@^5.0.0-alpha.0, @tanstack/react-query@^5.0.0, react@^19.2.0, react-dom@^19.2.0, @vitejs/plugin-react@^5.2.0.')
+            ->expectsOutputToContain("vite.config.ts could not be updated: add 'resources/js/panneau.tsx' to the input of laravel() and the react() plugin of @vitejs/plugin-react.")
+            ->assertSuccessful();
+
+        $this->assertSame($vite, $this->read('vite.config.ts'));
+        $this->assertFileDoesNotExist($this->project.'/package.json');
+        $this->assertFileExists($this->project.'/resources/js/panneau.tsx');
+    }
+
+    public function test_the_js_can_be_skipped(): void
+    {
+        file_put_contents($this->project.'/package.json', self::PACKAGE_JSON);
+        file_put_contents($this->project.'/vite.config.js', self::VITE_CONFIG);
+
+        $this->artisan('panneau:install', [...self::OPTIONS, '--no-js' => true])
+            ->doesntExpectOutputToContain('npm install')
+            ->assertSuccessful();
+
+        $this->assertFileDoesNotExist($this->project.'/resources/js/panneau.tsx');
+        $this->assertSame(self::PACKAGE_JSON, $this->read('package.json'));
+        $this->assertSame(self::VITE_CONFIG, $this->read('vite.config.js'));
+    }
+
     private function assertPhpFilesAreValid(): void
     {
         $files = (new Filesystem)->allFiles($this->project);

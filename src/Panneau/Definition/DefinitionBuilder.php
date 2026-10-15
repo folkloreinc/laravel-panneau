@@ -58,7 +58,7 @@ final class DefinitionBuilder
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{mode: 'external'|'panneau', loginUrl: string|null}
      */
     public function auth(): array
     {

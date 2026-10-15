@@ -33,6 +33,21 @@ return [
         'login_url' => '/login',
     ],
 
+    // The page of the app, served for every path under {path} except the API.
+    'app' => [
+        // The Vite entry that mounts @panneau/app, written by panneau:install.
+        'entry' => 'resources/js/panneau.tsx',
+
+        // Vite's build directory, in public/. Null: Vite's default ("build").
+        'build_directory' => null,
+
+        // Puts the definition in the page, so the app renders without fetching it first.
+        'inline_definition' => true,
+
+        // The Blade view of the page. Its data: $boot, $title, $entry and $buildDirectory.
+        'view' => 'panneau::app',
+    ],
+
     'api' => [
         // Base URL of the API, in the definition. Null: /{path}/api.
         'base_url' => null,
