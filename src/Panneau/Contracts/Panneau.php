@@ -3,21 +3,23 @@
 namespace Panneau\Contracts;
 
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Container\Container;
+use Panneau\Resources\Resource;
 
 interface Panneau
 {
-    public function boot();
+    /**
+     * Registers resources: classes resolved from the container, or instances.
+     *
+     * @param  list<class-string<\Panneau\Resources\Resource>|\Panneau\Resources\Resource>  $resources
+     */
+    public function resources(array $resources): static;
 
-    public function booted($callback);
-
-    public function serving($callback);
-
-    public function definition(): Definition;
-
-    public function resources(?array $resources = null);
-
-    public function resource($id): ?Resource;
+    /**
+     * A registered resource, by id.
+     */
+    public function resource(string $id): ?Resource;
 
     /**
      * Registers an adapter that turns every repository implementing a contract into a
@@ -30,9 +32,20 @@ interface Panneau
      */
     public function repositoryAdapter(string $contract, string|Closure $adapter): static;
 
-    public function routes($options = []): void;
+    /**
+     * Allows every operation of the resources without a policy. Meant for local development.
+     */
+    public function allowWithoutPolicies(bool $allow = true): static;
 
-    public function router(): Router;
+    /**
+     * Registers the routes of the admin, with the middleware of `panneau.middleware`.
+     */
+    public function routes(): void;
 
-    public function settings(?array $settings = null);
+    /**
+     * The definition for a user, in the current locale.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(?Authenticatable $user = null): array;
 }

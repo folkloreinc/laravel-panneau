@@ -2,13 +2,16 @@
 
 namespace Panneau\Tests\Feature\Definition;
 
+use Illuminate\Auth\GenericUser;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Support\Facade;
 use Panneau\Tests\Concerns\ValidatesProtocol;
 use Panneau\Tests\TestCase;
 use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Panneau\Resources\TagsResource;
+use TestApp\Policies\PostPolicy;
 
 class DefinitionBuilderTest extends TestCase
 {
@@ -181,7 +184,11 @@ class DefinitionBuilderTest extends TestCase
             'scope' => ['item', 'selection'],
             'placement' => ['row', 'toolbar'],
             'confirm' => ['message' => 'Publish {count, plural, one {# post} other {# posts}}?', 'confirmLabel' => 'Publish'],
-            'fields' => [['name' => 'notify', 'type' => 'boolean', 'label' => 'Notify subscribers']],
+            'fields' => [
+                ['name' => 'notify', 'type' => 'boolean', 'label' => 'Notify subscribers'],
+                ['name' => 'note', 'type' => 'text', 'rules' => [['rule' => 'max', 'value' => 10]]],
+            ],
+            'abilities' => ['run' => false],
         ], $actions['publish-posts']);
         $this->assertSame([
             'id' => 'preview',
@@ -198,5 +205,41 @@ class DefinitionBuilderTest extends TestCase
             'scope' => ['item'],
             'component' => 'copy-link',
         ], $actions['copy-link']);
+    }
+
+    public function test_without_policies_everything_is_denied(): void
+    {
+        $this->assertSame(['viewAny' => false, 'create' => false], $this->resource('tags')['abilities']);
+    }
+
+    public function test_allow_without_policies(): void
+    {
+        Facade::allowWithoutPolicies();
+
+        $this->assertSame(['viewAny' => true, 'create' => true], $this->resource('tags')['abilities']);
+    }
+
+    public function test_policies_decide_for_the_user(): void
+    {
+        $user = new GenericUser(['id' => 1]);
+        PostPolicy::$denied = ['create'];
+
+        try {
+            $posts = $this->app->make(DefinitionBuilder::class)->resource($this->app->make(ResourceRegistry::class)->find('posts'), $user);
+        } finally {
+            PostPolicy::$denied = [];
+        }
+
+        $this->assertSame(['viewAny' => true, 'create' => false], $posts['abilities']);
+        $this->assertSame(['run' => true], array_column($posts['actions'], null, 'id')['publish-posts']['abilities']);
+    }
+
+    public function test_auth_and_user(): void
+    {
+        $definition = $this->app->make(DefinitionBuilder::class)->build(new GenericUser(['id' => 7, 'name' => 'Ada', 'email' => 'ada@example.com']));
+
+        $this->assertSame(['mode' => 'external', 'loginUrl' => '/login'], $definition['auth']);
+        $this->assertSame(['id' => '7', 'name' => 'Ada', 'email' => 'ada@example.com', 'abilities' => ['panneau.view' => true]], $definition['user']);
+        $this->assertValidDefinition($definition);
     }
 }

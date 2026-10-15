@@ -1,45 +1,51 @@
 <?php
 
-use Panneau\Http\Middleware\DispatchHandlingRequestEvent;
-
 return [
-    // Panneau 5
-
     // Name of the admin, in the definition. Defaults to the app's name.
     'name' => null,
 
     // Locales of localized fields. Defaults to the app's locale.
     'locales' => null,
 
-    // Panneau 1
-
+    // Resource classes, registered at boot. Resources can also be registered with
+    // Panneau::resources([...]) in a service provider.
     'resources' => [],
 
-    // Save only the request data that matches a field declared on the resource (its
-    // fields, its types' fields and its forms' fields). Other keys sent with a store or
-    // update request are not passed to the repository. Can also be set per resource with
-    // the static $onlyDeclaredFields property.
-    'only_declared_fields' => false,
+    // Path of the admin. The API is under {path}/api. Routes are only registered when the
+    // project calls Panneau::routes().
+    'path' => 'panneau',
 
-    'intl' => [
-        'locales' => ['en'],
-        'translations' => ['panneau::resources'],
+    'domain' => null,
+
+    // Middleware of every Panneau route. "panneau.auth" checks that the user is logged in on
+    // the guard of auth.guard, and that the "viewPanneau" gate allows them in. Removing it
+    // exposes the admin.
+    'middleware' => ['web', 'panneau.auth'],
+
+    'auth' => [
+        // "external": the site handles login, and unauthenticated users are sent to
+        // login_url. Panneau's own login ("panneau") comes in a later version.
+        'mode' => 'external',
+
+        // Guard of the admin users. Null: the default guard.
+        'guard' => null,
+
+        'login_url' => '/login',
     ],
 
-    'routes' => [
-        // Path to the routes file that will be automatically loaded. Set to null
-        // to prevent auto-loading of routes.
-        'map' => base_path('routes/panneau.php'),
+    'api' => [
+        // Base URL of the API, in the definition. Null: /{path}/api.
+        'base_url' => null,
+    ],
 
-        'prefix' => 'panneau',
+    'list' => [
+        'per_page' => 20,
+        'max_per_page' => 100,
+    ],
 
-        // Middleware of the Panneau routes. These routes have no authentication by
-        // default: add 'web' and 'auth' here, or register the resources routes in your
-        // own group with these middleware (see the Readme).
-        'middleware' => [DispatchHandlingRequestEvent::class],
-
-        'custom' => [],
-
-        'without_patterns' => false,
+    'actions' => [
+        // Largest selection an action runs on in the request. Larger selections are refused
+        // until queued actions are supported.
+        'sync_limit' => 500,
     ],
 ];

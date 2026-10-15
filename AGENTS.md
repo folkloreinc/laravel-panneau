@@ -21,7 +21,7 @@
 - **Plan:** tracked in [#35](https://github.com/folkloreinc/laravel-panneau/issues/35). The overall plan is [folkloreinc/panneau-js#6](https://github.com/folkloreinc/panneau-js/issues/6). Create a sub-issue when starting an item.
 - **Architecture:** [`docs/architecture.md`](docs/architecture.md) and [`docs/decisions/`](docs/decisions/). The shared protocol and decisions live in [`panneau-js/docs`](https://github.com/folkloreinc/panneau-js/tree/v5.x/docs).
 - **The protocol is the contract.** When the package needs something the protocol doesn't have, change the protocol first, in `panneau-js`.
-- **Code status:** the code on `v5.x` is still the v1 code. It is rewritten resource by resource during Phase 1; until then, keep it working and covered by the existing tests.
+- **Code status:** the v1 code is gone from `v5.x`. The package is being rebuilt during Phase 1, piece by piece (see #35).
 
 ## Rules for v5
 
@@ -35,7 +35,7 @@
 - PHP 8.3+ and Laravel 12+ (see [`docs/decisions/0006-supported-versions.md`](docs/decisions/0006-supported-versions.md)). Don't use language features newer than PHP 8.3.
 - Typehint parameters, return values and properties.
 - Format with [Laravel Pint](https://laravel.com/docs/pint) (`laravel` preset): run `composer format` before committing. CI runs `composer lint`.
-- Static analysis runs with [Larastan](https://github.com/larastan/larastan): `composer analyse`. The v1 code's existing errors are listed in `phpstan-baseline.neon`. Never add new ones to it. When a fix removes an error, regenerate the baseline so it only shrinks.
+- Static analysis runs with [Larastan](https://github.com/larastan/larastan): `composer analyse`. There is no baseline: fix errors, never ignore them.
 
 ## Tests
 

@@ -5,6 +5,7 @@ namespace Panneau\Actions;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use LogicException;
 use Panneau\Actions\Concerns\SerializesDeclaration;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
@@ -19,6 +20,8 @@ use Panneau\Layout\Node;
 abstract class Action implements ActionDeclaration
 {
     use SerializesDeclaration;
+
+    private ?ActionContext $context = null;
 
     /**
      * Runs the action. `$items` holds the items the user may run it on (none for a `resource`
@@ -112,6 +115,44 @@ abstract class Action implements ActionDeclaration
     public function authorizeResource(?Authenticatable $user): bool
     {
         return true;
+    }
+
+    /**
+     * Whether the action runs on items: its scope has `item` or `selection`.
+     */
+    public function appliesToItems(): bool
+    {
+        return in_array(ActionScope::Item, $this->scope(), true)
+            || in_array(ActionScope::Selection, $this->scope(), true);
+    }
+
+    /**
+     * Whether the action runs on the whole resource, without items.
+     */
+    public function appliesToResource(): bool
+    {
+        return in_array(ActionScope::Resource, $this->scope(), true);
+    }
+
+    /**
+     * What the action runs in: the resource, its repository and scope, the request and the
+     * user. Available in `handle()`.
+     */
+    public function context(): ActionContext
+    {
+        if ($this->context === null) {
+            throw new LogicException(sprintf('The action %s is not running.', static::class));
+        }
+
+        return $this->context;
+    }
+
+    /**
+     * @internal
+     */
+    public function setContext(ActionContext $context): void
+    {
+        $this->context = $context;
     }
 
     public function toDefinition(): array
