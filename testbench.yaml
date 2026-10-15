@@ -1,0 +1,21 @@
+# The app served to the protocol's conformance kit (see .github/workflows/conformance.yml):
+#   vendor/bin/testbench workbench:build && vendor/bin/testbench serve
+providers:
+  - Panneau\ServiceProvider
+  - TestApp\Conformance\ConformanceServiceProvider
+
+migrations:
+  - tests/fixture/database/migrations
+
+env:
+  - APP_KEY="base64:2fl+Ktvkfl+Fuz4Qp/A75G2RTiWVA/ZoKZvp6fiiM10="
+  - APP_DEBUG=true
+  - DB_CONNECTION=sqlite
+
+workbench:
+  install: false
+  build:
+    - create-sqlite-db
+    - migrate:fresh
+    - db:seed:
+        --class: TestApp\Conformance\ConformanceSeeder

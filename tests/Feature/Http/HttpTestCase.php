@@ -19,8 +19,6 @@ abstract class HttpTestCase extends TestCase
 {
     use RefreshDatabase;
 
-    protected const API = '/panneau/api';
-
     protected function defineDatabaseMigrations(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../../fixture/database/migrations');
