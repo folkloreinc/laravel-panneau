@@ -2,8 +2,8 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\Field;
 use Illuminate\Http\Request;
+use Panneau\Support\Field;
 
 class Date extends Field
 {

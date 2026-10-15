@@ -2,14 +2,15 @@
 
 namespace Panneau\Tests\Feature;
 
-use Panneau\Tests\TestCase;
 use Illuminate\Support\Collection;
+use Panneau\Tests\TestCase;
+use TestApp\Resources\PagesResource;
 
 class DefinitionTest extends TestCase
 {
     protected $panneau;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -21,9 +22,9 @@ class DefinitionTest extends TestCase
      *
      * @return void
      */
-    public function testResources()
+    public function test_resources()
     {
-        $this->panneau->resources([\TestApp\Resources\PagesResource::class]);
+        $this->panneau->resources([PagesResource::class]);
 
         $definition = $this->panneau->definition();
 
@@ -32,14 +33,14 @@ class DefinitionTest extends TestCase
         $this->assertInstanceOf(Collection::class, $resources);
         $this->assertEquals(1, $resources->count());
 
-        $this->panneau->resources([\TestApp\Resources\PagesResource::class]);
+        $this->panneau->resources([PagesResource::class]);
 
         $resources = $definition->resources();
 
         $this->assertInstanceOf(Collection::class, $resources);
         $this->assertEquals(2, $resources->count());
 
-        $this->assertContainsOnlyInstancesOf(\TestApp\Resources\PagesResource::class, $resources);
+        $this->assertContainsOnlyInstancesOf(PagesResource::class, $resources);
     }
 
     /**
@@ -47,9 +48,9 @@ class DefinitionTest extends TestCase
      *
      * @return void
      */
-    public function testRoutes()
+    public function test_routes()
     {
-        $this->panneau->resources([\TestApp\Resources\PagesResource::class]);
+        $this->panneau->resources([PagesResource::class]);
 
         $definition = $this->panneau->definition();
 
@@ -61,7 +62,7 @@ class DefinitionTest extends TestCase
         foreach ($routes as $routeName => $route) {
             $this->assertEquals($routeName, $route->getName());
             $this->assertMatchesRegularExpression(
-                '%' . config('panneau.routes.prefix') . '%',
+                '%'.config('panneau.routes.prefix').'%',
                 $routeName
             );
         }
@@ -77,7 +78,7 @@ class DefinitionTest extends TestCase
             'panneau.resources.destroy',
             'panneau.resources.delete',
             'panneau.auth.login',
-            'panneau.auth.logout'
+            'panneau.auth.logout',
         ];
         foreach ($routesToTest as $routeName) {
             $this->assertTrue(

@@ -14,6 +14,7 @@ class Medias extends Uploads
     public function uploadOnly()
     {
         $this->uploadOnly = true;
+
         return $this;
     }
 }

@@ -46,18 +46,21 @@ class Select extends Field
     public function withOptions(array $options)
     {
         $this->options = $options;
+
         return $this;
     }
 
     public function withoutReset()
     {
         $this->withoutReset = true;
+
         return $this;
     }
 
     public function multiple()
     {
         $this->multiple = true;
+
         return $this;
     }
 }

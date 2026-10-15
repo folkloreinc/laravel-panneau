@@ -12,6 +12,7 @@ class EmbedLocalized extends LocalizedField
         if ($this->disabled) {
             $field->isDisabled();
         }
+
         return $field;
     }
 

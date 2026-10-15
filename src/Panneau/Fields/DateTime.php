@@ -34,7 +34,7 @@ class DateTime extends Field
      */
     public function prepareValue($value)
     {
-        if (!is_string($value) || trim($value) === '') {
+        if (! is_string($value) || trim($value) === '') {
             return $value;
         }
         try {
@@ -42,6 +42,7 @@ class DateTime extends Field
         } catch (Throwable $e) {
             return $value;
         }
+
         return $date->setTimezone(config('app.timezone'))->toIso8601String();
     }
 }

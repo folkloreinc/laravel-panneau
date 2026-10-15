@@ -31,12 +31,14 @@ class Color extends Field
     public function withAlpha()
     {
         $this->withAlpha = true;
+
         return $this;
     }
 
     public function isNative()
     {
         $this->isNative = true;
+
         return $this;
     }
 }

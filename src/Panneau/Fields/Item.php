@@ -37,30 +37,35 @@ class Item extends Field
     public function canCreate()
     {
         $this->canCreate = true;
+
         return $this;
     }
 
     public function cannotCreate()
     {
         $this->canCreate = false;
+
         return $this;
     }
 
     public function canEdit()
     {
         $this->canEdit = true;
+
         return $this;
     }
 
     public function cannotEdit()
     {
         $this->canEdit = false;
+
         return $this;
     }
 
     public function withRequestUrl(string $requestUrl)
     {
         $this->requestUrl = $requestUrl;
+
         return $this;
     }
 

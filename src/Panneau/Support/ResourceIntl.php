@@ -2,16 +2,14 @@
 
 namespace Panneau\Support;
 
-use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
-use Illuminate\Support\Str;
+use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
-use Panneau\Contracts\Resource as ResourceContract;
+use Illuminate\Support\Str;
 use Panneau\Contracts\Intl as IntlContract;
+use Panneau\Contracts\Resource as ResourceContract;
 
-class ResourceIntl implements IntlContract, Arrayable
+class ResourceIntl implements Arrayable, IntlContract
 {
     protected $resource;
 
@@ -29,58 +27,59 @@ class ResourceIntl implements IntlContract, Arrayable
         $valuesKey = $namespace;
         $id = $this->resource->id();
         $resourceName = $this->resource->name();
-        $name = $this->translator->has($valuesKey . '.name')
-            ? $this->translator->get($valuesKey . '.name')
+        $name = $this->translator->has($valuesKey.'.name')
+            ? $this->translator->get($valuesKey.'.name')
             : $resourceName;
         $singularName = Str::lower(Str::singular($name));
         $pluralName = Str::lower(Str::plural($name));
-        $plural = $this->translator->has($valuesKey . '.plural')
-            ? $this->translator->get($valuesKey . '.plural')
+        $plural = $this->translator->has($valuesKey.'.plural')
+            ? $this->translator->get($valuesKey.'.plural')
             : $pluralName;
-        $singular = $this->translator->has($valuesKey . '.singular')
-            ? $this->translator->get($valuesKey . '.singular')
+        $singular = $this->translator->has($valuesKey.'.singular')
+            ? $this->translator->get($valuesKey.'.singular')
             : $singularName;
+
         return [
             'name' => $name,
-            'plural' => $this->translator->has($valuesKey . '.plural')
-                ? $this->translator->get($valuesKey . '.plural')
+            'plural' => $this->translator->has($valuesKey.'.plural')
+                ? $this->translator->get($valuesKey.'.plural')
                 : $plural,
-            'Plural' => $this->translator->has($valuesKey . '.Plural')
-                ? $this->translator->get($valuesKey . '.Plural')
+            'Plural' => $this->translator->has($valuesKey.'.Plural')
+                ? $this->translator->get($valuesKey.'.Plural')
                 : Str::title($plural),
-            'singular' => $this->translator->has($valuesKey . '.singular')
-                ? $this->translator->get($valuesKey . '.singular')
+            'singular' => $this->translator->has($valuesKey.'.singular')
+                ? $this->translator->get($valuesKey.'.singular')
                 : $singularName,
-            'Singular' => $this->translator->has($valuesKey . '.Singular')
-                ? $this->translator->get($valuesKey . '.Singular')
+            'Singular' => $this->translator->has($valuesKey.'.Singular')
+                ? $this->translator->get($valuesKey.'.Singular')
                 : Str::title($singularName),
-            'a_singular' => $this->translator->has($valuesKey . '.a_singular')
-                ? $this->translator->get($valuesKey . '.a_singular')
+            'a_singular' => $this->translator->has($valuesKey.'.a_singular')
+                ? $this->translator->get($valuesKey.'.a_singular')
                 : $this->translator->get('panneau::resources.a_singular', [
                     'resource' => $singular,
                 ]),
-            'A_singular' => $this->translator->has($valuesKey . '.A_singular')
-                ? $this->translator->get($valuesKey . '.A_singular')
+            'A_singular' => $this->translator->has($valuesKey.'.A_singular')
+                ? $this->translator->get($valuesKey.'.A_singular')
                 : $this->translator->get('panneau::resources.A_singular', [
                     'resource' => $singular,
                 ]),
-            'the_singular' => $this->translator->has($valuesKey . '.the_singular')
-                ? $this->translator->get($valuesKey . '.the_singular')
+            'the_singular' => $this->translator->has($valuesKey.'.the_singular')
+                ? $this->translator->get($valuesKey.'.the_singular')
                 : $this->translator->get('panneau::resources.the_singular', [
                     'resource' => $singular,
                 ]),
-            'The_singular' => $this->translator->has($valuesKey . '.The_singular')
-                ? $this->translator->get($valuesKey . '.The_singular')
+            'The_singular' => $this->translator->has($valuesKey.'.The_singular')
+                ? $this->translator->get($valuesKey.'.The_singular')
                 : $this->translator->get('panneau::resources.The_singular', [
                     'resource' => $singular,
                 ]),
-            'the_plural' => $this->translator->has($valuesKey . '.the_plural')
-                ? $this->translator->get($valuesKey . '.the_plural')
+            'the_plural' => $this->translator->has($valuesKey.'.the_plural')
+                ? $this->translator->get($valuesKey.'.the_plural')
                 : $this->translator->get('panneau::resources.the_plural', [
                     'resource' => $plural,
                 ]),
-            'The_plural' => $this->translator->has($valuesKey . '.The_plural')
-                ? $this->translator->get($valuesKey . '.The_plural')
+            'The_plural' => $this->translator->has($valuesKey.'.The_plural')
+                ? $this->translator->get($valuesKey.'.The_plural')
                 : $this->translator->get('panneau::resources.The_plural', [
                     'resource' => $plural,
                 ]),
@@ -90,7 +89,8 @@ class ResourceIntl implements IntlContract, Arrayable
     public function messages(): ?array
     {
         $namespace = $this->resource->translationsNamespace();
-        return !is_null($namespace) &&
+
+        return ! is_null($namespace) &&
             $this->translator->has($namespace) &&
             is_array($this->translator->get($namespace))
             ? Arr::except($this->translator->get($namespace), [
@@ -117,10 +117,11 @@ class ResourceIntl implements IntlContract, Arrayable
             $data['values'] = $values;
         }
         $messages = $this->messages();
-        if (isset($messages) && !empty($messages)) {
+        if (isset($messages) && ! empty($messages)) {
             $data['messages'] = $messages;
         }
-        return sizeof($data) > 0 ? $data : null;
+
+        return count($data) > 0 ? $data : null;
     }
 
     #[\ReturnTypeWillChange]

@@ -2,10 +2,10 @@
 
 namespace TestApp\Resources\Pages;
 
-use Panneau\Support\ResourceType;
 use Panneau\Fields\Text;
+use Panneau\Support\ResourceType;
 
-class Home extends ResourceType
+class StaticPage extends ResourceType
 {
     public function fields(): array
     {

@@ -2,8 +2,8 @@
 
 namespace Panneau\Support;
 
-use Illuminate\Http\Request;
 use Closure;
+use Illuminate\Http\Request;
 
 abstract class LocalizedField extends Field
 {
@@ -38,6 +38,7 @@ abstract class LocalizedField extends Field
     public function withFieldAttributes(array $attributes): self
     {
         $this->fieldAttributes = $attributes;
+
         return $this;
     }
 
@@ -45,6 +46,7 @@ abstract class LocalizedField extends Field
     {
         parent::isRequired();
         $this->localesRequired = $locales;
+
         return $this;
     }
 
@@ -54,6 +56,7 @@ abstract class LocalizedField extends Field
         foreach (static::getLocales() as $locale) {
             $properties[$locale] = $this->field($locale)->withAttributes($this->fieldAttributes);
         }
+
         return $properties;
     }
 
@@ -68,10 +71,11 @@ abstract class LocalizedField extends Field
                 ? $this->localesRequired
                 : $this->getLocales();
             foreach ($locales as $locale) {
-                $name = !empty($parent) ? $parent . '.' . $this->name() : $this->name();
-                $rules[$name . '.' . $locale] = ['required'];
+                $name = ! empty($parent) ? $parent.'.'.$this->name() : $this->name();
+                $rules[$name.'.'.$locale] = ['required'];
             }
         }
+
         return $rules;
     }
 
@@ -80,6 +84,7 @@ abstract class LocalizedField extends Field
         if (isset(static::$localesResolver)) {
             return call_user_func(static::$localesResolver);
         }
+
         return static::$locales;
     }
 

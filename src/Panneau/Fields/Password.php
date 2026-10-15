@@ -2,7 +2,6 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Support\Field;
 use Illuminate\Http\Request;
 
 class Password extends Text
@@ -16,9 +15,9 @@ class Password extends Text
 
     public function siblingFields(): ?array
     {
-        return !$this->withoutConfirmation
+        return ! $this->withoutConfirmation
             ? [
-                Password::make($this->name() . '_confirmation')
+                Password::make($this->name().'_confirmation')
                     ->withTransLabel('panneau::fields.password_confirmation')
                     ->withoutConfirmation(),
             ]
@@ -28,16 +27,18 @@ class Password extends Text
     public function rules(Request $request): ?array
     {
         $routeName = $request->route()->getName();
+
         return array_merge(
             preg_match('/\.store$/', $routeName) === 1 ? ['required'] : [],
             ['string', 'min:8'],
-            !$this->withoutConfirmation ? ['confirmed'] : []
+            ! $this->withoutConfirmation ? ['confirmed'] : []
         );
     }
 
     public function withoutConfirmation()
     {
         $this->withoutConfirmation = true;
+
         return $this;
     }
 }

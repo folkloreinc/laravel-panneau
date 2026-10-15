@@ -1,6 +1,6 @@
 # 0006: PHP 8.3+ and Laravel 12+
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-14
 
 ## Context
@@ -28,4 +28,4 @@ Laravel 12 gets security fixes until February 2027. PHP 8.3 gets them until the 
 ## Consequences
 
 - The code can use PHP 8.3 features: typed class constants, readonly properties and classes, enums.
-- To be confirmed against the projects inventory before the first alpha.
+- Checked against the projects inventory on 2026-10-14: every active project on `laravel-panneau` v1.3 or v1.4 with `panneau-js` v4 runs Laravel 12 or 13, on PHP 8.3 or later.

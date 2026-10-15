@@ -23,6 +23,7 @@ class Uploads extends Items
     public function withButton()
     {
         $this->withButton = true;
+
         return $this;
     }
 }

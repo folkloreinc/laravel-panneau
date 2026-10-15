@@ -2,8 +2,8 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Contracts\Resource;
 use Panneau\Contracts\Panneau;
+use Panneau\Contracts\Resource;
 
 class ResourceItems extends Items
 {
@@ -16,7 +16,7 @@ class ResourceItems extends Items
 
     public function makeResource(): Resource
     {
-        return once(fn() => app(Panneau::class)->resource($this->resource()));
+        return once(fn () => app(Panneau::class)->resource($this->resource()));
     }
 
     public function fields(): ?array

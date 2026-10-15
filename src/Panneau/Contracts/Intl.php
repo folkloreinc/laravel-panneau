@@ -2,7 +2,6 @@
 
 namespace Panneau\Contracts;
 
-use Illuminate\Support\Collection;
 use JsonSerializable;
 
 interface Intl extends JsonSerializable

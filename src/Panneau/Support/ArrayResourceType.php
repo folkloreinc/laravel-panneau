@@ -2,8 +2,8 @@
 
 namespace Panneau\Support;
 
-use Panneau\Contracts\Resource as ResourceContract;
 use Illuminate\Support\Str;
+use Panneau\Contracts\Resource as ResourceContract;
 
 class ArrayResourceType extends ResourceType
 {

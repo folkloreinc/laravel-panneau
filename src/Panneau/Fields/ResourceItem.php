@@ -2,8 +2,8 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Contracts\Resource;
 use Panneau\Contracts\Panneau;
+use Panneau\Contracts\Resource;
 
 class ResourceItem extends Item
 {
@@ -36,8 +36,7 @@ class ResourceItem extends Item
     public function attributes(): ?array
     {
         return array_merge(parent::attributes(), [
-            'requestUrl' =>
-                $this->requestUrl ??
+            'requestUrl' => $this->requestUrl ??
                 (static::$requestUrlResolver
                     ? (static::$requestUrlResolver)($this)
                     : panneau_resource_route($this->resource(), 'index')),
@@ -49,18 +48,21 @@ class ResourceItem extends Item
     public function withResource(string $resource)
     {
         $this->resource = $resource;
+
         return $this;
     }
 
     public function paginated()
     {
         $this->paginated = true;
+
         return $this;
     }
 
     public function asItem()
     {
         $this->asItemComponent = true;
+
         return $this;
     }
 }
