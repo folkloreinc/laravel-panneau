@@ -5,6 +5,7 @@ namespace Panneau;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Auth\Authorizer;
+use Panneau\Console\InstallCommand;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\ItemSerializer;
@@ -36,5 +37,9 @@ class ServiceProvider extends BaseServiceProvider
         $this->publishes([__DIR__.'/../config/panneau.php' => config_path('panneau.php')], 'panneau-config');
 
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([InstallCommand::class]);
+        }
     }
 }

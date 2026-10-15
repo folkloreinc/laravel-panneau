@@ -1,0 +1,37 @@
+<?php
+
+namespace {{ namespace }}Policies;
+
+use {{ modelClass }};
+use Illuminate\Contracts\Auth\Authenticatable;
+
+/**
+ * Who can do what with {{ plural }} in the admin. Users already passed the viewPanneau gate.
+ */
+class {{ class }}
+{
+    public function viewAny(Authenticatable $user): bool
+    {
+        return true;
+    }
+
+    public function view(Authenticatable $user, {{ model }} ${{ variable }}): bool
+    {
+        return true;
+    }
+
+    public function create(Authenticatable $user): bool
+    {
+        return true;
+    }
+
+    public function update(Authenticatable $user, {{ model }} ${{ variable }}): bool
+    {
+        return true;
+    }
+
+    public function delete(Authenticatable $user, {{ model }} ${{ variable }}): bool
+    {
+        return true;
+    }
+}

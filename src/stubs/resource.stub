@@ -1,0 +1,29 @@
+<?php
+
+namespace {{ namespace }}Panneau\Resources;
+
+{{ imports }}
+use Panneau\Lists\ResourceList;
+use Panneau\Resources\Resource;
+
+class {{ class }} extends Resource
+{
+    public function model(): string
+    {
+        return {{ model }}::class;
+    }
+
+    public function fields(): array
+    {
+        return [
+{{ fields }}        ];
+    }
+
+    public function list(ResourceList $list): ResourceList
+    {
+        return $list
+            ->columns([{{ columns }}])
+            ->sorts([{{ columns }}])
+            ->search([{{ search }}]);
+    }
+}

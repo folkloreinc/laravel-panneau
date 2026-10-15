@@ -11,20 +11,20 @@ composer require folklore/laravel-panneau
 php artisan panneau:install
 ```
 
-`panneau:install` asks a few questions:
+`panneau:install` asks a few questions (or takes them as options: `--guard`, `--login-url`, `--resource`):
 
-- **auth mode:** Panneau's own login, or the site's existing auth;
-- **guard;**
-- **features:** roles, media, search.
+- **guard** of the admin users;
+- **login URL** where unauthenticated users are sent;
+- **a first resource:** an Eloquent model, whose columns give the first fields;
+- later: the **auth mode** (Panneau's own login, or the site's existing auth) and **features** (roles, media, search), as they are built.
 
-It then writes:
+It then writes, keeping existing files unless `--force`:
 
 - `config/panneau.php`;
-- `app/Providers/PanneauServiceProvider.php`, which registers the resources and defines the `viewPanneau` gate;
+- `app/Providers/PanneauServiceProvider.php`, which registers the resources, defines the `viewPanneau` gate (closed until the project opens it) and loads the routes file; it is added to `bootstrap/providers.php`;
 - `routes/panneau.php`, which mounts the routes with their middleware;
-- a JS entry point (`resources/js/panneau.tsx`), added to the Vite config;
-- the `@panneau/*` packages, added to `package.json`;
-- a first resource, if asked.
+- a first resource and its policy, if asked (the model's hidden attributes never become fields);
+- once the Panneau 5 JS packages are released: a JS entry point (`resources/js/panneau.tsx`) added to the Vite config, and the `@panneau/*` packages added to `package.json`.
 
 With `--upgrade`, it migrates a v1 project's configuration and removes the files the package now provides (see [decisions/0004](decisions/0004-install-command.md)).
 

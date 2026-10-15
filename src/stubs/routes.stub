@@ -1,0 +1,6 @@
+<?php
+
+use Panneau\Support\Facade as Panneau;
+
+// The admin and its API, with the middleware of config('panneau.middleware')
+Panneau::routes();

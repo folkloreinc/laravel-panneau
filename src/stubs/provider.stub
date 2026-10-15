@@ -1,0 +1,25 @@
+<?php
+
+namespace {{ namespace }}Providers;
+
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+use Panneau\Support\Facade as Panneau;
+
+class PanneauServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Panneau::resources([
+{{ resources }}        ]);
+
+        // Who can use the admin. Nobody gets in until this returns true for them: check a
+        // role, a permission or a list of emails.
+        Gate::define('viewPanneau', function (Authenticatable $user): bool {
+            return false;
+        });
+
+        $this->loadRoutesFrom(base_path('routes/panneau.php'));
+    }
+}
