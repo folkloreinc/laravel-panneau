@@ -48,6 +48,17 @@ return [
         'view' => 'panneau::app',
     ],
 
+    // Theme of the admin, sent in the definition as the protocol's DefinitionTheme: keys are
+    // the protocol's (colorScheme, tokens, tones…). "extends" names themes registered by JS
+    // plugins. Null: the default theme of @panneau/ui.
+    //
+    //     'theme' => [
+    //         'extends' => 'brand',
+    //         'colorScheme' => 'auto',
+    //         'tokens' => ['panneau-color-accent' => '#0055ff'],
+    //     ],
+    'theme' => null,
+
     'api' => [
         // Base URL of the API, in the definition. Null: /{path}/api.
         'base_url' => null,

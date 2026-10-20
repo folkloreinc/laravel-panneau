@@ -45,7 +45,7 @@ final class DefinitionBuilder
      */
     public function build(?Authenticatable $user = null): array
     {
-        return [
+        $definition = [
             'protocol' => self::PROTOCOL_VERSION,
             'name' => $this->name(),
             'locale' => $this->app->getLocale(),
@@ -53,8 +53,32 @@ final class DefinitionBuilder
             'api' => ['baseUrl' => $this->apiBaseUrl()],
             'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
             'auth' => $this->auth(),
-            'user' => $user !== null ? $this->user($user) : null,
         ];
+        $theme = $this->theme();
+        if ($theme !== null) {
+            $definition['theme'] = $theme;
+        }
+        $definition['user'] = $user !== null ? $this->user($user) : null;
+
+        return $definition;
+    }
+
+    /**
+     * The theme of the admin, from `panneau.theme`, in the shape of the protocol's
+     * `DefinitionTheme`: null when nothing is set. Null values and empty arrays are left out,
+     * so that an empty map isn't sent as a JSON list.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function theme(): ?array
+    {
+        $theme = $this->config->get('panneau.theme');
+        if (! is_array($theme)) {
+            return null;
+        }
+        $theme = self::withoutEmptyValues($theme);
+
+        return count($theme) > 0 ? $theme : null;
     }
 
     /**
@@ -229,6 +253,25 @@ final class DefinitionBuilder
         }
 
         return $definition;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $values
+     * @return array<array-key, mixed>
+     */
+    private static function withoutEmptyValues(array $values): array
+    {
+        $result = [];
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                $value = self::withoutEmptyValues($value);
+            }
+            if ($value !== null && $value !== []) {
+                $result[$key] = $value;
+            }
+        }
+
+        return array_is_list($values) ? array_values($result) : $result;
     }
 
     /**
