@@ -73,6 +73,22 @@ class ResourceListTest extends HttpTestCase
         $this->assertSame(['B summer'], array_column($response->json('data'), 'title'));
     }
 
+    public function test_a_date_range_filter(): void
+    {
+        $this->createPost(['title' => 'December', 'published_at' => '2025-12-31 23:59:59']);
+        $this->createPost(['title' => 'January 1', 'published_at' => '2026-01-01 00:00:00']);
+        $this->createPost(['title' => 'January 31', 'published_at' => '2026-01-31 23:30:00']);
+        $this->createPost(['title' => 'February', 'published_at' => '2026-02-01 00:00:00']);
+        $this->createPost(['title' => 'Unpublished']);
+        $titles = fn (string $query): array => array_column($this->getJson(self::API.'/resources/posts?sort=published_at&'.$query)->assertOk()->json('data'), 'title');
+
+        $this->assertSame(['January 1', 'January 31'], $titles('filter[published_at][from]=2026-01-01&filter[published_at][to]=2026-01-31'));
+        $this->assertSame(['December', 'January 1', 'January 31'], $titles('filter[published_at][to]=2026-01-31'));
+        $this->assertSame(['February'], $titles('filter[published_at][from]=2026-02-01'));
+        $this->assertSame(['Unpublished', 'December', 'January 1', 'January 31', 'February'], $titles('filter[published_at][from]=someday'));
+        $this->assertSame([], $titles('filter[published_at][from]=9999-12-31'));
+    }
+
     public function test_invalid_parameters_are_ignored(): void
     {
         $this->createPost();

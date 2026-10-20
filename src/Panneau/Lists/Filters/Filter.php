@@ -24,13 +24,14 @@ abstract class Filter
     }
 
     /**
-     * The protocol type: `text`, `select`, `toggle`, `date`, `relation`, or a plugin's.
+     * The protocol type: `text`, `select`, `toggle`, `date`, `date-range`, `relation`, or a
+     * plugin's.
      */
     abstract public function type(): string;
 
     /**
-     * Turns the value from the query string (a string, or a list of strings) into the value
-     * given to the repository. Returns null to ignore an invalid value.
+     * Turns the value from the query string (a string, a list of strings, or the bounds of a
+     * range) into the value given to the repository. Returns null to ignore an invalid value.
      */
     abstract public function normalize(mixed $value): mixed;
 

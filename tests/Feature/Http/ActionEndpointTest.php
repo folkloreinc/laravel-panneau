@@ -73,6 +73,19 @@ class ActionEndpointTest extends HttpTestCase
         $this->assertSame(1, Post::query()->where('team_id', 2)->where('status', 'draft')->count());
     }
 
+    public function test_a_selection_by_query_with_a_date_range(): void
+    {
+        $january = $this->createPost(['status' => 'draft', 'published_at' => '2026-01-31 12:00:00']);
+        $february = $this->createPost(['status' => 'draft', 'published_at' => '2026-02-01 12:00:00']);
+
+        $this->runAction('publish-posts', [
+            'selection' => ['query' => ['filter' => ['published_at' => ['from' => '2026-01-01', 'to' => '2026-01-31']]]],
+        ])->assertOk()->assertJsonPath('summary.succeeded', 1);
+
+        $this->assertSame('published', $january->refresh()->status);
+        $this->assertSame('draft', $february->refresh()->status);
+    }
+
     public function test_an_empty_query_selects_everything_in_the_scope(): void
     {
         $this->createPost();

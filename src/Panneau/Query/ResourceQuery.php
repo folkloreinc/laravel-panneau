@@ -196,17 +196,16 @@ final readonly class ResourceQuery
     }
 
     /**
-     * Keeps scalars and lists of scalars; anything else, and empty values, are null.
+     * Keeps scalars, lists of scalars, and the bounds of a range (`from` and `to`); anything
+     * else, and empty values, are null.
      */
     private static function filterValue(mixed $value): mixed
     {
         if (is_array($value)) {
-            $values = [];
-            foreach ($value as $item) {
-                if (is_scalar($item) && $item !== '') {
-                    $values[] = $item;
-                }
-            }
+            $values = array_filter($value, fn (mixed $item): bool => is_scalar($item) && $item !== '');
+            $values = array_is_list($value)
+                ? array_values($values)
+                : array_intersect_key($values, ['from' => true, 'to' => true]);
 
             return count($values) > 0 ? $values : null;
         }
