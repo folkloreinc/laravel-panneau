@@ -24,6 +24,7 @@ use Panneau\Layout\Section;
 use Panneau\Layout\Sidebar;
 use Panneau\Layout\Tab;
 use Panneau\Layout\Tabs;
+use Panneau\Lists\Filters\DateRangeFilter;
 use Panneau\Lists\Filters\RelationFilter;
 use Panneau\Lists\Filters\SelectFilter;
 use Panneau\Lists\Filters\ToggleFilter;
@@ -86,6 +87,7 @@ class PostsResource extends Resource
                 SelectFilter::make('status')->options(PostStatus::class)->multiple(),
                 ToggleFilter::make('featured'),
                 RelationFilter::make('author_id')->resource(AuthorsResource::class),
+                DateRangeFilter::make('published_at'),
             ])
             ->sorts(['title', 'published_at'])
             ->defaultSort('-published_at')

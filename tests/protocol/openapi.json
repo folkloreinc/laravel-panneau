@@ -94,7 +94,7 @@
                         "required": false,
                         "style": "deepObject",
                         "explode": true,
-                        "description": "`filter[status]=published`, `filter[tags][]=a`.",
+                        "description": "`filter[status]=published`; `filter[tags][]=a&filter[tags][]=b` for any of several values; `filter[published_at][from]=2026-01-01&filter[published_at][to]=2026-01-31` for the inclusive bounds of a range filter (`date-range`), without the open end.",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -860,7 +860,7 @@
                         "required": false,
                         "style": "deepObject",
                         "explode": true,
-                        "description": "`filter[status]=published`, `filter[tags][]=a`.",
+                        "description": "`filter[status]=published`; `filter[tags][]=a&filter[tags][]=b` for any of several values; `filter[published_at][from]=2026-01-01&filter[published_at][to]=2026-01-31` for the inclusive bounds of a range filter (`date-range`), without the open end.",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2452,7 +2452,7 @@
                     "type": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Built-in: `text`, `select`, `toggle`, `date`, `date-range`, `relation`."
+                        "description": "Built-in: `text`, `select`, `toggle`, `date`, `date-range`, `relation`. A `date-range` value is the bounds of a range: `filter[id][from]` and `filter[id][to]`, days (`2026-01-31`), both inclusive and both optional."
                     },
                     "label": {
                         "type": "string"
@@ -3021,6 +3021,423 @@
                 ],
                 "additionalProperties": {}
             },
+            "ThemeTokens": {
+                "type": "object",
+                "propertyNames": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]+$"
+                },
+                "additionalProperties": {
+                    "type": "string",
+                    "pattern": "^[^{};<]*$"
+                },
+                "description": "CSS variables without the leading `--`, and their values: `{ \"panneau-color-accent\": \"#05f\" }`. Values cannot contain `{`, `}`, `;` or `<`."
+            },
+            "ToneValues": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "Text and icons on surfaces."
+                    },
+                    "subtle": {
+                        "type": "string",
+                        "description": "Background of the subtle appearance."
+                    },
+                    "border": {
+                        "type": "string",
+                        "description": "Border of the subtle appearance."
+                    },
+                    "outline": {
+                        "type": "string",
+                        "description": "Border of the outline appearance."
+                    },
+                    "solid": {
+                        "type": "string",
+                        "description": "Background of the solid appearance."
+                    },
+                    "solidHover": {
+                        "type": "string",
+                        "description": "Background of the solid appearance on hover."
+                    },
+                    "solidText": {
+                        "type": "string",
+                        "description": "Text on the solid appearance."
+                    }
+                },
+                "required": [
+                    "text",
+                    "subtle",
+                    "border",
+                    "outline",
+                    "solid",
+                    "solidHover",
+                    "solidText"
+                ],
+                "additionalProperties": {}
+            },
+            "ToneInput": {
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "description": "One color, from which Panneau derives the others."
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "Text and icons on surfaces."
+                            },
+                            "subtle": {
+                                "type": "string",
+                                "description": "Background of the subtle appearance."
+                            },
+                            "border": {
+                                "type": "string",
+                                "description": "Border of the subtle appearance."
+                            },
+                            "outline": {
+                                "type": "string",
+                                "description": "Border of the outline appearance."
+                            },
+                            "solid": {
+                                "type": "string",
+                                "description": "Background of the solid appearance."
+                            },
+                            "solidHover": {
+                                "type": "string",
+                                "description": "Background of the solid appearance on hover."
+                            },
+                            "solidText": {
+                                "type": "string",
+                                "description": "Text on the solid appearance."
+                            },
+                            "dark": {
+                                "type": "object",
+                                "properties": {
+                                    "text": {
+                                        "type": "string",
+                                        "description": "Text and icons on surfaces."
+                                    },
+                                    "subtle": {
+                                        "type": "string",
+                                        "description": "Background of the subtle appearance."
+                                    },
+                                    "border": {
+                                        "type": "string",
+                                        "description": "Border of the subtle appearance."
+                                    },
+                                    "outline": {
+                                        "type": "string",
+                                        "description": "Border of the outline appearance."
+                                    },
+                                    "solid": {
+                                        "type": "string",
+                                        "description": "Background of the solid appearance."
+                                    },
+                                    "solidHover": {
+                                        "type": "string",
+                                        "description": "Background of the solid appearance on hover."
+                                    },
+                                    "solidText": {
+                                        "type": "string",
+                                        "description": "Text on the solid appearance."
+                                    }
+                                },
+                                "additionalProperties": {}
+                            }
+                        },
+                        "required": [
+                            "text",
+                            "subtle",
+                            "border",
+                            "outline",
+                            "solid",
+                            "solidHover",
+                            "solidText"
+                        ],
+                        "additionalProperties": {}
+                    }
+                ],
+                "description": "A tone: one color, or every value with dark scheme overrides."
+            },
+            "ThemeFontFace": {
+                "type": "object",
+                "properties": {
+                    "family": {
+                        "type": "string",
+                        "pattern": "^[^{}<;\"\\\\]+$"
+                    },
+                    "src": {
+                        "type": "string",
+                        "pattern": "^[^{}<]+$",
+                        "description": "The `src` descriptor: `url(/fonts/geist.woff2) format('woff2')`."
+                    },
+                    "weight": {
+                        "type": "string",
+                        "pattern": "^[^{}<;]*$"
+                    },
+                    "style": {
+                        "type": "string",
+                        "pattern": "^[^{}<;]*$"
+                    },
+                    "display": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "block",
+                            "swap",
+                            "fallback",
+                            "optional"
+                        ]
+                    },
+                    "unicodeRange": {
+                        "type": "string",
+                        "pattern": "^[^{}<;]*$"
+                    }
+                },
+                "required": [
+                    "family",
+                    "src"
+                ],
+                "additionalProperties": {},
+                "description": "A font face, written as an `@font-face` rule."
+            },
+            "ThemeFontStylesheet": {
+                "type": "object",
+                "properties": {
+                    "stylesheet": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "required": [
+                    "stylesheet"
+                ],
+                "additionalProperties": {},
+                "description": "A hosted stylesheet that declares font faces."
+            },
+            "ThemeFont": {
+                "anyOf": [
+                    {
+                        "$ref": "#/components/schemas/ThemeFontFace"
+                    },
+                    {
+                        "$ref": "#/components/schemas/ThemeFontStylesheet"
+                    }
+                ]
+            },
+            "Theme": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "tokens": {
+                        "description": "Tokens of the light scheme, or of both schemes when `dark` does not set them.",
+                        "$ref": "#/components/schemas/ThemeTokens"
+                    },
+                    "dark": {
+                        "description": "Tokens that change in the dark scheme.",
+                        "$ref": "#/components/schemas/ThemeTokens"
+                    },
+                    "palette": {
+                        "description": "Raw colors, written as `--panneau-palette-<name>`: tokens and tones use them with `var(--panneau-palette-<name>)`.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9-]+$"
+                        },
+                        "additionalProperties": {
+                            "type": "string",
+                            "pattern": "^[^{};<]*$"
+                        }
+                    },
+                    "tones": {
+                        "description": "Tones added or redefined by the theme, applied by `panneau-tone-<name>`.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9-]+$"
+                        },
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/ToneInput"
+                        }
+                    },
+                    "components": {
+                        "description": "Named variants of components: tokens applied by `panneau-<component>-variant-<name>`.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9-]+$"
+                        },
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "variants": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                        "type": "string",
+                                        "pattern": "^[a-z0-9-]+$"
+                                    },
+                                    "additionalProperties": {
+                                        "$ref": "#/components/schemas/ThemeTokens"
+                                    }
+                                }
+                            },
+                            "additionalProperties": {}
+                        }
+                    },
+                    "densities": {
+                        "description": "Tokens of each density (`panneau-control-height`…), which change with the density of the root.",
+                        "type": "object",
+                        "properties": {
+                            "compact": {
+                                "$ref": "#/components/schemas/ThemeTokens"
+                            },
+                            "comfortable": {
+                                "$ref": "#/components/schemas/ThemeTokens"
+                            },
+                            "touch": {
+                                "$ref": "#/components/schemas/ThemeTokens"
+                            }
+                        },
+                        "additionalProperties": {}
+                    },
+                    "fonts": {
+                        "description": "Font faces and font stylesheets, added to the page once.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ThemeFont"
+                        }
+                    }
+                },
+                "required": [
+                    "tokens"
+                ],
+                "additionalProperties": {},
+                "description": "A theme of `@panneau/ui`, as plain data (decision 0024)."
+            },
+            "DefinitionTheme": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "tokens": {
+                        "description": "Tokens of the light scheme, or of both schemes when `dark` does not set them.",
+                        "$ref": "#/components/schemas/ThemeTokens"
+                    },
+                    "dark": {
+                        "description": "Tokens that change in the dark scheme.",
+                        "$ref": "#/components/schemas/ThemeTokens"
+                    },
+                    "palette": {
+                        "description": "Raw colors, written as `--panneau-palette-<name>`: tokens and tones use them with `var(--panneau-palette-<name>)`.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9-]+$"
+                        },
+                        "additionalProperties": {
+                            "type": "string",
+                            "pattern": "^[^{};<]*$"
+                        }
+                    },
+                    "tones": {
+                        "description": "Tones added or redefined by the theme, applied by `panneau-tone-<name>`.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9-]+$"
+                        },
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/ToneInput"
+                        }
+                    },
+                    "components": {
+                        "description": "Named variants of components: tokens applied by `panneau-<component>-variant-<name>`.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9-]+$"
+                        },
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "variants": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                        "type": "string",
+                                        "pattern": "^[a-z0-9-]+$"
+                                    },
+                                    "additionalProperties": {
+                                        "$ref": "#/components/schemas/ThemeTokens"
+                                    }
+                                }
+                            },
+                            "additionalProperties": {}
+                        }
+                    },
+                    "densities": {
+                        "description": "Tokens of each density (`panneau-control-height`…), which change with the density of the root.",
+                        "type": "object",
+                        "properties": {
+                            "compact": {
+                                "$ref": "#/components/schemas/ThemeTokens"
+                            },
+                            "comfortable": {
+                                "$ref": "#/components/schemas/ThemeTokens"
+                            },
+                            "touch": {
+                                "$ref": "#/components/schemas/ThemeTokens"
+                            }
+                        },
+                        "additionalProperties": {}
+                    },
+                    "fonts": {
+                        "description": "Font faces and font stylesheets, added to the page once.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ThemeFont"
+                        }
+                    },
+                    "colorScheme": {
+                        "type": "string",
+                        "enum": [
+                            "light",
+                            "dark",
+                            "auto"
+                        ]
+                    },
+                    "density": {
+                        "type": "string",
+                        "enum": [
+                            "compact",
+                            "comfortable",
+                            "touch",
+                            "auto"
+                        ]
+                    },
+                    "extends": {
+                        "description": "Themes registered by plugins, by id, that this theme builds on, in order: its own values override theirs.",
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The theme of the admin: a theme, built on themes of plugins."
+            },
             "Definition": {
                 "type": "object",
                 "properties": {
@@ -3128,18 +3545,7 @@
                         "$ref": "#/components/schemas/Uploads"
                     },
                     "theme": {
-                        "type": "object",
-                        "properties": {
-                            "colorScheme": {
-                                "type": "string",
-                                "enum": [
-                                    "light",
-                                    "dark",
-                                    "auto"
-                                ]
-                            }
-                        },
-                        "additionalProperties": {}
+                        "$ref": "#/components/schemas/DefinitionTheme"
                     },
                     "user": {
                         "anyOf": [
@@ -3323,6 +3729,7 @@
                                 "type": "object",
                                 "properties": {
                                     "filter": {
+                                        "description": "The `filter` of the list query, by filter id: a value, a list of values, or the bounds of a range (`{ \"from\": \"2026-01-01\", \"to\": \"2026-01-31\" }`).",
                                         "type": "object",
                                         "propertyNames": {
                                             "type": "string"

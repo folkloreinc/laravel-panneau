@@ -126,7 +126,7 @@ class ResourcesTest extends TestCase
         $registry = $this->registry();
         $options = $registry->queryOptions($registry->find('posts'), 20, 50);
 
-        $this->assertSame(['status', 'featured', 'author_id'], array_keys($options->filters));
+        $this->assertSame(['status', 'featured', 'author_id', 'published_at'], array_keys($options->filters));
         $this->assertSame(['title', 'body'], $options->searchFields);
         $this->assertContains('blocks', $options->fields ?? []);
         $this->assertSame(50, $options->maxPerPage);

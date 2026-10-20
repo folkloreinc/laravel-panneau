@@ -85,7 +85,10 @@ final class PagesResource extends Resource
     {
         return $list
             ->columns(['title', 'status', 'published_at'])
-            ->filters([SelectFilter::make('status')->options(PageStatus::class)])
+            ->filters([
+                SelectFilter::make('status')->options(PageStatus::class),
+                DateRangeFilter::make('published_at'),
+            ])
             ->sorts(['title', 'published_at'])
             ->defaultSort('-published_at')
             ->search(['title', 'body']);
@@ -157,6 +160,7 @@ interface ResourceRepository
   - The `laravel-folklore` adapter wraps any `Folklore\Contracts\Repositories\Entities`. It maps the `ResourceQuery` to `get(params, page, count)` (`queryColumns`, `order`, `order_direction`, the `offset_paginator`), and values to `create()` and `update()`. It reads the version from `updated_at` through `HasModel`, or from the Entity's `version()`.
   - Other packages or projects register their own adapters by contract: `Panneau::repositoryAdapter(Contract::class, Adapter::class)`. Niche, for example, would register one for its workspace-scoped repositories.
 - **Items** are any object. Panneau never asks them to implement one of its interfaces.
+- **Filter values** reach `query()` normalized by the list's filters, keyed by filter id: a scalar, a list, or for a `DateRangeFilter` the bounds of the range, `['from' => '2026-01-01', 'to' => '2026-01-31']`, both inclusive, either one left out for an open end. `EloquentRepository` applies the bounds with `whereDate()`, so `to` includes the whole day.
 
 ### Resource behaviour
 

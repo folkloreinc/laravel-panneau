@@ -141,18 +141,7 @@
                     "$ref": "#/$defs/Uploads"
                 },
                 "theme": {
-                    "type": "object",
-                    "properties": {
-                        "colorScheme": {
-                            "type": "string",
-                            "enum": [
-                                "light",
-                                "dark",
-                                "auto"
-                            ]
-                        }
-                    },
-                    "additionalProperties": {}
+                    "$ref": "#/$defs/DefinitionTheme"
                 },
                 "user": {
                     "anyOf": [
@@ -1193,6 +1182,260 @@
             },
             "required": [
                 "mode"
+            ],
+            "additionalProperties": {}
+        },
+        "DefinitionTheme": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "tokens": {
+                    "$ref": "#/$defs/ThemeTokens"
+                },
+                "dark": {
+                    "$ref": "#/$defs/ThemeTokens"
+                },
+                "palette": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
+                    },
+                    "additionalProperties": {
+                        "type": "string",
+                        "pattern": "^[^{};<]*$"
+                    }
+                },
+                "tones": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
+                    },
+                    "additionalProperties": {
+                        "$ref": "#/$defs/ToneInput"
+                    }
+                },
+                "components": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
+                    },
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "variants": {
+                                "type": "object",
+                                "propertyNames": {
+                                    "type": "string",
+                                    "pattern": "^[a-z0-9-]+$"
+                                },
+                                "additionalProperties": {
+                                    "$ref": "#/$defs/ThemeTokens"
+                                }
+                            }
+                        },
+                        "additionalProperties": {}
+                    }
+                },
+                "densities": {
+                    "type": "object",
+                    "properties": {
+                        "compact": {
+                            "$ref": "#/$defs/ThemeTokens"
+                        },
+                        "comfortable": {
+                            "$ref": "#/$defs/ThemeTokens"
+                        },
+                        "touch": {
+                            "$ref": "#/$defs/ThemeTokens"
+                        }
+                    },
+                    "additionalProperties": {}
+                },
+                "fonts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ThemeFont"
+                    }
+                },
+                "colorScheme": {
+                    "type": "string",
+                    "enum": [
+                        "light",
+                        "dark",
+                        "auto"
+                    ]
+                },
+                "density": {
+                    "type": "string",
+                    "enum": [
+                        "compact",
+                        "comfortable",
+                        "touch",
+                        "auto"
+                    ]
+                },
+                "extends": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": {}
+        },
+        "ThemeTokens": {
+            "type": "object",
+            "propertyNames": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]+$"
+            },
+            "additionalProperties": {
+                "type": "string",
+                "pattern": "^[^{};<]*$"
+            }
+        },
+        "ToneInput": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        },
+                        "subtle": {
+                            "type": "string"
+                        },
+                        "border": {
+                            "type": "string"
+                        },
+                        "outline": {
+                            "type": "string"
+                        },
+                        "solid": {
+                            "type": "string"
+                        },
+                        "solidHover": {
+                            "type": "string"
+                        },
+                        "solidText": {
+                            "type": "string"
+                        },
+                        "dark": {
+                            "type": "object",
+                            "properties": {
+                                "text": {
+                                    "type": "string"
+                                },
+                                "subtle": {
+                                    "type": "string"
+                                },
+                                "border": {
+                                    "type": "string"
+                                },
+                                "outline": {
+                                    "type": "string"
+                                },
+                                "solid": {
+                                    "type": "string"
+                                },
+                                "solidHover": {
+                                    "type": "string"
+                                },
+                                "solidText": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": {}
+                        }
+                    },
+                    "required": [
+                        "text",
+                        "subtle",
+                        "border",
+                        "outline",
+                        "solid",
+                        "solidHover",
+                        "solidText"
+                    ],
+                    "additionalProperties": {}
+                }
+            ]
+        },
+        "ThemeFont": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/ThemeFontFace"
+                },
+                {
+                    "$ref": "#/$defs/ThemeFontStylesheet"
+                }
+            ]
+        },
+        "ThemeFontFace": {
+            "type": "object",
+            "properties": {
+                "family": {
+                    "type": "string",
+                    "pattern": "^[^{}<;\"\\\\]+$"
+                },
+                "src": {
+                    "type": "string",
+                    "pattern": "^[^{}<]+$"
+                },
+                "weight": {
+                    "type": "string",
+                    "pattern": "^[^{}<;]*$"
+                },
+                "style": {
+                    "type": "string",
+                    "pattern": "^[^{}<;]*$"
+                },
+                "display": {
+                    "type": "string",
+                    "enum": [
+                        "auto",
+                        "block",
+                        "swap",
+                        "fallback",
+                        "optional"
+                    ]
+                },
+                "unicodeRange": {
+                    "type": "string",
+                    "pattern": "^[^{}<;]*$"
+                }
+            },
+            "required": [
+                "family",
+                "src"
+            ],
+            "additionalProperties": {}
+        },
+        "ThemeFontStylesheet": {
+            "type": "object",
+            "properties": {
+                "stylesheet": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "stylesheet"
             ],
             "additionalProperties": {}
         },

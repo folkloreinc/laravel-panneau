@@ -130,6 +130,16 @@ class ResourceQueryTest extends TestCase
         $this->assertSame([], $query->filters);
     }
 
+    public function test_filters_keep_the_bounds_of_a_range(): void
+    {
+        $query = ResourceQuery::fromParameters(
+            ['filter' => ['status' => ['from' => '2026-01-01', 'to' => '2026-01-31', 'other' => 'x'], 'tags' => ['to' => '', 'from' => ['nested']]]],
+            $this->options(),
+        );
+
+        $this->assertSame(['status' => ['from' => '2026-01-01', 'to' => '2026-01-31']], $query->filters);
+    }
+
     public function test_filters_go_through_their_normalizer(): void
     {
         $this->assertSame(

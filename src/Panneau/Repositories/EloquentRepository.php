@@ -26,7 +26,8 @@ use ReflectionNamedType;
  * - The scope is applied as `where` clauses, and filled in on create.
  * - Values are set as attributes, except for `BelongsTo` and `BelongsToMany` relations
  *   (methods with a declared return type), which receive the public ids of related items.
- * - Filters are `where` clauses on the column named after the filter (`whereIn` for a list).
+ * - Filters are `where` clauses on the column named after the filter (`whereIn` for a list,
+ *   `whereDate` for the bounds of a range).
  * - Search is a `LIKE` on the search fields.
  * - The version is a hash of the model's attributes.
  *
@@ -219,7 +220,15 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
      */
     protected function applyFilter(Builder $builder, string $filter, mixed $value): void
     {
-        if (is_array($value)) {
+        if (is_array($value) && ! array_is_list($value)) {
+            // The bounds of a range, both inclusive: `to` includes the whole day
+            if (isset($value['from']) && is_string($value['from'])) {
+                $builder->whereDate($filter, '>=', $value['from']);
+            }
+            if (isset($value['to']) && is_string($value['to'])) {
+                $builder->whereDate($filter, '<=', $value['to']);
+            }
+        } elseif (is_array($value)) {
             $builder->whereIn($filter, $value);
         } else {
             $builder->where($filter, $value);

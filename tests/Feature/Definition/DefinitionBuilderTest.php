@@ -158,8 +158,9 @@ class DefinitionBuilderTest extends TestCase
             ['field' => 'status'],
             ['field' => 'published_at', 'sortable' => true],
         ], $list['columns']);
-        $this->assertSame(['status', 'featured', 'author_id'], array_column($list['filters'], 'id'));
+        $this->assertSame(['status', 'featured', 'author_id', 'published_at'], array_column($list['filters'], 'id'));
         $this->assertSame('authors', $list['filters'][2]['resource']);
+        $this->assertSame(['id' => 'published_at', 'type' => 'date-range'], $list['filters'][3]);
         $this->assertSame(['title', 'published_at'], $list['sorts']);
         $this->assertSame('-published_at', $list['defaultSort']);
         $this->assertTrue($list['search']);

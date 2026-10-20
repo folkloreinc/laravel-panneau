@@ -4,6 +4,7 @@ namespace Panneau\Tests\Unit\Lists;
 
 use Panneau\Lists\Column;
 use Panneau\Lists\Filters\DateFilter;
+use Panneau\Lists\Filters\DateRangeFilter;
 use Panneau\Lists\Filters\RelationFilter;
 use Panneau\Lists\Filters\SelectFilter;
 use Panneau\Lists\Filters\TextFilter;
@@ -27,6 +28,7 @@ class ResourceListTest extends TestCase
                 TextFilter::make('slug'),
                 DateFilter::make('day'),
                 RelationFilter::make('author')->resource('authors'),
+                DateRangeFilter::make('published'),
             ])
             ->sorts(['title', 'published_at'])
             ->defaultSort('-published_at,title')
@@ -49,6 +51,7 @@ class ResourceListTest extends TestCase
         ], $definition['columns']);
         $this->assertSame(['id' => 'featured', 'type' => 'toggle', 'default' => true], $definition['filters'][1]);
         $this->assertSame(['id' => 'author', 'type' => 'relation', 'resource' => 'authors'], $definition['filters'][4]);
+        $this->assertSame(['id' => 'published', 'type' => 'date-range'], $definition['filters'][5]);
         $this->assertSame('-published_at,title', $definition['defaultSort']);
         $this->assertTrue($definition['search']);
         $this->assertSame(['table', 'cards'], $definition['layouts']);
@@ -86,5 +89,11 @@ class ResourceListTest extends TestCase
         $this->assertSame([], $query(['day' => '2026-02-30']));
         $this->assertSame(['author' => '12'], $query(['author' => '12']));
         $this->assertSame([], $query(['author' => ['12']]));
+        $this->assertSame(['published' => ['from' => '2026-01-01', 'to' => '2026-01-31']], $query(['published' => ['from' => '2026-01-01', 'to' => '2026-01-31']]));
+        $this->assertSame(['published' => ['to' => '2026-01-31']], $query(['published' => ['to' => '2026-01-31']]));
+        $this->assertSame(['published' => ['from' => '2026-01-01']], $query(['published' => ['from' => '2026-01-01', 'to' => '2026-02-30']]));
+        $this->assertSame([], $query(['published' => ['from' => 'yesterday']]));
+        $this->assertSame([], $query(['published' => '2026-01-01']));
+        $this->assertSame([], $query(['published' => ['2026-01-01', '2026-01-31']]));
     }
 }
