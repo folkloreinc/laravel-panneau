@@ -6,7 +6,8 @@ set -euo pipefail
 
 ref="${1:-v5.x}"
 dir="$(cd "$(dirname "$0")" && pwd)"
-sha="$(git ls-remote https://github.com/folkloreinc/panneau-js.git "$ref" | head -n1 | cut -f1)"
+# Exact refs only: a bare pattern also matches refs/heads/changeset-release/v5.x
+sha="$(git ls-remote https://github.com/folkloreinc/panneau-js.git "refs/heads/${ref}" "refs/tags/${ref}" | head -n1 | cut -f1)"
 sha="${sha:-$ref}"
 base="https://raw.githubusercontent.com/folkloreinc/panneau-js/${sha}/packages/protocol/schema"
 
