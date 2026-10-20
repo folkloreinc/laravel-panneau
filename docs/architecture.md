@@ -250,6 +250,9 @@ final class PublishPages extends Action
   - Items that are not allowed are reported as `skipped` with the reason `forbidden`.
   - `authorizeResource()` decides whether the action appears at all.
   - Item abilities serialize the allowed actions.
+- **Dry runs.** An action that returns `true` from `supportsDryRun()` declares `dryRun` in the definition. A request with `"dryRun": true` then resolves the selection and checks each item like a run, and answers the summary of the items it would run on and those it would skip, without calling `handle()` and without validating the parameters. Lists use it to say how many items of a query selection will be skipped ([panneau-js#44](https://github.com/folkloreinc/panneau-js/issues/44)).
+  - It is opt-in, since a dry run only checks abilities: opt in when `handle()` doesn't skip or fail items for other reasons. `DeleteAction` does.
+  - A dry run of an action that doesn't support them is a `400`, and nothing runs.
 - **Validation.** Parameters are validated like resource fields, with portable rules and server-only rules. `handle()` receives only validated values.
 - **Results.** `ActionResult` collects:
   - succeeded, failed and skipped items;
@@ -264,7 +267,7 @@ final class PublishPages extends Action
   - An action that can't be queued refuses selections above the limit with a `422`.
 - **Built-in actions:**
   - `DuplicateAction`: for repositories that are `Duplicable` (`replicate()` with Eloquent), plus the resource's `duplicating` hook.
-  - `DeleteAction`.
+  - `DeleteAction`, which answers dry runs.
   - `RestoreAction`: for repositories that are `Restorable`.
   - `ExportAction`: CSV, or XLSX with an optional dependency; queued.
   - `ImportAction`: file field and column mapping; validates each row with the resource's rules; queued.
@@ -321,6 +324,7 @@ final class PublishPages extends Action
   - A selection of ids reports missing and forbidden items as `skipped`. When it has a single id, they are a `404` or `403` instead.
   - A query selection goes through the list's filters and search, and the resource's scope.
   - Selections above `panneau.actions.sync_limit` are refused with a `422` until queued actions exist.
+  - A dry run (`"dryRun": true`) keeps the selection's rules, limit and errors, skips the validation of `values`, and changes nothing.
   - Parameter errors are keyed by their path inside `values` (`note`, not `values.note`), like the errors of a form.
 - **Contract tests.** Feature tests validate every response against the protocol's OpenAPI document.
 

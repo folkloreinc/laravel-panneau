@@ -21,11 +21,13 @@ use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Query\ResourceQuery;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * `POST /resources/{resource}/actions/{action}`: runs a server action on a selection of
- * items, or on the whole resource.
+ * items, or on the whole resource. With `dryRun`, counts the items it would run on and those it
+ * would skip, without running it.
  *
  * @internal
  */
@@ -54,8 +56,15 @@ final class ActionController
             throw new AuthorizationException;
         }
 
+        // Refused before anything else: an action that doesn't answer dry runs never runs on one.
+        $dryRun = $request->boolean('dryRun');
+        if ($dryRun && ! $action->supportsDryRun()) {
+            throw new BadRequestHttpException(__('This action does not answer dry runs.'));
+        }
+
         $payload = $this->validatePayload($request, $action);
-        $values = Form::validate(
+        // A dry run comes before the parameters: its values are not validated.
+        $values = $dryRun ? [] : Form::validate(
             $this->validator,
             $action->fields(),
             is_array($payload['values'] ?? null) ? $payload['values'] : [],
@@ -69,14 +78,17 @@ final class ActionController
         $items = is_array($selection)
             ? $this->selectItems($request, $resource, $action, $repository, $scope, $selection, $result)
             : [];
+        $ids = array_map(fn (object $item): string => $repository->id($item), $items);
+
+        if ($dryRun) {
+            // The items the action would run on count as succeeded; nothing runs.
+            return new JsonResponse($result->toArray($ids));
+        }
 
         $action->setContext(new ActionContext($resource, $repository, $scope, $request, $user));
         $result = $action->handle(collect($items), new ActionValues($values), $result);
 
-        return new JsonResponse($result->toArray(array_map(
-            fn (object $item): string => $repository->id($item),
-            $items,
-        )));
+        return new JsonResponse($result->toArray($ids));
     }
 
     /**
@@ -88,6 +100,7 @@ final class ActionController
         $rules = [
             'selection' => [$action->appliesToResource() ? 'nullable' : 'required', 'array'],
             'values' => ['sometimes', 'array'],
+            'dryRun' => ['sometimes', 'boolean'],
         ];
         if (is_array($payload['selection'] ?? null)) {
             $rules += [
