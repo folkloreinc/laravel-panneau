@@ -83,6 +83,19 @@ abstract class Action implements ActionDeclaration
     }
 
     /**
+     * Whether the action answers dry runs: a request with `dryRun` counts the items it would
+     * run on and those it would skip, without running it. Lists ask before they confirm an
+     * action on every item matching a query.
+     *
+     * A dry run only checks each item's abilities (`authorize()`), so only opt in when
+     * `handle()` doesn't skip or fail items for other reasons.
+     */
+    public function supportsDryRun(): bool
+    {
+        return false;
+    }
+
+    /**
      * Parameters, shown in a modal and validated like resource fields.
      *
      * @return list<Field>
@@ -166,6 +179,9 @@ abstract class Action implements ActionDeclaration
             $this->destructive(),
             $this->confirm(),
         );
+        if ($this->supportsDryRun()) {
+            $definition['dryRun'] = true;
+        }
         $fields = $this->fields();
         if (count($fields) > 0) {
             $definition['fields'] = array_map(fn (Field $field): array => $field->toDefinition(), $fields);

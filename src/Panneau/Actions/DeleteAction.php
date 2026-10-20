@@ -6,7 +6,7 @@ use Illuminate\Support\Collection;
 
 /**
  * The built-in `delete` action, on items and selections. Authorized by the policy's
- * `delete` method. Runs the resource's `deleting` hook before each deletion.
+ * `delete` method. Runs the resource's `deleting` hook before each deletion. Answers dry runs.
  */
 class DeleteAction extends Action
 {
@@ -31,6 +31,11 @@ class DeleteAction extends Action
     }
 
     public function confirm(): Confirm|bool|null
+    {
+        return true;
+    }
+
+    public function supportsDryRun(): bool
     {
         return true;
     }

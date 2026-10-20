@@ -30,7 +30,7 @@ class ResourceListTest extends HttpTestCase
         $this->assertSame((string) $post->id, $item['id']);
         $this->assertIsString($item['version']);
         $this->assertSame(
-            ['view' => true, 'update' => false, 'delete' => false, 'publish-posts' => true],
+            ['view' => true, 'update' => false, 'delete' => false, 'publish-posts' => true, 'archive-posts' => false],
             $item['abilities'],
         );
         $this->assertArrayNotHasKey('secret', $item);

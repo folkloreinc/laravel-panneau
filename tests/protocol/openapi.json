@@ -2644,6 +2644,10 @@
                         "description": "The action always answers `202` with a run.",
                         "type": "boolean"
                     },
+                    "dryRun": {
+                        "description": "The backend answers dry runs of this action (`dryRun` in the request): lists ask it how many items of a query selection will be skipped. Without it, the UI never sends `dryRun`, since a backend that ignores it would run the action.",
+                        "type": "boolean"
+                    },
                     "url": {
                         "description": "`link`: URL template, with `{id}` for the item.",
                         "type": "string"
@@ -3769,6 +3773,10 @@
                             "type": "string"
                         },
                         "additionalProperties": {}
+                    },
+                    "dryRun": {
+                        "description": "Answer what the action would do without running it: a `200` action result whose `summary` counts the items that would succeed and those that would be skipped. Only for actions with `dryRun: true`.",
+                        "type": "boolean"
                     }
                 },
                 "additionalProperties": {}

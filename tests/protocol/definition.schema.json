@@ -852,6 +852,9 @@
                 "queued": {
                     "type": "boolean"
                 },
+                "dryRun": {
+                    "type": "boolean"
+                },
                 "url": {
                     "type": "string"
                 },

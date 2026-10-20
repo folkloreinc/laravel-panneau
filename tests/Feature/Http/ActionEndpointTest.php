@@ -165,6 +165,90 @@ class ActionEndpointTest extends HttpTestCase
         $this->assertSame([$locked->id], Post::query()->pluck('id')->all());
     }
 
+    public function test_a_dry_run_counts_a_query_selection_without_running(): void
+    {
+        $draft = $this->createPost(['title' => 'Summer draft']);
+        $locked = $this->createPost(['title' => 'Locked']);
+        $excluded = $this->createPost(['title' => 'Summer excluded']);
+        $this->createPost(['title' => 'Summer published', 'status' => 'published']);
+        $this->createPost(['title' => 'Summer other team', 'team_id' => 2]);
+
+        $this->runAction('delete', [
+            'selection' => ['query' => ['filter' => ['status' => 'draft']], 'except' => [(string) $excluded->id]],
+            'dryRun' => true,
+        ])->assertOk()->assertExactJson([
+            'summary' => ['succeeded' => 1, 'failed' => 0, 'skipped' => 1],
+            'results' => [['id' => (string) $locked->id, 'status' => 'skipped', 'reason' => 'forbidden']],
+        ]);
+
+        $this->assertSame(5, Post::query()->count());
+        $this->assertNotNull($draft->fresh());
+    }
+
+    public function test_a_dry_run_counts_a_selection_of_ids(): void
+    {
+        $post = $this->createPost();
+        $locked = $this->createPost(['title' => 'Locked']);
+
+        $this->runAction('delete', [
+            'selection' => ['ids' => [(string) $post->id, (string) $locked->id, '999']],
+            'dryRun' => true,
+        ])->assertOk()->assertExactJson([
+            'summary' => ['succeeded' => 1, 'failed' => 0, 'skipped' => 2],
+            'results' => [
+                ['id' => (string) $locked->id, 'status' => 'skipped', 'reason' => 'forbidden'],
+                ['id' => '999', 'status' => 'skipped', 'reason' => 'not_found'],
+            ],
+        ]);
+
+        $this->assertSame(2, Post::query()->count());
+    }
+
+    public function test_a_dry_run_does_not_validate_values(): void
+    {
+        $post = $this->createPost();
+
+        $this->runAction('archive-posts', ['selection' => ['query' => []], 'dryRun' => true])
+            ->assertOk()
+            ->assertJsonPath('summary', ['succeeded' => 1, 'failed' => 0, 'skipped' => 0]);
+        $this->assertSame('draft', $post->refresh()->status);
+
+        $this->runAction('archive-posts', ['selection' => ['query' => []]])->assertStatus(422)->assertJsonStructure(['errors' => ['reason']]);
+        $this->runAction('archive-posts', ['selection' => ['query' => []], 'values' => ['reason' => 'Old']])->assertOk();
+        $this->assertSame('archived', $post->refresh()->status);
+    }
+
+    public function test_a_dry_run_keeps_the_limits_and_errors_of_a_run(): void
+    {
+        $archived = $this->createPost(['title' => 'Locked']);
+
+        $this->runAction('delete', ['selection' => ['ids' => [(string) $archived->id]], 'dryRun' => true])->assertForbidden();
+        $this->runAction('delete', ['selection' => ['ids' => ['999']], 'dryRun' => true])->assertNotFound();
+        $this->runAction('delete', ['dryRun' => true])->assertStatus(422)->assertJsonStructure(['errors' => ['selection']]);
+        $this->runAction('delete', ['selection' => ['query' => []], 'dryRun' => 'yes'])->assertStatus(422)->assertJsonStructure(['errors' => ['dryRun']]);
+
+        $this->app['config']->set('panneau.actions.sync_limit', 1);
+        $this->createPost();
+        $this->runAction('delete', ['selection' => ['query' => []], 'dryRun' => true])->assertStatus(422)->assertJsonStructure(['errors' => ['selection']]);
+        $this->assertSame(2, Post::query()->count());
+    }
+
+    public function test_a_dry_run_of_an_action_without_dry_runs_is_refused(): void
+    {
+        $post = $this->createPost();
+
+        foreach ([true, 1, '1'] as $dryRun) {
+            $this->runAction('publish-posts', ['selection' => ['ids' => [(string) $post->id]], 'dryRun' => $dryRun])
+                ->assertStatus(422)
+                ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
+                ->assertJsonStructure(['errors' => ['dryRun']]);
+        }
+        $this->assertSame('draft', $post->refresh()->status);
+
+        $this->runAction('publish-posts', ['selection' => ['ids' => [(string) $post->id]], 'dryRun' => false])->assertOk();
+        $this->assertSame('published', $post->refresh()->status);
+    }
+
     public function test_the_delete_action_is_declared_in_the_definition(): void
     {
         $actions = array_column($this->getJson(self::API.'/definition')->json('resources.0.actions'), null, 'id');
@@ -177,7 +261,10 @@ class ActionEndpointTest extends HttpTestCase
             'scope' => ['item', 'selection'],
             'destructive' => true,
             'confirm' => true,
+            'dryRun' => true,
             'abilities' => ['run' => true],
         ], $actions['delete']);
+        $this->assertTrue($actions['archive-posts']['dryRun']);
+        $this->assertArrayNotHasKey('dryRun', $actions['publish-posts']);
     }
 }
