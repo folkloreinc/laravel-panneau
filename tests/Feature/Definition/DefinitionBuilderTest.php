@@ -243,4 +243,78 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame(['id' => '7', 'name' => 'Ada', 'email' => 'ada@example.com', 'abilities' => ['panneau.view' => true]], $definition['user']);
         $this->assertValidDefinition($definition);
     }
+
+    public function test_no_theme_by_default(): void
+    {
+        $this->assertArrayNotHasKey('theme', $this->definition());
+    }
+
+    public function test_the_theme(): void
+    {
+        $theme = [
+            'extends' => ['brand', 'brand-print'],
+            'colorScheme' => 'auto',
+            'density' => 'compact',
+            'label' => 'Brand',
+            'tokens' => [
+                'panneau-color-accent' => 'var(--panneau-palette-blue)',
+                'panneau-font-family-body' => '"Geist", system-ui, sans-serif',
+            ],
+            'dark' => ['panneau-color-surface' => '#101014'],
+            'palette' => ['blue' => '#0055ff', 'sand' => 'oklch(0.9 0.04 85)'],
+            'tones' => [
+                'brand' => '#0055ff',
+                'archived' => [
+                    'text' => '#555', 'subtle' => '#eee', 'border' => '#ccc', 'outline' => '#999',
+                    'solid' => '#666', 'solidHover' => '#555', 'solidText' => '#fff',
+                    'dark' => ['text' => '#bbb'],
+                ],
+            ],
+            'components' => ['button' => ['variants' => ['pill' => ['panneau-button-radius' => '999px']]]],
+            'densities' => ['compact' => ['panneau-control-height' => '1.75rem']],
+            'fonts' => [
+                ['family' => 'Geist', 'src' => "url(/fonts/geist.woff2) format('woff2')", 'weight' => '100 900', 'display' => 'swap'],
+                ['stylesheet' => 'https://fonts.example.com/css?family=Geist+Mono'],
+            ],
+        ];
+        $this->app['config']->set('panneau.theme', $theme);
+
+        $definition = $this->definition();
+
+        $this->assertSame($theme, $definition['theme']);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_a_theme_that_only_extends_a_plugin_theme(): void
+    {
+        $this->app['config']->set('panneau.theme', ['extends' => 'brand']);
+
+        $definition = $this->definition();
+
+        $this->assertSame(['extends' => 'brand'], $definition['theme']);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_null_values_and_empty_maps_are_left_out_of_the_theme(): void
+    {
+        $this->app['config']->set('panneau.theme', [
+            'colorScheme' => 'dark',
+            'density' => null,
+            'tokens' => [],
+            'components' => ['button' => ['variants' => []]],
+            'fonts' => [],
+        ]);
+
+        $definition = $this->definition();
+
+        $this->assertSame(['colorScheme' => 'dark'], $definition['theme']);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_an_empty_theme_is_left_out(): void
+    {
+        $this->app['config']->set('panneau.theme', ['tokens' => [], 'extends' => null]);
+
+        $this->assertArrayNotHasKey('theme', $this->definition());
+    }
 }

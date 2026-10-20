@@ -103,6 +103,21 @@ class AppPageTest extends HttpTestCase
         $this->assertArrayNotHasKey('definition', $boot);
     }
 
+    public function test_the_theme_is_in_the_definition_of_the_page(): void
+    {
+        $theme = [
+            'extends' => 'brand',
+            'tokens' => ['panneau-font-family-body' => '"Geist", sans-serif'],
+            'fonts' => [['family' => 'Geist', 'src' => "url(/fonts/geist.woff2) format('woff2')"]],
+        ];
+        $this->app['config']->set('panneau.theme', $theme);
+
+        $boot = $this->bootConfig($this->get('/panneau')->assertOk());
+
+        $this->assertValidBootConfig($boot);
+        $this->assertSame($theme, $boot['definition']['theme']);
+    }
+
     public function test_the_locale_is_the_app_locale(): void
     {
         $this->app->setLocale('fr_CA');

@@ -271,6 +271,31 @@ final class PublishPages extends Action
 
   Resources enable them in `actions()`, and can extend them.
 
+## Theme
+
+`config('panneau.theme')` is sent as the definition's `theme`, the protocol's `DefinitionTheme` ([panneau-js decision 0024](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0024-theme-model.md)). Its keys are the protocol's, as they appear in JSON:
+
+```php
+'theme' => [
+    'extends' => 'brand',      // themes registered by JS plugins, by id: a string or a list
+    'colorScheme' => 'auto',   // light, dark or auto
+    'density' => 'comfortable', // compact, comfortable, touch or auto
+    'palette' => ['blue' => '#0055ff'],
+    'tokens' => ['panneau-color-accent' => 'var(--panneau-palette-blue)'],
+    'dark' => ['panneau-color-surface' => '#101014'],
+    'tones' => ['brand' => '#0055ff'],
+    'components' => ['button' => ['variants' => ['pill' => ['panneau-button-radius' => '999px']]]],
+    'densities' => ['compact' => ['panneau-control-height' => '1.75rem']],
+    'fonts' => [['family' => 'Geist', 'src' => "url(/fonts/geist.woff2) format('woff2')"]],
+],
+```
+
+- A theme defined in JS (`defineTheme()` of `@panneau/ui`) goes in the `themes` of a plugin, by id, in the project's entry, and the config names it in `extends`. The config only holds what changes per project or environment, such as the accent color.
+- `resolveTheme()` of `@panneau/core` merges the extended themes, in order, then the config's own values.
+- Null values and empty arrays are left out, so that an empty map isn't sent as a JSON list. Without `panneau.theme`, or when nothing is left, the definition has no `theme` and the app uses the default theme of `@panneau/ui`.
+- The package sends the theme as configured. Token names and values, tone and variant names, and fonts follow the restrictions of the protocol's schema (no `{`, `}`, `;` or `<` in values, for example): a theme that breaks them makes the definition invalid.
+- The tests check a definition with a theme against `definition.schema.json`.
+
 ## HTTP layer
 
 - **Routes are opt-in.** Nothing is registered until the project calls `Panneau::routes()`, usually in `routes/panneau.php`. Every route gets the middleware from `config('panneau.middleware')`, `['web', 'panneau.auth']` by default. See [decisions/0002](decisions/0002-secure-by-default.md).
