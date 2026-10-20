@@ -21,6 +21,7 @@ use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Query\ResourceQuery;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -58,7 +59,7 @@ final class ActionController
         // Refused before anything else: an action that doesn't answer dry runs never runs on one.
         $dryRun = $request->boolean('dryRun');
         if ($dryRun && ! $action->supportsDryRun()) {
-            throw ValidationException::withMessages(['dryRun' => [__('This action does not answer dry runs.')]]);
+            throw new BadRequestHttpException(__('This action does not answer dry runs.'));
         }
 
         $payload = $this->validatePayload($request, $action);

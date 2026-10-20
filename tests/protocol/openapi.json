@@ -623,6 +623,16 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Bad request, such as a dry run of an action that does not declare `dryRun`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
                     "401": {
                         "description": "Not authenticated.",
                         "content": {

@@ -239,9 +239,9 @@ class ActionEndpointTest extends HttpTestCase
 
         foreach ([true, 1, '1'] as $dryRun) {
             $this->runAction('publish-posts', ['selection' => ['ids' => [(string) $post->id]], 'dryRun' => $dryRun])
-                ->assertStatus(422)
+                ->assertStatus(400)
                 ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
-                ->assertJsonStructure(['errors' => ['dryRun']]);
+                ->assertJsonPath('detail', 'This action does not answer dry runs.');
         }
         $this->assertSame('draft', $post->refresh()->status);
 
