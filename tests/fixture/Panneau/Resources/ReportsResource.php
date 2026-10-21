@@ -40,6 +40,20 @@ class ReportsResource extends Resource
      */
     public function creating(array $values, Request $request): array
     {
+        return self::refuse($values);
+    }
+
+    public function updating(object $item, array $values, Request $request): array
+    {
+        return self::refuse($values);
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private static function refuse(array $values): array
+    {
         if (($values['title'] ?? null) === 'Refused') {
             throw ValidationException::withMessages(['title' => 'This title is refused.']);
         }

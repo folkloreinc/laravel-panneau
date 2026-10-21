@@ -180,7 +180,7 @@ interface ResourceRepository
   - `Text`, `Textarea`, `RichText`, `Number`, `Boolean`;
   - `Date`, `DateTime`, `Time`;
   - `Select`, `Email`, `Url`, `Color`;
-  - `Media`, `Relation`, `Group`, `Repeater`, `Slug`.
+  - `Media`, `File`, `Relation`, `Group`, `Repeater`, `Slug`.
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
   - `localized()`, `readOnly()`, `visibleWhen()`;
@@ -191,9 +191,37 @@ interface ResourceRepository
   - a partial update (`PATCH`) only validates the fields it sends;
   - localized values are validated per locale (`title.fr`), and blocks per index and type (`blocks.2.image`), so errors use the protocol's dot paths.
 - **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items. Folklore repositories already handle these values: `data` JSON attributes, relations and media.
+- **Saving.** Once the values are valid, and before the `creating` and `updating` hooks, each field prepares its value with `prepare()` (see [decisions/0008](decisions/0008-field-preparation.md)). Most fields keep it as is. A field that keeps something outside the item, like `File`, does that work there, and registers with the `SaveContext` what to do once the repository saved the item (`afterSave()`) or if the save fails (`afterFailure()`). Groups and blocks are saved whole: their fields without a value get `prepareAbsent()`, since their previous value is gone.
 - **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, and related items become references (`{ "id": "12", "label": "Ada" }`).
 - **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
 - **Field types from other packages** (such as the `laravel-folklore` plugin) extend `Field` and declare the protocol type and the JS plugin that renders them.
+
+### File
+
+A `file` field holds files that belong to the item, outside the media library: a PDF, an attachment. Panneau stores them on a disk and keeps their stored value in the item.
+
+```php
+File::make('terms')
+    ->accept(['application/pdf'])   // portable rules, in the definition
+    ->maxSize(10_000_000)
+    ->disk('s3')                    // default: the app's default disk
+    ->directory('terms')            // default: files
+    ->visibility('private'),        // default: private
+File::make('attachments')->multiple()->max(5),
+```
+
+- **Definition.** `multiple`, `accept` and the `accept` and `maxSize` rules, like `media`. The disk, directory and visibility stay on the server.
+- **Requests** send, for each file:
+  - `{ "upload": "upl_…" }`, a completed direct upload of the user, to add or replace it;
+  - a file in `multipart/form-data`, when uploads are not direct;
+  - the stored file the item gave, to keep it;
+  - `null` to remove it (an empty list with `multiple()`).
+- **Validation.** An upload that is unknown, still open, expired or another user's is a `422` on the value's path (`terms`, `attachments.1`, `sections.2.file`). `accept` and `maxSize` are checked on the MIME type and size that the upload recorded when it completed, or that were detected for a file in the request, never on what the client sends next to them. A stored file sent back must be one of the item's own: it is found by its URL (without the query string, which changes for temporary URLs) or its name. Its path, disk or URL from the client are never used.
+- **Saving.** Each new file is copied from the upload (`readStream()`) or the request to `{directory}/{ulid}/{name}` on the field's disk, with a safe version of its name. The repository receives its stored value, `{ "disk", "path", "name", "mime", "size" }`, or a list of them. Files that the save replaced or removed are deleted once the repository saved the item; new files are deleted if the save fails (a `creating` or `updating` hook, or the repository, throws). Deleting the item leaves its files, since a soft-deleted item can come back: delete them in the `deleted()` hook if needed, with `File::storedFiles()`.
+- **Items** give the protocol's `StoredFile`, `{ "name", "url", "mime", "size" }`. A public file gets the disk's `url()`, a private file a `temporaryUrl()` that lives `panneau.files.url_ttl` seconds (3600 by default), and `url` is null when the disk gives neither.
+- **Model.** With `EloquentRepository`, the attribute needs a JSON column (`$table->json('terms')->nullable()`) with the `array` cast. In a `Group` or a `Repeater`, the file's stored value is part of the group's or the blocks' JSON.
+- **Not localized.** A file field can't be `localized()`.
+- **In an action**, a `File` parameter is validated the same way, but nothing is stored: `$values->upload('file')` gives the upload.
 
 ## Actions
 
@@ -362,8 +390,8 @@ Schedule::command('panneau:prune-uploads')->hourly();
 - **Routes.** `POST uploads/sign` signs the requests of Uppy 6, and `POST uploads/{upload}/complete` checks the file on the disk and answers the upload. The definition announces `"uploads": { "mode": "presigned" }`. Without `enabled`, neither exists.
 - **Signing.** The first request of a file starts an upload, with a key Panneau chooses (`{path}/upl_…`). Later requests are signed only for the user's open uploads, by key, and for the multipart upload recorded first.
 - **Authorization.** The `uploadPanneauFiles` gate. Without it, uploads are denied, unless the project calls `Panneau::allowWithoutPolicies()`.
-- **Values.** In an action, `$values->upload('file')` gives the completed upload that the parameter references, for the same user, or null. `$upload->readStream()` reads its file, and `$upload->disk` and `$upload->path` locate it.
-- **Lifetime.** Uploads are temporary. `panneau:prune-uploads` deletes the expired ones, completed or not, with their files, and aborts their multipart uploads. Copy or move a file you keep.
+- **Values.** A [`File` field](#file) takes `{ "upload": "upl_…" }` and copies the upload's file to its own disk when the item is saved. In an action, `$values->upload('file')` gives the completed upload that the parameter references, for the same user, or null. `$upload->readStream()` reads its file, and `$upload->disk` and `$upload->path` locate it.
+- **Lifetime.** Uploads are temporary. `panneau:prune-uploads` deletes the expired ones, completed or not, with their files, and aborts their multipart uploads. Copy or move a file you keep: file fields copy it.
 - **Table.** `panneau_uploads`. The package loads its migration when uploads are enabled; `vendor:publish --tag=panneau-migrations` copies it into the project instead.
 - **Storage.** The `UploadStorage` contract signs, stats and deletes. `S3UploadStorage` is bound by default; bind another implementation for a different storage.
 

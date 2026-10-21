@@ -68,7 +68,9 @@ class File extends Field
 
     public function getDisk(): string
     {
-        return $this->disk ?? (string) config('filesystems.default');
+        $default = config('filesystems.default');
+
+        return $this->disk ?? (is_string($default) ? $default : 'local');
     }
 
     /**
@@ -117,6 +119,7 @@ class File extends Field
         $candidates = fn (): array => self::storedFiles($this->currentValue($context->item, $path));
         $fileRules = [$this->fileRule($context, $candidates), ...$this->receivedFileRules($context)];
         if ($this->multiple) {
+            $rules->attribute($path.'.*', $this->attributeName());
             $rules->add($path.'.*', ['required', ...$fileRules]);
         } else {
             $rules->add($path, $fileRules);
@@ -196,7 +199,8 @@ class File extends Field
                 return $disk->url($file['path']);
             }
             if ($disk->providesTemporaryUrls()) {
-                $ttl = max(1, (int) config('panneau.files.url_ttl', 3600));
+                $ttl = config('panneau.files.url_ttl');
+                $ttl = is_numeric($ttl) ? max(1, (int) $ttl) : 3600;
 
                 return $disk->temporaryUrl($file['path'], Carbon::now()->addSeconds($ttl));
             }
@@ -286,7 +290,8 @@ class File extends Field
     {
         $file = $this->newFile(
             $uploaded->getClientOriginalName(),
-            $uploaded->getMimeType() ?? $uploaded->getClientMimeType(),
+            // Detected from the content: the client's type is not trusted.
+            $uploaded->getMimeType(),
             ($size = $uploaded->getSize()) !== false ? $size : null,
         );
         $written = Storage::disk($file['disk'])->putFileAs(

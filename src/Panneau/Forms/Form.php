@@ -84,9 +84,11 @@ final class Form
      * At a nested level (a group, a block), which is saved whole, the fields without a value
      * are told with `prepareAbsent()`: their previous value is gone.
      *
+     * @template TKey of array-key
+     *
      * @param  list<Field>  $fields
-     * @param  array<array-key, mixed>  $values  Validated values, from `validate()`.
-     * @return array<array-key, mixed>
+     * @param  array<TKey, mixed>  $values  Validated values, from `validate()`.
+     * @return array<TKey, mixed>
      */
     public static function prepare(array $fields, array $values, SaveContext $context, string $prefix = '', bool $nested = false): array
     {
