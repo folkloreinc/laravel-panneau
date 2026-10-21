@@ -6,10 +6,14 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\InstallCommand;
+use Panneau\Console\PruneUploadsCommand;
+use Panneau\Contracts\UploadStorage;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Uploads\S3UploadStorage;
+use Panneau\Uploads\Uploads;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -30,6 +34,8 @@ class ServiceProvider extends BaseServiceProvider
         });
         $this->app->singleton(ItemSerializer::class);
         $this->app->singleton(Authorizer::class);
+        $this->app->singletonIf(UploadStorage::class, S3UploadStorage::class);
+        $this->app->singleton(Uploads::class);
     }
 
     public function boot(): void
@@ -41,8 +47,14 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
 
+        $migrations = __DIR__.'/../../database/migrations';
+        $this->publishesMigrations([$migrations => database_path('migrations')], 'panneau-migrations');
+        if ($this->app['config']->get('panneau.uploads.enabled')) {
+            $this->loadMigrationsFrom($migrations);
+        }
+
         if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class]);
+            $this->commands([InstallCommand::class, PruneUploadsCommand::class]);
         }
     }
 }

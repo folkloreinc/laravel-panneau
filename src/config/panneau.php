@@ -74,4 +74,22 @@ return [
         // until queued actions are supported.
         'sync_limit' => 500,
     ],
+
+    // Direct uploads: the browser sends files to an S3-compatible disk itself, in parts for
+    // large ones, with URLs that Panneau signs (Uppy 6). Values reference them as
+    // { "upload": "upl_…" }: a media, an import, a file field. Off by default: the routes exist
+    // only when enabled, and the `uploadPanneauFiles` gate authorizes them.
+    'uploads' => [
+        'enabled' => false,
+        // An S3-compatible disk (driver `s3`, with `league/flysystem-aws-s3-v3`).
+        'disk' => null,
+        // Where uploads go on the disk: {path}/{upl_…}.
+        'path' => 'panneau-uploads',
+        // Seconds a signed URL lives.
+        'url_ttl' => 900,
+        // Seconds an upload lives before `panneau:prune-uploads` removes it, used or not.
+        'lifetime' => 86400,
+        // Largest file, in bytes, checked when the upload completes. Null: no limit.
+        'max_size' => null,
+    ],
 ];

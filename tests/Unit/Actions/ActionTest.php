@@ -11,6 +11,7 @@ use Panneau\Actions\ActionScope;
 use Panneau\Actions\ActionValues;
 use Panneau\Actions\ClientAction;
 use Panneau\Actions\LinkAction;
+use Panneau\Uploads\Upload;
 use PHPUnit\Framework\TestCase;
 use TestApp\Panneau\Actions\PublishPosts;
 
@@ -103,6 +104,19 @@ class ActionTest extends TestCase
         $this->assertSame('Hi', $values->string('note'));
         $this->assertSame(1, $values->get('nested.a'));
         $this->assertTrue($values->has('nested.a'));
+    }
+
+    public function test_uploads_in_values(): void
+    {
+        $upload = new Upload;
+        $values = new ActionValues(
+            ['file' => ['upload' => 'upl_1'], 'note' => 'Hi'],
+            fn (mixed $value): ?Upload => $value === ['upload' => 'upl_1'] ? $upload : null,
+        );
+
+        $this->assertSame($upload, $values->upload('file'));
+        $this->assertNull($values->upload('note'));
+        $this->assertNull((new ActionValues(['file' => ['upload' => 'upl_1']]))->upload('file'));
     }
 }
 

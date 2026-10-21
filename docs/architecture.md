@@ -311,7 +311,7 @@ final class PublishPages extends Action
   - guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. The API answers them with a `401`.
 - **Generic controllers implement the protocol:**
   - definition, resources, actions and action runs;
-  - media, auth, account;
+  - uploads, media, auth, account;
   - search, dashboard widgets, preview.
 - **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
@@ -337,10 +337,40 @@ See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://g
 - **Isolation.** Panneau never changes the site's Fortify configuration, views or guards.
 - **Roles module (optional).** Roles and permissions are defined in config, with a `panneau_roles` pivot, an assignment UI, invitations, and a policy base class that checks permissions such as `pages.update`.
 
+## Uploads
+
+See [decisions/0007](decisions/0007-direct-uploads.md) and the [shared decision](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0025-presigned-uploads.md). The browser sends files to an S3-compatible disk itself, in parts for large ones, with URLs that Panneau signs. An upload is not a media: values reference it.
+
+```php
+// config/panneau.php
+'uploads' => [
+    'enabled' => true,
+    'disk' => 's3',            // a disk with the s3 driver, and league/flysystem-aws-s3-v3
+    'path' => 'panneau-uploads',
+    'url_ttl' => 900,          // seconds a signed URL lives
+    'lifetime' => 86400,       // seconds an upload lives
+    'max_size' => null,        // bytes, checked at completion
+],
+
+// AppServiceProvider
+Gate::define('uploadPanneauFiles', fn (User $user): bool => $user->isEditor());
+
+// routes/console.php
+Schedule::command('panneau:prune-uploads')->hourly();
+```
+
+- **Routes.** `POST uploads/sign` signs the requests of Uppy 6, and `POST uploads/{upload}/complete` checks the file on the disk and answers the upload. The definition announces `"uploads": { "mode": "presigned" }`. Without `enabled`, neither exists.
+- **Signing.** The first request of a file starts an upload, with a key Panneau chooses (`{path}/upl_…`). Later requests are signed only for the user's open uploads, by key, and for the multipart upload recorded first.
+- **Authorization.** The `uploadPanneauFiles` gate. Without it, uploads are denied, unless the project calls `Panneau::allowWithoutPolicies()`.
+- **Values.** In an action, `$values->upload('file')` gives the completed upload that the parameter references, for the same user, or null. `$upload->readStream()` reads its file, and `$upload->disk` and `$upload->path` locate it.
+- **Lifetime.** Uploads are temporary. `panneau:prune-uploads` deletes the expired ones, completed or not, with their files, and aborts their multipart uploads. Copy or move a file you keep.
+- **Table.** `panneau_uploads`. The package loads its migration when uploads are enabled; `vendor:publish --tag=panneau-migrations` copies it into the project instead.
+- **Storage.** The `UploadStorage` contract signs, stats and deletes. `S3UploadStorage` is bound by default; bind another implementation for a different storage.
+
 ## Media
 
 - **Media endpoints** go through a `MediaRepository` contract.
-- **`laravel-mediatheque` adapter.** Used when `folklore/laravel-mediatheque` is installed (suggested, not required). It covers uploads (including TUS), tags, replacing the file, trash and search.
+- **`laravel-mediatheque` adapter.** Used when `folklore/laravel-mediatheque` is installed (suggested, not required). It covers tags, replacing the file, trash and search. Files reach it through Panneau: `POST /media` takes a file, or an upload whose file the mediatheque ingests. The mediatheque has no upload routes.
 - **Image edits.** Crop, rotation and focal point are stored as a transform and rendered through `folklore/laravel-image` URLs (5.x).
 
 ## Search and dashboard
