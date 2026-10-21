@@ -7,6 +7,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\ValidationContext;
+use Panneau\Media\MediaReferences;
 use Panneau\Resources\Resource;
 use Panneau\Uploads\Upload;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,7 +24,7 @@ trait ResolvesResources
 
     protected function findItem(Resource $resource, string $id, Request $request): object
     {
-        return $this->resources->repository($resource)->find($id, $resource->scope($request))
+        return $this->resources->repository($resource)->find($id, $resource->repositoryScope($request))
             ?? throw new NotFoundHttpException;
     }
 
@@ -43,9 +44,12 @@ trait ResolvesResources
 
     /**
      * @param  (Closure(mixed): ?Upload)|null  $uploads  From `uploadResolver()`.
+     * @param  MediaReferences|null  $media  From `mediaReferences()`.
      */
-    protected function validationContext(Request $request, FormMode $mode, bool $partial = false, ?object $item = null, ?Closure $uploads = null): ValidationContext
+    protected function validationContext(Request $request, FormMode $mode, bool $partial = false, ?object $item = null, ?Closure $uploads = null, ?MediaReferences $media = null): ValidationContext
     {
+        $media ??= $this->mediaReferences($request);
+
         return new ValidationContext(
             mode: $mode,
             locales: $this->definition->locales(),
@@ -53,7 +57,17 @@ trait ResolvesResources
             item: $item,
             relationExists: $this->relationExists($request),
             uploads: $uploads ?? $this->uploadResolver($request),
+            media: fn (?string $library, string $id): ?array => $media->media($library, $id),
         );
+    }
+
+    /**
+     * Finds the media of `media` values, within the scope of their library, once for a request:
+     * validation and serialization ask for the same media.
+     */
+    protected function mediaReferences(Request $request): MediaReferences
+    {
+        return new MediaReferences($this->resources, $request);
     }
 
     /**
@@ -91,7 +105,7 @@ trait ResolvesResources
             $related = $this->resources->resolve($resource);
 
             return $related !== null
-                && $this->resources->repository($related)->find($id, $related->scope($request)) !== null;
+                && $this->resources->repository($related)->find($id, $related->repositoryScope($request)) !== null;
         };
     }
 }

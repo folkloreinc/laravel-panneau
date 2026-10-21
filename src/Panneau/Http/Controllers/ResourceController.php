@@ -14,6 +14,7 @@ use Panneau\Forms\Form;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\SaveContext;
 use Panneau\Http\Controllers\Concerns\ResolvesResources;
+use Panneau\Media\MediaReferences;
 use Panneau\Query\ResourceQuery;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
@@ -52,14 +53,17 @@ final class ResourceController
                 (int) $this->config->get('panneau.list.per_page', 20),
                 (int) $this->config->get('panneau.list.max_per_page', 100),
             ),
-            $resource->scope($request),
+            $resource->repositoryScope($request),
         );
         $page = $this->resources->repository($resource)->query($query);
+        $items = array_values($page->items());
+        $references = $this->mediaReferences($request);
+        $references->preload($resource, $items);
 
         return new JsonResponse([
             'data' => array_map(
-                fn (object $item): array => $this->item($request, $resource, $item, $query->fields),
-                array_values($page->items()),
+                fn (object $item): array => $this->item($request, $resource, $item, $query->fields, $references),
+                $items,
             ),
             'meta' => [
                 'page' => $page->currentPage(),
@@ -85,17 +89,18 @@ final class ResourceController
         $this->authorizeResource($request, $resource, 'create');
 
         $uploads = $this->uploadResolver($request);
+        $references = $this->mediaReferences($request);
         $values = Form::validate(
             $this->validator,
-            $resource->fields(),
+            $resource->allFields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Create, uploads: $uploads),
+            $this->validationContext($request, FormMode::Create, uploads: $uploads, media: $references),
         );
         $saving = new SaveContext(FormMode::Create, null, $uploads);
         try {
-            $values = Form::prepare($resource->fields(), $values, $saving);
+            $values = Form::prepare($resource->allFields(), $values, $saving);
             $values = $resource->creating($values, $request);
-            $item = $this->resources->repository($resource)->create($values, $resource->scope($request));
+            $item = $this->resources->repository($resource)->create($values, $resource->repositoryScope($request));
         } catch (Throwable $exception) {
             $saving->failed();
 
@@ -105,7 +110,7 @@ final class ResourceController
         $resource->created($item, $values, $request);
         $resource->saved($item, $values, $request);
 
-        return $this->itemResponse($request, $resource, $item, 201);
+        return $this->itemResponse($request, $resource, $item, 201, $references);
     }
 
     public function update(Request $request, string $resource, string $id): JsonResponse
@@ -121,15 +126,16 @@ final class ResourceController
         }
 
         $uploads = $this->uploadResolver($request);
+        $references = $this->mediaReferences($request);
         $values = Form::validate(
             $this->validator,
-            $resource->fields(),
+            $resource->allFields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Update, partial: true, item: $item, uploads: $uploads),
+            $this->validationContext($request, FormMode::Update, partial: true, item: $item, uploads: $uploads, media: $references),
         );
         $saving = new SaveContext(FormMode::Update, $item, $uploads);
         try {
-            $values = Form::prepare($resource->fields(), $values, $saving);
+            $values = Form::prepare($resource->allFields(), $values, $saving);
             $values = $resource->updating($item, $values, $request);
             $item = $repository->update($item, $values);
         } catch (Throwable $exception) {
@@ -141,7 +147,7 @@ final class ResourceController
         $resource->updated($item, $values, $request);
         $resource->saved($item, $values, $request);
 
-        return $this->itemResponse($request, $resource, $item);
+        return $this->itemResponse($request, $resource, $item, references: $references);
     }
 
     public function destroy(Request $request, string $resource, string $id): Response
@@ -161,19 +167,20 @@ final class ResourceController
      * @param  list<string>|null  $fields
      * @return array<string, mixed>
      */
-    private function item(Request $request, Resource $resource, object $item, ?array $fields = null): array
+    private function item(Request $request, Resource $resource, object $item, ?array $fields = null, ?MediaReferences $references = null): array
     {
         return $this->serializer->serialize(
             $resource,
             $item,
             $fields,
             $this->authorizer->itemAbilities($request->user(), $resource, $item),
+            $references ?? $this->mediaReferences($request),
         );
     }
 
-    private function itemResponse(Request $request, Resource $resource, object $item, int $status = 200): JsonResponse
+    private function itemResponse(Request $request, Resource $resource, object $item, int $status = 200, ?MediaReferences $references = null): JsonResponse
     {
-        $data = $this->item($request, $resource, $item);
+        $data = $this->item($request, $resource, $item, references: $references);
         $headers = is_string($data['version']) ? ['ETag' => '"'.$data['version'].'"'] : [];
 
         return new JsonResponse(['data' => $data], $status, $headers);

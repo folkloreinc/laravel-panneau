@@ -40,6 +40,14 @@ trait AcceptsFiles
     }
 
     /**
+     * Whether `accept()` restricts the MIME types.
+     */
+    public function hasAccept(): bool
+    {
+        return $this->accept !== null;
+    }
+
+    /**
      * Largest file size, in bytes.
      */
     public function maxSize(int $bytes, ?string $message = null): static

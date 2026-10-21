@@ -11,6 +11,7 @@ use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\ResourceRepository;
 use Panneau\Lists\ResourceList;
 use Panneau\Query\QueryOptions;
+use Panneau\Repositories\EloquentMediaRepository;
 use Panneau\Repositories\EloquentRepository;
 use Panneau\Repositories\RepositoryAdapters;
 
@@ -85,6 +86,32 @@ final class ResourceRegistry
     }
 
     /**
+     * The media libraries: the resources of kind `media`.
+     *
+     * @return list<MediaResource>
+     */
+    public function libraries(): array
+    {
+        return array_values(array_filter($this->all(), fn (Resource $resource): bool => $resource instanceof MediaResource));
+    }
+
+    /**
+     * The library a `media` field references: by id or by class, or the only library when the
+     * field names none. Null when there is no such library, or several and the field names none.
+     */
+    public function library(?string $resource): ?MediaResource
+    {
+        if ($resource !== null) {
+            $library = $this->resolve($resource);
+
+            return $library instanceof MediaResource ? $library : null;
+        }
+        $libraries = $this->libraries();
+
+        return count($libraries) === 1 ? $libraries[0] : null;
+    }
+
+    /**
      * The id of a resource given by id or by class, as the definition references it.
      */
     public function idOf(string $resource): string
@@ -99,7 +126,7 @@ final class ResourceRegistry
 
     public function list(Resource $resource): ResourceList
     {
-        return $this->lists[$resource->id()] ??= $resource->list(new ResourceList);
+        return $this->lists[$resource->id()] ??= $resource->makeList();
     }
 
     public function searchable(Resource $resource): bool
@@ -115,7 +142,7 @@ final class ResourceRegistry
     {
         return $this->list($resource)->queryOptions(
             $this->repository($resource) instanceof Searchable,
-            array_map(fn ($field): string => $field->name(), $resource->fields()),
+            array_map(fn ($field): string => $field->name(), $resource->allFields()),
             $perPage,
             $maxPerPage,
         );
@@ -160,7 +187,7 @@ final class ResourceRegistry
         }
         $model = $resource->model();
         if ($model !== null) {
-            return EloquentRepository::for($model);
+            return $resource instanceof MediaResource ? EloquentMediaRepository::forLibrary($model) : EloquentRepository::for($model);
         }
 
         throw new LogicException(sprintf('The resource %s needs a repository() or a model().', $resource::class));

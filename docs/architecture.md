@@ -60,7 +60,7 @@ final class PagesResource extends Resource
             Text::make('title')->localized()->required()->max(120),
             PageSlug::make('slug')->localized(),
             RichText::make('body')->localized(),
-            Media::make('image')->accept('image/*'),
+            Media::make('image')->resource(ImagesResource::class), // a media library
             Select::make('status')->options(PageStatus::class)->required(),
             DateTime::make('published_at'),
             Relation::make('author')->resource(AuthorsResource::class),
@@ -190,9 +190,9 @@ interface ResourceRepository
   - fields hidden by `visibleWhen`, read-only fields, and `createOnly`/`updateOnly` fields outside their mode are neither validated nor saved;
   - a partial update (`PATCH`) only validates the fields it sends;
   - localized values are validated per locale (`title.fr`), and blocks per index and type (`blocks.2.image`), so errors use the protocol's dot paths.
-- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items. Folklore repositories already handle these values: `data` JSON attributes, relations and media.
+- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items, and `Media` values `{ "id", "transform" }` (see [The `media` field](#the-media-field)). Folklore repositories already handle these values: `data` JSON attributes, relations and media.
 - **Saving.** Once the values are valid, and before the `creating` and `updating` hooks, each field prepares its value with `prepare()` (see [decisions/0008](decisions/0008-field-preparation.md)). Most fields keep it as is. A field that keeps something outside the item, like `File`, does that work there, and registers with the `SaveContext` what to do once the repository saved the item (`afterSave()`) or if the save fails (`afterFailure()`). Groups and blocks are saved whole: their fields without a value get `prepareAbsent()`, since their previous value is gone.
-- **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, and related items become references (`{ "id": "12", "label": "Ada" }`).
+- **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, related items become references (`{ "id": "12", "label": "Ada" }`), and media media references.
 - **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
 - **Field types from other packages** (such as the `laravel-folklore` plugin) extend `Field` and declare the protocol type and the JS plugin that renders them.
 
@@ -339,7 +339,7 @@ final class PublishPages extends Action
   - guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. The API answers them with a `401`.
 - **Generic controllers implement the protocol:**
   - definition, resources, actions and action runs;
-  - uploads, media, auth, account;
+  - uploads, auth, account (media are resources);
   - search, dashboard widgets, preview.
 - **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
@@ -390,16 +390,167 @@ Schedule::command('panneau:prune-uploads')->hourly();
 - **Routes.** `POST uploads/sign` signs the requests of Uppy 6, and `POST uploads/{upload}/complete` checks the file on the disk and answers the upload. The definition announces `"uploads": { "mode": "presigned" }`. Without `enabled`, neither exists.
 - **Signing.** The first request of a file starts an upload, with a key Panneau chooses (`{path}/upl_…`). Later requests are signed only for the user's open uploads, by key, and for the multipart upload recorded first.
 - **Authorization.** The `uploadPanneauFiles` gate. Without it, uploads are denied, unless the project calls `Panneau::allowWithoutPolicies()`.
-- **Values.** A [`File` field](#file) takes `{ "upload": "upl_…" }` and copies the upload's file to its own disk when the item is saved. In an action, `$values->upload('file')` gives the completed upload that the parameter references, for the same user, or null. `$upload->readStream()` reads its file, and `$upload->disk` and `$upload->path` locate it.
+- **Values.** A [`File` field](#file) takes `{ "upload": "upl_…" }` and copies the upload's file to its own disk when the item is saved. A [library on the mediatheque](#on-laravel-mediatheque) ingests it instead. In an action, `$values->upload('file')` gives the completed upload that the parameter references, for the same user, or null. `$upload->readStream()` reads its file, and `$upload->disk` and `$upload->path` locate it.
 - **Lifetime.** Uploads are temporary. `panneau:prune-uploads` deletes the expired ones, completed or not, with their files, and aborts their multipart uploads. Copy or move a file you keep: file fields copy it.
 - **Table.** `panneau_uploads`. The package loads its migration when uploads are enabled; `vendor:publish --tag=panneau-migrations` copies it into the project instead.
 - **Storage.** The `UploadStorage` contract signs, stats and deletes. `S3UploadStorage` is bound by default; bind another implementation for a different storage.
 
 ## Media
 
-- **Media endpoints** go through a `MediaRepository` contract.
-- **`laravel-mediatheque` adapter.** Used when `folklore/laravel-mediatheque` is installed (suggested, not required). It covers tags, replacing the file, trash and search. Files reach it through Panneau: `POST /media` takes a file, or an upload whose file the mediatheque ingests. The mediatheque has no upload routes.
-- **Image edits.** Crop, rotation and focal point are stored as a transform and rendered through `folklore/laravel-image` URLs (5.x).
+See [decisions/0009](decisions/0009-media-libraries.md) and the [shared decision](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0026-media-libraries.md). A media library is a resource of kind `media`: listing, search, filters, scope, policies, actions, trash and restore are those of resources. A `media` field references the media of a library.
+
+### Libraries
+
+A library extends `MediaResource`. Panneau adds its `file` field, the original, before the fields of `fields()`; `file()` configures it. Its items get a read-only `media`, the protocol's `MediaInfo`, and its list a `type` filter.
+
+```php
+final class ImagesResource extends MediathequeResource
+{
+    public function mediaTypes(): array
+    {
+        return ['image'];                        // the scope, and the default `accept` of the file
+    }
+
+    protected function file(File $file): File
+    {
+        return $file->maxSize(50_000_000);       // required by default; never in fields()
+    }
+
+    public function fields(): array
+    {
+        return [Text::make('name'), Text::make('alt')->localized(), Text::make('credit')];
+    }
+
+    public function list(ResourceList $list): ResourceList
+    {
+        return $list->search(['name'])->layouts(['gallery', 'table']); // the type filter is added
+    }
+
+    public function scope(Request $request): array
+    {
+        return ['workspace_id' => $request->user()->workspace_id];    // given to the media it makes
+    }
+}
+```
+
+- **Making a media** is `POST /resources/{library}` with `{ "file": { "upload": "upl_…" } }`, or the file in `multipart/form-data`. Replacing its file is a `PATCH` with a new `file` (Eloquent libraries only, see below). `media` is computed by the backend: what the client sends there is ignored.
+- **Media types.** `mediaTypes()` lists the types of the library: `image`, `video`, `audio`, `document`, `font`, `other`, or a type of the mediatheque. Empty, the default: every type. They are part of the scope (under the `type` key), so lists, items and `media` fields only reach media of those types, and a file of another type is refused with a `422` on `file`. They also give the file's default `accept`; an explicit `accept()` replaces it, and should stay within the types.
+- **The `type` filter** (`filter[type]=image`, or a list) is added before the filters of `list()`, unless it declares one. Its options are the library's types. A type the library doesn't hold gives no media.
+- **Scope.** `scope()` works as for any resource, and its values are set on the media the library makes: a tenant column, or a column that splits a table into several libraries.
+- **Labels.** In `media` values, a media's `label` is its `itemTitle` (the first text field by default), in the current locale for a localized field, or else the name of its file.
+- **Reserved names.** `fields()` can't declare `file` or `media`.
+
+### On `laravel-mediatheque`
+
+`MediathequeResource` is a library on [`folklore/laravel-mediatheque`](https://github.com/folkloreinc/laravel-mediatheque) 2 (`^2.0@alpha`, suggested, not required). Its repository, `MediathequeRepository`, works with the model of `mediatheque.models.media`.
+
+- **Ingest.** A direct upload is ingested with `Mediatheque::ingest(Source::disk($upload->disk, $upload->path, $name), name: …, attributes: $scope)`: the mediatheque copies it on the storage, detects its type from its content, and processes it in its queue. A file of the request is ingested the same way. A file the mediatheque refuses, or of a type outside the library, is a `422` on `file`, and leaves neither a row nor a file.
+- **Fields** are attributes of the media: `name`, and the columns the application adds to the media table. The values other than `file` and `name` are set after the ingest, like `EloquentRepository` does.
+- **`media`** comes from the mediatheque: `type`, `status` (`pending` until it is probed and processed), the original's MIME type and size, `url` (the main rendition, or the original; temporary for a private media), `thumbnailUrl`, `variants` (the main renditions, such as `h264`), `width`, `height`, `duration` and `metadata`.
+- **Thumbnails.** With [`folklore/laravel-image`](https://github.com/folkloreinc/laravel-image) 2, the thumbnail of an image, or of a video's poster, is an image URL of its `media` resolver: a signed URL 480 pixels wide, or the preset of `thumbnailPreset()`. Without it, or before the mediatheque knows the image's checksum, it is the URL of the original image, or of the poster or first thumbnail of other types.
+- **Replacing the file isn't supported yet.** The mediatheque has no public API to replace an original, so the `file` field is `createOnly()`.
+- **Ingest options.** Extend `MediathequeRepository` and override `ingest()` to choose the visibility or the pipeline of the media; return the subclass from the library's `repository()`.
+- **Policies** are registered on the media model: `Gate::policy(config('mediatheque.models.media'), MediaPolicy::class)`.
+- **Ids** are the mediatheque's uids (`med_…`).
+
+### Two libraries on one backend
+
+Libraries on the same model, or on the mediatheque, keep apart by their types and their scope:
+
+```php
+final class ImagesResource extends MediathequeResource
+{
+    public function mediaTypes(): array
+    {
+        return ['image'];
+    }
+
+    public function fields(): array
+    {
+        return [Text::make('name'), Text::make('alt')->localized()];
+    }
+}
+
+final class PressKitResource extends MediathequeResource
+{
+    public function mediaTypes(): array
+    {
+        return ['image', 'document'];
+    }
+
+    public function fields(): array
+    {
+        return [Text::make('name')];
+    }
+
+    public function scope(Request $request): array
+    {
+        return ['library' => 'press'];            // a column of the media table, set on its media
+    }
+}
+```
+
+An image of the press kit is also an image of `ImagesResource`, which isn't scoped by `library`; scope both libraries by the column to keep them apart.
+
+### Without the mediatheque
+
+A library on an Eloquent model returns it from `model()`, and gets an `EloquentMediaRepository`. The `file` field stores the file like any [`File` field](#file); the repository fills the `type` column from its MIME type.
+
+```php
+final class DocumentsResource extends MediaResource
+{
+    public function model(): string
+    {
+        return Asset::class;                     // casts: 'file' => 'array'
+    }
+
+    public function mediaTypes(): array
+    {
+        return ['document'];
+    }
+
+    protected function file(File $file): File
+    {
+        return $file->disk('s3')->directory('documents');   // private by default
+    }
+
+    public function fields(): array
+    {
+        return [Text::make('name')];
+    }
+}
+
+// The migration
+Schema::create('assets', function (Blueprint $table) {
+    $table->id();
+    $table->json('file')->nullable();
+    $table->string('type')->index();
+    $table->string('name')->nullable();
+    $table->timestamps();
+    $table->softDeletes();                       // optional: deleted media can be restored
+});
+```
+
+- **`media`** is computed from the stored file: `type` (the `type` column, or the MIME type's), `mime`, `size`, `url` (the disk's URL, or a temporary URL for a private file), and `thumbnailUrl`, the same URL for an image. There is no status: the media is ready.
+- **Replacing the file** with a `PATCH` stores the new file and deletes the old one once the item is saved, like a `File` field. Its type follows the new file: keep `accept` within the library's types.
+- Override `media()` to add what the project knows, such as image sizes from its own image service.
+
+### The `media` field
+
+```php
+Media::make('cover')->resource(ImagesResource::class)->accept(['image/png', 'image/jpeg']),
+Media::make('gallery')->resource(ImagesResource::class)->multiple()->max(12),
+Media::make('attachment')->resource(DocumentsResource::class)->transforms(false), // a column of ids
+Media::make('image'),                                                              // the only library
+```
+
+- **The library** is named by `resource()`, by class or id, and serialized as its id. It can be left out when the definition has only one library. `lintDefinition()` refuses a `media` field without a library when there are several.
+- **Requests** send an id (`"med_01H…"`), or `{ "id", "transform" }` with the edits of the image for this use (the protocol's `MediaTransform`: `crop`, `rotate`, `flipX`, `flipY`, `focalPoint`). The references the item gave can be sent back.
+- **Validation.** Ids are found through the library's repository, within its scope and its types: an unknown id, a deleted media, or one of another tenant or of another type is a `422` on the value's path (`cover`, `gallery.2`, `blocks.1.image`). An invalid transform is a `422` too. `accept` and `maxSize` are checked on the MIME type and size of the media found, never on what the client sends.
+- **Values.** The repository receives `{ "id": "…" }`, with a `transform` when the value has one (only the protocol's properties), or a list of them with `multiple()`. With Eloquent, the attribute needs a JSON column with the `array` cast. With `transforms(false)`, it receives the id only, or a list of ids, and transforms are ignored.
+- **Items** give `MediaReference`s: `{ "id", "label", "media", "transform" }`, where `label` and `media` come from the library. A media that left the library keeps its id and transform. The media of a page of items are found in one query per library. In groups and blocks, values give `{ "id", "transform" }`.
+- **From a relation.** An attribute or `resolveUsing()` that gives media items of the library (models of the mediatheque through `HasMedias`, for example) is turned into references too.
+- **Image edits** are rendered by `folklore/laravel-image` 2 URLs, from the media and the transform.
 
 ## Search and dashboard
 
@@ -412,7 +563,7 @@ Schedule::command('panneau:prune-uploads')->hourly();
 - **Plugin.** Its Panneau integration becomes a plugin that registers:
   - the `ResourceRepository` adapter for `Folklore\Contracts\Repositories\Entities`;
   - the `Page`, `Pages`, `Block`, `Blocks` and `PageSlug` fields;
-  - the media adapter it needs;
+  - what its Entities need to reference media of a library;
   - the policies' base class for Entity contracts, if useful.
 
   The plugin ships with its JS counterpart, so projects stop copying the `PageSlug` components.

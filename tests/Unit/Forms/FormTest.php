@@ -262,7 +262,7 @@ class FormTest extends TestCase
             array_keys($this->errors($fields, ['blocks' => [['type' => 'quote'], ['type' => 'image'], ['type' => 'video']]])),
         );
         $this->assertSame(
-            ['blocks' => [['type' => 'quote', 'text' => 'Hi'], ['type' => 'image', 'image' => 'med_1']]],
+            ['blocks' => [['type' => 'quote', 'text' => 'Hi'], ['type' => 'image', 'image' => ['id' => 'med_1']]]],
             $this->validate($fields, ['blocks' => [['type' => 'quote', 'text' => 'Hi', 'image' => 'x'], ['type' => 'image', 'image' => 'med_1']]]),
         );
     }
@@ -273,15 +273,63 @@ class FormTest extends TestCase
             Media::make('image')->accept('image/*')->maxSize(1000),
             Media::make('files')->multiple()->accept(['application/pdf']),
         ];
+        $media = [
+            'png' => ['type' => 'image', 'mime' => 'image/png', 'size' => 500],
+            'large' => ['type' => 'image', 'mime' => 'image/png', 'size' => 2000],
+            'pdf' => ['type' => 'document', 'mime' => 'application/pdf', 'size' => 100],
+        ];
+        $context = new ValidationContext(media: fn (?string $library, string $id): ?array => $media[$id] ?? null);
+
+        // accept and maxSize are checked on the media found, never on what the client sends
+        $this->assertSame(
+            ['image', 'files.0'],
+            array_keys($this->errors($fields, ['image' => ['id' => 'large', 'mime' => 'image/png', 'size' => 10], 'files' => [['id' => 'png', 'mime' => 'application/pdf']]], $context)),
+        );
+        $this->assertSame(['image', 'files.1'], array_keys($this->errors($fields, ['image' => 'missing', 'files' => ['pdf', ['name' => 'no id']]], $context)));
+        $this->assertSame(['image'], array_keys($this->errors($fields, ['image' => ['id' => 'png', 'transform' => ['rotate' => 45]]], $context)));
+        $this->assertSame(['files'], array_keys($this->errors($fields, ['files' => 'pdf'], $context)));
+        $this->assertSame(
+            [
+                'image' => ['id' => 'png', 'transform' => ['crop' => ['x' => 0, 'y' => 10, 'width' => 100, 'height' => 50], 'rotate' => 90, 'focalPoint' => ['x' => 0.5, 'y' => 0.25]]],
+                'files' => [['id' => 'pdf']],
+            ],
+            $this->validate($fields, [
+                'image' => [
+                    'id' => 'png',
+                    'label' => 'A reference sent back',
+                    'media' => ['type' => 'image'],
+                    'transform' => ['crop' => ['x' => 0, 'y' => 10, 'width' => 100, 'height' => 50], 'rotate' => 90, 'flipX' => false, 'focalPoint' => ['x' => 0.5, 'y' => 0.25], 'extra' => true],
+                ],
+                'files' => ['pdf'],
+            ], $context),
+        );
+
+        // Without a library to look in, only the shape of the values is checked
+        $this->assertSame(['image' => ['id' => 'med_1'], 'files' => [['id' => '2']]], $this->validate($fields, ['image' => 'med_1', 'files' => [['id' => 2]]]));
+        $this->assertSame(['image'], array_keys($this->errors($fields, ['image' => ['name' => 'no id']])));
+    }
+
+    public function test_media_without_transforms_keep_ids(): void
+    {
+        $fields = [Media::make('cover')->transforms(false), Media::make('gallery')->transforms(false)->multiple()];
 
         $this->assertSame(
-            ['image', 'files'],
-            array_keys($this->errors($fields, ['image' => ['id' => '1', 'mime' => 'image/png', 'size' => 2000], 'files' => [['id' => '2', 'mime' => 'image/png']]])),
+            ['cover' => 'med_1', 'gallery' => ['med_2', 'med_3']],
+            $this->validate($fields, ['cover' => ['id' => 'med_1', 'transform' => ['rotate' => 45]], 'gallery' => ['med_2', ['id' => 'med_3']]]),
         );
-        $this->assertSame(['image'], array_keys($this->errors($fields, ['image' => ['name' => 'no id']])));
+    }
+
+    public function test_localized_media_are_checked_per_locale(): void
+    {
+        $fields = [Media::make('poster')->localized()->accept('image/*')];
+        $context = new ValidationContext(locales: ['fr', 'en'], media: fn (?string $library, string $id): ?array => $id === 'pdf'
+            ? ['type' => 'document', 'mime' => 'application/pdf']
+            : ['type' => 'image', 'mime' => 'image/png']);
+
+        $this->assertSame(['poster.en'], array_keys($this->errors($fields, ['poster' => ['fr' => 'png', 'en' => 'pdf']], $context)));
         $this->assertSame(
-            ['image' => 'med_1', 'files' => [['id' => '2', 'mime' => 'application/pdf']]],
-            $this->validate($fields, ['image' => 'med_1', 'files' => [['id' => '2', 'mime' => 'application/pdf']]]),
+            ['poster' => ['fr' => ['id' => 'png'], 'en' => null]],
+            $this->validate($fields, ['poster' => ['fr' => 'png', 'en' => null]], $context),
         );
     }
 
