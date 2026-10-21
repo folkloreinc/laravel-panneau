@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\ValidationContext;
 use Panneau\Resources\Resource;
+use Panneau\Uploads\Upload;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -40,7 +41,10 @@ trait ResolvesResources
         }
     }
 
-    protected function validationContext(Request $request, FormMode $mode, bool $partial = false, ?object $item = null): ValidationContext
+    /**
+     * @param  (Closure(mixed): ?Upload)|null  $uploads  From `uploadResolver()`.
+     */
+    protected function validationContext(Request $request, FormMode $mode, bool $partial = false, ?object $item = null, ?Closure $uploads = null): ValidationContext
     {
         return new ValidationContext(
             mode: $mode,
@@ -48,7 +52,32 @@ trait ResolvesResources
             partial: $partial,
             item: $item,
             relationExists: $this->relationExists($request),
+            uploads: $uploads ?? $this->uploadResolver($request),
         );
+    }
+
+    /**
+     * Resolves upload references (`{ "upload": "upl_…" }`) to completed uploads of the user,
+     * once per upload for a request: validation and saving ask for the same uploads.
+     *
+     * @return Closure(mixed): ?Upload
+     */
+    protected function uploadResolver(Request $request): Closure
+    {
+        $user = $request->user();
+        $resolved = [];
+
+        return function (mixed $value) use ($user, &$resolved): ?Upload {
+            $uid = is_array($value) ? ($value['upload'] ?? null) : null;
+            if (! is_string($uid)) {
+                return null;
+            }
+            if (! array_key_exists($uid, $resolved)) {
+                $resolved[$uid] = $this->uploads->resolve($value, $user);
+            }
+
+            return $resolved[$uid];
+        };
     }
 
     /**

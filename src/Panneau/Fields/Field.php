@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule as LaravelRule;
 use Panneau\Forms\Condition;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\RuleSet;
+use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
 use Panneau\Forms\Values;
 
@@ -558,6 +559,43 @@ abstract class Field
     {
         return $value;
     }
+
+    /**
+     * Turns a validated value into the value the repository receives. Called once the values
+     * are valid, before the `creating` and `updating` hooks. Most fields keep the value as is;
+     * a field that keeps something outside the item (a file field stores its files) does it
+     * here, and registers with the context what to do once the item is saved, or if the save
+     * fails.
+     *
+     * @param  string  $path  The dot path of the value (`blocks.2.file`).
+     */
+    public function prepare(mixed $value, string $path, SaveContext $context): mixed
+    {
+        if ($this->localized && is_array($value)) {
+            foreach ($value as $locale => $localized) {
+                $value[$locale] = $this->prepareValue($localized, $path.'.'.$locale, $context);
+            }
+
+            return $value;
+        }
+
+        return $this->prepareValue($value, $path, $context);
+    }
+
+    /**
+     * Prepares one value (one locale of a localized field).
+     */
+    protected function prepareValue(mixed $value, string $path, SaveContext $context): mixed
+    {
+        return $value;
+    }
+
+    /**
+     * Called when a group or a list of blocks is saved whole without a value for this field:
+     * its previous value at that path is gone. In a list of blocks, the path has a `*` for the
+     * index of the block (`blocks.*.file`).
+     */
+    public function prepareAbsent(string $path, SaveContext $context): void {}
 
     /**
      * Whether a value is filled, as the protocol counts it.

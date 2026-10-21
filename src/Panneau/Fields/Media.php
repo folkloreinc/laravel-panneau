@@ -3,6 +3,7 @@
 namespace Panneau\Fields;
 
 use Closure;
+use Panneau\Fields\Concerns\AcceptsFiles;
 use Panneau\Forms\RuleSet;
 use Panneau\Forms\ValidationContext;
 
@@ -12,51 +13,11 @@ use Panneau\Forms\ValidationContext;
  */
 class Media extends Field
 {
-    protected bool $multiple = false;
-
-    /**
-     * @var list<string>|null
-     */
-    protected ?array $accept = null;
+    use AcceptsFiles;
 
     public function type(): string
     {
         return 'media';
-    }
-
-    public function multiple(bool $multiple = true): static
-    {
-        $this->multiple = $multiple;
-
-        return $this;
-    }
-
-    /**
-     * Accepted MIME types: `image/*`, `application/pdf`…
-     *
-     * @param  string|array<array-key, string>  $types
-     */
-    public function accept(string|array $types, ?string $message = null): static
-    {
-        $this->accept = is_string($types) ? [$types] : array_values($types);
-
-        return $this->rule('accept', $this->accept, $message);
-    }
-
-    /**
-     * Largest file size, in bytes.
-     */
-    public function maxSize(int $bytes, ?string $message = null): static
-    {
-        return $this->rule('maxSize', $bytes, $message);
-    }
-
-    protected function typeDefinition(): array
-    {
-        return array_filter([
-            'multiple' => $this->multiple ?: null,
-            'accept' => $this->accept,
-        ], fn (mixed $value): bool => $value !== null);
     }
 
     protected function valueRules(ValidationContext $context): array
@@ -143,19 +104,5 @@ class Media extends Field
         $list = is_array($value) && array_is_list($value) ? $value : [$value];
 
         return array_values(array_filter($list, is_array(...)));
-    }
-
-    /**
-     * @param  list<string>  $types
-     */
-    private static function matchesMime(string $mime, array $types): bool
-    {
-        foreach ($types as $type) {
-            if (str_ends_with($type, '/*') ? str_starts_with($mime, substr($type, 0, -1)) : $mime === $type) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

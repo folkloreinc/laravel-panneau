@@ -4,6 +4,7 @@ namespace Panneau\Fields;
 
 use Panneau\Forms\Form;
 use Panneau\Forms\RuleSet;
+use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
 
 /**
@@ -59,6 +60,23 @@ class Group extends Field
     protected function extractValue(mixed $value, ValidationContext $context): mixed
     {
         return is_array($value) ? Form::extract($this->fields, $value, $context->nested()) : $value;
+    }
+
+    protected function prepareValue(mixed $value, string $path, SaveContext $context): mixed
+    {
+        if (is_array($value)) {
+            return Form::prepare($this->fields, $value, $context, $path.'.', nested: true);
+        }
+        $this->prepareAbsent($path, $context);
+
+        return $value;
+    }
+
+    public function prepareAbsent(string $path, SaveContext $context): void
+    {
+        foreach ($this->fields as $field) {
+            $field->prepareAbsent($path.'.'.$field->name(), $context);
+        }
     }
 
     public function serialize(mixed $value): mixed

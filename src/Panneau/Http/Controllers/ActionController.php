@@ -66,11 +66,12 @@ final class ActionController
 
         $payload = $this->validatePayload($request, $action);
         // A dry run comes before the parameters: its values are not validated.
+        $uploads = $this->uploadResolver($request);
         $values = $dryRun ? [] : Form::validate(
             $this->validator,
             $action->fields(),
             is_array($payload['values'] ?? null) ? $payload['values'] : [],
-            $this->validationContext($request, FormMode::Create),
+            $this->validationContext($request, FormMode::Create, uploads: $uploads),
         );
 
         $repository = $this->resources->repository($resource);
@@ -88,7 +89,7 @@ final class ActionController
         }
 
         $action->setContext(new ActionContext($resource, $repository, $scope, $request, $user));
-        $values = new ActionValues($values, fn (mixed $value) => $this->uploads->resolve($value, $user));
+        $values = new ActionValues($values, $uploads);
         $result = $action->handle(collect($items), $values, $result);
 
         return new JsonResponse($result->toArray($ids));
