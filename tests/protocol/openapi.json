@@ -4169,20 +4169,28 @@
                 "type": "object",
                 "properties": {
                     "crop": {
-                        "description": "In pixels of the original image.",
+                        "description": "In whole pixels of the upright original image (after its EXIF orientation), from its top left corner.",
                         "type": "object",
                         "properties": {
                             "x": {
-                                "type": "number"
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
                             },
                             "y": {
-                                "type": "number"
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
                             },
                             "width": {
-                                "type": "number"
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
                             },
                             "height": {
-                                "type": "number"
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
                             }
                         },
                         "required": [
@@ -4194,6 +4202,7 @@
                         "additionalProperties": {}
                     },
                     "rotate": {
+                        "description": "Clockwise, in degrees.",
                         "anyOf": [
                             {
                                 "type": "number",
@@ -4214,13 +4223,15 @@
                         ]
                     },
                     "flipX": {
+                        "description": "Mirrors left to right (horizontal).",
                         "type": "boolean"
                     },
                     "flipY": {
+                        "description": "Mirrors top to bottom (vertical).",
                         "type": "boolean"
                     },
                     "focalPoint": {
-                        "description": "Relative to the width and height, from 0 to 1.",
+                        "description": "From 0 to 1, relative to the width and height of the upright original image, not of the crop: changing the crop does not move it. Renderers map it into the transformed image and clamp it to the crop.",
                         "type": "object",
                         "properties": {
                             "x": {
@@ -4241,7 +4252,8 @@
                         "additionalProperties": {}
                     }
                 },
-                "additionalProperties": {}
+                "additionalProperties": {},
+                "description": "Non-destructive edits of an image, applied in this order: crop, then rotate, then flip."
             },
             "StoredFile": {
                 "type": "object",
