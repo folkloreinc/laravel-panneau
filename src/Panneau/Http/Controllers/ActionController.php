@@ -75,7 +75,7 @@ final class ActionController
         );
 
         $repository = $this->resources->repository($resource);
-        $scope = $resource->scope($request);
+        $scope = $resource->repositoryScope($request);
         $result = new ActionResult(fn (object $item): string => $repository->id($item));
         $selection = $payload['selection'] ?? null;
         $items = is_array($selection)

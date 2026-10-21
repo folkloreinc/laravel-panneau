@@ -23,7 +23,8 @@ use ReflectionNamedType;
  * A repository for an Eloquent model. The only part of Panneau that knows Eloquent.
  *
  * - The public id is the model's route key (`getRouteKeyName()`).
- * - The scope is applied as `where` clauses, and filled in on create.
+ * - The scope is applied as `where` clauses, and filled in on create. A list in the scope is a
+ *   `whereIn` constraint, which is not filled in: a library's media types, for example.
  * - Values are set as attributes, except for `BelongsTo` and `BelongsToMany` relations
  *   (methods with a declared return type), which receive the public ids of related items.
  * - Filters are `where` clauses on the column named after the filter (`whereIn` for a list,
@@ -88,7 +89,9 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
         $model = $this->newModel();
         $this->fill($model, $values);
         foreach ($scope as $column => $value) {
-            $model->setAttribute($column, $value);
+            if (! self::isConstraint($value)) {
+                $model->setAttribute($column, $value);
+            }
         }
         $model->save();
         $this->syncRelations($model, $values);
@@ -131,7 +134,9 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
     {
         $copy = $this->ensureModel($item)->replicate();
         foreach ($scope as $column => $value) {
-            $copy->setAttribute($column, $value);
+            if (! self::isConstraint($value)) {
+                $copy->setAttribute($column, $value);
+            }
         }
         $copy->save();
 
@@ -211,8 +216,22 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
     protected function applyScope(Builder $builder, array $scope): void
     {
         foreach ($scope as $column => $value) {
-            $builder->where($column, $value);
+            if (self::isConstraint($value)) {
+                $builder->whereIn($column, $value);
+            } else {
+                $builder->where($column, $value);
+            }
         }
+    }
+
+    /**
+     * Whether a value of the scope is a list of accepted values, rather than a value to fill in.
+     *
+     * @phpstan-assert-if-true list<mixed> $value
+     */
+    protected static function isConstraint(mixed $value): bool
+    {
+        return is_array($value) && array_is_list($value);
     }
 
     /**

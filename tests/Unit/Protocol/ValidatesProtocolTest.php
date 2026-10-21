@@ -65,6 +65,33 @@ class ValidatesProtocolTest extends TestCase
         $this->assertValidDefinition($definition);
     }
 
+    public function test_media_libraries_are_linted(): void
+    {
+        $definition = $this->definition();
+        $library = [
+            'id' => 'media',
+            'kind' => 'media',
+            'label' => ['singular' => 'media', 'plural' => 'media'],
+            'fields' => [['name' => 'file', 'type' => 'file']],
+        ];
+        $definition['resources'][] = $library;
+        $definition['resources'][0]['fields'][] = ['name' => 'image', 'type' => 'media'];
+        $this->assertSame([], self::lintDefinition($definition));
+
+        $definition['resources'][] = ['id' => 'documents'] + $library;
+        $this->assertSame(['resources.0.fields.1.resource: a media field needs a resource when there is not exactly one library.'], self::lintDefinition($definition));
+
+        $definition['resources'][0]['fields'][1]['resource'] = 'pages';
+        $this->assertSame(['resources.0.fields.1.resource: no resource of kind media named pages'], self::lintDefinition($definition));
+
+        $definition['resources'][0]['fields'][1]['resource'] = 'documents';
+        $definition['resources'][2]['fields'][0]['multiple'] = true;
+        $this->assertSame(['resources.2.fields.0: the file field of a media resource must be a single file.'], self::lintDefinition($definition));
+
+        $definition['resources'][2]['fields'] = [['name' => 'name', 'type' => 'text']];
+        $this->assertSame(['resources.2.fields: a resource of kind media needs a file field.'], self::lintDefinition($definition));
+    }
+
     public function test_components_of_the_openapi_document(): void
     {
         $this->assertMatchesComponent(['id' => '1', 'version' => null, 'abilities' => ['update' => true], 'title' => 'A'], 'Item');

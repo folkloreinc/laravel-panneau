@@ -2,11 +2,15 @@
 
 namespace Panneau\Resources;
 
+use Panneau\Fields\Media;
 use Panneau\Fields\Relation;
+use Panneau\Media\MediaReferences;
 
 /**
  * Turns an item into its protocol form: its values, from `toItem()`, with `id`, `version` and
- * `abilities`. Related items become references (`{ "id": "12", "label": "Ada" }`).
+ * `abilities`. Related items become references (`{ "id": "12", "label": "Ada" }`), and the
+ * values of `media` fields media references (`{ "id", "label", "media", "transform" }`). The
+ * items of a media library also get their `media`.
  */
 final class ItemSerializer
 {
@@ -15,19 +19,29 @@ final class ItemSerializer
     /**
      * @param  list<string>|null  $fields  Only these values. Null: every value.
      * @param  array<string, bool>  $abilities
+     * @param  MediaReferences|null  $references  Finds the media of `media` values, within the
+     *                                            scope of their library for the request. Defaults
+     *                                            to the current request.
      * @return array<string, mixed>
      */
-    public function serialize(Resource $resource, object $item, ?array $fields = null, array $abilities = []): array
+    public function serialize(Resource $resource, object $item, ?array $fields = null, array $abilities = [], ?MediaReferences $references = null): array
     {
         $repository = $this->resources->repository($resource);
         $values = $resource->toItem($item);
         if ($fields !== null) {
             $values = array_intersect_key($values, array_flip($fields));
         }
-        foreach ($resource->fields() as $field) {
+        foreach ($resource->allFields() as $field) {
             if ($field instanceof Relation && array_key_exists($field->name(), $values)) {
                 $values[$field->name()] = $this->references($field, $values[$field->name()]);
             }
+            if ($field instanceof Media && array_key_exists($field->name(), $values)) {
+                $references ??= new MediaReferences($this->resources, request());
+                $values[$field->name()] = $references->references($field, $values[$field->name()]);
+            }
+        }
+        if ($resource instanceof MediaResource) {
+            $values[MediaResource::MEDIA] = $resource->media($item);
         }
 
         return [

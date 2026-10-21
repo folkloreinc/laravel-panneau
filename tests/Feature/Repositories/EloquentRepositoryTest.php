@@ -142,6 +142,22 @@ class EloquentRepositoryTest extends TestCase
         $this->assertSame(['B', 'C', 'A'], collect($page->items())->pluck('title')->all());
     }
 
+    public function test_lists_in_the_scope_are_constraints(): void
+    {
+        $this->createPost(['title' => 'Draft', 'status' => 'draft']);
+        $this->createPost(['title' => 'Published', 'status' => 'published']);
+        $archived = $this->createPost(['title' => 'Archived', 'status' => 'archived']);
+        $scope = ['team_id' => 1, 'status' => ['draft', 'published']];
+
+        $this->assertSame(['Draft', 'Published'], collect($this->posts->query(new ResourceQuery(scope: $scope))->items())->pluck('title')->all());
+        $this->assertNull($this->posts->find((string) $archived->id, $scope));
+
+        // A list is not filled in
+        $post = $this->posts->create(['title' => 'New'], $scope);
+        $this->assertInstanceOf(Post::class, $post);
+        $this->assertSame(['team_id' => 1, 'status' => 'draft'], $post->only(['team_id', 'status']));
+    }
+
     public function test_find_stays_in_the_scope(): void
     {
         $post = $this->createPost(['team_id' => 2]);

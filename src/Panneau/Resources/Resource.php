@@ -53,6 +53,15 @@ abstract class Resource
         return null;
     }
 
+    /**
+     * What the resource is, in the definition's `kind`: `media` for a media library
+     * (`MediaResource`). Null for an ordinary resource.
+     */
+    public function kind(): ?string
+    {
+        return null;
+    }
+
     public function icon(): ?string
     {
         return null;
@@ -64,7 +73,7 @@ abstract class Resource
      */
     public function itemTitle(): ?string
     {
-        foreach ($this->fields() as $field) {
+        foreach ($this->allFields() as $field) {
             if ($field instanceof Text) {
                 return $field->name();
             }
@@ -146,6 +155,43 @@ abstract class Resource
     }
 
     /**
+     * Every field of an item: those of `fields()`, and those the kind of the resource adds,
+     * such as the `file` of a media library. Panneau reads the fields of a resource through it.
+     *
+     * @internal Declare fields in `fields()`.
+     *
+     * @return list<Field>
+     */
+    public function allFields(): array
+    {
+        return $this->fields();
+    }
+
+    /**
+     * The scope the repository receives: `scope()`, and the constraints of the kind of the
+     * resource, such as the media types of a library.
+     *
+     * @internal Override `scope()`.
+     *
+     * @return array<string, mixed>
+     */
+    public function repositoryScope(Request $request): array
+    {
+        return $this->scope($request);
+    }
+
+    /**
+     * The list, as `list()` configures it, with what the kind of the resource adds, such as the
+     * `type` filter of a library.
+     *
+     * @internal Override `list()`.
+     */
+    public function makeList(): ResourceList
+    {
+        return $this->list(new ResourceList);
+    }
+
+    /**
      * The values of an item, keyed by field name. Panneau adds `id`, `version` and
      * `abilities`. By default, the declared fields are read from the item, and nothing else.
      *
@@ -154,7 +200,7 @@ abstract class Resource
     public function toItem(object $item): array
     {
         $values = [];
-        foreach ($this->fields() as $field) {
+        foreach ($this->allFields() as $field) {
             $values[$field->name()] = $field->resolve($item);
         }
 
@@ -186,7 +232,7 @@ abstract class Resource
      */
     public function field(string $name): ?Field
     {
-        foreach ($this->fields() as $field) {
+        foreach ($this->allFields() as $field) {
             if ($field->name() === $name) {
                 return $field;
             }

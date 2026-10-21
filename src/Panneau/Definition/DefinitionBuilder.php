@@ -151,11 +151,12 @@ final class DefinitionBuilder
      */
     public function resource(Resource $resource, ?Authenticatable $user = null): array
     {
-        $fields = $resource->fields();
-        $definition = [
-            'id' => $resource->id(),
-            'label' => ['singular' => $resource->singularLabel(), 'plural' => $resource->pluralLabel()],
-        ];
+        $fields = $resource->allFields();
+        $definition = ['id' => $resource->id()];
+        if ($resource->kind() !== null) {
+            $definition['kind'] = $resource->kind();
+        }
+        $definition['label'] = ['singular' => $resource->singularLabel(), 'plural' => $resource->pluralLabel()];
         foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'itemTitle' => $resource->itemTitle()] as $key => $value) {
             if ($value !== null) {
                 $definition[$key] = $value;
@@ -222,14 +223,15 @@ final class DefinitionBuilder
     }
 
     /**
-     * Turns the resource classes of relation fields into resource ids, in nested fields too.
+     * Turns the resource classes of relation and media fields into resource ids, in nested
+     * fields too.
      *
      * @param  array<array-key, mixed>  $field
      * @return array<array-key, mixed>
      */
     private function resolveFieldReferences(array $field): array
     {
-        if (($field['type'] ?? null) === 'relation') {
+        if (in_array($field['type'] ?? null, ['relation', 'media'], true)) {
             $field = $this->resolveResource($field);
         }
         if (isset($field['fields']) && is_array($field['fields'])) {
@@ -291,7 +293,7 @@ final class DefinitionBuilder
         if ($title !== null) {
             $names[] = $title;
         }
-        foreach ($resource->fields() as $field) {
+        foreach ($resource->allFields() as $field) {
             if (count($names) >= 4) {
                 break;
             }

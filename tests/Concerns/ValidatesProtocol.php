@@ -95,6 +95,7 @@ trait ValidatesProtocol
     {
         $issues = [];
         $resourceIds = array_column($definition['resources'], 'id');
+        $libraries = array_column(array_filter($definition['resources'], fn (array $resource): bool => ($resource['kind'] ?? null) === 'media'), 'id');
         foreach ($definition['resources'] as $index => $resource) {
             $path = 'resources.'.$index;
             $names = array_column($resource['fields'], 'name');
@@ -110,9 +111,26 @@ trait ValidatesProtocol
             foreach ($resource['actions'] ?? [] as $actionIndex => $action) {
                 self::lintLayout($action['layout'] ?? [], array_column($action['fields'] ?? [], 'name'), $path.'.actions.'.$actionIndex.'.layout', $issues);
             }
+            if (($resource['kind'] ?? null) === 'media') {
+                $file = array_search('file', $names, true);
+                if ($file === false) {
+                    $issues[] = $path.'.fields: a resource of kind media needs a file field.';
+                } elseif ($resource['fields'][$file]['type'] !== 'file' || ($resource['fields'][$file]['multiple'] ?? false) === true) {
+                    $issues[] = $path.'.fields.'.$file.': the file field of a media resource must be a single file.';
+                }
+            }
             foreach ($resource['fields'] as $fieldIndex => $field) {
                 if ($field['type'] === 'relation' && ! in_array($field['resource'] ?? null, $resourceIds, true)) {
                     $issues[] = $path.'.fields.'.$fieldIndex.': no resource '.($field['resource'] ?? '(none)');
+                }
+                if ($field['type'] === 'media') {
+                    if (! isset($field['resource'])) {
+                        if (count($libraries) !== 1) {
+                            $issues[] = $path.'.fields.'.$fieldIndex.'.resource: a media field needs a resource when there is not exactly one library.';
+                        }
+                    } elseif (! in_array($field['resource'], $libraries, true)) {
+                        $issues[] = $path.'.fields.'.$fieldIndex.'.resource: no resource of kind media named '.$field['resource'];
+                    }
                 }
             }
         }

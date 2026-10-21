@@ -20,6 +20,10 @@ final readonly class ValidationContext
      * @param  (Closure(mixed): ?Upload)|null  $uploads  Resolves an upload reference
      *                                                   (`{ "upload": "upl_…" }`) for the user,
      *                                                   for file fields.
+     * @param  (Closure(string|null, string): (array<string, mixed>|null))|null  $media  The
+     *                                                                                   media of an id in a library (by id or class, or
+     *                                                                                   null for the only library), within its scope, for
+     *                                                                                   media fields: the protocol's `MediaInfo`, or null.
      */
     public function __construct(
         public FormMode $mode = FormMode::Create,
@@ -28,6 +32,7 @@ final readonly class ValidationContext
         public ?object $item = null,
         public ?Closure $relationExists = null,
         public ?Closure $uploads = null,
+        public ?Closure $media = null,
     ) {}
 
     /**
@@ -35,6 +40,6 @@ final readonly class ValidationContext
      */
     public function nested(): self
     {
-        return new self($this->mode, $this->locales, false, $this->item, $this->relationExists, $this->uploads);
+        return new self($this->mode, $this->locales, false, $this->item, $this->relationExists, $this->uploads, $this->media);
     }
 }

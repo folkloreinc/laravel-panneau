@@ -12,3 +12,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0006](0006-supported-versions.md) | PHP 8.3+ and Laravel 12+ | Accepted |
 | [0007](0007-direct-uploads.md) | Panneau owns direct uploads | Proposed |
 | [0008](0008-field-preparation.md) | Fields prepare their values before the repository saves them | Proposed |
+| [0009](0009-media-libraries.md) | Media libraries are resources | Proposed |

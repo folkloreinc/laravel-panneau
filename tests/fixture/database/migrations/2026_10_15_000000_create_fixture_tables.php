@@ -50,6 +50,29 @@ return new class extends Migration
             $table->softDeletes();
         });
 
+        // Media of the Eloquent libraries: ImagesResource and DocumentsResource
+        Schema::create('assets', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedInteger('team_id')->nullable();
+            $table->string('library')->nullable();
+            $table->string('type')->nullable()->index();
+            $table->json('file')->nullable();
+            $table->string('name')->nullable();
+            $table->json('alt')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('articles', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->json('cover')->nullable();
+            $table->json('gallery')->nullable();
+            $table->string('attachment')->nullable();
+            $table->json('blocks')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('reports', function (Blueprint $table) {
             $table->id();
             $table->string('title');
@@ -64,6 +87,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('reports');
+        Schema::dropIfExists('articles');
+        Schema::dropIfExists('assets');
         Schema::dropIfExists('documents');
         Schema::dropIfExists('post_tag');
         Schema::dropIfExists('posts');

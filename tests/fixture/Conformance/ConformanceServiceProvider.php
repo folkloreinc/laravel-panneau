@@ -8,17 +8,20 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Panneau\Support\Facade as Panneau;
+use TestApp\Models\Asset;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
 use TestApp\Panneau\Resources\AuthorsResource;
+use TestApp\Panneau\Resources\ImagesResource;
 use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Panneau\Resources\TagsResource;
+use TestApp\Policies\AssetPolicy;
 use TestApp\Policies\AuthorPolicy;
 use TestApp\Policies\PostPolicy;
 
 /**
- * The app served to the protocol's conformance kit in CI: the fixture resources and direct
- * uploads, behind a bearer token (`Authorization: Bearer conformance`).
+ * The app served to the protocol's conformance kit in CI: the fixture resources, a media library
+ * and direct uploads, behind a bearer token (`Authorization: Bearer conformance`).
  */
 class ConformanceServiceProvider extends ServiceProvider
 {
@@ -55,8 +58,9 @@ class ConformanceServiceProvider extends ServiceProvider
         Gate::define('uploadPanneauFiles', fn ($user): bool => true);
         Gate::policy(Post::class, PostPolicy::class);
         Gate::policy(Author::class, AuthorPolicy::class);
+        Gate::policy(Asset::class, AssetPolicy::class);
 
-        Panneau::resources([PostsResource::class, AuthorsResource::class, TagsResource::class]);
+        Panneau::resources([PostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class]);
         Panneau::routes();
     }
 }

@@ -32,6 +32,8 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "folklore/laravel-image": "^2.0@alpha",
+        "folklore/laravel-mediatheque": "^2.0@alpha",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
         "league/flysystem-aws-s3-v3": "^3.35",
@@ -41,6 +43,8 @@
         "phpunit/phpunit": "^11.5|^12.0"
     },
     "suggest": {
+        "folklore/laravel-image": "Thumbnails of the images of a library on the mediatheque (^2.0)",
+        "folklore/laravel-mediatheque": "Media libraries on the mediatheque: MediathequeResource (^2.0)",
         "league/flysystem-aws-s3-v3": "Direct uploads to an S3-compatible disk (panneau.uploads)"
     },
     "autoload": {
