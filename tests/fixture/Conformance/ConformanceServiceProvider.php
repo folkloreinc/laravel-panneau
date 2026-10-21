@@ -17,8 +17,8 @@ use TestApp\Policies\AuthorPolicy;
 use TestApp\Policies\PostPolicy;
 
 /**
- * The app served to the protocol's conformance kit in CI: the fixture resources, behind a
- * bearer token (`Authorization: Bearer conformance`).
+ * The app served to the protocol's conformance kit in CI: the fixture resources and direct
+ * uploads, behind a bearer token (`Authorization: Bearer conformance`).
  */
 class ConformanceServiceProvider extends ServiceProvider
 {
@@ -32,6 +32,18 @@ class ConformanceServiceProvider extends ServiceProvider
         // A token, not a session: no "web" middleware, so no CSRF token to send
         $config->set('panneau.middleware', ['panneau.auth']);
         $config->set('panneau.locales', ['fr', 'en']);
+        // Signing needs no request to the storage, so a bucket that doesn't exist will do
+        $config->set('filesystems.disks.uploads', [
+            'driver' => 's3',
+            'key' => 'conformance',
+            'secret' => 'conformance',
+            'region' => 'us-east-1',
+            'bucket' => 'panneau-conformance',
+            'endpoint' => 'https://storage.test',
+            'use_path_style_endpoint' => true,
+        ]);
+        $config->set('panneau.uploads.enabled', true);
+        $config->set('panneau.uploads.disk', 'uploads');
     }
 
     public function boot(): void
@@ -40,6 +52,7 @@ class ConformanceServiceProvider extends ServiceProvider
             ? new GenericUser(['id' => 1, 'name' => 'Conformance'])
             : null);
         Gate::define('viewPanneau', fn ($user): bool => true);
+        Gate::define('uploadPanneauFiles', fn ($user): bool => true);
         Gate::policy(Post::class, PostPolicy::class);
         Gate::policy(Author::class, AuthorPolicy::class);
 

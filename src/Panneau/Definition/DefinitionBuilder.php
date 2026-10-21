@@ -54,6 +54,10 @@ final class DefinitionBuilder
             'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
             'auth' => $this->auth(),
         ];
+        if ($this->config->get('panneau.uploads.enabled')) {
+            // Direct uploads to the disk, as well as files sent through the API.
+            $definition['uploads'] = ['mode' => 'presigned'];
+        }
         $theme = $this->theme();
         if ($theme !== null) {
             $definition['theme'] = $theme;

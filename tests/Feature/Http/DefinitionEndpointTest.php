@@ -51,4 +51,10 @@ class DefinitionEndpointTest extends HttpTestCase
     {
         $this->getJson(self::API.'/definition')->assertOk()->assertJsonMissingPath('theme');
     }
+
+    public function test_no_uploads_by_default(): void
+    {
+        $this->getJson(self::API.'/definition')->assertOk()->assertJsonMissingPath('uploads');
+        $this->postJson(self::API.'/uploads/sign', ['method' => 'POST', 'key' => 'video.mp4'])->assertNotFound();
+    }
 }

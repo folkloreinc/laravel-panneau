@@ -34,10 +34,14 @@
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
+        "league/flysystem-aws-s3-v3": "^3.35",
         "mockery/mockery": "^1.6",
         "opis/json-schema": "^2.4",
         "orchestra/testbench": "^10.0|^11.0",
         "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "suggest": {
+        "league/flysystem-aws-s3-v3": "Direct uploads to an S3-compatible disk (panneau.uploads)"
     },
     "autoload": {
         "psr-4": {

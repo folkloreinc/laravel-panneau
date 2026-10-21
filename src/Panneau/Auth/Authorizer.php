@@ -84,6 +84,19 @@ final class Authorizer
     }
 
     /**
+     * Whether the user can upload files directly to the disk: the `uploadPanneauFiles` gate.
+     * Without it, uploads are denied, unless `Panneau::allowWithoutPolicies()` was called.
+     */
+    public function allowsUploads(?Authenticatable $user): bool
+    {
+        if (! $this->gate->has('uploadPanneauFiles')) {
+            return $this->allowWithoutPolicies;
+        }
+
+        return $user !== null && $this->gate->forUser($user)->allows('uploadPanneauFiles');
+    }
+
+    /**
      * Whether the action is offered to the user at all.
      */
     public function allowsActionOnResource(?Authenticatable $user, Action $action): bool

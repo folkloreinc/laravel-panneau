@@ -831,6 +831,159 @@
                 }
             }
         },
+        "/uploads/sign": {
+            "post": {
+                "operationId": "signUpload",
+                "summary": "Signs a request of the browser's S3 client. The first request of a file creates its upload.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UploadSignRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The presigned request.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UploadSignResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/uploads/{upload}/complete": {
+            "parameters": [
+                {
+                    "name": "upload",
+                    "in": "path",
+                    "required": true,
+                    "description": "Upload id: `upl_…`.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "completeUpload",
+                "summary": "Once the browser completed the upload in storage, checks the object and gives the upload, which values reference.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "The file's name, which the key doesn't keep, since the backend chose it."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The upload.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UploadResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/media": {
             "get": {
                 "operationId": "listMedia",
@@ -954,6 +1107,30 @@
                                         }
                                     }
                                 }
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UploadReference"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "tags": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "description": "A media from a file uploaded directly to storage."
                             }
                         }
                     }
@@ -3019,9 +3196,11 @@
                             "multipart",
                             "tus",
                             "presigned"
-                        ]
+                        ],
+                        "description": "`multipart`: files go through `POST /media` and the requests that take them. `presigned`: the browser also sends files to storage itself, with URLs that `POST /uploads/sign` signs, then `POST /uploads/{upload}/complete` gives an upload that values reference."
                     },
                     "endpoint": {
+                        "description": "`presigned`: the base URL of the upload routes, when they are not `{api.baseUrl}/uploads`.",
                         "type": "string"
                     },
                     "maxSize": {
@@ -4064,6 +4243,134 @@
                 },
                 "additionalProperties": {}
             },
+            "UploadReference": {
+                "type": "object",
+                "properties": {
+                    "upload": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "required": [
+                    "upload"
+                ],
+                "additionalProperties": {},
+                "description": "A file uploaded directly to storage, by the id of its upload: in a file value, an action parameter, or `POST /media`."
+            },
+            "Upload": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The id of the upload: `upl_…`."
+                    },
+                    "key": {
+                        "description": "The key of the object in storage.",
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "mime": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    }
+                },
+                "required": [
+                    "id"
+                ],
+                "additionalProperties": {},
+                "description": "A file the browser uploaded to storage, before it becomes a media, an import or another value."
+            },
+            "UploadResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/Upload"
+                    }
+                },
+                "required": [
+                    "data"
+                ],
+                "additionalProperties": {}
+            },
+            "UploadSignRequest": {
+                "type": "object",
+                "properties": {
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "GET",
+                            "POST",
+                            "PUT",
+                            "DELETE"
+                        ]
+                    },
+                    "key": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "uploadId": {
+                        "description": "The S3 multipart upload.",
+                        "type": "string"
+                    },
+                    "partNumber": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "contentType": {
+                        "type": "string"
+                    },
+                    "expiresIn": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    }
+                },
+                "required": [
+                    "method",
+                    "key"
+                ],
+                "additionalProperties": {},
+                "description": "A request of the browser's S3 client to sign (Uppy 6's `signRequest`)."
+            },
+            "UploadSignResponse": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "description": "The key the backend chose, for the first request of a file.",
+                        "type": "string"
+                    },
+                    "headers": {
+                        "description": "Headers the URL was signed with, which the browser sends.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "upload": {
+                        "description": "The upload the first request of a file created: `upl_…`.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "url"
+                ],
+                "additionalProperties": {},
+                "description": "A presigned request."
+            },
             "Media": {
                 "type": "object",
                 "properties": {
@@ -4150,6 +4457,16 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "status": {
+                        "description": "Where the ingest of the media is: `pending` and `processing` until its renditions are made, then `ready` or `failed`. Without it, the media is ready.",
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "processing",
+                            "ready",
+                            "failed"
+                        ]
                     }
                 },
                 "required": [

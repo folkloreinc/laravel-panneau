@@ -15,10 +15,12 @@ use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\ResourceController;
+use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Uploads\Uploads;
 
 class Panneau implements PanneauContract
 {
@@ -72,6 +74,10 @@ class Panneau implements PanneauContract
                 $router->get('resources/{resource}/{id}', [ResourceController::class, 'show'])->name('resources.show');
                 $router->patch('resources/{resource}/{id}', [ResourceController::class, 'update'])->name('resources.update');
                 $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy');
+                if ($this->container->make(Uploads::class)->enabled()) {
+                    $router->post('uploads/sign', [UploadController::class, 'sign'])->name('uploads.sign');
+                    $router->post('uploads/{upload}/complete', [UploadController::class, 'complete'])->name('uploads.complete');
+                }
             });
         });
 

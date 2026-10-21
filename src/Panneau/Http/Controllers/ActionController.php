@@ -21,6 +21,7 @@ use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Query\ResourceQuery;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Uploads\Uploads;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -41,6 +42,7 @@ final class ActionController
         private readonly DefinitionBuilder $definition,
         private readonly ValidationFactory $validator,
         private readonly Config $config,
+        private readonly Uploads $uploads,
     ) {}
 
     public function __invoke(Request $request, string $resource, string $action): JsonResponse
@@ -86,7 +88,8 @@ final class ActionController
         }
 
         $action->setContext(new ActionContext($resource, $repository, $scope, $request, $user));
-        $result = $action->handle(collect($items), new ActionValues($values), $result);
+        $values = new ActionValues($values, fn (mixed $value) => $this->uploads->resolve($value, $user));
+        $result = $action->handle(collect($items), $values, $result);
 
         return new JsonResponse($result->toArray($ids));
     }
