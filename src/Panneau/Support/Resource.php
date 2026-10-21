@@ -145,10 +145,10 @@ abstract class Resource implements ResourceContract, Arrayable
 
     public function makeJsonResource(ResourceItem $item): JsonSerializable
     {
-        $types = $this->types();
+        $types = $this->getTypes();
         if (isset($types) && $item instanceof HasResourceType) {
             $typeId = $item->resourceType();
-            $resourceType = collect($types)->first(function ($type) use ($typeId) {
+            $resourceType = $types->first(function ($type) use ($typeId) {
                 return $type->id() === $typeId;
             });
             $resource = isset($resourceType) ? $resourceType->makeJsonResource($item) : null;
