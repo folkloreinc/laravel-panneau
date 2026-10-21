@@ -2474,7 +2474,7 @@
                         }
                     },
                     "multiple": {
-                        "description": "`select`, `relation`, `media`: the value is an array.",
+                        "description": "`select`, `relation`, `media`, `file`: the value is an array.",
                         "type": "boolean"
                     },
                     "resource": {
@@ -2482,7 +2482,7 @@
                         "type": "string"
                     },
                     "accept": {
-                        "description": "`media`: accepted MIME types.",
+                        "description": "`media`, `file`: accepted MIME types.",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -4242,6 +4242,45 @@
                     }
                 },
                 "additionalProperties": {}
+            },
+            "StoredFile": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the file, as the user knows it."
+                    },
+                    "url": {
+                        "description": "Where to download it. A private file gets a temporary URL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mime": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "size": {
+                        "anyOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "additionalProperties": {},
+                "description": "A file stored by the backend: the value of a `file` field in items. Requests send it back to keep the file, `{ \"upload\" }` to replace it, or `null` to remove it."
             },
             "UploadReference": {
                 "type": "object",

@@ -49,10 +49,21 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+
+        Schema::create('reports', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->json('terms')->nullable();
+            $table->json('cover')->nullable();
+            $table->json('attachments')->nullable();
+            $table->json('sections')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('reports');
         Schema::dropIfExists('documents');
         Schema::dropIfExists('post_tag');
         Schema::dropIfExists('posts');

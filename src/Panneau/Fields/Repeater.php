@@ -5,6 +5,7 @@ namespace Panneau\Fields;
 use Illuminate\Validation\Rule as LaravelRule;
 use Panneau\Forms\Form;
 use Panneau\Forms\RuleSet;
+use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
 
 /**
@@ -94,6 +95,31 @@ class Repeater extends Field
         }, $value));
     }
 
+    /**
+     * Prepares each block. The blocks replace the previous ones, so every field of the blocks
+     * is also told that its values at `{path}.*` may be gone.
+     */
+    protected function prepareValue(mixed $value, string $path, SaveContext $context): mixed
+    {
+        if (is_array($value)) {
+            foreach ($value as $index => $block) {
+                if (is_array($block)) {
+                    $value[$index] = Form::prepare($this->blockFields($block), $block, $context, $path.'.'.$index.'.', nested: true);
+                }
+            }
+        }
+        $this->prepareAbsent($path, $context);
+
+        return $value;
+    }
+
+    public function prepareAbsent(string $path, SaveContext $context): void
+    {
+        foreach ($this->allFields() as $field) {
+            $field->prepareAbsent($path.'.*.'.$field->name(), $context);
+        }
+    }
+
     public function serialize(mixed $value): mixed
     {
         if (! is_iterable($value)) {
@@ -110,6 +136,20 @@ class Repeater extends Field
         }
 
         return $blocks;
+    }
+
+    /**
+     * The fields of every type of block.
+     *
+     * @return list<Field>
+     */
+    private function allFields(): array
+    {
+        if ($this->types === null) {
+            return $this->fields;
+        }
+
+        return array_merge(...array_map(fn (BlockType $type): array => $type->getFields(), $this->types));
     }
 
     /**

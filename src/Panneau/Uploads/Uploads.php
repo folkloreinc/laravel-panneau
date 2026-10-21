@@ -95,12 +95,13 @@ final class Uploads
 
     /**
      * The completed upload that a value references (`{ "upload": "upl_…" }`) for a user, or null
-     * when it isn't one. Actions and repositories read the file with `readStream()`.
+     * when it isn't one, or when uploads are not enabled. Actions and file fields read the file
+     * with `readStream()`.
      */
     public function resolve(mixed $value, ?Authenticatable $user): ?Upload
     {
         $uid = is_array($value) ? ($value['upload'] ?? null) : null;
-        if (! is_string($uid) || $user === null) {
+        if (! is_string($uid) || $user === null || ! $this->enabled()) {
             return null;
         }
         $upload = $this->find($user, $uid);

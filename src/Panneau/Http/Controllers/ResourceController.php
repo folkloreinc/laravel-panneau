@@ -12,11 +12,14 @@ use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\VersionConflictException;
 use Panneau\Forms\Form;
 use Panneau\Forms\FormMode;
+use Panneau\Forms\SaveContext;
 use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Query\ResourceQuery;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Uploads\Uploads;
+use Throwable;
 
 /**
  * The resource endpoints: list, show, create, update and delete.
@@ -34,6 +37,7 @@ final class ResourceController
         private readonly DefinitionBuilder $definition,
         private readonly ValidationFactory $validator,
         private readonly Config $config,
+        private readonly Uploads $uploads,
     ) {}
 
     public function index(Request $request, string $resource): JsonResponse
@@ -80,14 +84,24 @@ final class ResourceController
         $resource = $this->findResource($resource);
         $this->authorizeResource($request, $resource, 'create');
 
+        $uploads = $this->uploadResolver($request);
         $values = Form::validate(
             $this->validator,
             $resource->fields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Create),
+            $this->validationContext($request, FormMode::Create, uploads: $uploads),
         );
-        $values = $resource->creating($values, $request);
-        $item = $this->resources->repository($resource)->create($values, $resource->scope($request));
+        $saving = new SaveContext(FormMode::Create, null, $uploads);
+        try {
+            $values = Form::prepare($resource->fields(), $values, $saving);
+            $values = $resource->creating($values, $request);
+            $item = $this->resources->repository($resource)->create($values, $resource->scope($request));
+        } catch (Throwable $exception) {
+            $saving->failed();
+
+            throw $exception;
+        }
+        $saving->saved($item);
         $resource->created($item, $values, $request);
         $resource->saved($item, $values, $request);
 
@@ -106,14 +120,24 @@ final class ResourceController
             throw new VersionConflictException($this->item($request, $resource, $item));
         }
 
+        $uploads = $this->uploadResolver($request);
         $values = Form::validate(
             $this->validator,
             $resource->fields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Update, partial: true, item: $item),
+            $this->validationContext($request, FormMode::Update, partial: true, item: $item, uploads: $uploads),
         );
-        $values = $resource->updating($item, $values, $request);
-        $item = $repository->update($item, $values);
+        $saving = new SaveContext(FormMode::Update, $item, $uploads);
+        try {
+            $values = Form::prepare($resource->fields(), $values, $saving);
+            $values = $resource->updating($item, $values, $request);
+            $item = $repository->update($item, $values);
+        } catch (Throwable $exception) {
+            $saving->failed();
+
+            throw $exception;
+        }
+        $saving->saved($item);
         $resource->updated($item, $values, $request);
         $resource->saved($item, $values, $request);
 

@@ -23,6 +23,7 @@ use Panneau\Fields\Url;
 use Panneau\Forms\Condition;
 use Panneau\Forms\Form;
 use Panneau\Forms\FormMode;
+use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
 use Panneau\Tests\TestCase;
 use TestApp\Models\PostStatus;
@@ -302,5 +303,47 @@ class FormTest extends TestCase
             array_keys($this->errors($fields, ['author' => 'missing', 'tags' => ['a', 'missing']], $context)),
         );
         $this->assertSame(['author'], array_keys($this->errors($fields, ['author' => ['label' => 'No id']], $context)));
+    }
+
+    public function test_prepare_hands_each_validated_value_to_its_field(): void
+    {
+        $make = fn (string $name): Text => new class($name) extends Text
+        {
+            /**
+             * @var list<string>
+             */
+            public array $calls = [];
+
+            protected function prepareValue(mixed $value, string $path, SaveContext $context): mixed
+            {
+                $this->calls[] = 'prepare '.$path;
+
+                return is_string($value) ? strtoupper($value) : $value;
+            }
+
+            public function prepareAbsent(string $path, SaveContext $context): void
+            {
+                $this->calls[] = 'absent '.$path;
+            }
+        };
+        $fields = [
+            $code = $make('code'),
+            Group::make('meta')->fields([$inGroup = $make('code')]),
+            Repeater::make('rows')->fields([$inRows = $make('code')]),
+        ];
+
+        $this->assertSame(
+            ['code' => 'X', 'meta' => [], 'rows' => [['code' => 'Y'], []]],
+            Form::prepare($fields, ['code' => 'x', 'meta' => [], 'rows' => [['code' => 'y'], []]], new SaveContext),
+        );
+        $this->assertSame(['prepare code'], $code->calls);
+        // A group and blocks are saved whole: their fields without a value are told.
+        $this->assertSame(['absent meta.code'], $inGroup->calls);
+        $this->assertSame(['prepare rows.0.code', 'absent rows.1.code', 'absent rows.*.code'], $inRows->calls);
+
+        // A partial update leaves out the fields it doesn't send.
+        $code->calls = [];
+        $this->assertSame([], Form::prepare([$code], [], new SaveContext(FormMode::Update)));
+        $this->assertSame([], $code->calls);
     }
 }

@@ -92,4 +92,11 @@ return [
         // Largest file, in bytes, checked when the upload completes. Null: no limit.
         'max_size' => null,
     ],
+
+    // File fields (Panneau\Fields\File): files that belong to an item, stored on the field's
+    // disk. Private files get temporary URLs.
+    'files' => [
+        // Seconds a temporary URL of a private file lives.
+        'url_ttl' => 3600,
+    ],
 ];

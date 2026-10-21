@@ -30,4 +30,5 @@ Not every file is a media: an import, a file field or an attachment doesn't belo
 
 - Direct uploads work without `laravel-mediatheque`.
 - Projects schedule `panneau:prune-uploads`, and publish the migration when they don't let the package load it.
-- `POST /media` from an upload waits for the media API. A file field, which takes an upload as its value, comes next.
+- `POST /media` from an upload waits for the media API.
+- The `File` field takes an upload as its value and copies its file to the field's disk when the item is saved. It prepares its value with the extension point of [0008](0008-field-preparation.md).
