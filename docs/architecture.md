@@ -452,6 +452,20 @@ final class ImagesResource extends MediathequeResource
 - **Ingest options.** Extend `MediathequeRepository` and override `ingest()` to choose the visibility or the pipeline of the media; return the subclass from the library's `repository()`.
 - **Policies** are registered on the media model: `Gate::policy(config('mediatheque.models.media'), MediaPolicy::class)`.
 - **Ids** are the mediatheque's uids (`med_…`).
+- **Tests.** A library stores its media in the database, and `Mediatheque::fake()` keeps them in memory: a library refuses the fake's media with an explanation. Test a library with a real ingest, on a fake disk, without its jobs, and check the media's row, its file, and the mediatheque's events and jobs:
+
+  ```php
+  Storage::fake(config('mediatheque.source'));
+  Bus::fake();
+  Event::fake([MediaCreated::class]);
+
+  $this->postJson('/panneau/api/resources/media', ['file' => ['upload' => $upload], 'name' => 'Portrait'])
+      ->assertCreated();
+
+  Event::assertDispatched(MediaCreated::class, fn (MediaCreated $event) => $event->media->name() === 'Portrait');
+  Bus::assertDispatched(ProbeMedia::class);
+  $this->assertDatabaseHas('medias', ['name' => 'Portrait', 'type' => 'image']);
+  ```
 
 ### Two libraries on one backend
 

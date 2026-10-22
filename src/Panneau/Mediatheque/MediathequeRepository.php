@@ -7,6 +7,7 @@ use Folklore\Mediatheque\Contracts\Models\Media as MediaContract;
 use Folklore\Mediatheque\Exceptions\FileRejected;
 use Folklore\Mediatheque\Ingest\Source;
 use Folklore\Mediatheque\Support\Models;
+use Folklore\Mediatheque\Testing\Models\FakeMedia;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -29,6 +30,8 @@ use Throwable;
  *   The library's `file` field is `createOnly()`.
  * - Lists, filters (`type`), search, scope, trash and restore are those of the Eloquent model.
  *   Media can't be duplicated.
+ * - **Tests** ingest for real, on a fake disk and with `Bus::fake()`: the media of
+ *   `Mediatheque::fake()` live in memory, and are refused.
  *
  * Extend it to change how files are ingested (`ingest()`: visibility, pipeline), and return
  * the subclass from the library's `repository()`.
@@ -67,7 +70,7 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
         $original = null;
         try {
             return $this->newModel()->getConnection()->transaction(function () use ($source, $name, $attributes, $constraints, $values, &$original): Model {
-                $model = $this->ensureModel($this->ingest($source, $name, $attributes));
+                $model = $this->ensureIngested($this->ingest($source, $name, $attributes));
                 $original = $model->original();
                 $this->checkConstraints($model, $constraints);
                 if (count($values) > 0) {
@@ -112,6 +115,25 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
     protected function ingest(Source $source, ?string $name, array $attributes): MediaContract
     {
         return app(Mediatheque::class)->ingest($source, name: $name, attributes: $attributes);
+    }
+
+    /**
+     * The ingested media, as a model of the repository. `Mediatheque::fake()` keeps its media in
+     * memory, so a library can't use it.
+     *
+     * @return Model&MediaContract
+     */
+    private function ensureIngested(MediaContract $media): Model
+    {
+        if ($media instanceof FakeMedia) {
+            throw new LogicException(sprintf(
+                'A media library stores its media in the database, as %s, and Mediatheque::fake() keeps them in memory. '
+                .'Test media libraries with a real ingest, on Storage::fake() and with Bus::fake().',
+                $this->model,
+            ));
+        }
+
+        return $this->ensureModel($media);
     }
 
     /**
