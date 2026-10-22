@@ -54,6 +54,8 @@ final class DefinitionBuilder
             'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
             'auth' => $this->auth(),
         ];
+        // Without it, the app doesn't call GET /search, which doesn't exist
+        $definition['search'] = ['enabled' => (bool) $this->config->get('panneau.search.enabled', true)];
         if ($this->config->get('panneau.uploads.enabled')) {
             // Direct uploads to the disk, as well as files sent through the API.
             $definition['uploads'] = ['mode' => 'presigned'];
@@ -187,7 +189,7 @@ final class DefinitionBuilder
         $definition['abilities'] = $abilities;
 
         $features = $resource->features();
-        $features['search'] ??= $this->resources->searchable($resource);
+        $features['search'] = $this->resources->inGlobalSearch($resource);
         $definition['features'] = $features;
 
         $settings = $resource->settings();

@@ -73,6 +73,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Searched through Laravel Scout: NotesResource
+        Schema::create('notes', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedInteger('team_id')->nullable();
+            $table->string('title');
+            $table->text('body')->nullable();
+            $table->string('status')->default('draft');
+            $table->timestamps();
+        });
+
         Schema::create('reports', function (Blueprint $table) {
             $table->id();
             $table->string('title');
@@ -87,6 +97,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('reports');
+        Schema::dropIfExists('notes');
         Schema::dropIfExists('articles');
         Schema::dropIfExists('assets');
         Schema::dropIfExists('documents');

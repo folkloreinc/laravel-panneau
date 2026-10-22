@@ -36,6 +36,7 @@
         "folklore/laravel-mediatheque": "^2.0@alpha",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
+        "laravel/scout": "^11.0",
         "league/flysystem-aws-s3-v3": "^3.35",
         "mockery/mockery": "^1.6",
         "opis/json-schema": "^2.4",
@@ -45,6 +46,7 @@
     "suggest": {
         "folklore/laravel-image": "Thumbnails of the images of a library on the mediatheque (^2.0)",
         "folklore/laravel-mediatheque": "Media libraries on the mediatheque: MediathequeResource (^2.0)",
+        "laravel/scout": "Search the models that use Laravel\\Scout\\Searchable through their search engine (^11.0)",
         "league/flysystem-aws-s3-v3": "Direct uploads to an S3-compatible disk (panneau.uploads)"
     },
     "autoload": {

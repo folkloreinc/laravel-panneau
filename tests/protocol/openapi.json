@@ -1413,7 +1413,30 @@
                         "name": "q",
                         "in": "query",
                         "required": true,
-                        "description": "Search terms.",
+                        "description": "Search terms, trimmed.",
+                        "schema": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "description": "Items per resource.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 20,
+                            "default": 5
+                        }
+                    },
+                    {
+                        "name": "resources",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated ids of the searchable resources to search. Defaults to every one.",
                         "schema": {
                             "type": "string"
                         }
@@ -1421,7 +1444,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Results grouped by resource.",
+                        "description": "Results grouped by resource, in the order of the definition: at most `limit` items per resource, and 20 in all.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1432,6 +1455,26 @@
                     },
                     "401": {
                         "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1917,8 +1960,21 @@
                         "type": "boolean"
                     },
                     "resource": {
-                        "description": "`relation`: id of the related resource. `media`: id of a resource of kind `media`, optional when the definition has only one.",
-                        "type": "string"
+                        "description": "`relation`: id of the related resource. `media`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027).",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        ]
                     },
                     "accept": {
                         "description": "`media`, `file`: accepted MIME types.",
@@ -2336,7 +2392,7 @@
                         ]
                     },
                     "search": {
-                        "description": "Whether the resource is in the global search.",
+                        "description": "Whether the resource is in the global search. Defaults to whether its list has a search (`list.search`).",
                         "type": "boolean"
                     }
                 },
@@ -2378,6 +2434,14 @@
                     },
                     "itemTitle": {
                         "description": "The field used as the title of an item, in lists and pickers.",
+                        "type": "string"
+                    },
+                    "itemSubtitle": {
+                        "description": "The field shown under the title of an item, in search results, cards and pickers.",
+                        "type": "string"
+                    },
+                    "itemImage": {
+                        "description": "The field that holds the image of an item (a media or a URL), in search results, cards and pickers.",
                         "type": "string"
                     },
                     "fields": {
@@ -4007,6 +4071,10 @@
                     "id": {
                         "$ref": "#/components/schemas/Id"
                     },
+                    "resource": {
+                        "description": "The library of the media. Required for a field that allows several libraries, since ids are unique only within their resource (decision 0027).",
+                        "type": "string"
+                    },
                     "label": {
                         "description": "The `itemTitle` of the media.",
                         "type": "string"
@@ -4030,7 +4098,7 @@
                     "id"
                 ],
                 "additionalProperties": {},
-                "description": "The value of a `media` field in items: the media, with what lists and fields show, and its edits for this use. Requests send the id, or `{ id, transform }`."
+                "description": "The value of a `media` field in items: the media, with what lists and fields show, and its edits for this use. Requests send the id, or `{ id, resource, transform }`: `resource` is required when the field allows several libraries."
             },
             "Session": {
                 "type": "object",
@@ -4053,7 +4121,8 @@
                             "type": "object",
                             "properties": {
                                 "resource": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "The id of the resource."
                                 },
                                 "items": {
                                     "type": "array",
@@ -4062,6 +4131,7 @@
                                     }
                                 },
                                 "total": {
+                                    "description": "How many items of the resource match, when the backend counts them: the list of the resource, searched, shows them all.",
                                     "type": "integer",
                                     "minimum": 0,
                                     "maximum": 9007199254740991
@@ -4078,7 +4148,8 @@
                 "required": [
                     "data"
                 ],
-                "additionalProperties": {}
+                "additionalProperties": {},
+                "description": "The results of the global search: the resources with results, in the order of the definition."
             },
             "PreviewResponse": {
                 "type": "object",

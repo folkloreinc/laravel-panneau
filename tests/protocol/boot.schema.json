@@ -200,6 +200,12 @@
                 "itemTitle": {
                     "type": "string"
                 },
+                "itemSubtitle": {
+                    "type": "string"
+                },
+                "itemImage": {
+                    "type": "string"
+                },
                 "fields": {
                     "type": "array",
                     "items": {
@@ -306,7 +312,20 @@
                     "type": "boolean"
                 },
                 "resource": {
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "minLength": 1
+                            }
+                        }
+                    ]
                 },
                 "accept": {
                     "type": "array",
