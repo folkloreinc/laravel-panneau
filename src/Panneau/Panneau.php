@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Router;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\Panneau as PanneauContract;
@@ -15,6 +16,7 @@ use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\ResourceController;
+use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Repositories\RepositoryAdapters;
@@ -65,9 +67,16 @@ class Panneau implements PanneauContract
             'as' => 'panneau.',
         ]);
 
-        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router): void {
-            $router->prefix('api')->as('api.')->group(function (Router $router): void {
+        $search = (bool) $config->get('panneau.search.enabled', true);
+
+        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search): void {
+            $router->prefix('api')->as('api.')->group(function (Router $router) use ($search): void {
                 $router->get('definition', DefinitionController::class)->name('definition');
+                if ($search) {
+                    $router->get('search', SearchController::class)
+                        ->middleware(ThrottleRequests::using(SearchController::RATE_LIMITER))
+                        ->name('search');
+                }
                 $router->get('resources/{resource}', [ResourceController::class, 'index'])->name('resources.index');
                 $router->post('resources/{resource}', [ResourceController::class, 'store'])->name('resources.store');
                 $router->post('resources/{resource}/actions/{action}', ActionController::class)->name('resources.actions');

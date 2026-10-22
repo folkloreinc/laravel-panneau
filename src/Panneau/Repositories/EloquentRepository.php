@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use InvalidArgumentException;
+use Laravel\Scout\Builder as ScoutBuilder;
 use Panneau\Contracts\Repositories\ChunkedQuery;
 use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Contracts\Repositories\Searchable;
@@ -29,7 +30,9 @@ use ReflectionNamedType;
  *   (methods with a declared return type), which receive the public ids of related items.
  * - Filters are `where` clauses on the column named after the filter (`whereIn` for a list,
  *   `whereDate` for the bounds of a range).
- * - Search is a `LIKE` on the search fields.
+ * - Search is a `LIKE` on the search fields. A search with no search fields matches nothing.
+ *   Models that use `Laravel\Scout\Searchable` are searched through Scout instead, within the
+ *   same scope, ids, exclusions and filters (see `scoutSearch()`).
  * - The version is a hash of the model's attributes.
  *
  * Extend it to change any of these, and return the subclass from the resource's
@@ -76,6 +79,10 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
 
     public function query(ResourceQuery $query): LengthAwarePaginator
     {
+        if ($query->search !== null && $this->searchesWithScout()) {
+            return $this->scoutSearch($query)->paginate($query->perPage, 'page', $query->page);
+        }
+
         return $this->newQuery($query)->paginate($query->perPage, ['*'], 'page', $query->page);
     }
 
@@ -146,7 +153,17 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
     public function chunk(ResourceQuery $query, int $size, callable $callback): void
     {
         $model = $this->newModel();
-        $this->newQuery($query->withSorts([]))->chunkById(
+        $query = $query->withSorts([]);
+        if ($query->search !== null && $this->searchesWithScout()) {
+            // The items Scout finds, then chunked by id like the others
+            $builder = $this->scoped($query->scope);
+            $this->applyConstraints($builder, $query);
+            $builder->whereIn($model->getQualifiedKeyName(), $this->scoutKeys($query));
+            $builder->orderBy($model->getQualifiedKeyName());
+        } else {
+            $builder = $this->newQuery($query);
+        }
+        $builder->chunkById(
             $size,
             fn ($models) => $callback($models->values()),
             $model->getQualifiedKeyName(),
@@ -188,25 +205,117 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
     protected function newQuery(ResourceQuery $query): Builder
     {
         $builder = $this->scoped($query->scope);
+        $this->applyConstraints($builder, $query);
+        if ($query->search !== null) {
+            if (count($query->searchFields) > 0) {
+                $this->applySearch($builder, $query->search, $query->searchFields);
+            } else {
+                // A search on no field finds nothing, rather than everything
+                $builder->whereRaw('1 = 0');
+            }
+        }
+        $this->applySorts($builder, $query);
+
+        return $builder;
+    }
+
+    /**
+     * What a query applies besides its scope, search and sorts: its ids, exclusions and
+     * filters.
+     *
+     * @param  Builder<TModel>  $builder
+     */
+    protected function applyConstraints(Builder $builder, ResourceQuery $query): void
+    {
         if ($query->ids !== null) {
-            $builder->whereIn($this->idColumn(), $query->ids);
+            $builder->whereIn($builder->qualifyColumn($this->idColumn()), $query->ids);
         }
         if (count($query->except) > 0) {
-            $builder->whereNotIn($this->idColumn(), $query->except);
+            $builder->whereNotIn($builder->qualifyColumn($this->idColumn()), $query->except);
         }
         foreach ($query->filters as $filter => $value) {
             $this->applyFilter($builder, $filter, $value);
         }
-        if ($query->search !== null && count($query->searchFields) > 0) {
-            $this->applySearch($builder, $query->search, $query->searchFields);
-        }
+    }
+
+    /**
+     * The sorts of the query, then the key, so pages are stable when sorted values are equal.
+     *
+     * @param  Builder<TModel>  $builder
+     */
+    protected function applySorts(Builder $builder, ResourceQuery $query): void
+    {
         foreach ($query->sorts as $sort) {
             $this->applySort($builder, $sort);
         }
-        // The key comes last, so pages are stable when sorted values are equal
         $builder->orderBy($builder->getModel()->getQualifiedKeyName());
+    }
 
-        return $builder;
+    /**
+     * Whether searches go through Laravel Scout rather than `LIKE` queries: when the model uses
+     * `Laravel\Scout\Searchable`. Override it to keep `LIKE` queries for a searchable model.
+     */
+    protected function searchesWithScout(): bool
+    {
+        return in_array('Laravel\\Scout\\Searchable', class_uses_recursive($this->model), true);
+    }
+
+    /**
+     * The Scout search of a query. The engine searches the model's searchable data (its
+     * `toSearchableArray()`), not the search fields of the list, and the database applies the
+     * rest of the query in Scout's `query()` callback: the scope, ids, exclusions, filters and
+     * sorts, as without Scout.
+     *
+     * Engines that search in the database (`database`, `collection`) apply the callback before
+     * paginating, so pages and totals are exact. Engines with their own index (Meilisearch,
+     * Algolia, Typesense) apply it only to the items of the page they found: the scope is also
+     * given to the engine, as `where` clauses (`whereIn` for a list), so its columns must be
+     * filterable attributes of the index. The callback still keeps every item outside the scope
+     * out. Filters, ids and exclusions can make such pages shorter; override this method to
+     * give them to the engine too.
+     *
+     * @return ScoutBuilder<TModel>
+     */
+    protected function scoutSearch(ResourceQuery $query): ScoutBuilder
+    {
+        $search = call_user_func([$this->model, 'search'], (string) $query->search);
+        if (! $search instanceof ScoutBuilder) {
+            throw new InvalidArgumentException(sprintf('%s::search() did not return a Scout builder.', $this->model));
+        }
+        foreach ($query->scope as $field => $value) {
+            if (self::isConstraint($value)) {
+                $search->whereIn($field, $value);
+            } else {
+                $search->where($field, $value);
+            }
+        }
+
+        /** @var ScoutBuilder<TModel> $search */
+        return $search->query(function (Builder $builder) use ($query): void {
+            $this->applyScope($builder, $query->scope);
+            $this->applyConstraints($builder, $query);
+            $this->applySorts($builder, $query);
+        });
+    }
+
+    /**
+     * The keys of every item the Scout search of a query finds, page by page.
+     *
+     * @return list<mixed>
+     */
+    private function scoutKeys(ResourceQuery $query): array
+    {
+        $keys = [];
+        $page = 1;
+        do {
+            $results = $this->scoutSearch($query)->paginate(500, 'page', $page);
+            foreach ($results->items() as $model) {
+                $keys[] = $model->getKey();
+            }
+            $page++;
+        } while ($page <= $results->lastPage());
+
+        return $keys;
     }
 
     /**

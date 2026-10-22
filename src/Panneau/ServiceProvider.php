@@ -2,12 +2,16 @@
 
 namespace Panneau;
 
+use Illuminate\Cache\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\InstallCommand;
 use Panneau\Console\PruneUploadsCommand;
 use Panneau\Contracts\UploadStorage;
+use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\ItemSerializer;
@@ -46,6 +50,11 @@ class ServiceProvider extends BaseServiceProvider
         $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/panneau')], 'panneau-views');
 
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
+        // Defined when the rate limiter is first resolved: a limiter of the same name that the
+        // project defines in its own provider replaces it.
+        $this->callAfterResolving(RateLimiter::class, function (RateLimiter $limiter): void {
+            $limiter->for(SearchController::RATE_LIMITER, fn (Request $request): Limit => $this->searchLimit($request));
+        });
 
         $migrations = __DIR__.'/../../database/migrations';
         $this->publishesMigrations([$migrations => database_path('migrations')], 'panneau-migrations');
@@ -56,5 +65,20 @@ class ServiceProvider extends BaseServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([InstallCommand::class, PruneUploadsCommand::class]);
         }
+    }
+
+    /**
+     * The limit of the global search: `panneau.search.rate_limit` searches per minute, for each
+     * user, or each IP address without one.
+     */
+    private function searchLimit(Request $request): Limit
+    {
+        $perMinute = $this->app['config']->get('panneau.search.rate_limit');
+        if (! is_numeric($perMinute) || (int) $perMinute <= 0) {
+            return Limit::none();
+        }
+        $user = $request->user();
+
+        return Limit::perMinute((int) $perMinute)->by($user !== null ? 'user:'.$user->getAuthIdentifier() : 'ip:'.$request->ip());
     }
 }
