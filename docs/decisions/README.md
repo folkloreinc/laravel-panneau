@@ -13,3 +13,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0007](0007-direct-uploads.md) | Panneau owns direct uploads | Proposed |
 | [0008](0008-field-preparation.md) | Fields prepare their values before the repository saves them | Proposed |
 | [0009](0009-media-libraries.md) | Media libraries are resources | Proposed |
+| [0010](0010-global-search.md) | The global search goes through the repositories, and through Scout for searchable models | Proposed |

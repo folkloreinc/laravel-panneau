@@ -155,6 +155,7 @@ interface ResourceRepository
 ```
 
 - **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, and `ChunkedQuery` (for queued actions). Actions and features that need one are only offered when the repository has it.
+- **Search.** A `Searchable` repository applies `$query->search` to `$query->searchFields`, within the scope. The fields can be empty for a resource in the global search through its `features()` alone: the repository searches its own fields then (a search index), or finds nothing, but never ignores the search. See [Search and dashboard](#search-and-dashboard).
 - **Adapters:**
   - `EloquentRepository` (package) implements the contract for a model.
   - The `laravel-folklore` adapter wraps any `Folklore\Contracts\Repositories\Entities`. It maps the `ResourceQuery` to `get(params, page, count)` (`queryColumns`, `order`, `order_direction`, the `offset_paginator`), and values to `create()` and `update()`. It reads the version from `updated_at` through `HasModel`, or from the Entity's `version()`.
@@ -554,7 +555,27 @@ Media::make('image'),                                                           
 
 ## Search and dashboard
 
-- **Global search** uses the resources' `search()` columns. It goes through the repository's `Searchable` capability. `EloquentRepository` and the Folklore adapter use Laravel Scout when the model is searchable (MySQL database engine or Meilisearch), and `LIKE` queries otherwise.
+See [decisions/0010](decisions/0010-global-search.md) and the [shared decision](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0029-go-to-palette.md).
+
+```php
+// config/panneau.php
+'search' => [
+    'enabled' => true,   // false: no route, and "search": { "enabled": false } in the definition
+    'rate_limit' => 60,  // searches per minute for a user (or an IP address); null or 0: no limit
+],
+```
+
+- **Global search.** `GET {path}/api/search?q=&limit=&resources=` searches the resources in the global search, in the order of the definition, and answers the ones with results: at most `limit` items each (5 by default, 20 at most), and 20 in all. Once 20 items are found, the other resources are not searched.
+  - **Which resources.** `search` of a resource's `features()` when set, or else whether its list has a search (`$list->search([...])`). Its repository must be `Searchable`, and the user must be allowed `viewAny`, as for its list. The definition's `features.search` says the same.
+  - **Like the list.** Each resource is searched through its repository's `query()`: the list's search fields and default sort, the resource's scope, page 1. Items are serialized as in the list, with their abilities, and `total` is the total of the page.
+  - **Parameters.** They are read like `readSearchQuery()` of `@panneau/protocol`: `q` trimmed, from 2 to 255 characters; `limit` an integer from 1 to 20; `resources` ids of resources the user can search. An invalid parameter is a `422` problem, with `errors` keyed by parameter. A resource the user can't list is refused like one that doesn't exist.
+  - **Rate limit.** The route uses the `panneau-search` rate limiter: `panneau.search.rate_limit` searches per minute for a user, or an IP address without one. Over it, a `429` problem with `Retry-After`. A project changes the limit, or its key, by defining its own `panneau-search` limiter with `RateLimiter::for()`. The limiter counts in the app's cache.
+- **`EloquentRepository`** searches with a `LIKE` on the search fields. A search with no search fields finds nothing.
+- **Laravel Scout** (optional, `laravel/scout` 11). When the model uses `Laravel\Scout\Searchable`, `EloquentRepository` searches through Scout instead, for the global search, the list's `q` and the query selections of actions:
+  - the engine searches the model's searchable data (`toSearchableArray()`), not the list's search fields;
+  - the rest of the query is Scout's `query()` callback: the scope, ids, exclusions, filters and sorts, applied by the database as without Scout;
+  - the `database` and `collection` engines run that callback before paginating, so pages and totals are exact. Engines with their own index (Meilisearch, Algolia, Typesense) run it only on the items of the page they found. The scope is also given to the engine as `where` clauses (`whereIn` for a list), so **the scope's columns must be filterable attributes of the index**. The callback still keeps the items outside the scope out. Filters, ids and exclusions can make such pages shorter, and the order is the engine's;
+  - override `scoutSearch()` to give the engine more of the query, and `searchesWithScout()` to keep `LIKE` queries for a searchable model.
 - **Dashboard widgets** are classes that declare their type and options, and return their data. They are registered per role in the service provider.
 
 ## laravel-folklore
