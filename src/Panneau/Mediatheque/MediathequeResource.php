@@ -21,8 +21,8 @@ use Throwable;
  * - **Making a media** ingests the file (a direct upload, or a file of the request) with the
  *   library's scope as the media's attributes. The mediatheque detects its type from its
  *   content, stores it, and processes it in its queue.
- * - **The file can't be replaced**: the `file` field is `createOnly()`, until the mediatheque
- *   has a public API to replace an original.
+ * - **Replacing the file** replaces the media's original with the mediatheque's
+ *   `replaceOriginal()`: the media keeps its id, and is processed again.
  * - **The `media` of an item** comes from the mediatheque: its type, status, original, main
  *   rendition, thumbnail, renditions (`variants`) and metadata. The thumbnail of an image is a
  *   `laravel-image` URL when `laravel-image` 2 is installed (`thumbnailPreset()`), and the
@@ -62,7 +62,7 @@ abstract class MediathequeResource extends MediaResource
      */
     protected function newFileField(): File
     {
-        return MediathequeFile::make(self::FILE)->createOnly();
+        return MediathequeFile::make(self::FILE);
     }
 
     /**
