@@ -45,10 +45,10 @@ final class ActionController
         private readonly Uploads $uploads,
     ) {}
 
-    public function __invoke(Request $request, string $resource, string $action): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
-        $resource = $this->findResource($resource);
-        $action = $this->resources->action($resource, $action);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
+        $action = $this->resources->action($resource, $this->routeParameter($request, 'action'));
         if (! $action instanceof Action) {
             throw new NotFoundHttpException;
         }

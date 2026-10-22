@@ -331,6 +331,7 @@ final class PublishPages extends Action
 
 - **Routes are opt-in.** Nothing is registered until the project calls `Panneau::routes()`, usually in `routes/panneau.php`. Every route gets the middleware from `config('panneau.middleware')`, `['web', 'panneau.auth']` by default. See [decisions/0002](decisions/0002-secure-by-default.md).
   - The API is under `{panneau.path}/api` (`/panneau/api` by default), with routes named `panneau.api.*`.
+  - The routes can be mounted under a prefix with its own parameter, such as `tenants/{tenant}`: the controllers read their parameters by name.
   - `panneau.auth` requires a user on the guard of `panneau.auth.guard`, and the `viewPanneau` gate. Without that gate, nobody gets in.
   - Every other path under `{panneau.path}` serves the page of the app (route `panneau.app`), since the app routes on the client. The route is registered last: the project's own routes under that path go before `Panneau::routes()`.
 - **The page of the app** follows the entry contract of `@panneau/app` ([panneau-js decision 0019](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0019-app-entry.md)):
