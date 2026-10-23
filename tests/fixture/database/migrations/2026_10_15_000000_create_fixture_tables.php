@@ -34,6 +34,17 @@ return new class extends Migration
             $table->text('body')->nullable();
             $table->boolean('featured')->default(false);
             $table->string('secret')->nullable();
+            $table->json('slug')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('pages', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedInteger('team_id')->nullable();
+            $table->foreignId('parent_id')->nullable();
+            $table->string('handle')->nullable();
+            $table->json('title')->nullable();
+            $table->json('slug')->nullable();
             $table->timestamps();
         });
 
@@ -73,6 +84,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Searched through Laravel Scout: NotesResource
+        Schema::create('notes', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedInteger('team_id')->nullable();
+            $table->string('title');
+            $table->text('body')->nullable();
+            $table->string('status')->default('draft');
+            $table->timestamps();
+        });
+
         Schema::create('reports', function (Blueprint $table) {
             $table->id();
             $table->string('title');
@@ -87,10 +108,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('reports');
+        Schema::dropIfExists('notes');
         Schema::dropIfExists('articles');
         Schema::dropIfExists('assets');
         Schema::dropIfExists('documents');
         Schema::dropIfExists('post_tag');
+        Schema::dropIfExists('pages');
         Schema::dropIfExists('posts');
         Schema::dropIfExists('tags');
         Schema::dropIfExists('authors');

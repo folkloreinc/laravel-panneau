@@ -11,6 +11,8 @@ env:
   - APP_KEY="base64:2fl+Ktvkfl+Fuz4Qp/A75G2RTiWVA/ZoKZvp6fiiM10="
   - APP_DEBUG=true
   - DB_CONNECTION=sqlite
+  # The rate limiter of the search counts in the cache: the app has no cache table
+  - CACHE_STORE=file
 
 workbench:
   install: false
