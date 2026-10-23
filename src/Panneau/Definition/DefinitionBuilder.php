@@ -54,6 +54,8 @@ final class DefinitionBuilder
             'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
             'auth' => $this->auth(),
         ];
+        // Without it, the app doesn't call GET /search, which doesn't exist
+        $definition['search'] = ['enabled' => (bool) $this->config->get('panneau.search.enabled', true)];
         if ($this->config->get('panneau.uploads.enabled')) {
             // Direct uploads to the disk, as well as files sent through the API.
             $definition['uploads'] = ['mode' => 'presigned'];
@@ -187,7 +189,7 @@ final class DefinitionBuilder
         $definition['abilities'] = $abilities;
 
         $features = $resource->features();
-        $features['search'] ??= $this->resources->searchable($resource);
+        $features['search'] = $this->resources->inGlobalSearch($resource);
         $definition['features'] = $features;
 
         $settings = $resource->settings();
@@ -208,7 +210,7 @@ final class DefinitionBuilder
             $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action)];
         }
         if (isset($definition['fields']) && is_array($definition['fields'])) {
-            $definition['fields'] = array_map(fn (array $field): array => $this->resolveFieldReferences($field), $definition['fields']);
+            $definition['fields'] = array_map(fn (array $field): array => $this->nestedField($field), $definition['fields']);
         }
 
         return $definition;
@@ -235,17 +237,31 @@ final class DefinitionBuilder
             $field = $this->resolveResource($field);
         }
         if (isset($field['fields']) && is_array($field['fields'])) {
-            $field['fields'] = array_map(fn (array $child): array => $this->resolveFieldReferences($child), $field['fields']);
+            $field['fields'] = array_map(fn (array $child): array => $this->nestedField($child), $field['fields']);
         }
         if (isset($field['types']) && is_array($field['types'])) {
             $field['types'] = array_map(function (array $type): array {
-                $type['fields'] = array_map(fn (array $child): array => $this->resolveFieldReferences($child), $type['fields'] ?? []);
+                $type['fields'] = array_map(fn (array $child): array => $this->nestedField($child), $type['fields'] ?? []);
 
                 return $type;
             }, $field['types']);
         }
 
         return $field;
+    }
+
+    /**
+     * A field inside a group, a block or an action: only fields at the top of a resource
+     * check their value (`check`), since the check names a field of the resource.
+     *
+     * @param  array<array-key, mixed>  $field
+     * @return array<array-key, mixed>
+     */
+    private function nestedField(array $field): array
+    {
+        unset($field['check']);
+
+        return $this->resolveFieldReferences($field);
     }
 
     /**

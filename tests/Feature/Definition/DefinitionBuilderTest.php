@@ -77,6 +77,20 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame(['baseUrl' => '/panneau/api'], $definition['api']);
     }
 
+    public function test_the_global_search(): void
+    {
+        $this->assertSame(['enabled' => true], $this->definition()['search']);
+        $this->assertSame(
+            ['posts' => true, 'authors' => false, 'tags' => false],
+            array_column(array_map(fn (array $resource): array => ['id' => $resource['id'], 'search' => $resource['features']['search']], $this->definition()['resources']), 'search', 'id'),
+        );
+
+        $this->app['config']->set('panneau.search.enabled', false);
+        $definition = $this->definition();
+        $this->assertSame(['enabled' => false], $definition['search']);
+        $this->assertValidDefinition($definition);
+    }
+
     public function test_locales_default_to_the_app_locale(): void
     {
         $this->app['config']->set('panneau.locales', null);
@@ -92,7 +106,7 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame(['singular' => 'post', 'plural' => 'posts'], $posts['label']);
         $this->assertSame('title', $posts['itemTitle']);
         $this->assertSame(
-            ['title', 'subtitle', 'body', 'status', 'featured', 'published_at', 'author', 'tags', 'seo', 'blocks'],
+            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'author', 'tags', 'seo', 'blocks'],
             array_column($posts['fields'], 'name'),
         );
         $this->assertSame(['search' => true], $posts['features']);

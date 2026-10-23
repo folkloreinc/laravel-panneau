@@ -119,6 +119,14 @@ class EloquentRepositoryTest extends TestCase
         $this->assertSame(['Summer', 'Winter'], collect($page->items())->pluck('title')->all());
     }
 
+    public function test_a_search_on_no_field_finds_nothing(): void
+    {
+        $this->createPost(['title' => 'Summer']);
+
+        $this->assertSame(0, $this->posts->query(new ResourceQuery(search: 'summer'))->total());
+        $this->assertSame(1, $this->posts->query(new ResourceQuery)->total());
+    }
+
     public function test_search_wildcards_are_escaped(): void
     {
         $this->createPost(['title' => '100% sure']);

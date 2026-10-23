@@ -18,6 +18,7 @@ class Post extends Model
             'featured' => 'boolean',
             'team_id' => 'integer',
             'subtitle' => 'array',
+            'slug' => 'array',
             'blocks' => 'array',
             'seo' => 'array',
             'published_at' => 'datetime',

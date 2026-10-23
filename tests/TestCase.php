@@ -42,6 +42,15 @@ class TestCase extends BaseTestCase
         return $response;
     }
 
+    /**
+     * The rate limiters count in the cache: in memory, whatever the skeleton's .env says (the
+     * conformance app's `testbench serve` writes one).
+     */
+    protected function getEnvironmentSetUp($app): void
+    {
+        $app['config']->set('cache.default', 'array');
+    }
+
     protected function getPackageProviders($app): array
     {
         return [ServiceProvider::class];

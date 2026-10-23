@@ -24,6 +24,12 @@ final readonly class ValidationContext
      *                                                                                   media of an id in a library (by id or class, or
      *                                                                                   null for the only library), within its scope, for
      *                                                                                   media fields: the protocol's `MediaInfo`, or null.
+     * @param  (Closure(string, string, ?string, ?Closure): bool)|null  $valueExists  Whether
+     *                                                                                another item of the resource, within its scope, has a value
+     *                                                                                of a field at the top of the resource (name, value, locale),
+     *                                                                                for `Slug::unique()`. The item being updated doesn't count.
+     *                                                                                The closure narrows the query of an `EloquentRepository`.
+     *                                                                                Null in nested values and actions: nothing is checked.
      */
     public function __construct(
         public FormMode $mode = FormMode::Create,
@@ -33,10 +39,12 @@ final readonly class ValidationContext
         public ?Closure $relationExists = null,
         public ?Closure $uploads = null,
         public ?Closure $media = null,
+        public ?Closure $valueExists = null,
     ) {}
 
     /**
-     * The same context, for nested values: groups and repeater blocks are never partial.
+     * The same context, for nested values: groups and repeater blocks are never partial, and
+     * their values are never unique within the resource.
      */
     public function nested(): self
     {

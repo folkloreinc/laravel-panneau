@@ -129,10 +129,29 @@ final class ResourceRegistry
         return $this->lists[$resource->id()] ??= $resource->makeList();
     }
 
+    /**
+     * Whether the list of a resource has a search: its repository is `Searchable`, and the
+     * list declares search fields.
+     */
     public function searchable(Resource $resource): bool
     {
         return $this->repository($resource) instanceof Searchable
             && count($this->list($resource)->getSearch()) > 0;
+    }
+
+    /**
+     * Whether a resource is in the global search, whoever the user: `search` of its
+     * `features()` when set, or else whether its list has a search. A repository that isn't
+     * `Searchable` can't search, whatever its features say.
+     */
+    public function inGlobalSearch(Resource $resource): bool
+    {
+        if (! $this->repository($resource) instanceof Searchable) {
+            return false;
+        }
+        $search = $resource->features()['search'] ?? null;
+
+        return is_bool($search) ? $search : $this->searchable($resource);
     }
 
     /**

@@ -16,6 +16,7 @@ use Panneau\Forms\SaveContext;
 use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Media\MediaReferences;
 use Panneau\Query\ResourceQuery;
+use Panneau\Resources\FieldChecks;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
@@ -39,11 +40,12 @@ final class ResourceController
         private readonly ValidationFactory $validator,
         private readonly Config $config,
         private readonly Uploads $uploads,
+        private readonly FieldChecks $checks,
     ) {}
 
-    public function index(Request $request, string $resource): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $resource = $this->findResource($resource);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
         $this->authorizeResource($request, $resource, 'viewAny');
 
         $query = ResourceQuery::fromParameters(
@@ -74,18 +76,18 @@ final class ResourceController
         ]);
     }
 
-    public function show(Request $request, string $resource, string $id): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $resource = $this->findResource($resource);
-        $item = $this->findItem($resource, $id, $request);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
+        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
         $this->authorizeItem($request, $resource, 'view', $item);
 
         return $this->itemResponse($request, $resource, $item);
     }
 
-    public function store(Request $request, string $resource): JsonResponse
+    public function store(Request $request): JsonResponse
     {
-        $resource = $this->findResource($resource);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
         $this->authorizeResource($request, $resource, 'create');
 
         $uploads = $this->uploadResolver($request);
@@ -94,7 +96,13 @@ final class ResourceController
             $this->validator,
             $resource->allFields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Create, uploads: $uploads, media: $references),
+            $this->validationContext(
+                $request,
+                FormMode::Create,
+                uploads: $uploads,
+                media: $references,
+                valueExists: $this->checks->lookup($resource, $request, null, $request->all(), $references),
+            ),
         );
         $saving = new SaveContext(FormMode::Create, null, $uploads);
         try {
@@ -113,11 +121,11 @@ final class ResourceController
         return $this->itemResponse($request, $resource, $item, 201, $references);
     }
 
-    public function update(Request $request, string $resource, string $id): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $resource = $this->findResource($resource);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
         $repository = $this->resources->repository($resource);
-        $item = $this->findItem($resource, $id, $request);
+        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
         $this->authorizeItem($request, $resource, 'update', $item);
 
         $version = $repository->version($item);
@@ -131,7 +139,15 @@ final class ResourceController
             $this->validator,
             $resource->allFields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Update, partial: true, item: $item, uploads: $uploads, media: $references),
+            $this->validationContext(
+                $request,
+                FormMode::Update,
+                partial: true,
+                item: $item,
+                uploads: $uploads,
+                media: $references,
+                valueExists: $this->checks->lookup($resource, $request, $item, $request->all(), $references),
+            ),
         );
         $saving = new SaveContext(FormMode::Update, $item, $uploads);
         try {
@@ -150,10 +166,10 @@ final class ResourceController
         return $this->itemResponse($request, $resource, $item, references: $references);
     }
 
-    public function destroy(Request $request, string $resource, string $id): Response
+    public function destroy(Request $request): Response
     {
-        $resource = $this->findResource($resource);
-        $item = $this->findItem($resource, $id, $request);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
+        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
         $this->authorizeItem($request, $resource, 'delete', $item);
 
         $resource->deleting($item);

@@ -17,6 +17,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 trait ResolvesResources
 {
+    use ReadsRouteParameters;
+
     protected function findResource(string $id): Resource
     {
         return $this->resources->find($id) ?? throw new NotFoundHttpException(sprintf('No resource "%s".', $id));
@@ -45,8 +47,10 @@ trait ResolvesResources
     /**
      * @param  (Closure(mixed): ?Upload)|null  $uploads  From `uploadResolver()`.
      * @param  MediaReferences|null  $media  From `mediaReferences()`.
+     * @param  (Closure(string, string, ?string, ?Closure): bool)|null  $valueExists  For unique
+     *                                                                                slugs, from `FieldChecks::lookup()`.
      */
-    protected function validationContext(Request $request, FormMode $mode, bool $partial = false, ?object $item = null, ?Closure $uploads = null, ?MediaReferences $media = null): ValidationContext
+    protected function validationContext(Request $request, FormMode $mode, bool $partial = false, ?object $item = null, ?Closure $uploads = null, ?MediaReferences $media = null, ?Closure $valueExists = null): ValidationContext
     {
         $media ??= $this->mediaReferences($request);
 
@@ -58,6 +62,7 @@ trait ResolvesResources
             relationExists: $this->relationExists($request),
             uploads: $uploads ?? $this->uploadResolver($request),
             media: fn (?string $library, string $id): ?array => $media->media($library, $id),
+            valueExists: $valueExists,
         );
     }
 
