@@ -181,7 +181,8 @@ interface ResourceRepository
   - `Text`, `Textarea`, `RichText`, `Number`, `Boolean`;
   - `Date`, `DateTime`, `Time`;
   - `Select`, `Email`, `Url`, `Color`;
-  - `Media`, `File`, `Relation`, `Group`, `Repeater`, `Slug`.
+  - `Media`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
+  - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
   - `localized()`, `readOnly()`, `visibleWhen()`;
@@ -196,6 +197,31 @@ interface ResourceRepository
 - **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, related items become references (`{ "id": "12", "label": "Ada" }`), and media media references.
 - **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
 - **Field types from other packages** (such as the `laravel-folklore` plugin) extend `Field` and declare the protocol type and the JS plugin that renders them.
+
+### More field types
+
+The types of [panneau-js decision 0033](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0033-more-field-types.md). See [decisions/0012](decisions/0012-embeds-and-more-field-types.md).
+
+```php
+Tel::make('contact'),
+Range::make('rating')->max(10)->suffix('/10'),        // 0 to 100 without min() and max()
+Duration::make('reading_time')->precision('minutes'), // seconds
+Json::make('metadata'),
+Tags::make('keywords')->options(['culture' => 'Culture'])->allowCustom(false)->max(5),
+Embed::make('video'),
+Location::make('place')->zoom(14)->center(45.5017, -73.5673),
+```
+
+- **Values:**
+  - `tel` is a string; `range` a number between its ends (0 and 100 by default); `duration` a whole number of seconds, 0 or more;
+  - `json` an object or an array, never a string: an empty object is given back as an empty array;
+  - `tags` a list of strings, at most 255 characters each, only the options' values with `allowCustom(false)`. `min()` and `max()` count the tags. Saving trims them and drops empty and repeated ones;
+  - `location` is `{ "lat", "lng", "address" }`, with the latitude from -90 to 90, the longitude from -180 to 180, and an optional address;
+  - `embed` is the protocol's `EmbedValue`.
+- **Embeds.** `GET /embeds?url=` answers what the `EmbedResolver` gives for a URL, or a `422` on `url`. The default resolver asks the oEmbed endpoint of the provider whose `schemes` match the URL, among `panneau.embeds.providers`, and never fetches the URL itself. Answers are cached (`panneau.embeds.cache_ttl`, one day), and the route is rate limited per user (`panneau.embeds.rate_limit`, 60 a minute). Bind `Panneau\Contracts\EmbedResolver` to use another service.
+- **Saving an embed** keeps only the URL of the request and resolves it again, so the `html` sites render comes from the provider. An unchanged URL keeps the item's value; a URL that can't be resolved is saved as `{ "url" }`.
+- **Lists.** Without columns, a list shows the `tel`, `range`, `duration` and `tags` fields with the other simple types.
+- **Model.** `json`, `tags`, `embed` and `location` need a JSON column with the `array` cast.
 
 ### File
 

@@ -21,6 +21,7 @@ class Post extends Model
             'slug' => 'array',
             'blocks' => 'array',
             'seo' => 'array',
+            'details' => 'array',
             'published_at' => 'datetime',
         ];
     }

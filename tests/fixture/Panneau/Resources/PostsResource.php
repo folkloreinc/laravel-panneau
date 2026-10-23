@@ -10,13 +10,20 @@ use Panneau\Actions\LinkAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\DateTime;
+use Panneau\Fields\Duration;
+use Panneau\Fields\Embed;
 use Panneau\Fields\Group;
+use Panneau\Fields\Json;
+use Panneau\Fields\Location;
 use Panneau\Fields\Media;
+use Panneau\Fields\Range;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\RichText;
 use Panneau\Fields\Select;
 use Panneau\Fields\Slug;
+use Panneau\Fields\Tags;
+use Panneau\Fields\Tel;
 use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
 use Panneau\Layout\Field;
@@ -60,6 +67,15 @@ class PostsResource extends Resource
                 Text::make('title')->max(60),
                 Textarea::make('description'),
             ]),
+            Group::make('details')->fields([
+                Tel::make('contact'),
+                Range::make('rating')->max(10),
+                Duration::make('reading_time')->precision('minutes'),
+                Json::make('metadata'),
+                Tags::make('keywords')->options(['culture' => 'Culture', 'food' => 'Food'])->max(5),
+                Embed::make('video'),
+                Location::make('place')->zoom(14)->center(45.5017, -73.5673),
+            ]),
             Repeater::make('blocks')->types([
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),
                 BlockType::make('image', 'Image', [Media::make('image')->accept('image/*')->required()]),
@@ -78,6 +94,7 @@ class PostsResource extends Resource
                     Field::make('blocks'),
                 ]),
                 Tab::make('Sharing', [Section::make('SEO', [Field::make('seo')])->collapsible()]),
+                Tab::make('Details', [Field::make('details')]),
             ]),
             Sidebar::make([Field::make('slug'), Field::make('published_at'), Field::make('author'), Field::make('tags')]),
         ];

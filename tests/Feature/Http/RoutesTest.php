@@ -29,6 +29,7 @@ class RoutesTest extends TestCase
         $this->assertSame(url('/panneau/api/resources/pages/12'), route('panneau.api.resources.show', ['resource' => 'pages', 'id' => '12']));
         $this->assertSame(url('/panneau/api/resources/pages/actions/publish'), route('panneau.api.resources.actions', ['resource' => 'pages', 'action' => 'publish']));
         $this->assertSame(url('/panneau/api/search'), route('panneau.api.search'));
+        $this->assertSame(url('/panneau/api/embeds'), route('panneau.api.embeds'));
     }
 
     public function test_the_search_route_is_rate_limited(): void
@@ -40,6 +41,26 @@ class RoutesTest extends TestCase
             ThrottleRequests::class.':panneau-search',
             Route::getRoutes()->getByName('panneau.api.search')?->middleware() ?? [],
         );
+    }
+
+    public function test_the_embeds_route_is_rate_limited(): void
+    {
+        Panneau::routes();
+        $this->app['router']->getRoutes()->refreshNameLookups();
+
+        $this->assertContains(
+            ThrottleRequests::class.':panneau-embeds',
+            Route::getRoutes()->getByName('panneau.api.embeds')?->middleware() ?? [],
+        );
+    }
+
+    public function test_no_embeds_route_when_embeds_are_disabled(): void
+    {
+        $this->app['config']->set('panneau.embeds.enabled', false);
+        Panneau::routes();
+        $this->app['router']->getRoutes()->refreshNameLookups();
+
+        $this->assertFalse(Route::has('panneau.api.embeds'));
     }
 
     public function test_no_search_route_when_search_is_disabled(): void

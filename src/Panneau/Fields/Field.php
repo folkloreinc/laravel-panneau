@@ -534,6 +534,8 @@ abstract class Field
             'pattern' => is_string($value) ? ['regex', 'regex:'.self::regex($value, is_string($rule['flags'] ?? null) ? $rule['flags'] : '')] : null,
             'email' => ['email', 'email'],
             'url' => ['url', 'url'],
+            // An object or an array: what a JSON value decodes to
+            'json' => ['array', 'array'],
             'in' => is_array($value) ? ['in', LaravelRule::in($value)] : null,
             'before', 'after' => match (true) {
                 is_string($value) => [$rule['rule'], $rule['rule'].':'.$value],
