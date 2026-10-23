@@ -10,7 +10,10 @@ use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\InstallCommand;
 use Panneau\Console\PruneUploadsCommand;
+use Panneau\Contracts\EmbedResolver;
 use Panneau\Contracts\UploadStorage;
+use Panneau\Embeds\OEmbedResolver;
+use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Repositories\RepositoryAdapters;
@@ -40,6 +43,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->singleton(Authorizer::class);
         $this->app->singletonIf(UploadStorage::class, S3UploadStorage::class);
         $this->app->singleton(Uploads::class);
+        $this->app->singletonIf(EmbedResolver::class, OEmbedResolver::class);
     }
 
     public function boot(): void
@@ -53,7 +57,8 @@ class ServiceProvider extends BaseServiceProvider
         // Defined when the rate limiter is first resolved: a limiter of the same name that the
         // project defines in its own provider replaces it.
         $this->callAfterResolving(RateLimiter::class, function (RateLimiter $limiter): void {
-            $limiter->for(SearchController::RATE_LIMITER, fn (Request $request): Limit => $this->searchLimit($request));
+            $limiter->for(SearchController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.search.rate_limit'));
+            $limiter->for(EmbedController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.embeds.rate_limit'));
         });
 
         $migrations = __DIR__.'/../../database/migrations';
@@ -68,12 +73,13 @@ class ServiceProvider extends BaseServiceProvider
     }
 
     /**
-     * The limit of the global search: `panneau.search.rate_limit` searches per minute, for each
-     * user, or each IP address without one.
+     * A limit of requests per minute from a config key, for each user, or each IP address
+     * without one: the global search (`panneau.search.rate_limit`) and embeds
+     * (`panneau.embeds.rate_limit`).
      */
-    private function searchLimit(Request $request): Limit
+    private function perMinute(Request $request, string $key): Limit
     {
-        $perMinute = $this->app['config']->get('panneau.search.rate_limit');
+        $perMinute = $this->app['config']->get($key);
         if (! is_numeric($perMinute) || (int) $perMinute <= 0) {
             return Limit::none();
         }

@@ -1574,6 +1574,64 @@
                 }
             }
         },
+        "/embeds": {
+            "get": {
+                "operationId": "resolveEmbed",
+                "parameters": [
+                    {
+                        "name": "url",
+                        "in": "query",
+                        "required": true,
+                        "description": "The URL to embed.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The value of an `embed` field for the URL, from its provider's oEmbed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EmbedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/dashboard/widgets/{widget}": {
             "parameters": [
                 {
@@ -1813,7 +1871,8 @@
                                 "type": "string",
                                 "enum": [
                                     "email",
-                                    "url"
+                                    "url",
+                                    "json"
                                 ]
                             },
                             "message": {
@@ -4423,6 +4482,86 @@
                     "url"
                 ],
                 "additionalProperties": {}
+            },
+            "EmbedValue": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL of the video, sound or post."
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "video",
+                            "audio",
+                            "photo",
+                            "rich",
+                            "link"
+                        ]
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "description": "The name of the provider.",
+                        "type": "string"
+                    },
+                    "thumbnailUrl": {
+                        "type": "string"
+                    },
+                    "html": {
+                        "description": "The HTML that embeds it, from the oEmbed of its provider.",
+                        "type": "string"
+                    },
+                    "width": {
+                        "type": "number"
+                    },
+                    "height": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "url"
+                ],
+                "additionalProperties": {},
+                "description": "The value of an `embed` field: its URL, and what the backend got from its oEmbed."
+            },
+            "EmbedResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/EmbedValue"
+                    }
+                },
+                "required": [
+                    "data"
+                ],
+                "additionalProperties": {}
+            },
+            "LocationValue": {
+                "type": "object",
+                "properties": {
+                    "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                    },
+                    "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                    },
+                    "address": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "lat",
+                    "lng"
+                ],
+                "additionalProperties": {},
+                "description": "The value of a `location` field: a point, and its address."
             }
         }
     }

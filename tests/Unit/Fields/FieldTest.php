@@ -7,13 +7,20 @@ use Panneau\Fields\Boolean;
 use Panneau\Fields\Color;
 use Panneau\Fields\Date;
 use Panneau\Fields\DateTime;
+use Panneau\Fields\Duration;
+use Panneau\Fields\Embed;
 use Panneau\Fields\Group;
+use Panneau\Fields\Json;
+use Panneau\Fields\Location;
 use Panneau\Fields\Number;
+use Panneau\Fields\Range;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\RichText;
 use Panneau\Fields\Select;
 use Panneau\Fields\Slug;
+use Panneau\Fields\Tags;
+use Panneau\Fields\Tel;
 use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
 use Panneau\Fields\Time;
@@ -26,11 +33,15 @@ class FieldTest extends TestCase
     public function test_types(): void
     {
         $this->assertSame(
-            ['text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'slug', 'relation', 'group', 'repeater'],
+            [
+                'text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'slug', 'relation', 'group', 'repeater',
+                'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location',
+            ],
             array_map(fn ($field) => $field->type(), [
                 Text::make('a'), Textarea::make('a'), RichText::make('a'), Number::make('a'), Boolean::make('a'),
                 Date::make('a'), DateTime::make('a'), Time::make('a'), Select::make('a'), Color::make('a'),
                 Slug::make('a'), Relation::make('a'), Group::make('a'), Repeater::make('a'),
+                Tel::make('a'), Range::make('a'), Duration::make('a'), Json::make('a'), Tags::make('a'), Embed::make('a'), Location::make('a'),
             ]),
         );
     }
@@ -87,6 +98,30 @@ class FieldTest extends TestCase
             Select::make('choice')->options([1 => 'One', ['value' => 'b', 'label' => 'B', 'disabled' => true]])->toDefinition()['options'],
         );
         $this->assertSame([['value' => 'draft', 'label' => 'Draft']], array_slice(Select::make('status')->options(PostStatus::class)->toDefinition()['options'], 0, 1));
+    }
+
+    public function test_settings_of_the_new_types(): void
+    {
+        $this->assertSame(
+            ['name' => 'opacity', 'type' => 'range', 'rules' => [['rule' => 'min', 'value' => 10]], 'settings' => ['step' => 5, 'decimals' => 0, 'suffix' => '%']],
+            Range::make('opacity')->min(10)->step(5)->decimals(0)->suffix('%')->toDefinition(),
+        );
+        $this->assertSame(
+            ['name' => 'length', 'type' => 'duration', 'settings' => ['precision' => 'minutes']],
+            Duration::make('length')->precision('minutes')->toDefinition(),
+        );
+        $this->assertSame(
+            ['name' => 'sections', 'type' => 'tags', 'options' => [['value' => 'food', 'label' => 'Food']], 'settings' => ['allowCustom' => false]],
+            Tags::make('sections')->options(['food' => 'Food'])->allowCustom(false)->toDefinition(),
+        );
+        $this->assertSame(
+            ['name' => 'place', 'type' => 'location', 'settings' => [
+                'zoom' => 14,
+                'center' => ['lat' => 45.5, 'lng' => -73.56],
+                'tiles' => ['url' => 'https://tiles.example.com/{z}/{x}/{y}.png', 'attribution' => '© Example'],
+            ]],
+            Location::make('place')->zoom(14)->center(45.5, -73.56)->tiles('https://tiles.example.com/{z}/{x}/{y}.png', '© Example')->toDefinition(),
+        );
     }
 
     public function test_values_are_read_from_any_object(): void

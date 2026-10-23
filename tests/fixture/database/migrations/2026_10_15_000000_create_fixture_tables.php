@@ -28,6 +28,7 @@ return new class extends Migration
             $table->json('subtitle')->nullable();
             $table->json('blocks')->nullable();
             $table->json('seo')->nullable();
+            $table->json('details')->nullable();
             $table->dateTime('published_at')->nullable();
             $table->string('title');
             $table->string('status')->default('draft');

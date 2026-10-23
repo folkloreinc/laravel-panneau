@@ -4,18 +4,26 @@ namespace Panneau\Tests\Unit\Forms;
 
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Panneau\Contracts\EmbedResolver;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Date;
+use Panneau\Fields\Duration;
 use Panneau\Fields\Email;
+use Panneau\Fields\Embed;
 use Panneau\Fields\Field;
 use Panneau\Fields\Group;
+use Panneau\Fields\Json;
+use Panneau\Fields\Location;
 use Panneau\Fields\Media;
 use Panneau\Fields\Number;
+use Panneau\Fields\Range;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\Select;
 use Panneau\Fields\Slug;
+use Panneau\Fields\Tags;
+use Panneau\Fields\Tel;
 use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
 use Panneau\Fields\Time;
@@ -393,5 +401,122 @@ class FormTest extends TestCase
         $code->calls = [];
         $this->assertSame([], Form::prepare([$code], [], new SaveContext(FormMode::Update)));
         $this->assertSame([], $code->calls);
+    }
+
+    public function test_tel_range_and_duration(): void
+    {
+        $fields = [
+            Tel::make('phone')->pattern('^[0-9 +-]+$'),
+            Range::make('rating'),
+            Range::make('score')->min(-5)->max(5),
+            Duration::make('length'),
+        ];
+
+        $this->assertSame(
+            ['phone', 'rating', 'score', 'length'],
+            array_keys($this->errors($fields, ['phone' => 'call me', 'rating' => 101, 'score' => -6, 'length' => 90.5])),
+        );
+        $this->assertSame(['rating', 'length'], array_keys($this->errors($fields, ['rating' => -1, 'length' => -60])));
+        $this->assertSame(
+            ['phone' => '+1 514 555-0123', 'rating' => 0, 'score' => -5, 'length' => 3930],
+            $this->validate($fields, ['phone' => '+1 514 555-0123', 'rating' => 0, 'score' => -5, 'length' => 3930]),
+        );
+    }
+
+    public function test_json_values_are_objects_or_arrays(): void
+    {
+        $fields = [Json::make('metadata')];
+
+        // The text of JSON that doesn't parse, as the field sends it
+        $this->assertArrayHasKey('metadata', $this->errors($fields, ['metadata' => '{ "a": 1, }']));
+        $this->assertArrayHasKey('metadata', $this->errors($fields, ['metadata' => 12]));
+        $this->assertSame(['metadata' => ['a' => ['b' => 1]]], $this->validate($fields, ['metadata' => ['a' => ['b' => 1]]]));
+        $this->assertSame(['metadata' => [1, 2]], $this->validate($fields, ['metadata' => [1, 2]]));
+        $this->assertSame(['metadata' => null], $this->validate($fields, ['metadata' => null]));
+    }
+
+    public function test_tags(): void
+    {
+        $fields = [
+            Tags::make('tags')->max(3),
+            Tags::make('sections')->options(['food' => 'Food', 'music' => 'Music'])->allowCustom(false),
+        ];
+
+        $this->assertSame(
+            ['tags', 'tags.1', 'sections.1'],
+            array_keys($this->errors($fields, ['tags' => ['a', ['b'], 'c', 'd'], 'sections' => ['food', 'travel']])),
+        );
+        $values = $this->validate($fields, ['tags' => [' summer ', 'montreal', 'summer'], 'sections' => ['music']]);
+        $this->assertSame(['tags' => [' summer ', 'montreal', 'summer'], 'sections' => ['music']], $values);
+        // Saving trims the tags and drops empty and repeated ones
+        $this->assertSame(
+            ['tags' => ['summer', 'montreal'], 'sections' => ['music']],
+            Form::prepare($fields, $values, new SaveContext),
+        );
+    }
+
+    public function test_locations(): void
+    {
+        $fields = [Location::make('place')];
+
+        $this->assertSame(
+            ['place.lat', 'place.lng'],
+            array_keys($this->errors($fields, ['place' => ['lat' => 91, 'lng' => 'east']])),
+        );
+        $this->assertArrayHasKey('place.lng', $this->errors($fields, ['place' => ['lat' => 45.5]]));
+        $this->assertSame(
+            ['place' => ['lat' => 45.509595, 'lng' => -73.565912, 'address' => 'Place des Arts, Montréal']],
+            $this->validate($fields, ['place' => ['lat' => 45.509595, 'lng' => -73.565912, 'address' => ' Place des Arts, Montréal ', 'zoom' => 3]]),
+        );
+        $this->assertSame(['place' => ['lat' => 0.0, 'lng' => 0.0]], $this->validate($fields, ['place' => ['lat' => 0, 'lng' => 0, 'address' => '']]));
+        $this->assertSame(['place' => null], $this->validate($fields, ['place' => null]));
+    }
+
+    public function test_embeds_keep_the_url_and_are_resolved_when_saved(): void
+    {
+        $resolved = [];
+        $this->app->instance(EmbedResolver::class, new class($resolved) implements EmbedResolver
+        {
+            /**
+             * @param  list<string>  $resolved
+             */
+            public function __construct(private array &$resolved) {}
+
+            public function resolve(string $url): ?array
+            {
+                $this->resolved[] = $url;
+
+                return str_contains($url, 'youtube')
+                    ? ['url' => $url, 'type' => 'video', 'title' => 'A video', 'html' => '<iframe></iframe>']
+                    : null;
+            }
+        });
+        $fields = [Embed::make('video')];
+
+        $this->assertArrayHasKey('video.url', $this->errors($fields, ['video' => ['url' => 'javascript:alert(1)']]));
+        $this->assertArrayHasKey('video.url', $this->errors($fields, ['video' => ['title' => 'No URL']]));
+
+        // Only the URL comes from the request: the rest is the provider's
+        $values = $this->validate($fields, ['video' => ['url' => 'https://www.youtube.com/watch?v=1', 'html' => '<script></script>']]);
+        $this->assertSame(['video' => ['url' => 'https://www.youtube.com/watch?v=1']], $values);
+        $this->assertSame(
+            ['video' => ['url' => 'https://www.youtube.com/watch?v=1', 'type' => 'video', 'title' => 'A video', 'html' => '<iframe></iframe>']],
+            Form::prepare($fields, $values, new SaveContext),
+        );
+
+        // A URL that can't be resolved is saved alone
+        $this->assertSame(
+            ['video' => ['url' => 'https://example.com/post']],
+            Form::prepare($fields, ['video' => ['url' => 'https://example.com/post']], new SaveContext),
+        );
+
+        // An unchanged URL keeps the item's value
+        $item = (object) ['video' => ['url' => 'https://example.com/post', 'title' => 'Kept']];
+        $this->assertSame(
+            ['video' => ['url' => 'https://example.com/post', 'title' => 'Kept']],
+            Form::prepare($fields, ['video' => ['url' => 'https://example.com/post']], new SaveContext(FormMode::Update, $item)),
+        );
+        $this->assertSame(['https://www.youtube.com/watch?v=1', 'https://example.com/post'], $resolved);
+        $this->assertSame(['video' => null], Form::prepare($fields, ['video' => null], new SaveContext));
     }
 }

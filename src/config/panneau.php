@@ -82,6 +82,51 @@ return [
         'rate_limit' => 60,
     ],
 
+    // What URLs embed, for `embed` fields: `GET {path}/api/embeds?url=`. The default resolver
+    // asks the oEmbed endpoint of the provider whose schemes match the URL; other URLs can't be
+    // embedded. Bind Panneau\Contracts\EmbedResolver to use another service.
+    'embeds' => [
+        // Off: the route doesn't exist. Saving still resolves the URLs of embed fields.
+        'enabled' => true,
+
+        // Requests per minute for a user (or an IP address), through the `panneau-embeds` rate
+        // limiter. Null or 0: no limit.
+        'rate_limit' => 60,
+
+        // Seconds a provider's answer is kept in the cache. 0: not cached.
+        'cache_ttl' => 86400,
+
+        // Seconds to wait for a provider.
+        'timeout' => 5,
+
+        // `schemes` are the URLs of the provider, with `*` as a wildcard. `type` replaces the
+        // oEmbed type (`video`, `audio`, `photo`, `rich` or `link`).
+        'providers' => [
+            [
+                'name' => 'YouTube',
+                'schemes' => ['https://www.youtube.com/*', 'https://youtube.com/*', 'https://m.youtube.com/*', 'https://youtu.be/*'],
+                'endpoint' => 'https://www.youtube.com/oembed',
+            ],
+            [
+                'name' => 'Vimeo',
+                'schemes' => ['https://vimeo.com/*', 'https://player.vimeo.com/video/*'],
+                'endpoint' => 'https://vimeo.com/api/oembed.json',
+            ],
+            [
+                'name' => 'SoundCloud',
+                'schemes' => ['https://soundcloud.com/*', 'https://on.soundcloud.com/*'],
+                'endpoint' => 'https://soundcloud.com/oembed',
+                'type' => 'audio',
+            ],
+            [
+                'name' => 'Spotify',
+                'schemes' => ['https://open.spotify.com/*'],
+                'endpoint' => 'https://open.spotify.com/oembed',
+                'type' => 'audio',
+            ],
+        ],
+    ],
+
     'actions' => [
         // Largest selection an action runs on in the request. Larger selections are refused
         // until queued actions are supported.

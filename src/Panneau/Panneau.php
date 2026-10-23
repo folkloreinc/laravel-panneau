@@ -16,6 +16,7 @@ use Panneau\Definition\DefinitionBuilder;
 use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\DefinitionController;
+use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\FieldCheckController;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Controllers\SearchController;
@@ -75,14 +76,20 @@ class Panneau implements PanneauContract
         ]);
 
         $search = (bool) $config->get('panneau.search.enabled', true);
+        $embeds = (bool) $config->get('panneau.embeds.enabled', true);
 
-        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search): void {
-            $router->prefix('api')->as('api.')->group(function (Router $router) use ($search): void {
+        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search, $embeds): void {
+            $router->prefix('api')->as('api.')->group(function (Router $router) use ($search, $embeds): void {
                 $router->get('definition', DefinitionController::class)->name('definition');
                 if ($search) {
                     $router->get('search', SearchController::class)
                         ->middleware(ThrottleRequests::using(SearchController::RATE_LIMITER))
                         ->name('search');
+                }
+                if ($embeds) {
+                    $router->get('embeds', EmbedController::class)
+                        ->middleware(ThrottleRequests::using(EmbedController::RATE_LIMITER))
+                        ->name('embeds');
                 }
                 $this->registerResourceRoutes($router, null, self::RESOURCE_ROUTES);
                 $this->registerUploadRoutes($router);

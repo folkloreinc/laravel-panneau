@@ -2,6 +2,8 @@
 
 namespace Panneau\Tests\Feature\Http;
 
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Panneau\Http\Problem;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
@@ -99,6 +101,45 @@ class ResourceItemTest extends HttpTestCase
             ->assertJsonPath('data.title', 'New')
             ->assertJsonPath('data.body', 'Body');
         $this->assertNull($post->refresh()->secret);
+    }
+
+    public function test_values_of_the_types_of_decision_0033(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake(['www.youtube.com/oembed*' => Http::response(['type' => 'video', 'title' => 'A video', 'html' => '<iframe></iframe>'])]);
+        $post = $this->createPost();
+        $details = [
+            'contact' => '+1 514 555-0123',
+            'rating' => 7,
+            'reading_time' => 420,
+            'metadata' => ['source' => 'import', 'ids' => [1, 2]],
+            'keywords' => [' culture', 'montreal', 'culture'],
+            // Only the URL is kept from the request
+            'video' => ['url' => 'https://www.youtube.com/watch?v=1', 'html' => '<script></script>'],
+            'place' => ['lat' => 45.509595, 'lng' => -73.565912, 'address' => 'Place des Arts'],
+        ];
+
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['details' => $details])
+            ->assertOk()
+            ->assertJsonPath('data.details', [
+                'contact' => '+1 514 555-0123',
+                'rating' => 7,
+                'reading_time' => 420,
+                'metadata' => ['source' => 'import', 'ids' => [1, 2]],
+                'keywords' => ['culture', 'montreal'],
+                'video' => ['url' => 'https://www.youtube.com/watch?v=1', 'type' => 'video', 'title' => 'A video', 'provider' => 'YouTube', 'html' => '<iframe></iframe>'],
+                'place' => ['lat' => 45.509595, 'lng' => -73.565912, 'address' => 'Place des Arts'],
+            ]);
+        Http::assertSent(fn (Request $request): bool => $request['url'] === 'https://www.youtube.com/watch?v=1');
+
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['details' => [
+            'rating' => 11,
+            'metadata' => '{ "source": ',
+            'keywords' => ['a', 'b', 'c', 'd', 'e', 'f'],
+            'place' => ['lat' => 120, 'lng' => 0],
+        ]])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['details.rating', 'details.metadata', 'details.keywords', 'details.place.lat']);
     }
 
     public function test_update_needs_the_update_ability(): void
