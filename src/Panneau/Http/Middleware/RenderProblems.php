@@ -18,7 +18,8 @@ use Throwable;
  * The API only speaks JSON: requests are marked as accepting it, so the app's exception handler
  * never answers with a redirect (to a login route, or back after a validation error).
  *
- * @internal
+ * Projects that mount parts of the API themselves (`Panneau::uploadRoutes()`,
+ * `Panneau::resourceRoutes()`) add it first to their group's middleware.
  */
 final class RenderProblems
 {

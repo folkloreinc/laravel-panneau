@@ -17,6 +17,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 trait ResolvesResources
 {
+    use ReadsRouteParameters;
+
     protected function findResource(string $id): Resource
     {
         return $this->resources->find($id) ?? throw new NotFoundHttpException(sprintf('No resource "%s".', $id));

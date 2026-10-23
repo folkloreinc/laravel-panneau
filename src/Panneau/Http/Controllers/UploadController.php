@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\UploadStorage;
+use Panneau\Http\Controllers\Concerns\ReadsRouteParameters;
 use Panneau\Http\Problem;
 use Panneau\Uploads\S3Operation;
 use Panneau\Uploads\Uploads;
@@ -31,6 +32,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class UploadController
 {
+    use ReadsRouteParameters;
+
     private const MAX_PARTS = 10000;
 
     public function __construct(
@@ -88,14 +91,14 @@ final class UploadController
         ]);
     }
 
-    public function complete(Request $request, string $upload): JsonResponse
+    public function complete(Request $request): JsonResponse
     {
         $user = $this->authorize($request);
         $input = $this->validator->make($request->all(), [
             'name' => ['sometimes', 'nullable', 'string', 'max:255'],
         ])->validate();
 
-        $found = $this->uploads->find($user, $upload);
+        $found = $this->uploads->find($user, $this->routeParameter($request, 'upload'));
         if ($found === null) {
             throw new NotFoundHttpException('Upload not found.');
         }

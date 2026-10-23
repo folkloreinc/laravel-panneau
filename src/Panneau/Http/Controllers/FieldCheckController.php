@@ -35,9 +35,10 @@ final class FieldCheckController
         private readonly FieldChecks $checks,
     ) {}
 
-    public function __invoke(Request $request, string $resource, string $field): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
-        $resource = $this->findResource($resource);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
+        $field = $this->routeParameter($request, 'field');
         // Only the fields at the top of the resource
         $checked = $resource->field($field);
         if ($checked === null || ! $checked->hasCheck()) {
