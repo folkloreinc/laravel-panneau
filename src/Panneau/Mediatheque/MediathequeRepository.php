@@ -16,6 +16,7 @@ use LogicException;
 use Panneau\Repositories\SoftDeletingEloquentRepository;
 use Panneau\Resources\MediaResource;
 use Throwable;
+use WeakMap;
 
 /**
  * The repository of a library on `laravel-mediatheque` 2: its items are the mediatheque's media,
@@ -26,20 +27,31 @@ use Throwable;
  *   the `name` value as its name. The other values are then set like `EloquentRepository` does.
  *   A file the mediatheque refuses, or of a type outside the scope's `type`, is a `422` on
  *   `file`, and leaves neither a row nor a file.
- * - **The file of a media can't be replaced**: the mediatheque has no public API for it yet.
- *   The library's `file` field is `createOnly()`.
+ * - **Replacing the file** of a media replaces its original with `Mediatheque::replaceOriginal()`:
+ *   the media keeps its uid, so its references keep working, and the mediatheque processes it
+ *   again (its `status` is `pending`). A file the mediatheque refuses, of another type than the
+ *   media's, or outside the scope's `type`, is a `422` on `file`, and leaves the media and its
+ *   files as they were. The original sent back as the item gave it is kept.
  * - Lists, filters (`type`), search, scope, trash and restore are those of the Eloquent model.
  *   Media can't be duplicated.
  * - **Tests** ingest for real, on a fake disk and with `Bus::fake()`: the media of
  *   `Mediatheque::fake()` live in memory, and are refused.
  *
- * Extend it to change how files are ingested (`ingest()`: visibility, pipeline), and return
- * the subclass from the library's `repository()`.
+ * Extend it to change how files are ingested (`ingest()`: visibility, pipeline) or replaced
+ * (`replace()`: options, type changes), and return the subclass from the library's
+ * `repository()`.
  *
  * @extends SoftDeletingEloquentRepository<Model&MediaContract>
  */
 class MediathequeRepository extends SoftDeletingEloquentRepository
 {
+    /**
+     * The constraints of the scope each media was found in, for a replaced original.
+     *
+     * @var WeakMap<Model, array<string, list<mixed>>>
+     */
+    private WeakMap $constraints;
+
     /**
      * @param  class-string<Model&MediaContract>|null  $model  The media model. Defaults to the
      *                                                         mediatheque's `models.media`.
@@ -50,6 +62,17 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
             throw new LogicException('A media library on the mediatheque needs folklore/laravel-mediatheque ^2.0.');
         }
         parent::__construct($model ?? Models::media());
+        $this->constraints = new WeakMap;
+    }
+
+    public function find(string $id, array $scope): ?object
+    {
+        $media = parent::find($id, $scope);
+        if ($media instanceof Model) {
+            $this->constraints[$media] = array_filter($scope, self::isConstraint(...));
+        }
+
+        return $media;
     }
 
     public function create(array $values, array $scope): object
@@ -95,11 +118,40 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
 
     public function update(object $item, array $values): object
     {
-        if (array_key_exists(MediaResource::FILE, $values)) {
-            throw ValidationException::withMessages([MediaResource::FILE => __('The file of a media can\'t be replaced.')]);
+        if (! array_key_exists(MediaResource::FILE, $values)) {
+            return parent::update($item, $values);
         }
+        $source = $values[MediaResource::FILE];
+        unset($values[MediaResource::FILE]);
+        if ($source instanceof KeptOriginal) {
+            return parent::update($item, $values);
+        }
+        if (! $source instanceof Source) {
+            throw ValidationException::withMessages([MediaResource::FILE => __('The :attribute field is required.', ['attribute' => MediaResource::FILE])]);
+        }
+        $media = $this->ensureModel($item);
+        $constraints = $this->constraints[$media] ?? [];
+        $previous = $media->original()?->path();
 
-        return parent::update($item, $values);
+        $original = null;
+        try {
+            return $this->newModel()->getConnection()->transaction(function () use ($media, $source, $constraints, $values, &$original): Model {
+                $model = $this->ensureIngested($this->replace($media, $source));
+                $original = $model->original();
+                $this->checkConstraints($model, $constraints);
+
+                return parent::update($model, $values)->load('mediaFiles');
+            });
+        } catch (FileRejected $exception) {
+            throw ValidationException::withMessages([MediaResource::FILE => $exception->getMessage()]);
+        } catch (Throwable $exception) {
+            // The rows are rolled back; the new original was stored before them.
+            if ($original !== null && $original->source() !== null && $original->path() !== null && $original->path() !== $previous) {
+                Storage::disk($original->source())->delete($original->path());
+            }
+
+            throw $exception;
+        }
     }
 
     public function duplicate(object $item, array $scope): object
@@ -115,6 +167,23 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
     protected function ingest(Source $source, ?string $name, array $attributes): MediaContract
     {
         return app(Mediatheque::class)->ingest($source, name: $name, attributes: $attributes);
+    }
+
+    /**
+     * Replaces the original of a media. Override it to choose the options of the new original
+     * (`IngestOptions`: pipeline, source) or to allow a file of another type
+     * (`allowTypeChange: true`); the default refuses it.
+     */
+    protected function replace(MediaContract $media, Source $source): MediaContract
+    {
+        $mediatheque = app(Mediatheque::class);
+        // A project can still require an alpha of the mediatheque before replaceOriginal()
+        // @phpstan-ignore function.alreadyNarrowedType
+        if (! method_exists($mediatheque, 'replaceOriginal')) {
+            throw ValidationException::withMessages([MediaResource::FILE => __('Replacing the file of a media needs folklore/laravel-mediatheque 2.0.0-alpha.5 or later.')]);
+        }
+
+        return $mediatheque->replaceOriginal($media, $source);
     }
 
     /**

@@ -14,9 +14,10 @@ use RuntimeException;
  * The `file` field of a library on `laravel-mediatheque`: the original of a media.
  *
  * The field doesn't store the file: it gives the repository the source that the mediatheque
- * ingests (`Source::disk()` for a direct upload, which the mediatheque copies on the storage
- * itself, or the file of the request). Its disk, directory and visibility are the mediatheque's.
- * Items give the original as a `StoredFile`, with the mediatheque's URL.
+ * ingests, or that replaces the original (`Source::disk()` for a direct upload, which the
+ * mediatheque copies on the storage itself, or the file of the request). The original sent back
+ * as the item gave it keeps it (`KeptOriginal`). Its disk, directory and visibility are the
+ * mediatheque's. Items give the original as a `StoredFile`, with the mediatheque's URL.
  *
  * @internal Configured through `MediathequeResource::file()`.
  */
@@ -38,6 +39,10 @@ class MediathequeFile extends File
             $name = $upload->name ?? (is_string($value['name'] ?? null) ? $value['name'] : $upload->uid);
 
             return Source::disk($upload->disk, $upload->path, $name);
+        }
+        if (is_array($value)) {
+            // The original the item gave, sent back: the validation found it among the item's files
+            return new KeptOriginal;
         }
 
         throw ValidationException::withMessages([$path => __('The :attribute is not a new file.', ['attribute' => $this->name])]);

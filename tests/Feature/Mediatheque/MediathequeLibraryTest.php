@@ -4,8 +4,10 @@ namespace Panneau\Tests\Feature\Mediatheque;
 
 use Folklore\Image\ImageServiceProvider;
 use Folklore\Mediatheque\Contracts\Mediatheque;
+use Folklore\Mediatheque\Contracts\Models\Media as MediaContract;
 use Folklore\Mediatheque\Events\MediaCreated;
 use Folklore\Mediatheque\Facades\Mediatheque as MediathequeFacade;
+use Folklore\Mediatheque\Ingest\Source;
 use Folklore\Mediatheque\Jobs\ProbeMedia;
 use Folklore\Mediatheque\Models\File as MediathequeFile;
 use Folklore\Mediatheque\Models\Media;
@@ -22,6 +24,7 @@ use LogicException;
 use Panneau\Fields\File;
 use Panneau\Fields\Media as MediaField;
 use Panneau\Fields\Text;
+use Panneau\Mediatheque\MediathequeRepository;
 use Panneau\Resources\Resource;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Concerns\ValidatesProtocol;
@@ -97,11 +100,10 @@ class MediathequeLibraryTest extends HttpTestCase
         $this->assertValidDefinition($response->json());
         $library = collect($response->json('resources'))->firstWhere('id', 'media-library');
         $this->assertSame('media', $library['kind']);
-        // The mediatheque's types give the accepted files; the file can't be replaced
+        // The mediatheque's types give the accepted files
         $this->assertSame([
             'name' => 'file',
             'type' => 'file',
-            'createOnly' => true,
             'rules' => [['rule' => 'required'], ['rule' => 'accept', 'value' => ['image/*', 'application/pdf']]],
             'accept' => ['image/*', 'application/pdf'],
         ], $library['fields'][0]);
@@ -223,19 +225,140 @@ class MediathequeLibraryTest extends HttpTestCase
         Bus::assertNotDispatched(ProbeMedia::class);
     }
 
-    public function test_the_metadata_of_a_media_change_but_not_its_file(): void
+    /**
+     * Another image than `png()`: a 2×2 red square.
+     */
+    private static function redSquare(): string
+    {
+        return (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==');
+    }
+
+    private function media(string $id): Media
+    {
+        return Media::query()->where('uid', $id)->firstOrFail()->load('mediaFiles');
+    }
+
+    public function test_the_file_of_a_media_is_replaced_by_an_upload(): void
+    {
+        $id = $this->create(['file' => ['upload' => $this->upload('a.png', self::png(), 'image/png')], 'name' => 'Portrait'])->assertCreated()->json('data.id');
+        $before = $this->media($id);
+        $path = $before->original()?->path();
+
+        $response = $this->patchJson(self::API.'/resources/media-library/'.$id, [
+            'file' => ['upload' => $this->upload('b.png', self::redSquare(), 'image/png')],
+        ])->assertOk();
+
+        $this->assertMatchesComponent($response->json('data'), 'MediaItem');
+        $response
+            ->assertJsonPath('data.id', $id)
+            ->assertJsonPath('data.name', 'Portrait')
+            ->assertJsonPath('data.file.name', 'b.png')
+            ->assertJsonPath('data.media.status', 'pending');
+        $after = $this->media($id);
+        $this->assertSame($before->getKey(), $after->getKey());
+        $this->assertNotSame($path, $after->original()?->path());
+        Storage::disk('media')->assertExists((string) $after->original()?->path());
+        $this->assertSame(1, MediathequeFile::query()->where('handle', 'original')->count());
+    }
+
+    public function test_the_file_of_a_media_is_replaced_by_a_file_in_the_request(): void
+    {
+        $id = $this->create(['file' => ['upload' => $this->upload('a.pdf', self::PDF, 'application/pdf')]])->assertCreated()->json('data.id');
+
+        $this->patch(self::API.'/resources/media-library/'.$id, [
+            'file' => UploadedFile::fake()->createWithContent('b.pdf', self::PDF.'%% new'),
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.file.name', 'b.pdf')
+            ->assertJsonPath('data.media.type', 'document');
+    }
+
+    public function test_the_original_is_kept_when_it_is_sent_back_or_left_out(): void
+    {
+        $created = $this->create(['file' => ['upload' => $this->upload('a.png', self::png(), 'image/png')]])->assertCreated();
+        $id = $created->json('data.id');
+        $path = $this->media($id)->original()?->path();
+
+        $this->patchJson(self::API.'/resources/media-library/'.$id, ['name' => 'Renamed'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Renamed');
+        $this->patchJson(self::API.'/resources/media-library/'.$id, ['name' => 'Again', 'file' => $created->json('data.file')])
+            ->assertOk()
+            ->assertJsonPath('data.file.name', 'a.png');
+
+        $this->assertSame($path, $this->media($id)->original()?->path());
+        $this->assertSame(1, MediathequeFile::query()->count());
+    }
+
+    public function test_a_replacement_the_mediatheque_refuses_leaves_the_media_as_it_was(): void
     {
         $id = $this->create(['file' => ['upload' => $this->upload('a.png', self::png(), 'image/png')]])->assertCreated()->json('data.id');
-        $media = Media::query()->where('uid', $id)->firstOrFail();
-        $path = $media->original()?->path();
+        $path = $this->media($id)->original()?->path();
+        $files = Storage::disk('media')->allFiles();
 
-        $this->patchJson(self::API.'/resources/media-library/'.$id, [
-            'name' => 'Renamed',
-            'file' => ['upload' => $this->upload('b.png', self::png(), 'image/png')],
-        ])->assertOk()->assertJsonPath('data.name', 'Renamed')->assertJsonPath('data.file.name', 'a.png');
+        // Not an image, whatever it claims; and a document for an image
+        $this->patchJson(self::API.'/resources/media-library/'.$id, ['file' => ['upload' => $this->upload('fake.png', 'not an image', 'image/png')]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('file');
+        $this->patchJson(self::API.'/resources/media-library/'.$id, ['file' => ['upload' => $this->upload('terms.pdf', self::PDF, 'application/pdf')]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('file');
 
-        $this->assertSame($path, $media->refresh()->load('mediaFiles')->original()?->path());
-        $this->assertSame(1, MediathequeFile::query()->count());
+        $this->assertSame($path, $this->media($id)->original()?->path());
+        $this->assertSame('image', $this->media($id)->type());
+        $this->assertSame($files, Storage::disk('media')->allFiles());
+    }
+
+    public function test_a_library_can_allow_type_changes_within_its_types(): void
+    {
+        Panneau::resources([new class extends MediaLibraryResource
+        {
+            public function id(): string
+            {
+                return 'images';
+            }
+
+            public function mediaTypes(): array
+            {
+                return ['image'];
+            }
+
+            protected function file(File $file): File
+            {
+                return $file->accept(['image/*', 'application/pdf']);
+            }
+
+            public function repository(): ?string
+            {
+                return TypeChangingRepository::class;
+            }
+        }, new class extends MediaLibraryResource
+        {
+            public function id(): string
+            {
+                return 'anything';
+            }
+
+            public function repository(): ?string
+            {
+                return TypeChangingRepository::class;
+            }
+        }]);
+        $image = $this->create(['file' => ['upload' => $this->upload('a.png', self::png(), 'image/png')]], 'images')->assertCreated()->json('data.id');
+        $files = Storage::disk('media')->allFiles();
+
+        // The mediatheque allows the new type, but the library only holds images
+        $this->patchJson(self::API.'/resources/images/'.$image, ['file' => ['upload' => $this->upload('terms.pdf', self::PDF, 'application/pdf')]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['file' => 'The file must be a file of type: image.']);
+        $this->assertSame('image', $this->media($image)->type());
+        $this->assertSame($files, Storage::disk('media')->allFiles());
+
+        // A library of images and documents takes it
+        $other = $this->create(['file' => ['upload' => $this->upload('b.png', self::png(), 'image/png')]], 'anything')->assertCreated()->json('data.id');
+        $this->patchJson(self::API.'/resources/anything/'.$other, ['file' => ['upload' => $this->upload('terms.pdf', self::PDF, 'application/pdf')]])
+            ->assertOk()
+            ->assertJsonPath('data.media.type', 'document');
     }
 
     public function test_lists_are_scoped_and_filtered_by_type(): void
@@ -288,5 +411,16 @@ class MediathequeLibraryTest extends HttpTestCase
 
         $this->postJson(self::API.'/resources/articles', ['title' => 'A', 'cover' => $document])->assertUnprocessable()->assertJsonValidationErrors('cover');
         $this->postJson(self::API.'/resources/articles', ['title' => 'A', 'cover' => 'med_missing'])->assertUnprocessable()->assertJsonValidationErrors('cover');
+    }
+}
+
+/**
+ * Allows files of another type than the media's.
+ */
+class TypeChangingRepository extends MediathequeRepository
+{
+    protected function replace(MediaContract $media, Source $source): MediaContract
+    {
+        return app(Mediatheque::class)->replaceOriginal($media, $source, allowTypeChange: true);
     }
 }

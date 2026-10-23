@@ -23,6 +23,5 @@ The architecture planned a `MediaRepository` contract and `/media` endpoints, wi
 ## Consequences
 
 - A library is configured like any resource: fields, list, policies, scope, actions. Two libraries can share a model or the mediatheque, scoped by type or by a column of the project.
-- The file of a media on the mediatheque can't be replaced yet: `laravel-mediatheque` 2.0.0-alpha.3 has no public API to replace an original (its architecture plans `replaceOriginal()`). The `file` field of a `MediathequeResource` is `createOnly()` until it has one.
+- The file of a media on the mediatheque is replaced with the mediatheque's `replaceOriginal()`, since `laravel-mediatheque` 2.0.0-alpha.5 ([#93](https://github.com/folkloreinc/laravel-panneau/issues/93)). Before it, the `file` field of a `MediathequeResource` was `createOnly()`.
 - In groups and blocks, `media` values give `{ "id", "transform" }`, without `label` and `media`, as relations in groups give no references.
-- `tests/protocol` points to the head of folkloreinc/panneau-js#88, and goes back to `v5.x` once it merges.
