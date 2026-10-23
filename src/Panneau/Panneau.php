@@ -15,6 +15,7 @@ use Panneau\Definition\DefinitionBuilder;
 use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\DefinitionController;
+use Panneau\Http\Controllers\FieldCheckController;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\UploadController;
@@ -80,6 +81,7 @@ class Panneau implements PanneauContract
                 $router->get('resources/{resource}', [ResourceController::class, 'index'])->name('resources.index');
                 $router->post('resources/{resource}', [ResourceController::class, 'store'])->name('resources.store');
                 $router->post('resources/{resource}/actions/{action}', ActionController::class)->name('resources.actions');
+                $router->post('resources/{resource}/fields/{field}/check', FieldCheckController::class)->name('resources.fields.check');
                 $router->get('resources/{resource}/{id}', [ResourceController::class, 'show'])->name('resources.show');
                 $router->patch('resources/{resource}/{id}', [ResourceController::class, 'update'])->name('resources.update');
                 $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy');

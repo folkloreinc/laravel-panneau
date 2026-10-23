@@ -299,8 +299,32 @@
                         "type": "string"
                     }
                 },
+                "ratios": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*:[1-9][0-9]*$"
+                    }
+                },
+                "rotate": {
+                    "type": "boolean"
+                },
+                "focalPoint": {
+                    "type": "boolean"
+                },
+                "transformBase": {
+                    "type": "string",
+                    "enum": [
+                        "media",
+                        "original",
+                        "choose"
+                    ]
+                },
                 "from": {
                     "type": "string"
+                },
+                "check": {
+                    "type": "boolean"
                 },
                 "display": {
                     "type": "string"
@@ -516,6 +540,39 @@
                                     "additionalProperties": {}
                                 }
                             ]
+                        },
+                        "message": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "rule",
+                        "value"
+                    ],
+                    "additionalProperties": {}
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "rule": {
+                            "type": "string",
+                            "const": "crop"
+                        },
+                        "value": {
+                            "type": "object",
+                            "properties": {
+                                "ratios": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "pattern": "^[1-9][0-9]*:[1-9][0-9]*$"
+                                    }
+                                },
+                                "required": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "additionalProperties": {}
                         },
                         "message": {
                             "type": "string"
@@ -1448,6 +1505,9 @@
                 },
                 "abilities": {
                     "$ref": "#/$defs/Abilities"
+                },
+                "resource": {
+                    "type": "string"
                 }
             },
             "required": [

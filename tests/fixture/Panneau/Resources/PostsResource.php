@@ -16,6 +16,7 @@ use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\RichText;
 use Panneau\Fields\Select;
+use Panneau\Fields\Slug;
 use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
 use Panneau\Layout\Field;
@@ -46,6 +47,8 @@ class PostsResource extends Resource
     {
         return [
             Text::make('title')->label('Title')->required()->max(120),
+            Slug::make('slug')->from('title')->localized()->unique()
+                ->url(fn (string $slug, ?string $locale): string => 'https://example.com/'.$locale.'/posts/'.$slug),
             Text::make('subtitle')->localized(),
             RichText::make('body'),
             Select::make('status')->options(PostStatus::class)->required()->default('draft'),
@@ -76,7 +79,7 @@ class PostsResource extends Resource
                 ]),
                 Tab::make('Sharing', [Section::make('SEO', [Field::make('seo')])->collapsible()]),
             ]),
-            Sidebar::make([Field::make('published_at'), Field::make('author'), Field::make('tags')]),
+            Sidebar::make([Field::make('slug'), Field::make('published_at'), Field::make('author'), Field::make('tags')]),
         ];
     }
 

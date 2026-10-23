@@ -34,6 +34,17 @@ return new class extends Migration
             $table->text('body')->nullable();
             $table->boolean('featured')->default(false);
             $table->string('secret')->nullable();
+            $table->json('slug')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('pages', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedInteger('team_id')->nullable();
+            $table->foreignId('parent_id')->nullable();
+            $table->string('handle')->nullable();
+            $table->json('title')->nullable();
+            $table->json('slug')->nullable();
             $table->timestamps();
         });
 
@@ -102,6 +113,7 @@ return new class extends Migration
         Schema::dropIfExists('assets');
         Schema::dropIfExists('documents');
         Schema::dropIfExists('post_tag');
+        Schema::dropIfExists('pages');
         Schema::dropIfExists('posts');
         Schema::dropIfExists('tags');
         Schema::dropIfExists('authors');
