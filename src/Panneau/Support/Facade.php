@@ -10,7 +10,9 @@ use Panneau\Panneau;
  * @method static \Panneau\Resources\Resource|null resource(string $id)
  * @method static \Panneau\Contracts\Panneau repositoryAdapter(string $contract, string|\Closure $adapter)
  * @method static \Panneau\Contracts\Panneau allowWithoutPolicies(bool $allow = true)
- * @method static void routes()
+ * @method static void routes(bool $app = true)
+ * @method static void uploadRoutes()
+ * @method static void resourceRoutes(?array $resources = null, ?array $only = null)
  * @method static array<string, mixed> definition(?\Illuminate\Contracts\Auth\Authenticatable $user = null)
  *
  * @see Panneau
