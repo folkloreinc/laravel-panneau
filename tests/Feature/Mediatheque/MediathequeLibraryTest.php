@@ -4,6 +4,8 @@ namespace Panneau\Tests\Feature\Mediatheque;
 
 use Folklore\Image\ImageServiceProvider;
 use Folklore\Mediatheque\Contracts\Mediatheque;
+use Folklore\Mediatheque\Events\MediaCreated;
+use Folklore\Mediatheque\Facades\Mediatheque as MediathequeFacade;
 use Folklore\Mediatheque\Jobs\ProbeMedia;
 use Folklore\Mediatheque\Models\File as MediathequeFile;
 use Folklore\Mediatheque\Models\Media;
@@ -12,9 +14,11 @@ use Folklore\Mediatheque\Support\Models;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
+use LogicException;
 use Panneau\Fields\File;
 use Panneau\Fields\Media as MediaField;
 use Panneau\Fields\Text;
@@ -156,6 +160,32 @@ class MediathequeLibraryTest extends HttpTestCase
         $this->assertStringContainsString('/media/'.$response->json('data.id'), $thumbnail);
         $this->assertStringContainsString('w480', $thumbnail);
         $this->assertNotSame($response->json('data.media.url'), $thumbnail);
+    }
+
+    /**
+     * The documented way to test a library: a real ingest, on a fake disk, without its jobs.
+     */
+    public function test_a_library_is_tested_with_a_real_ingest(): void
+    {
+        Event::fake([MediaCreated::class]);
+
+        $this->create(['file' => ['upload' => $this->upload('portrait.png', self::png(), 'image/png')], 'name' => 'Portrait'])
+            ->assertCreated();
+
+        Event::assertDispatched(MediaCreated::class, fn (MediaCreated $event): bool => $event->media->name() === 'Portrait');
+        Bus::assertDispatched(ProbeMedia::class);
+        $this->assertDatabaseHas(Models::table('medias'), ['name' => 'Portrait', 'type' => 'image', 'team_id' => 1]);
+    }
+
+    public function test_the_fake_of_the_mediatheque_is_refused_with_an_explanation(): void
+    {
+        MediathequeFacade::fake();
+        $this->withoutExceptionHandling();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('A media library stores its media in the database, as '.Media::class.', and Mediatheque::fake() keeps them in memory.');
+
+        $this->create(['file' => ['upload' => $this->upload('portrait.png', self::png(), 'image/png')]]);
     }
 
     public function test_files_outside_the_library_leave_nothing_behind(): void
