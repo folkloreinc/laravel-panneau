@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use InvalidArgumentException;
 use Laravel\Scout\Builder as ScoutBuilder;
 use Panneau\Contracts\Repositories\ChunkedQuery;
@@ -34,6 +35,8 @@ use ReflectionNamedType;
  *   Models that use `Laravel\Scout\Searchable` are searched through Scout instead, within the
  *   same scope, ids, exclusions and filters (see `scoutSearch()`).
  * - The version is a hash of the model's attributes.
+ * - A unique slug (`Slug::unique()`) is looked up in the column of its field, or the locale's
+ *   key of a JSON column for a localized slug, deleted items included (see `slugQuery()`).
  *
  * Extend it to change any of these, and return the subclass from the resource's
  * `repository()`. Use `EloquentRepository::for()` to get the right class for a model: models
@@ -169,6 +172,30 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
             $model->getQualifiedKeyName(),
             $model->getKeyName(),
         );
+    }
+
+    /**
+     * The items that have a value of a slug, for `Slug::unique()`: within the scope, other
+     * than the item `$exceptId`, deleted items included (a deleted item can come back, and a
+     * unique index counts it too). The value is looked up in the column named after the field,
+     * or in the locale's key of a JSON column (`slug->fr`) for a localized slug.
+     *
+     * The closure given to `unique()` narrows this query further. Override it to look up the
+     * slug elsewhere, such as in a table of translations.
+     *
+     * @param  array<string, mixed>  $scope
+     * @return Builder<TModel>
+     */
+    public function slugQuery(string $field, string $value, ?string $locale, ?string $exceptId, array $scope): Builder
+    {
+        $builder = $this->model::query()->withoutGlobalScope(SoftDeletingScope::class);
+        $this->applyScope($builder, $scope);
+        $builder->where($locale !== null ? $field.'->'.$locale : $field, $value);
+        if ($exceptId !== null) {
+            $builder->where($builder->qualifyColumn($this->idColumn()), '!=', $exceptId);
+        }
+
+        return $builder;
     }
 
     /**

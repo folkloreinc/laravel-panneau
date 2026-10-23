@@ -210,7 +210,7 @@ final class DefinitionBuilder
             $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action)];
         }
         if (isset($definition['fields']) && is_array($definition['fields'])) {
-            $definition['fields'] = array_map(fn (array $field): array => $this->resolveFieldReferences($field), $definition['fields']);
+            $definition['fields'] = array_map(fn (array $field): array => $this->nestedField($field), $definition['fields']);
         }
 
         return $definition;
@@ -237,17 +237,31 @@ final class DefinitionBuilder
             $field = $this->resolveResource($field);
         }
         if (isset($field['fields']) && is_array($field['fields'])) {
-            $field['fields'] = array_map(fn (array $child): array => $this->resolveFieldReferences($child), $field['fields']);
+            $field['fields'] = array_map(fn (array $child): array => $this->nestedField($child), $field['fields']);
         }
         if (isset($field['types']) && is_array($field['types'])) {
             $field['types'] = array_map(function (array $type): array {
-                $type['fields'] = array_map(fn (array $child): array => $this->resolveFieldReferences($child), $type['fields'] ?? []);
+                $type['fields'] = array_map(fn (array $child): array => $this->nestedField($child), $type['fields'] ?? []);
 
                 return $type;
             }, $field['types']);
         }
 
         return $field;
+    }
+
+    /**
+     * A field inside a group, a block or an action: only fields at the top of a resource
+     * check their value (`check`), since the check names a field of the resource.
+     *
+     * @param  array<array-key, mixed>  $field
+     * @return array<array-key, mixed>
+     */
+    private function nestedField(array $field): array
+    {
+        unset($field['check']);
+
+        return $this->resolveFieldReferences($field);
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace TestApp\Conformance;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
 
@@ -15,6 +16,7 @@ class ConformanceSeeder extends Seeder
             Post::query()->create([
                 'team_id' => 1,
                 'title' => $title,
+                'slug' => ['fr' => 'article-'.($index + 1), 'en' => Str::slug($title)],
                 'subtitle' => ['fr' => 'Article '.($index + 1), 'en' => 'Post '.($index + 1)],
                 'status' => 'published',
                 'author_id' => $author->id,
