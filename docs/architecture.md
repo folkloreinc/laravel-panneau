@@ -58,7 +58,7 @@ final class PagesResource extends Resource
     {
         return [
             Text::make('title')->localized()->required()->max(120),
-            PageSlug::make('slug')->localized(),
+            Slug::make('slug')->from('title')->localized()->unique()->url($this->pageUrl(...)),
             RichText::make('body')->localized(),
             Media::make('image')->resource(ImagesResource::class), // a media library
             Select::make('status')->options(PageStatus::class)->required(),
@@ -154,7 +154,8 @@ interface ResourceRepository
 }
 ```
 
-- **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, and `ChunkedQuery` (for queued actions). Actions and features that need one are only offered when the repository has it.
+- **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, `ChecksSlugs` (for unique slugs on repositories that aren't Eloquent, see [Slug](#slug)), and `ChunkedQuery` (for queued actions). Actions and features that need one are only offered when the repository has it.
+- **Search.** A `Searchable` repository applies `$query->search` to `$query->searchFields`, within the scope. The fields can be empty for a resource in the global search through its `features()` alone: the repository searches its own fields then (a search index), or finds nothing, but never ignores the search. See [Search and dashboard](#search-and-dashboard).
 - **Adapters:**
   - `EloquentRepository` (package) implements the contract for a model.
   - The `laravel-folklore` adapter wraps any `Folklore\Contracts\Repositories\Entities`. It maps the `ResourceQuery` to `get(params, page, count)` (`queryColumns`, `order`, `order_direction`, the `offset_paginator`), and values to `create()` and `update()`. It reads the version from `updated_at` through `HasModel`, or from the Entity's `version()`.
@@ -222,6 +223,39 @@ File::make('attachments')->multiple()->max(5),
 - **Model.** With `EloquentRepository`, the attribute needs a JSON column (`$table->json('terms')->nullable()`) with the `array` cast. In a `Group` or a `Repeater`, the file's stored value is part of the group's or the blocks' JSON.
 - **Not localized.** A file field can't be `localized()`.
 - **In an action**, a `File` parameter is validated the same way, but nothing is stored: `$values->upload('file')` gives the upload.
+
+### Slug
+
+Laravel side of [panneau-js decision 0032](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0032-field-checks-and-slugs.md): a slug that checks its value with the backend as it is typed. See [decisions/0011](decisions/0011-slug-checks.md).
+
+```php
+Slug::make('slug')->from('title')->localized()
+    ->unique(fn (Builder $query, array $values) => $query->where('parent_id', $values['parent'] ?? null))
+    ->url(fn (string $slug, ?string $locale, array $values, ?string $id): ?string => $this->pageUrl($slug, $locale, $values))
+    ->disabledWhen(fn (array $values, ?string $id): bool => ($values['handle'] ?? null) === 'home'),
+```
+
+- **`unique(?Closure $scope = null)`.** No other item of the resource, within its scope, has the slug: per locale for a localized slug, excluding the item being updated. Saving refuses a taken slug with a `422` on its path (`slug`, `slug.fr`). The closure narrows the lookup further, such as per parent.
+- **`url(Closure $url)`** gives the URL of a slug, or null. The field shows it as a link, and the URL without the slug at its end as the prefix in front of the slug (`https://example.com/fr/vacances/` for `…/vacances/ete`). When the URL doesn't end with the slug as typed (it encodes it, or adds a suffix), there is no prefix.
+- **`disabledWhen(Closure $disabled)`:** the field doesn't apply to some items, such as the home page's slug. The check answers `disabled`, and the field is read-only. It doesn't change saving.
+- **`check`.** Any of the three puts `"check": true` in the field's definition. A slug without them is the plain `slug` type, with a fixed `settings.prefix` if any.
+- **The form's values.** The closures receive the form's values, keyed by field name, as they would be saved: relations as ids (the related item's public id). They are the values the client sent, over those of the item being edited, since an update sends only what changed, and they are not validated yet: use them to compute a URL or a scope, nothing else.
+- **The check endpoint.** `POST {path}/api/resources/{resource}/fields/{field}/check`, with `{ "value", "locale", "id", "values" }`, answers `{ "available", "suggestion", "prefix", "url", "disabled" }`:
+  - `available` is false when another item has the value; an empty value is always available. `suggestion` is then the value with `-2`, `-3`…, the first that is free among `Slug::SUGGESTIONS` (50), or null.
+  - It runs with the permission to create (`id` null), or to update the item `id`, which is found within the resource's scope (`404` otherwise). A field that doesn't exist at the top of the resource, or has no check, is a `404`. A request without `value`, or with a locale that isn't one of `panneau.locales`, is a `422`. A localized slug without `locale` is checked in the default locale.
+  - It isn't authoritative: saving validates uniqueness again.
+  - The endpoint is generic: any field type can override `hasCheck()` and `check()` of `Field`. Only fields at the top of a resource check: the definition leaves `check` out of fields in groups, blocks and actions.
+- **The lookup.** `EloquentRepository` looks the value up with `slugQuery()`: the column named after the field, or the locale's key of a JSON column (`slug->fr`) for a localized slug, within the scope, deleted items included (a unique index counts them too). The closure of `unique()` receives that query. Override `slugQuery()` to look elsewhere, such as a table of translations. Other repositories implement `ChecksSlugs`:
+
+  ```php
+  interface ChecksSlugs
+  {
+      public function slugExists(string $field, string $value, ?string $locale, ?string $exceptId, array $scope, array $values): bool;
+  }
+  ```
+
+  They scope the lookup with `$values` themselves: the closure of `unique()` is for Eloquent queries. `unique()` on a repository that has neither throws a `LogicException`.
+- **Only at the top of a resource.** A slug in a group or a block isn't unique within the resource: `unique()` is ignored there.
 
 ## Actions
 
@@ -334,7 +368,7 @@ final class PublishPages extends Action
   - The routes can be mounted under a prefix with its own parameter, such as `tenants/{tenant}`: the controllers read their parameters by name.
   - `panneau.auth` requires a user on the guard of `panneau.auth.guard`, and the `viewPanneau` gate. Without that gate, nobody gets in.
   - Every other path under `{panneau.path}` serves the page of the app (route `panneau.app`), since the app routes on the client. The route is registered last: the project's own routes under that path go before `Panneau::routes()`. `Panneau::routes(app: false)` registers only the API.
-  - **Parts of the API.** A project with its own admin front can mount only what it uses, under its own group: `Panneau::uploadRoutes()` (nothing when uploads are not enabled) and `Panneau::resourceRoutes($resources, only: [...])`, where `$resources` are ids (null for all) and `only` picks among `index`, `store`, `show`, `update`, `destroy` and `actions`. The routes keep their `panneau.api.*` names, after the group's name, and render their errors as problems. They don't get `panneau.middleware`: the group authenticates. Add `RenderProblems` first to the group's middleware so that its errors are problems too.
+  - **Parts of the API.** A project with its own admin front can mount only what it uses, under its own group: `Panneau::uploadRoutes()` (nothing when uploads are not enabled) and `Panneau::resourceRoutes($resources, only: [...])`, where `$resources` are ids (null for all) and `only` picks among `index`, `store`, `show`, `update`, `destroy`, `actions` and `check` (the field check endpoint). The routes keep their `panneau.api.*` names, after the group's name, and render their errors as problems. They don't get `panneau.middleware`: the group authenticates. Add `RenderProblems` first to the group's middleware so that its errors are problems too.
 
     ```php
     Route::prefix('workspaces/{workspace}')
@@ -349,7 +383,7 @@ final class PublishPages extends Action
   - the boot config in `<script type="application/json" id="panneau-boot">`: `apiBaseUrl`, `basePath`, `locale`, `loginUrl`, and the definition for the user unless `panneau.app.inline_definition` is off, so the app renders without fetching it. `Panneau::bootConfig()` builds it for projects that render the app in their own page. The tests check it against the protocol's `boot.schema.json`;
   - guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. The API answers them with a `401`.
 - **Generic controllers implement the protocol:**
-  - definition, resources, actions and action runs;
+  - definition, resources, field checks, actions and action runs;
   - uploads, auth, account (media are resources);
   - search, dashboard widgets, preview.
 - **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
@@ -565,19 +599,39 @@ Media::make('image'),                                                           
 
 ## Search and dashboard
 
-- **Global search** uses the resources' `search()` columns. It goes through the repository's `Searchable` capability. `EloquentRepository` and the Folklore adapter use Laravel Scout when the model is searchable (MySQL database engine or Meilisearch), and `LIKE` queries otherwise.
+See [decisions/0010](decisions/0010-global-search.md) and the [shared decision](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0029-go-to-palette.md).
+
+```php
+// config/panneau.php
+'search' => [
+    'enabled' => true,   // false: no route, and "search": { "enabled": false } in the definition
+    'rate_limit' => 60,  // searches per minute for a user (or an IP address); null or 0: no limit
+],
+```
+
+- **Global search.** `GET {path}/api/search?q=&limit=&resources=` searches the resources in the global search, in the order of the definition, and answers the ones with results: at most `limit` items each (5 by default, 20 at most), and 20 in all. Once 20 items are found, the other resources are not searched.
+  - **Which resources.** `search` of a resource's `features()` when set, or else whether its list has a search (`$list->search([...])`). Its repository must be `Searchable`, and the user must be allowed `viewAny`, as for its list. The definition's `features.search` says the same.
+  - **Like the list.** Each resource is searched through its repository's `query()`: the list's search fields and default sort, the resource's scope, page 1. Items are serialized as in the list, with their abilities, and `total` is the total of the page.
+  - **Parameters.** They are read like `readSearchQuery()` of `@panneau/protocol`: `q` trimmed, from 2 to 255 characters; `limit` an integer from 1 to 20; `resources` ids of resources the user can search. An invalid parameter is a `422` problem, with `errors` keyed by parameter. A resource the user can't list is refused like one that doesn't exist.
+  - **Rate limit.** The route uses the `panneau-search` rate limiter: `panneau.search.rate_limit` searches per minute for a user, or an IP address without one. Over it, a `429` problem with `Retry-After`. A project changes the limit, or its key, by defining its own `panneau-search` limiter with `RateLimiter::for()`. The limiter counts in the app's cache.
+- **`EloquentRepository`** searches with a `LIKE` on the search fields. A search with no search fields finds nothing.
+- **Laravel Scout** (optional, `laravel/scout` 11). When the model uses `Laravel\Scout\Searchable`, `EloquentRepository` searches through Scout instead, for the global search, the list's `q` and the query selections of actions:
+  - the engine searches the model's searchable data (`toSearchableArray()`), not the list's search fields;
+  - the rest of the query is Scout's `query()` callback: the scope, ids, exclusions, filters and sorts, applied by the database as without Scout;
+  - the `database` and `collection` engines run that callback before paginating, so pages and totals are exact. Engines with their own index (Meilisearch, Algolia, Typesense) run it only on the items of the page they found. The scope is also given to the engine as `where` clauses (`whereIn` for a list), so **the scope's columns must be filterable attributes of the index**. The callback still keeps the items outside the scope out. Filters, ids and exclusions can make such pages shorter, and the order is the engine's;
+  - override `scoutSearch()` to give the engine more of the query, and `searchesWithScout()` to keep `LIKE` queries for a searchable model.
 - **Dashboard widgets** are classes that declare their type and options, and return their data. They are registered per role in the service provider.
 
 ## laravel-folklore
 
 - **Entities and repositories stay.** They remain the way Folklore projects access data. Only their contracts stop extending Panneau's: `Entity` keeps its own `id()`, and `Entities` no longer extends `Panneau\Contracts\Repository`.
 - **Plugin.** Its Panneau integration becomes a plugin that registers:
-  - the `ResourceRepository` adapter for `Folklore\Contracts\Repositories\Entities`;
-  - the `Page`, `Pages`, `Block`, `Blocks` and `PageSlug` fields;
+  - the `ResourceRepository` adapter for `Folklore\Contracts\Repositories\Entities`, which implements `ChecksSlugs` for unique slugs;
+  - the `Page`, `Pages`, `Block` and `Blocks` fields;
   - what its Entities need to reference media of a library;
   - the policies' base class for Entity contracts, if useful.
 
-  The plugin ships with its JS counterpart, so projects stop copying the `PageSlug` components.
+  Pages need no `PageSlug` field anymore, in PHP or in JS: their slug is a `Slug` with `unique()`, whose `url()` the pages module gives (the page's URL, which follows its parent), and `disabledWhen()` for the home page ([panneau-js decision 0032](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0032-field-checks-and-slugs.md)). Projects stop copying the `PageSlug` components.
 
 ## Supported versions
 

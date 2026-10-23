@@ -686,6 +686,94 @@
                 }
             }
         },
+        "/resources/{resource}/fields/{field}/check": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "field",
+                    "in": "path",
+                    "required": true,
+                    "description": "Name of a field with `check`.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "checkField",
+                "summary": "Checks a value as it is typed: whether a slug is available, and its URL. With the permission to create, or to update the item `id`.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FieldCheckRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "What the backend says about the value.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FieldCheckResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/actions/runs": {
             "get": {
                 "operationId": "listActionRuns",
@@ -1413,7 +1501,30 @@
                         "name": "q",
                         "in": "query",
                         "required": true,
-                        "description": "Search terms.",
+                        "description": "Search terms, trimmed.",
+                        "schema": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "description": "Items per resource.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 20,
+                            "default": 5
+                        }
+                    },
+                    {
+                        "name": "resources",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated ids of the searchable resources to search. Defaults to every one.",
                         "schema": {
                             "type": "string"
                         }
@@ -1421,7 +1532,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Results grouped by resource.",
+                        "description": "Results grouped by resource, in the order of the definition: at most `limit` items per resource, and 20 in all.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1432,6 +1543,26 @@
                     },
                     "401": {
                         "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1818,6 +1949,43 @@
                         "type": "object",
                         "properties": {
                             "rule": {
+                                "type": "string",
+                                "const": "crop"
+                            },
+                            "value": {
+                                "type": "object",
+                                "properties": {
+                                    "ratios": {
+                                        "description": "A crop must have one of them: its height is within one pixel of its width divided by the ratio, after its rotation.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "pattern": "^[1-9][0-9]*:[1-9][0-9]*$",
+                                            "description": "An aspect ratio, as `width:height`: `16:9`."
+                                        }
+                                    },
+                                    "required": {
+                                        "description": "Each image needs a crop for this use.",
+                                        "type": "boolean"
+                                    }
+                                },
+                                "additionalProperties": {}
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
                                 "type": "string"
                             },
                             "message": {
@@ -1832,7 +2000,7 @@
                         "description": "A rule added in a later version of the protocol. Clients that don't know it ignore it; the server still enforces it."
                     }
                 ],
-                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes."
+                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031)."
             },
             "BlockType": {
                 "type": "object",
@@ -1913,23 +2081,66 @@
                         }
                     },
                     "multiple": {
-                        "description": "`select`, `relation`, `media`, `file`: the value is an array.",
+                        "description": "`select`, `relation`, `media`, `image`, `file`: the value is an array.",
                         "type": "boolean"
                     },
                     "resource": {
-                        "description": "`relation`: id of the related resource. `media`: id of a resource of kind `media`, optional when the definition has only one.",
-                        "type": "string"
+                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027).",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        ]
                     },
                     "accept": {
-                        "description": "`media`, `file`: accepted MIME types.",
+                        "description": "`media`, `image`, `file`: accepted MIME types. `image` defaults to `image/*`.",
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     },
+                    "ratios": {
+                        "description": "`image`: ratios the editor suggests. The `crop` rule enforces ratios (decision 0031).",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[1-9][0-9]*:[1-9][0-9]*$",
+                            "description": "An aspect ratio, as `width:height`: `16:9`."
+                        }
+                    },
+                    "rotate": {
+                        "description": "`image`: whether the editor offers rotation and flips. Defaults to true.",
+                        "type": "boolean"
+                    },
+                    "focalPoint": {
+                        "description": "`image`: whether the editor offers the focal point. Defaults to true.",
+                        "type": "boolean"
+                    },
+                    "transformBase": {
+                        "description": "`image`: what a transform for one use starts from: the media's own transform (`media`, the default), the original file, or the user's choice in the editor (decision 0031).",
+                        "type": "string",
+                        "enum": [
+                            "media",
+                            "original",
+                            "choose"
+                        ]
+                    },
                     "from": {
                         "description": "`slug`: the field the slug is generated from.",
                         "type": "string"
+                    },
+                    "check": {
+                        "description": "The client checks the value with the backend as it is typed, with `POST /resources/{resource}/fields/{field}/check`: whether a `slug` is available, and its URL. A field at the top of the resource only.",
+                        "type": "boolean"
                     },
                     "display": {
                         "description": "Display used in lists, when it differs from the default one of the type.",
@@ -2336,7 +2547,7 @@
                         ]
                     },
                     "search": {
-                        "description": "Whether the resource is in the global search.",
+                        "description": "Whether the resource is in the global search. Defaults to whether its list has a search (`list.search`).",
                         "type": "boolean"
                     }
                 },
@@ -2378,6 +2589,14 @@
                     },
                     "itemTitle": {
                         "description": "The field used as the title of an item, in lists and pickers.",
+                        "type": "string"
+                    },
+                    "itemSubtitle": {
+                        "description": "The field shown under the title of an item, in search results, cards and pickers.",
+                        "type": "string"
+                    },
+                    "itemImage": {
+                        "description": "The field that holds the image of an item (a media or a URL), in search results, cards and pickers.",
                         "type": "string"
                     },
                     "fields": {
@@ -2453,6 +2672,10 @@
                     },
                     "abilities": {
                         "$ref": "#/components/schemas/Abilities"
+                    },
+                    "resource": {
+                        "description": "The resource of users: its item with this `id` is the profile of the user. Without it, clients look for a resource `users`.",
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -3694,10 +3917,22 @@
                             "y"
                         ],
                         "additionalProperties": {}
+                    },
+                    "base": {
+                        "description": "What a transform for one use starts from: the original file by default, or the media's own transform (`media`). With `media`, the crop and the focal point are relative to the media's version instead of the original (decision 0031).",
+                        "type": "string",
+                        "enum": [
+                            "media",
+                            "original"
+                        ]
+                    },
+                    "baseTransform": {
+                        "description": "With `base: \"media\"`: the media's own transform this one was made on. When the media's transform is no longer the same, clients ask to check the crop, and renderers clamp it.",
+                        "$ref": "#/components/schemas/MediaTransform"
                     }
                 },
                 "additionalProperties": {},
-                "description": "Non-destructive edits of an image, applied in this order: crop, then rotate, then flip."
+                "description": "Non-destructive edits of an image, applied in this order: crop, then rotate, then flip. Renderers ignore the keys they don't know, which editor tools can add."
             },
             "StoredFile": {
                 "type": "object",
@@ -3866,6 +4101,82 @@
                 "additionalProperties": {},
                 "description": "A presigned request."
             },
+            "FieldCheckRequest": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string",
+                        "description": "The value to check, as it is typed."
+                    },
+                    "locale": {
+                        "description": "The locale of the value, for a localized field.",
+                        "type": "string"
+                    },
+                    "id": {
+                        "description": "The item being edited, or null when creating one.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Id"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "values": {
+                        "description": "The form's current values, as they would be sent to save, for what the check depends on (a page's parent).",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {}
+                    }
+                },
+                "required": [
+                    "value"
+                ],
+                "additionalProperties": {},
+                "description": "A value of a field with `check`, to check with the backend."
+            },
+            "FieldCheckResponse": {
+                "type": "object",
+                "properties": {
+                    "available": {
+                        "type": "boolean",
+                        "description": "Whether no other item of the resource, in its scope and the same locale, has the value."
+                    },
+                    "suggestion": {
+                        "description": "An available value close to the one checked, when it is taken.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prefix": {
+                        "description": "What the field shows in front of the value: the start of its URL.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "url": {
+                        "description": "The URL the value gives the item, which the field links to.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "disabled": {
+                        "description": "The field doesn't apply to this item (the home page has no slug): the field is read-only.",
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "available"
+                ],
+                "additionalProperties": {},
+                "description": "What the backend says about a value: not authoritative, since saving still validates it."
+            },
             "MediaInfo": {
                 "type": "object",
                 "properties": {
@@ -3964,6 +4275,17 @@
                             "type": "string"
                         },
                         "additionalProperties": {}
+                    },
+                    "transform": {
+                        "description": "The media's own transform, from its library, which clients need to draw a transform for one use made over it (decision 0031).",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/MediaTransform"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -4007,6 +4329,10 @@
                     "id": {
                         "$ref": "#/components/schemas/Id"
                     },
+                    "resource": {
+                        "description": "The library of the media. Required for a field that allows several libraries, since ids are unique only within their resource (decision 0027).",
+                        "type": "string"
+                    },
                     "label": {
                         "description": "The `itemTitle` of the media.",
                         "type": "string"
@@ -4015,7 +4341,7 @@
                         "$ref": "#/components/schemas/MediaInfo"
                     },
                     "transform": {
-                        "description": "The edits of the image for this use only, over those of the media.",
+                        "description": "The edits of the image for this use only: from the original file, or over the media's own transform with `base: \"media\"`.",
                         "anyOf": [
                             {
                                 "$ref": "#/components/schemas/MediaTransform"
@@ -4030,7 +4356,7 @@
                     "id"
                 ],
                 "additionalProperties": {},
-                "description": "The value of a `media` field in items: the media, with what lists and fields show, and its edits for this use. Requests send the id, or `{ id, transform }`."
+                "description": "The value of a `media` or `image` field in items: the media, with what lists and fields show, and its edits for this use. Requests send the id, or `{ id, resource, transform }`: `resource` is required when the field allows several libraries."
             },
             "Session": {
                 "type": "object",
@@ -4053,7 +4379,8 @@
                             "type": "object",
                             "properties": {
                                 "resource": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "The id of the resource."
                                 },
                                 "items": {
                                     "type": "array",
@@ -4062,6 +4389,7 @@
                                     }
                                 },
                                 "total": {
+                                    "description": "How many items of the resource match, when the backend counts them: the list of the resource, searched, shows them all.",
                                     "type": "integer",
                                     "minimum": 0,
                                     "maximum": 9007199254740991
@@ -4078,7 +4406,8 @@
                 "required": [
                     "data"
                 ],
-                "additionalProperties": {}
+                "additionalProperties": {},
+                "description": "The results of the global search: the resources with results, in the order of the definition."
             },
             "PreviewResponse": {
                 "type": "object",

@@ -6,6 +6,7 @@ use Closure;
 use DateTimeInterface;
 use Illuminate\Validation\Rule as LaravelRule;
 use Panneau\Forms\Condition;
+use Panneau\Forms\FieldCheck;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\RuleSet;
 use Panneau\Forms\SaveContext;
@@ -400,6 +401,9 @@ abstract class Field
             $definition['visibleWhen'] = $this->visibleWhen->toArray();
         }
         $definition = array_merge($definition, $this->typeDefinition());
+        if ($this->hasCheck()) {
+            $definition['check'] = true;
+        }
         if (count($this->settings) > 0) {
             $definition['settings'] = $this->settings;
         }
@@ -415,6 +419,28 @@ abstract class Field
     protected function typeDefinition(): array
     {
         return [];
+    }
+
+    /**
+     * Whether the field checks its value with the backend as it is typed (`check` in the
+     * definition), through `POST /resources/{resource}/fields/{field}/check`. Only fields at the
+     * top of a resource check.
+     */
+    public function hasCheck(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Answers the check of a value, for a field with `check`: the protocol's
+     * `FieldCheckResponse` (`available`, `suggestion`, `prefix`, `url`, `disabled`). It isn't
+     * authoritative: saving still validates the value.
+     *
+     * @return array<string, mixed>
+     */
+    public function check(FieldCheck $check): array
+    {
+        return ['available' => true];
     }
 
     /**

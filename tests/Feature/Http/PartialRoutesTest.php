@@ -124,7 +124,7 @@ class PartialRoutesTest extends TestCase
         Route::prefix('admin')->group(fn () => Panneau::resourceRoutes());
         $this->app['router']->getRoutes()->refreshNameLookups();
 
-        foreach (['index', 'store', 'show', 'update', 'destroy', 'actions'] as $name) {
+        foreach (['index', 'store', 'show', 'update', 'destroy', 'actions', 'fields.check'] as $name) {
             $this->assertTrue(Route::has('panneau.api.resources.'.$name), $name);
         }
         $this->getJson('/admin/resources/authors')->assertOk();

@@ -16,6 +16,7 @@ use Panneau\Forms\SaveContext;
 use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Media\MediaReferences;
 use Panneau\Query\ResourceQuery;
+use Panneau\Resources\FieldChecks;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
@@ -39,6 +40,7 @@ final class ResourceController
         private readonly ValidationFactory $validator,
         private readonly Config $config,
         private readonly Uploads $uploads,
+        private readonly FieldChecks $checks,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -94,7 +96,13 @@ final class ResourceController
             $this->validator,
             $resource->allFields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Create, uploads: $uploads, media: $references),
+            $this->validationContext(
+                $request,
+                FormMode::Create,
+                uploads: $uploads,
+                media: $references,
+                valueExists: $this->checks->lookup($resource, $request, null, $request->all(), $references),
+            ),
         );
         $saving = new SaveContext(FormMode::Create, null, $uploads);
         try {
@@ -131,7 +139,15 @@ final class ResourceController
             $this->validator,
             $resource->allFields(),
             $request->all(),
-            $this->validationContext($request, FormMode::Update, partial: true, item: $item, uploads: $uploads, media: $references),
+            $this->validationContext(
+                $request,
+                FormMode::Update,
+                partial: true,
+                item: $item,
+                uploads: $uploads,
+                media: $references,
+                valueExists: $this->checks->lookup($resource, $request, $item, $request->all(), $references),
+            ),
         );
         $saving = new SaveContext(FormMode::Update, $item, $uploads);
         try {

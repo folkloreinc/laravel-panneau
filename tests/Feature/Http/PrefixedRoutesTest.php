@@ -62,6 +62,9 @@ class PrefixedRoutesTest extends HttpTestCase
             ->assertOk()
             ->assertJsonPath('summary.succeeded', 1);
         $this->deleteJson($url.'/'.$id)->assertNoContent();
+        $this->postJson($url.'/fields/slug/check', ['value' => 'free-slug', 'locale' => 'fr'])
+            ->assertOk()
+            ->assertJsonPath('available', true);
 
         $this->assertSame('published', $post->refresh()->status);
     }

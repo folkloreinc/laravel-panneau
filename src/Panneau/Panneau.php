@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Router;
 use InvalidArgumentException;
 use Panneau\Auth\Authorizer;
@@ -15,7 +16,9 @@ use Panneau\Definition\DefinitionBuilder;
 use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\DefinitionController;
+use Panneau\Http\Controllers\FieldCheckController;
 use Panneau\Http\Controllers\ResourceController;
+use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Repositories\RepositoryAdapters;
@@ -28,7 +31,7 @@ class Panneau implements PanneauContract
     /**
      * The resource routes that `resourceRoutes()` can register.
      */
-    private const RESOURCE_ROUTES = ['index', 'store', 'show', 'update', 'destroy', 'actions'];
+    private const RESOURCE_ROUTES = ['index', 'store', 'show', 'update', 'destroy', 'actions', 'check'];
 
     public function __construct(private readonly Container $container) {}
 
@@ -71,9 +74,16 @@ class Panneau implements PanneauContract
             'as' => 'panneau.',
         ]);
 
-        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router): void {
-            $router->prefix('api')->as('api.')->group(function (Router $router): void {
+        $search = (bool) $config->get('panneau.search.enabled', true);
+
+        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search): void {
+            $router->prefix('api')->as('api.')->group(function (Router $router) use ($search): void {
                 $router->get('definition', DefinitionController::class)->name('definition');
+                if ($search) {
+                    $router->get('search', SearchController::class)
+                        ->middleware(ThrottleRequests::using(SearchController::RATE_LIMITER))
+                        ->name('search');
+                }
                 $this->registerResourceRoutes($router, null, self::RESOURCE_ROUTES);
                 $this->registerUploadRoutes($router);
             });
@@ -137,6 +147,7 @@ class Panneau implements PanneauContract
             'index' => fn () => $router->get('resources/{resource}', [ResourceController::class, 'index'])->name('resources.index'),
             'store' => fn () => $router->post('resources/{resource}', [ResourceController::class, 'store'])->name('resources.store'),
             'actions' => fn () => $router->post('resources/{resource}/actions/{action}', ActionController::class)->name('resources.actions'),
+            'check' => fn () => $router->post('resources/{resource}/fields/{field}/check', FieldCheckController::class)->name('resources.fields.check'),
             'show' => fn () => $router->get('resources/{resource}/{id}', [ResourceController::class, 'show'])->name('resources.show'),
             'update' => fn () => $router->patch('resources/{resource}/{id}', [ResourceController::class, 'update'])->name('resources.update'),
             'destroy' => fn () => $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy'),
