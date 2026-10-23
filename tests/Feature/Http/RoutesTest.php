@@ -3,6 +3,7 @@
 namespace Panneau\Tests\Feature\Http;
 
 use Illuminate\Auth\GenericUser;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Panneau\Http\Problem;
@@ -27,6 +28,27 @@ class RoutesTest extends TestCase
         $this->assertSame(url('/panneau/api/definition'), route('panneau.api.definition'));
         $this->assertSame(url('/panneau/api/resources/pages/12'), route('panneau.api.resources.show', ['resource' => 'pages', 'id' => '12']));
         $this->assertSame(url('/panneau/api/resources/pages/actions/publish'), route('panneau.api.resources.actions', ['resource' => 'pages', 'action' => 'publish']));
+        $this->assertSame(url('/panneau/api/search'), route('panneau.api.search'));
+    }
+
+    public function test_the_search_route_is_rate_limited(): void
+    {
+        Panneau::routes();
+        $this->app['router']->getRoutes()->refreshNameLookups();
+
+        $this->assertContains(
+            ThrottleRequests::class.':panneau-search',
+            Route::getRoutes()->getByName('panneau.api.search')?->middleware() ?? [],
+        );
+    }
+
+    public function test_no_search_route_when_search_is_disabled(): void
+    {
+        $this->app['config']->set('panneau.search.enabled', false);
+        Panneau::routes();
+        $this->app['router']->getRoutes()->refreshNameLookups();
+
+        $this->assertFalse(Route::has('panneau.api.search'));
     }
 
     public function test_the_path_and_middleware_come_from_the_config(): void

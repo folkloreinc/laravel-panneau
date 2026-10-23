@@ -69,6 +69,19 @@ return [
         'max_per_page' => 100,
     ],
 
+    // The global search, `GET {path}/api/search`: the resources whose list has a search, or
+    // whose features() set `search`, that the user can list. Each one is searched through its
+    // repository, within its scope, like the `q` of its list.
+    'search' => [
+        // Off: the route doesn't exist, and the definition tells the app not to search.
+        'enabled' => true,
+
+        // Searches per minute for a user (or an IP address), through the `panneau-search` rate
+        // limiter. Over it, a 429 with Retry-After. Null or 0: no limit. Define your own
+        // `panneau-search` limiter with RateLimiter::for() to limit differently.
+        'rate_limit' => 60,
+    ],
+
     'actions' => [
         // Largest selection an action runs on in the request. Larger selections are refused
         // until queued actions are supported.
