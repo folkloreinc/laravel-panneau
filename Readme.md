@@ -1,10 +1,9 @@
 # Laravel Panneau
 
-
 [![Latest Stable Version](https://poser.pugx.org/folklore/laravel-panneau/v/stable.svg)](https://packagist.org/packages/folklore/laravel-panneau)
-[![Build Status](https://travis-ci.org/Folkloreatelier/laravel-panneau.png?branch=v1-rc)](https://travis-ci.org/Folkloreatelier/laravel-panneau)
-[![Coverage Status](https://coveralls.io/repos/Folkloreatelier/laravel-panneau/badge.svg?branch=v1-rc&service=github)](https://coveralls.io/github/Folkloreatelier/laravel-panneau?branch=v1-rc)
 [![Total Downloads](https://poser.pugx.org/folklore/laravel-panneau/downloads.svg)](https://packagist.org/packages/folklore/laravel-panneau)
+
+> **This is the `v1.4` branch**, maintained for fixes and security only, with PHP 8.0+ and Laravel 11 to 13. Panneau 5, a rewrite on a written protocol with `@panneau/*` 5, is developed on [`v5.x`](https://github.com/folkloreinc/laravel-panneau/tree/v5.x), the default branch, and released as alphas. Projects on 1.x move to it after 5.0, with its migration guide. The branches `v0`, `v1` and `v1.2` get no fixes, not even security ones.
 
 ## Security
 
@@ -48,30 +47,16 @@ class Pages extends \Panneau\Support\Resource
 
 ## Installation
 
+Require a tagged release, not the branch:
+
 ```shell
-composer require folklore/laravel-panneau:dev-v1-rc
+composer require folklore/laravel-panneau:~1.4.0
 ```
-
-### Laravel 5.4 and lower
-
-**1-** Add the service provider to your `app/config/app.php` file
-
-```php
-Folklore\Panneau\PanneauerviceProvider::class,
-```
-
-**2-** Add the facade to your `app/config/app.php` file
-
-```php
-'Panneau' => Folklore\Panneau\Facades\Panneau::class,
-```
-
-### All versions
 
 **1-** Publish the configuration file and public files
 
 ```bash
-$ php artisan vendor:publish
+php artisan vendor:publish
 ```
 
 **2-** Add this to `app/Providers/RouteServiceProvider.php`
