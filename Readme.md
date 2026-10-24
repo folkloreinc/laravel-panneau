@@ -6,11 +6,27 @@ Admin panels and content management for Laravel. `folklore/laravel-panneau` is t
 
 | Version | Branch | PHP | Laravel | Status |
 |---|---|---|---|---|
-| 5.x | `v5.x` | 8.3+ | 12, 13 | In development ([roadmap](https://github.com/folkloreinc/laravel-panneau/issues/35)) |
+| 5.x | `v5.x` (default) | 8.3+ | 12, 13 | Alphas ([roadmap](docs/roadmap.md), [CHANGELOG](CHANGELOG.md)) |
 | 1.4 | `v1.4` | 8.0+ | 11 to 13 | Maintenance |
 | 1.3 | `v1.3` | 7.4+ | 7 to 13 | Maintenance |
 
-Panneau 5 is documented in [`docs/`](docs/README.md). Installation instructions will come with the first 5.0 pre-release.
+Panneau 5 is documented in [`docs/`](docs/README.md).
+
+## Installing Panneau 5
+
+```bash
+composer require folklore/laravel-panneau:^5.0@alpha
+php artisan panneau:install
+```
+
+The alphas of `laravel-panneau` go with the alphas of `@panneau/*`: upgrade both together. An alpha can break the previous one; its [GitHub release](https://github.com/folkloreinc/laravel-panneau/releases) says how to upgrade.
+
+| `laravel-panneau` | `@panneau/*` |
+|---|---|
+| 5.0.0-alpha.4 | 5.0.0-alpha.5 |
+| 5.0.0-alpha.3 | 5.0.0-alpha.4 |
+| 5.0.0-alpha.2 | 5.0.0-alpha.2 |
+| 5.0.0-alpha.1 | 5.0.0-alpha.1 |
 
 ## Development
 

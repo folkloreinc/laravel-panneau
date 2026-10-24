@@ -1,6 +1,6 @@
 # 0011: Slugs check their value through the repository, and saving checks it again
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-23
 - Issue: [#35](https://github.com/folkloreinc/laravel-panneau/issues/35), [folkloreinc/panneau-js#109](https://github.com/folkloreinc/panneau-js/issues/109)
 

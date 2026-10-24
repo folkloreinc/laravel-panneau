@@ -1,6 +1,6 @@
 # 0010: The global search goes through the repositories, and through Scout for searchable models
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-22
 - Issue: [#96](https://github.com/folkloreinc/laravel-panneau/issues/96)
 
