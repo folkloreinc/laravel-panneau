@@ -1,6 +1,6 @@
 # 0007: Panneau owns direct uploads
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-21
 - Issue: [#81](https://github.com/folkloreinc/laravel-panneau/issues/81)
 

@@ -1,6 +1,6 @@
 # 0009: Media libraries are resources
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-21
 - Shared decision: [panneau-js 0026](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0026-media-libraries.md) ([folkloreinc/panneau-js#88](https://github.com/folkloreinc/panneau-js/pull/88))
 

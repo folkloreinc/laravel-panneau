@@ -1,6 +1,8 @@
-# Current state (October 2026)
+# Audit before Panneau 5 (2026-10-14)
 
-Audit of `laravel-panneau` v1.4.0 (branch `v1.4`), compared with v1.3. The overall picture, including the frontend and how projects use Panneau, is in [`panneau-js/docs/current-state.md`](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/current-state.md).
+Audit of `laravel-panneau` v1.4.0 (branch `v1.4`), compared with v1.3, written to plan Panneau 5. It describes 1.x as it was then.
+
+> **Since then on `v1.3` and `v1.4`:** the bugs listed below are fixed in v1.3.2 and v1.4.2 (#36 to #43); routes have opt-in security fixes, published with security advisories; every release is tagged (v1.3.1, v1.3.2, v1.4.1, v1.4.2), so projects can require `~1.3.0` or `~1.4.0` instead of dev branches. #79 is fixed on `v1.4` and waits for v1.4.3. The overall picture, including the frontend and how projects use Panneau, is in [`panneau-js/docs/current-state.md`](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/current-state.md).
 
 ## Lines
 

@@ -1,6 +1,6 @@
 # 0012: Embeds come from an allowlist of oEmbed providers, and saving resolves them again
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-23
 - Issue: [#100](https://github.com/folkloreinc/laravel-panneau/issues/100), [folkloreinc/panneau-js#111](https://github.com/folkloreinc/panneau-js/issues/111)
 

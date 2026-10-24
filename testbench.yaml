@@ -1,4 +1,4 @@
-# The app served to the protocol's conformance kit (see .github/workflows/conformance.yml):
+# The app served to the protocol's conformance kit (see the conformance job of .github/workflows/ci.yml):
 #   vendor/bin/testbench workbench:build && vendor/bin/testbench serve
 providers:
   - Panneau\ServiceProvider

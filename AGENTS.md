@@ -8,20 +8,22 @@
 
 | Branch | What it is |
 |---|---|
-| `v5.x` | Panneau 5, in development. Read [`docs/`](docs/README.md) first. |
+| `v5.x` | Panneau 5, in development, and the default branch. Read [`docs/`](docs/README.md) first. |
 | `v1.4` | Maintenance of 1.4 (Laravel 11+). Fixes and security only. |
 | `v1.3` | Maintenance of 1.3. Fixes and security only. |
 
-`master` and `develop` hold old code and are not maintained.
+Other branches aren't maintained. `v0`, `v1` and `v1.2` are frozen: old projects still require them, but they get no fixes, not even security ones.
 
 **Projects use the maintenance branches in production.** Some still require `v1.3.x-dev` or `v1.4.x-dev`, so every push to those branches reaches them on their next `composer update`. Every change goes through a pull request.
 
 ## Panneau 5
 
-- **Plan:** tracked in [#35](https://github.com/folkloreinc/laravel-panneau/issues/35). The overall plan is [folkloreinc/panneau-js#6](https://github.com/folkloreinc/panneau-js/issues/6). Create a sub-issue when starting an item.
+- **Plan:** [`docs/roadmap.md`](docs/roadmap.md), in slices named by theme; [#35](https://github.com/folkloreinc/laravel-panneau/issues/35) is its index. The overall plan is [folkloreinc/panneau-js#6](https://github.com/folkloreinc/panneau-js/issues/6). Create a sub-issue of #35 when starting an item, and check it in the roadmap, with the release that ships it, in the pull request that closes it.
 - **Architecture:** [`docs/architecture.md`](docs/architecture.md) and [`docs/decisions/`](docs/decisions/). The shared protocol and decisions live in [`panneau-js/docs`](https://github.com/folkloreinc/panneau-js/tree/v5.x/docs).
 - **The protocol is the contract.** When the package needs something the protocol doesn't have, change the protocol first, in `panneau-js`.
-- **Code status:** the v1 code is gone from `v5.x`. The package is being rebuilt during Phase 1, piece by piece (see #35).
+- **Code status:** the v1 code is gone from `v5.x`. 5.0 is released as alphas; [`docs/architecture.md`](docs/architecture.md) marks what isn't built yet.
+- **Changelog:** every pull request with a user-visible effect adds a line under `[Unreleased]` in `CHANGELOG.md`, with its issue number. A release moves it to a dated `[5.0.0-alpha.N]` section, with the `@panneau/*` version it goes with.
+- **Decisions:** a decision is proposed in its pull request, and accepted when that pull request is merged.
 
 ## Rules for v5
 

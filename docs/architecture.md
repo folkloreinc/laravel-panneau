@@ -1,6 +1,6 @@
 # Architecture (Laravel)
 
-Status: accepted direction for 5.0. The examples show the intended API; names can still change during Phase 1.
+Status: accepted direction for 5.0, released as alphas (see the [CHANGELOG](../CHANGELOG.md)). The examples show the intended API. What isn't built yet is marked **Not built yet**, with its issue or its slice of the [roadmap](roadmap.md).
 
 `laravel-panneau` 5 is the reference implementation of the [Panneau protocol](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/protocol.md). It turns PHP resource classes into a definition, and the items of a repository (Entities, Eloquent models or any object) into protocol responses.
 
@@ -31,7 +31,7 @@ It also edits two project files, keeping their formatting and what they already 
 - **`vite.config.js`** (or `.ts`, `.mjs`, `.mts`): the entry is added to the `input` of `laravel()`, and the `react()` plugin of `@vitejs/plugin-react` to `plugins`. When the file doesn't have that shape, it says what to add instead.
 - **`package.json`:** `@panneau/app`, `react`, `react-dom` and `@tanstack/react-query` in `dependencies`, and `@vitejs/plugin-react` in `devDependencies`. Packages already there keep their version, except an older major of `@panneau/app`. Until 5.0.0, the range is explicit (`^5.0.0-alpha.0`): v5 is published on the `alpha` tag, and `latest` is v4.
 
-With `--upgrade`, it migrates a v1 project's configuration and removes the files the package now provides (see [decisions/0004](decisions/0004-install-command.md)).
+**Not built yet** (slice "App and content" of the [roadmap](roadmap.md)): with `--upgrade`, it migrates a v1 project's configuration and removes the files the package now provides (see [decisions/0004](decisions/0004-install-command.md)).
 
 ## Resources
 
@@ -165,14 +165,14 @@ interface ResourceRepository
 
 ### Resource behaviour
 
-- **Registration.** Resources are registered in the service provider (`Panneau::resources([...])`), or discovered in `app/Panneau/Resources`.
+- **Registration.** Resources are registered in the service provider (`Panneau::resources([...])`). Discovery in `app/Panneau/Resources` is **not built yet**.
 - **Scoping.** `scope()` gives the repository its scope for every operation: list, find, create, update, delete and actions. This is where tenant or organisation isolation goes.
 - **Public ids.** The repository's `id()` decides the public id: a numeric id, a UUID, or a `uid` column with prefixed ULIDs.
 - **Serialization:**
   - `toItem()` or `jsonResource()` serializes an item; Panneau adds `id`, `version` and `abilities`.
   - With `EloquentRepository` and no `toItem()`, items are serialized from their declared fields only.
 - **Policies.** Policies receive the item. For Entities, they are registered on the Entity contract (`Gate::policy(PageContract::class, PagePolicy::class)`); Laravel resolves policies through interfaces. `itemClass()` is the class used for resource-level abilities (`viewAny`, `create`).
-- **Hooks.** `creating`, `created`, `updating`, `updated`, `deleting` and `saved` receive the values and the item. They replace most of the custom controllers of v1.
+- **Hooks.** `creating`, `created`, `updating`, `updated`, `deleting`, `deleted` and `saved` receive the values and the item. They replace most of the custom controllers of v1.
 - **Types.** Variants of a resource with their own fields, such as page types, are declared with `types()`.
 
 ## Fields
@@ -196,7 +196,7 @@ interface ResourceRepository
 - **Saving.** Once the values are valid, and before the `creating` and `updating` hooks, each field prepares its value with `prepare()` (see [decisions/0008](decisions/0008-field-preparation.md)). Most fields keep it as is. A field that keeps something outside the item, like `File`, does that work there, and registers with the `SaveContext` what to do once the repository saved the item (`afterSave()`) or if the save fails (`afterFailure()`). Groups and blocks are saved whole: their fields without a value get `prepareAbsent()`, since their previous value is gone.
 - **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, related items become references (`{ "id": "12", "label": "Ada" }`), and media media references.
 - **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
-- **Field types from other packages** (such as the `laravel-folklore` plugin) extend `Field` and declare the protocol type and the JS plugin that renders them.
+- **Field types from other packages** extend `Field` and declare their protocol type. A type that `@panneau/fields` doesn't render needs a JS plugin; the `laravel-folklore` plugin needs none, since its fields are built-in types ([below](#laravel-folklore)).
 
 ### More field types
 
@@ -348,12 +348,12 @@ final class PublishPages extends Action
   - what to refresh;
   - an optional redirect;
   - an optional download, served through a temporary signed URL.
-- **Queued actions:**
+- **Queued actions** (**not built yet**: today a selection above the limit is refused, see [Action requests](#http-layer)):
   - An action that implements `ShouldQueue` runs on the queue. It does the same when the selection is larger than `config('panneau.actions.sync_limit')` (500 by default).
   - Items are processed in chunks (`chunkSize()`), through a job batch. This needs a repository with the `ChunkedQuery` capability.
   - Progress and results are stored in a `panneau_action_runs` table, and `ActionRunFinished` is dispatched at the end.
   - An action that can't be queued refuses selections above the limit with a `422`.
-- **Built-in actions:**
+- **Built-in actions:** `DeleteAction` exists; the others are **not built yet**.
   - `DuplicateAction`: for repositories that are `Duplicable` (`replicate()` with Eloquent), plus the resource's `duplicating` hook.
   - `DeleteAction`, which answers dry runs.
   - `RestoreAction`: for repositories that are `Restorable`.
@@ -410,8 +410,8 @@ final class PublishPages extends Action
   - guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. The API answers them with a `401`.
 - **Generic controllers implement the protocol:**
   - definition, resources, field checks, actions and action runs;
-  - uploads, auth, account (media are resources);
-  - search, dashboard widgets, preview.
+  - uploads (media are resources) and search;
+  - **not built yet:** auth, account, dashboard widgets, preview.
 - **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
 - **Query.** Filters, sorts and search only accept what the resource's list declares. The query string can't reach arbitrary columns.
@@ -431,10 +431,12 @@ final class PublishPages extends Action
 
 See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0012-authentication.md).
 
+**Not built yet** (slice "App and content"): today the app uses the site's guard and `panneau.auth.login_url`, as in the `external` mode below.
+
 - **`panneau` mode.** The package registers its own auth routes, using Fortify actions for passwords, 2FA, passkeys and email verification, and Socialite for OAuth providers. It uses the guard set in `config('panneau.auth.guard')`, which can be a separate `panneau` guard and user provider.
 - **`external` mode.** The site keeps its own login. Panneau only checks the session on the site's guard and the `viewPanneau` gate.
 - **Isolation.** Panneau never changes the site's Fortify configuration, views or guards.
-- **Roles module (optional).** Roles and permissions are defined in config, with a `panneau_roles` pivot, an assignment UI, invitations, and a policy base class that checks permissions such as `pages.update`.
+- **Roles module (optional, not built yet).** Roles and permissions are defined in config, with a `panneau_roles` pivot, an assignment UI, invitations, and a policy base class that checks permissions such as `pages.update`.
 
 ## Uploads
 
@@ -629,13 +631,13 @@ Media::make('attachment')->resource(DocumentsResource::class)->transforms(false)
 Media::make('image'),                                                              // the only library
 ```
 
-- **The library** is named by `resource()`, by class or id, and serialized as its id. It can be left out when the definition has only one library. `lintDefinition()` refuses a `media` field without a library when there are several.
+- **The library** is named by `resource()`, by class or id, and serialized as its id. It can be left out when the definition has only one library. `lintDefinition()` refuses a `media` field without a library when there are several. The protocol now lets a field use every library, or several ([panneau-js decision 0027](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0027-media-picker.md)): **not built yet** here ([#95](https://github.com/folkloreinc/laravel-panneau/issues/95)).
 - **Requests** send an id (`"med_01H…"`), or `{ "id", "transform" }` with the edits of the image for this use (the protocol's `MediaTransform`: `crop`, `rotate`, `flipX`, `flipY`, `focalPoint`). The references the item gave can be sent back.
 - **Validation.** Ids are found through the library's repository, within its scope and its types: an unknown id, a deleted media, or one of another tenant or of another type is a `422` on the value's path (`cover`, `gallery.2`, `blocks.1.image`). An invalid transform is a `422` too. `accept` and `maxSize` are checked on the MIME type and size of the media found, never on what the client sends.
 - **Values.** The repository receives `{ "id": "…" }`, with a `transform` when the value has one (only the protocol's properties), or a list of them with `multiple()`. With Eloquent, the attribute needs a JSON column with the `array` cast. With `transforms(false)`, it receives the id only, or a list of ids, and transforms are ignored.
 - **Items** give `MediaReference`s: `{ "id", "label", "media", "transform" }`, where `label` and `media` come from the library. A media that left the library keeps its id and transform. The media of a page of items are found in one query per library. In groups and blocks, values give `{ "id", "transform" }`.
 - **From a relation.** An attribute or `resolveUsing()` that gives media items of the library (models of the mediatheque through `HasMedias`, for example) is turned into references too.
-- **Image edits** are rendered by `folklore/laravel-image` 2 URLs, from the media and the transform.
+- **Image edits** are rendered by `folklore/laravel-image` 2 URLs, from the media and the transform. The `image` field, the crop rule and the media's own transform are **not built yet** ([#98](https://github.com/folkloreinc/laravel-panneau/issues/98)).
 
 ## Search and dashboard
 
@@ -660,18 +662,18 @@ See [decisions/0010](decisions/0010-global-search.md) and the [shared decision](
   - the rest of the query is Scout's `query()` callback: the scope, ids, exclusions, filters and sorts, applied by the database as without Scout;
   - the `database` and `collection` engines run that callback before paginating, so pages and totals are exact. Engines with their own index (Meilisearch, Algolia, Typesense) run it only on the items of the page they found. The scope is also given to the engine as `where` clauses (`whereIn` for a list), so **the scope's columns must be filterable attributes of the index**. The callback still keeps the items outside the scope out. Filters, ids and exclusions can make such pages shorter, and the order is the engine's;
   - override `scoutSearch()` to give the engine more of the query, and `searchesWithScout()` to keep `LIKE` queries for a searchable model.
-- **Dashboard widgets** are classes that declare their type and options, and return their data. They are registered per role in the service provider.
+- **Dashboard widgets** (**not built yet**, 5.x) are classes that declare their type and options, and return their data. They are registered per role in the service provider.
 
 ## laravel-folklore
 
 - **Entities and repositories stay.** They remain the way Folklore projects access data. Only their contracts stop extending Panneau's: `Entity` keeps its own `id()`, and `Entities` no longer extends `Panneau\Contracts\Repository`.
-- **Plugin.** Its Panneau integration becomes a plugin that registers:
-  - the `ResourceRepository` adapter for `Folklore\Contracts\Repositories\Entities`, which implements `ChecksSlugs` for unique slugs;
-  - the `Page`, `Pages`, `Block` and `Blocks` fields;
+- **Plugin**, built in `laravel-folklore` 2, in PHP only ([its decision 0018](https://github.com/folkloreinc/laravel-folklore/blob/v2.x/docs/decisions/0018-panneau-plugin-php-only.md)); **not built yet**. It registers:
+  - the `ResourceRepository` adapter for `Folklore\Contracts\Repositories\Entities`, on its typed query, which implements `ChecksSlugs` for unique slugs;
+  - the `Page`, `Pages`, `Blocks` and `PageSlug` fields, PHP classes that configure the built-in types: `Page` and `Pages` are relations to the pages resource, `Blocks` a repeater whose types come from the block type registry, and `PageSlug` a `Slug` with `unique()`, whose `url()` the pages module gives (the page's URL, which follows its parent), and `disabledWhen()` for the home page ([panneau-js decision 0032](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0032-field-checks-and-slugs.md));
   - what its Entities need to reference media of a library;
   - the policies' base class for Entity contracts, if useful.
 
-  Pages need no `PageSlug` field anymore, in PHP or in JS: their slug is a `Slug` with `unique()`, whose `url()` the pages module gives (the page's URL, which follows its parent), and `disabledWhen()` for the home page ([panneau-js decision 0032](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0032-field-checks-and-slugs.md)). Projects stop copying the `PageSlug` components.
+  No JS: projects stop copying the `PageSlug` components.
 
 ## Supported versions
 
