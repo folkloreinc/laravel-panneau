@@ -11,6 +11,8 @@ use Folklore\Mediatheque\Ingest\Source;
 use Folklore\Mediatheque\Jobs\ProbeMedia;
 use Folklore\Mediatheque\Models\File as MediathequeFile;
 use Folklore\Mediatheque\Models\Media;
+use Folklore\Mediatheque\Models\PipelineJob;
+use Folklore\Mediatheque\Models\PipelineRun;
 use Folklore\Mediatheque\ServiceProvider as MediathequeServiceProvider;
 use Folklore\Mediatheque\Support\Models;
 use Illuminate\Database\Schema\Blueprint;
@@ -19,6 +21,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use LogicException;
 use Panneau\Fields\File;
@@ -359,6 +362,48 @@ class MediathequeLibraryTest extends HttpTestCase
         $this->patchJson(self::API.'/resources/anything/'.$other, ['file' => ['upload' => $this->upload('terms.pdf', self::PDF, 'application/pdf')]])
             ->assertOk()
             ->assertJsonPath('data.media.type', 'document');
+    }
+
+    public function test_a_failed_media_says_why(): void
+    {
+        $id = $this->create(['file' => ['upload' => $this->upload('a.png', self::png(), 'image/png')]])->assertCreated()->json('data.id');
+        $media = Media::query()->where('uid', $id)->firstOrFail();
+        $run = fn (string $status, ?array $error): PipelineRun => tap((new PipelineRun)->forceFill([
+            'uid' => 'run_'.Str::lower((string) Str::ulid()),
+            'name' => 'image',
+            'pipelinable_type' => $media->getMorphClass(),
+            'pipelinable_id' => $media->getKey(),
+            'transcoder' => 'ffmpeg',
+            'definition' => [],
+            'output_source' => 'media',
+            'path_prefix' => 'renditions',
+            'visibility' => 'public',
+            'status' => $status,
+            'error' => $error,
+        ]))->save();
+
+        // Ready: no error
+        $this->getJson(self::API.'/resources/media-library/'.$id)->assertOk()->assertJsonMissingPath('data.media.error');
+
+        // The run's own error, from its latest failed run
+        $run('failed', ['code' => 'input_unreadable', 'message' => 'The file is unreadable.']);
+        $run('failed', ['code' => 'timeout', 'message' => 'The poster took too long.']);
+        $media->forceFill(['status' => 'failed'])->save();
+        $response = $this->getJson(self::API.'/resources/media-library/'.$id)->assertOk();
+        $this->assertMatchesComponent($response->json('data'), 'MediaItem');
+        $response->assertJsonPath('data.media.status', 'failed')
+            ->assertJsonPath('data.media.error', ['code' => 'timeout', 'message' => 'The poster took too long.']);
+
+        // Without one, the error of its failed rendition
+        $failed = $run('failed', null);
+        (new PipelineJob)->forceFill([
+            'pipeline_id' => $failed->getKey(),
+            'name' => 'thumbnail',
+            'status' => 'failed',
+            'error' => ['code' => 'operation_failed', 'message' => 'The image could not be resized.'],
+        ])->save();
+        $this->getJson(self::API.'/resources/media-library/'.$id)
+            ->assertJsonPath('data.media.error.message', 'The image could not be resized.');
     }
 
     public function test_lists_are_scoped_and_filtered_by_type(): void

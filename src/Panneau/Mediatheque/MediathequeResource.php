@@ -6,8 +6,15 @@ use Folklore\Image\Facades\Image;
 use Folklore\Image\ImageManager;
 use Folklore\Mediatheque\Contracts\Models\File as FileContract;
 use Folklore\Mediatheque\Contracts\Models\Media as MediaContract;
+use Folklore\Mediatheque\Contracts\Models\PipelineRun as PipelineRunContract;
+use Folklore\Mediatheque\Enums\JobStatus;
+use Folklore\Mediatheque\Enums\MediaStatus;
+use Folklore\Mediatheque\Enums\PipelineStatus;
 use Folklore\Mediatheque\Support\Models;
+use Folklore\Mediatheque\Transcoders\TranscoderError;
 use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Panneau\Fields\File;
 use Panneau\Media\MediaTypes;
 use Panneau\Resources\MediaResource;
@@ -23,7 +30,8 @@ use Throwable;
  *   content, stores it, and processes it in its queue.
  * - **Replacing the file** replaces the media's original with the mediatheque's
  *   `replaceOriginal()`: the media keeps its id, and is processed again.
- * - **The `media` of an item** comes from the mediatheque: its type, status, original, main
+ * - **The `media` of an item** comes from the mediatheque: its type, status (with the `error`
+ *   of a failed media), original, main
  *   rendition, thumbnail, renditions (`variants`) and metadata. The thumbnail of an image is a
  *   `laravel-image` URL when `laravel-image` 2 is installed (`thumbnailPreset()`), and the
  *   mediatheque's URL otherwise.
@@ -94,12 +102,52 @@ abstract class MediathequeResource extends MediaResource
             }
         }
         $media['status'] = $item->status()->value;
+        if ($item->status() === MediaStatus::Failed) {
+            $error = $this->failure($item);
+            if ($error !== null) {
+                $media['error'] = ['code' => $error->code->value, 'message' => $error->message];
+            }
+        }
         $metadata = array_filter($item->metadata(), fn (mixed $value): bool => $value !== null);
         if (count($metadata) > 0) {
             $media['metadata'] = $metadata;
         }
 
         return $media;
+    }
+
+    /**
+     * Why the processing of a failed media failed: the error of its latest failed run (its probe,
+     * or the pipeline whose main rendition failed), or of the rendition of that run that failed.
+     * Null when the media model keeps no runs.
+     */
+    protected function failure(MediaContract $media): ?TranscoderError
+    {
+        if (! $media instanceof Model || ! method_exists($media, 'pipelineRuns')) {
+            return null;
+        }
+        $runs = $media->pipelineRuns();
+        if (! $runs instanceof Relation) {
+            return null;
+        }
+        $run = $runs->getQuery()
+            ->withoutGlobalScopes()
+            ->where('status', PipelineStatus::Failed)
+            ->latest('id')
+            ->first();
+        if (! $run instanceof PipelineRunContract) {
+            return null;
+        }
+        if ($run->error() !== null) {
+            return $run->error();
+        }
+        foreach ($run->jobs() as $job) {
+            if ($job->status() === JobStatus::Failed && $job->error() !== null) {
+                return $job->error();
+            }
+        }
+
+        return null;
     }
 
     /**
