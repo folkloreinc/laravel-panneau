@@ -225,15 +225,15 @@ final class DefinitionBuilder
     }
 
     /**
-     * Turns the resource classes of relation and media fields into resource ids (one, or a list
-     * for a media field that allows several libraries), in nested fields too.
+     * Turns the resource classes of relation, media and image fields into resource ids (one, or
+     * a list for a media field that allows several libraries), in nested fields too.
      *
      * @param  array<array-key, mixed>  $field
      * @return array<array-key, mixed>
      */
     private function resolveFieldReferences(array $field): array
     {
-        if (in_array($field['type'] ?? null, ['relation', 'media'], true)) {
+        if (in_array($field['type'] ?? null, ['relation', 'media', 'image'], true)) {
             $field = $this->resolveResource($field);
         }
         if (isset($field['fields']) && is_array($field['fields'])) {

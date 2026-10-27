@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use LogicException;
 use Panneau\Fields\File;
+use Panneau\Fields\Image;
 use Panneau\Fields\Media as MediaField;
 use Panneau\Fields\Text;
 use Panneau\Mediatheque\MediathequeRepository;
@@ -456,6 +457,46 @@ class MediathequeLibraryTest extends HttpTestCase
 
         $this->postJson(self::API.'/resources/articles', ['title' => 'A', 'cover' => $document])->assertUnprocessable()->assertJsonValidationErrors('cover');
         $this->postJson(self::API.'/resources/articles', ['title' => 'A', 'cover' => 'med_missing'])->assertUnprocessable()->assertJsonValidationErrors('cover');
+    }
+
+    public function test_the_media_gives_its_own_transform(): void
+    {
+        Panneau::resources([new class extends Resource
+        {
+            public function id(): string
+            {
+                return 'articles';
+            }
+
+            public function model(): string
+            {
+                return Article::class;
+            }
+
+            public function fields(): array
+            {
+                return [Text::make('title'), Image::make('cover')];
+            }
+        }]);
+        $image = $this->create(['file' => ['upload' => $this->upload('a.png', self::png(), 'image/png')], 'name' => 'Cover'])
+            ->assertCreated()
+            ->json('data.id');
+        $this->assertArrayNotHasKey('transform', $this->getJson(self::API.'/resources/media-library/'.$image)->assertOk()->json('data.media'));
+
+        $media = Media::query()->where('uid', $image)->firstOrFail();
+        $media->transform = ['rotate' => 90, 'flipX' => true];
+        $media->save();
+
+        $item = $this->getJson(self::API.'/resources/media-library/'.$image)->assertOk()->assertJsonPath('data.media.transform', ['rotate' => 90, 'flipX' => true]);
+        $this->assertMatchesComponent($item->json('data.media'), 'MediaInfo');
+        $response = $this->postJson(self::API.'/resources/articles', [
+            'title' => 'A',
+            'cover' => ['id' => $image, 'transform' => ['base' => 'media', 'baseTransform' => ['rotate' => 90, 'flipX' => true], 'crop' => ['x' => 0, 'y' => 0, 'width' => 1, 'height' => 1]]],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.cover.media.transform', ['rotate' => 90, 'flipX' => true])
+            ->assertJsonPath('data.cover.transform.base', 'media');
+        $this->assertMatchesComponent($response->json('data.cover'), 'MediaReference');
     }
 }
 

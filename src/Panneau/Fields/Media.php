@@ -5,6 +5,7 @@ namespace Panneau\Fields;
 use ArrayObject;
 use Closure;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 use LogicException;
 use Panneau\Fields\Concerns\AcceptsFiles;
 use Panneau\Forms\RuleSet;
@@ -29,6 +30,9 @@ use Panneau\Media\MediaTransform;
  *   `multiple()`. With Eloquent, the attribute needs a JSON column with the `array` cast. With
  *   `transforms(false)`, it receives the ids only (a string, or a list of them), for a column
  *   of ids, and transforms are ignored: the field then allows one library only.
+ * - **The `crop` rule** (`crop()`) checks the transform of each media: a crop for this use
+ *   when it is `required`, and one of its `ratios` once rendered (a quarter turn swaps the width
+ *   and the height of the crop), within one pixel.
  * - **Items** give the protocol's `MediaReference`: `{ "id", "resource", "label", "media",
  *   "transform" }`, where `resource` is the media's library, `label` its `itemTitle` and `media`
  *   its `MediaInfo`. In groups and blocks, values give `{ "id", "resource", "transform" }`, as
@@ -95,6 +99,27 @@ class Media extends Field
     {
         $this->transforms = $transforms;
         $this->checkLibraries(count($this->resources));
+        $this->checkCrop();
+
+        return $this;
+    }
+
+    /**
+     * The `crop` rule: each media of a value needs a crop for this use (`required`), and a crop
+     * must have one of the `ratios` (`16:9`, `1:1`) once rendered. A crop has a ratio when its
+     * height is within one pixel of its width divided by the ratio.
+     *
+     * @param  array<array-key, string>  $ratios
+     */
+    public function crop(array $ratios = [], bool $required = false, ?string $message = null): static
+    {
+        $value = [];
+        if (count($ratios) > 0) {
+            $value['ratios'] = self::ratioList($ratios);
+        }
+        $value['required'] = $required;
+        $this->rule('crop', $value, $message);
+        $this->checkCrop();
 
         return $this;
     }
@@ -148,7 +173,7 @@ class Media extends Field
     protected function collectNestedRules(RuleSet $rules, string $path, mixed $value, ValidationContext $context): void
     {
         $libraries = $this->allowedLibraries($context);
-        $entryRules = [$this->mediaRule($context, $libraries), ...$this->foundMediaRules($context, $libraries)];
+        $entryRules = [$this->mediaRule($context, $libraries), ...$this->foundMediaRules($context, $libraries), ...$this->cropRules()];
         if ($this->multiple) {
             $rules->attribute($path.'.*', $this->label ?? str_replace('_', ' ', $this->name));
             $rules->add($path.'.*', ['required', ...$entryRules]);
@@ -158,11 +183,31 @@ class Media extends Field
     }
 
     /**
-     * `accept` and `maxSize` are checked on each media found, by `collectNestedRules()`.
+     * `accept` and `maxSize` are checked on each media found, and `crop` on the transform of each
+     * media, by `collectNestedRules()`.
      */
     protected function toLaravelRule(array $rule, string $prefix): ?array
     {
-        return in_array($rule['rule'], ['accept', 'maxSize'], true) ? null : parent::toLaravelRule($rule, $prefix);
+        return in_array($rule['rule'], ['accept', 'maxSize', 'crop'], true) ? null : parent::toLaravelRule($rule, $prefix);
+    }
+
+    /**
+     * Checks a list of ratios (`16:9`).
+     *
+     * @param  array<array-key, mixed>  $ratios
+     * @return list<string>
+     */
+    protected static function ratioList(array $ratios): array
+    {
+        $list = [];
+        foreach ($ratios as $ratio) {
+            if (! is_string($ratio) || MediaTransform::parseRatio($ratio) === null) {
+                throw new InvalidArgumentException(sprintf('"%s" is not a ratio: write it width:height, such as 16:9.', is_scalar($ratio) ? $ratio : get_debug_type($ratio)));
+            }
+            $list[] = $ratio;
+        }
+
+        return array_values(array_unique($list));
     }
 
     protected function extractValue(mixed $value, ValidationContext $context): mixed
@@ -303,6 +348,50 @@ class Media extends Field
     }
 
     /**
+     * The `crop` rules, checked on the transform of each media. A value that isn't a media, or
+     * whose transform is invalid, is reported by the media rule.
+     *
+     * @return list<Closure(string, mixed, Closure): void>
+     */
+    private function cropRules(): array
+    {
+        $checks = [];
+        foreach ($this->portableRules as $rule) {
+            $value = $rule['value'] ?? null;
+            if ($rule['rule'] !== 'crop' || ! is_array($value)) {
+                continue;
+            }
+            $ratios = is_array($value['ratios'] ?? null) ? array_values(array_filter($value['ratios'], is_string(...))) : [];
+            $required = ($value['required'] ?? false) === true;
+            $message = isset($rule['message']) && is_string($rule['message']) ? $rule['message'] : null;
+            $checks[] = function (string $attribute, mixed $entry, Closure $fail) use ($ratios, $required, $message): void {
+                $transform = is_array($entry) ? ($entry['transform'] ?? null) : null;
+                if (self::idOf($entry) === null || MediaTransform::error($transform) !== null) {
+                    return;
+                }
+                $size = MediaTransform::renderedCropSize($transform);
+                if ($size === null) {
+                    if ($required) {
+                        $fail($message ?? __('The :attribute needs a crop.'));
+                    }
+
+                    return;
+                }
+                foreach ($ratios as $ratio) {
+                    if (MediaTransform::matchesRatio($size['width'], $size['height'], $ratio)) {
+                        return;
+                    }
+                }
+                if (count($ratios) > 0) {
+                    $fail($message ?? __('The crop of the :attribute must have one of these ratios: :ratios.', ['ratios' => implode(', ', $ratios)]));
+                }
+            };
+        }
+
+        return $checks;
+    }
+
+    /**
      * The ids of the libraries the field allows for a request: those it names, or every library
      * of the definition (`ValidationContext::$libraries`). Without a registry to ask, those it
      * names.
@@ -333,6 +422,20 @@ class Media extends Field
         }
 
         return count($libraries) > 1 ? false : ($libraries[0] ?? null);
+    }
+
+    /**
+     * A field that keeps ids only (`transforms(false)`) keeps no crop, so it can't have the
+     * `crop` rule.
+     */
+    private function checkCrop(): void
+    {
+        if (! $this->transforms && $this->hasRule('crop')) {
+            throw new LogicException(sprintf(
+                'The media field "%s" keeps ids only (transforms(false)), so it keeps no crop for the crop rule.',
+                $this->name,
+            ));
+        }
     }
 
     /**

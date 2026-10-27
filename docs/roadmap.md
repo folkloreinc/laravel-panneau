@@ -37,7 +37,7 @@ Index: [#35](https://github.com/folkloreinc/laravel-panneau/issues/35). Each ite
 
 ## Media (next)
 
-- [ ] The `Image` field: the crop rule, the base of a transform, and the media's own transform ([#98](https://github.com/folkloreinc/laravel-panneau/issues/98)), with `laravel-image` 2 and the mediatheque (folkloreinc/laravel-image#88, folkloreinc/laravel-mediatheque#107)
+- [x] The `Image` field: the crop rule, the base of a transform, and the media's own transform ([#98](https://github.com/folkloreinc/laravel-panneau/issues/98)), with `laravel-image` 2 and the mediatheque (folkloreinc/laravel-image#88, folkloreinc/laravel-mediatheque#107) — merged, in the next alpha
 - [x] The `Media` field on several libraries, and references resolved with their library ([#95](https://github.com/folkloreinc/laravel-panneau/issues/95)) — merged, in the next alpha
 
 ## App and content (phase 2, with the contests platform)
