@@ -4328,6 +4328,31 @@
                             "failed"
                         ]
                     },
+                    "error": {
+                        "description": "Why the processing failed, when `status` is `failed`, so that editors see it without the backend's monitoring.",
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "description": "The code of the step that failed, such as a transcoder task code (`timeout`, `input_unreadable`)."
+                                    },
+                                    "message": {
+                                        "description": "Why it failed, for people.",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "code"
+                                ],
+                                "additionalProperties": {}
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
                     "metadata": {
                         "type": "object",
                         "propertyNames": {
