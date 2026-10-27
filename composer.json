@@ -33,7 +33,7 @@
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "folklore/laravel-image": "^2.0@alpha",
-        "folklore/laravel-mediatheque": "^2.0.0-alpha.5@alpha",
+        "folklore/laravel-mediatheque": "^2.0.0-alpha.8@alpha",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
         "laravel/scout": "^11.0",
@@ -45,7 +45,7 @@
     },
     "suggest": {
         "folklore/laravel-image": "Thumbnails of the images of a library on the mediatheque (^2.0)",
-        "folklore/laravel-mediatheque": "Media libraries on the mediatheque: MediathequeResource (^2.0; 2.0.0-alpha.5 or later to replace files)",
+        "folklore/laravel-mediatheque": "Media libraries on the mediatheque: MediathequeResource (^2.0; 2.0.0-alpha.8 or later, for the media's transform)",
         "laravel/scout": "Search the models that use Laravel\\Scout\\Searchable through their search engine (^11.0)",
         "league/flysystem-aws-s3-v3": "Direct uploads to an S3-compatible disk (panneau.uploads)"
     },

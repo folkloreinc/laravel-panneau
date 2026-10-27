@@ -298,7 +298,7 @@ class FormTest extends TestCase
         $this->assertSame(['files'], array_keys($this->errors($fields, ['files' => 'pdf'], $context)));
         $this->assertSame(
             [
-                'image' => ['id' => 'png', 'transform' => ['crop' => ['x' => 0, 'y' => 10, 'width' => 100, 'height' => 50], 'rotate' => 90, 'focalPoint' => ['x' => 0.5, 'y' => 0.25]]],
+                'image' => ['id' => 'png', 'transform' => ['crop' => ['x' => 0, 'y' => 10, 'width' => 100, 'height' => 50], 'rotate' => 90, 'focalPoint' => ['x' => 0.5, 'y' => 0.25], 'extra' => true]],
                 'files' => [['id' => 'pdf']],
             ],
             $this->validate($fields, [

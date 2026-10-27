@@ -16,6 +16,7 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Panneau\Fields\File;
+use Panneau\Media\MediaTransform;
 use Panneau\Media\MediaTypes;
 use Panneau\Resources\MediaResource;
 use RuntimeException;
@@ -31,8 +32,8 @@ use Throwable;
  * - **Replacing the file** replaces the media's original with the mediatheque's
  *   `replaceOriginal()`: the media keeps its id, and is processed again.
  * - **The `media` of an item** comes from the mediatheque: its type, status (with the `error`
- *   of a failed media), original, main
- *   rendition, thumbnail, renditions (`variants`) and metadata. The thumbnail of an image is a
+ *   of a failed media), original, main rendition, thumbnail, renditions (`variants`),
+ *   metadata, and its own `transform` (`laravel-mediatheque` 2.0.0-alpha.8 or later). The thumbnail of an image is a
  *   `laravel-image` URL when `laravel-image` 2 is installed (`thumbnailPreset()`), and the
  *   mediatheque's URL otherwise.
  * - **Policies** are registered on the media model (`mediatheque.models.media`).
@@ -112,8 +113,20 @@ abstract class MediathequeResource extends MediaResource
         if (count($metadata) > 0) {
             $media['metadata'] = $metadata;
         }
+        $transform = $this->mediaTransform($item);
+        if ($transform !== null) {
+            $media['transform'] = $transform;
+        }
 
         return $media;
+    }
+
+    /**
+     * The media's own transform, from the mediatheque (`$media->transform()`).
+     */
+    public function mediaTransform(object $item): ?array
+    {
+        return $item instanceof MediaContract ? MediaTransform::normalize($item->transform()) : parent::mediaTransform($item);
     }
 
     /**
