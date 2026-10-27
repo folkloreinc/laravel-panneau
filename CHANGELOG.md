@@ -6,21 +6,29 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.5] - 2026-10-27
+
+Goes with `@panneau/*` `5.0.0-alpha.6`.
+
 ### Added
 
-- Seven field types: `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed` (`GET /embeds`, on an allowlist of oEmbed providers, resolved again at save) and `Location` ([decisions/0012](docs/decisions/0012-embeds-and-more-field-types.md), #100, #101). They go with the next `@panneau/*` alpha.
+- Seven field types: `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed` (`GET /embeds`, on an allowlist of oEmbed providers, resolved again at save) and `Location` ([decisions/0012](docs/decisions/0012-embeds-and-more-field-types.md), #100, #101). They go with `@panneau/*` `5.0.0-alpha.6`.
 - A `media` field can allow several libraries: `resource([Images::class, Documents::class])`, or every library of the definition without `resource()`. Its values carry the `resource` of each media, which requests need when the field allows several libraries, and references give it always (panneau-js decision 0027, #95).
-
 - The `Image` field, a `media` field for images: `ratios()`, `rotate()`, `focalPoint()`, `transformBase()`, and `accept` `image/*` by default (panneau-js decision 0031, #98).
 - The `crop` portable rule on `media` and `image` fields, `crop(ratios: [...], required: true)`, checked on the transform of each media (#98).
+- `MediaInfo.error` on the mediatheque: why a failed media failed (`{ code, message }`), from its latest failed run or the rendition that failed (#108).
 - Transforms keep `base` and `baseTransform`, for a transform made over the media's own, and the keys of editor tools (#98).
 - The media's own transform in `MediaInfo.transform`, and so in references: `MediaResource::mediaTransform()`, from the library's `transform` field or the mediatheque's `transform` (#98).
 
 ### Changed
 
-- `MediathequeResource` needs `laravel-mediatheque` 2.0.0-alpha.8 or later, which has the media's `transform` (#98).
 - `MediaTransform::normalize()` keeps the keys it doesn't know instead of dropping them (#98).
 - References of `media` values have a `resource`, the media's library. A `media` field without `resource()` allows every library, instead of finding none when the definition has several. `ValidationContext` has a `libraries` closure, given by the controllers (#95).
+
+### Breaking changes
+
+- `MediathequeResource` needs `laravel-mediatheque` 2.0.0-alpha.8 or later, which has the media's `transform` (#98).
+- A `media` field that allows several libraries stores `{ id, resource, transform }`: a value saved without `resource` before the field allowed several libraries isn't resolved, and needs migrating (#95).
 
 ## [5.0.0-alpha.4] - 2026-10-23
 
@@ -81,7 +89,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.4...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.5...v5.x
+[5.0.0-alpha.5]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.5
 [5.0.0-alpha.4]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.4
 [5.0.0-alpha.3]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.3
 [5.0.0-alpha.2]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.2

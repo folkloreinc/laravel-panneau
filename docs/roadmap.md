@@ -33,12 +33,12 @@ Index: [#35](https://github.com/folkloreinc/laravel-panneau/issues/35). Each ite
 - [x] Parts of the API, and routes under a prefix with its own parameter (#87, #88) — 5.0.0-alpha.4
 - [x] Global search, through the repositories or Scout ([decisions/0010](decisions/0010-global-search.md), #96) — 5.0.0-alpha.4
 - [x] Slugs that check their value ([decisions/0011](decisions/0011-slug-checks.md), #99) — 5.0.0-alpha.4
-- [x] More field types: `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` ([decisions/0012](decisions/0012-embeds-and-more-field-types.md), #100) — merged, in the next alpha
+- [x] More field types: `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` ([decisions/0012](decisions/0012-embeds-and-more-field-types.md), #100) — 5.0.0-alpha.5
 
 ## Media (next)
 
-- [x] The `Image` field: the crop rule, the base of a transform, and the media's own transform ([#98](https://github.com/folkloreinc/laravel-panneau/issues/98)), with `laravel-image` 2 and the mediatheque (folkloreinc/laravel-image#88, folkloreinc/laravel-mediatheque#107) — merged, in the next alpha
-- [x] The `Media` field on several libraries, and references resolved with their library ([#95](https://github.com/folkloreinc/laravel-panneau/issues/95)) — merged, in the next alpha
+- [x] The `Image` field: the crop rule, the base of a transform, and the media's own transform ([#98](https://github.com/folkloreinc/laravel-panneau/issues/98)), with `laravel-image` 2 and the mediatheque (folkloreinc/laravel-image#88, folkloreinc/laravel-mediatheque#107) — 5.0.0-alpha.5
+- [x] The `Media` field on several libraries, and references resolved with their library ([#95](https://github.com/folkloreinc/laravel-panneau/issues/95)) — 5.0.0-alpha.5
 
 ## App and content (phase 2, with the contests platform)
 
