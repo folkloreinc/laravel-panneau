@@ -123,13 +123,18 @@ trait ValidatesProtocol
                 if ($field['type'] === 'relation' && ! in_array($field['resource'] ?? null, $resourceIds, true)) {
                     $issues[] = $path.'.fields.'.$fieldIndex.': no resource '.($field['resource'] ?? '(none)');
                 }
-                if ($field['type'] === 'media') {
+                if (in_array($field['type'], ['media', 'image'], true)) {
                     if (! isset($field['resource'])) {
-                        if (count($libraries) !== 1) {
-                            $issues[] = $path.'.fields.'.$fieldIndex.'.resource: a media field needs a resource when there is not exactly one library.';
+                        // Every library of the definition (decision 0027)
+                        if (count($libraries) === 0) {
+                            $issues[] = $path.'.fields.'.$fieldIndex.': a '.$field['type'].' field needs a resource of kind media.';
                         }
-                    } elseif (! in_array($field['resource'], $libraries, true)) {
-                        $issues[] = $path.'.fields.'.$fieldIndex.'.resource: no resource of kind media named '.$field['resource'];
+                    } else {
+                        foreach ((array) $field['resource'] as $resourceIndex => $id) {
+                            if (! in_array($id, $libraries, true)) {
+                                $issues[] = $path.'.fields.'.$fieldIndex.'.resource'.(is_array($field['resource']) ? '.'.$resourceIndex : '').': no resource of kind media named '.$id;
+                            }
+                        }
                     }
                 }
             }

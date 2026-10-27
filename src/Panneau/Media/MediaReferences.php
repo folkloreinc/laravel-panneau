@@ -11,8 +11,9 @@ use Panneau\Resources\ResourceRegistry;
 
 /**
  * Finds the media that `media` values reference, through the repository of their library and
- * within its scope for a request, and turns them into the protocol's `MediaReference`. Media
- * are found once, and the media of a page of items in one query per library.
+ * within its scope for a request, and turns them into the protocol's `MediaReference`. The
+ * library of a value is the `resource` it keeps, or the field's library when it allows one only.
+ * Media are found once, and the media of a page of items in one query per library.
  *
  * @internal
  */
@@ -65,16 +66,14 @@ final class MediaReferences
         if (count($fields) === 0) {
             return;
         }
+        $libraries = array_map(fn (Media $field): array => $this->libraries($field), $fields);
         $ids = [];
         foreach ($items as $item) {
-            foreach ($fields as $field) {
-                $library = $this->resources->library($field->relatedResource());
-                if ($library === null) {
-                    continue;
-                }
+            foreach ($fields as $key => $field) {
                 foreach (self::entries($field, $field->resolve($item)) as $entry) {
                     $id = is_array($entry) ? Media::idOf($entry) : null;
-                    if ($id !== null) {
+                    $library = is_array($entry) ? self::libraryOf($libraries[$key], $entry) : null;
+                    if ($id !== null && $library !== null) {
                         $ids[$library->id()][] = $id;
                     }
                 }
@@ -89,28 +88,28 @@ final class MediaReferences
     }
 
     /**
-     * The value of a `media` field as references: `{ id, label, media, transform }`, a list of
-     * them, or an object of them keyed by locale. A media that isn't in the library anymore
-     * keeps its id and transform.
+     * The value of a `media` field as references: `{ id, resource, label, media, transform }`, a
+     * list of them, or an object of them keyed by locale. A media that isn't in its library
+     * anymore keeps its id, library and transform.
      */
     public function references(Media $field, mixed $value): mixed
     {
-        $library = $this->resources->library($field->relatedResource());
+        $libraries = $this->libraries($field);
         if ($field->isLocalized() && is_array($value) && ! array_is_list($value) && ! array_key_exists('id', $value)) {
-            return array_map(fn (mixed $localized): mixed => $this->convert($field, $library, $localized), $value);
+            return array_map(fn (mixed $localized): mixed => $this->convert($field, $libraries, $localized), $value);
         }
 
-        return $this->convert($field, $library, $value);
+        return $this->convert($field, $libraries, $value);
     }
 
     /**
      * A reference to a media item of a library.
      *
-     * @return array{id: string, label?: string, media: array<string, mixed>}
+     * @return array{id: string, resource: string, label?: string, media: array<string, mixed>}
      */
     public function reference(MediaResource $library, object $item): array
     {
-        $reference = ['id' => $this->resources->repository($library)->id($item)];
+        $reference = ['id' => $this->resources->repository($library)->id($item), 'resource' => $library->id()];
         $label = $library->mediaLabel($item);
         if ($label !== null) {
             $reference['label'] = $label;
@@ -120,26 +119,86 @@ final class MediaReferences
         return $reference;
     }
 
-    private function convert(Media $field, ?MediaResource $library, mixed $value): mixed
+    /**
+     * The libraries a field allows, by id.
+     *
+     * @return array<string, MediaResource>
+     */
+    private function libraries(Media $field): array
     {
-        if (! $field->isMultiple()) {
-            return $this->convertEntry($library, $value);
+        $libraries = [];
+        foreach ($this->resources->mediaLibraries($field->libraries()) as $library) {
+            $libraries[$library->id()] = $library;
         }
 
-        return is_array($value) ? array_values(array_map(fn (mixed $entry): mixed => $this->convertEntry($library, $entry), $value)) : [];
+        return $libraries;
     }
 
-    private function convertEntry(?MediaResource $library, mixed $entry): mixed
+    /**
+     * The library of a value: the `resource` it keeps, among the libraries, or the only one.
+     *
+     * @param  array<string, MediaResource>  $libraries
+     * @param  array<array-key, mixed>  $entry
+     */
+    private static function libraryOf(array $libraries, array $entry): ?MediaResource
     {
-        if ($library === null) {
-            return $entry;
+        $named = $entry['resource'] ?? null;
+        if (is_string($named)) {
+            return $libraries[$named] ?? null;
         }
+
+        return count($libraries) === 1 ? reset($libraries) : null;
+    }
+
+    /**
+     * The library of a media item, such as the model of a relation: the first of the libraries
+     * whose items are of its class, or the only one.
+     *
+     * @param  array<string, MediaResource>  $libraries
+     */
+    private static function libraryOfItem(array $libraries, object $item): ?MediaResource
+    {
+        foreach ($libraries as $library) {
+            $class = $library->itemClass();
+            if ($class !== null && $item instanceof $class) {
+                return $library;
+            }
+        }
+
+        return count($libraries) === 1 ? reset($libraries) : null;
+    }
+
+    /**
+     * @param  array<string, MediaResource>  $libraries
+     */
+    private function convert(Media $field, array $libraries, mixed $value): mixed
+    {
+        if (! $field->isMultiple()) {
+            return $this->convertEntry($libraries, $value);
+        }
+
+        return is_array($value) ? array_values(array_map(fn (mixed $entry): mixed => $this->convertEntry($libraries, $entry), $value)) : [];
+    }
+
+    /**
+     * @param  array<string, MediaResource>  $libraries
+     */
+    private function convertEntry(array $libraries, mixed $entry): mixed
+    {
         if (is_object($entry)) {
-            return $this->reference($library, $entry);
+            $library = self::libraryOfItem($libraries, $entry);
+            if ($library !== null) {
+                return $this->reference($library, $entry);
+            }
+            // Not a media of the field's libraries: its id only, never the object
+            $id = Media::idOf(data_get($entry, 'id'));
+
+            return $id !== null ? ['id' => $id] : null;
         }
         $id = is_array($entry) ? Media::idOf($entry) : null;
-        $item = $id !== null ? $this->find($library, $id) : null;
-        if (! is_array($entry) || $item === null) {
+        $library = is_array($entry) ? self::libraryOf($libraries, $entry) : null;
+        $item = $id !== null && $library !== null ? $this->find($library, $id) : null;
+        if (! is_array($entry) || $library === null || $item === null) {
             return $entry;
         }
         $reference = $this->reference($library, $item);

@@ -9,6 +9,11 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 ### Added
 
 - Seven field types: `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed` (`GET /embeds`, on an allowlist of oEmbed providers, resolved again at save) and `Location` ([decisions/0012](docs/decisions/0012-embeds-and-more-field-types.md), #100, #101). They go with the next `@panneau/*` alpha.
+- A `media` field can allow several libraries: `resource([Images::class, Documents::class])`, or every library of the definition without `resource()`. Its values carry the `resource` of each media, which requests need when the field allows several libraries, and references give it always (panneau-js decision 0027, #95).
+
+### Changed
+
+- References of `media` values have a `resource`, the media's library. A `media` field without `resource()` allows every library, instead of finding none when the definition has several. `ValidationContext` has a `libraries` closure, given by the controllers (#95).
 
 ## [5.0.0-alpha.4] - 2026-10-23
 

@@ -4,6 +4,7 @@ namespace Panneau\Tests\Unit\Media;
 
 use Illuminate\Database\Eloquent\Casts\ArrayObject;
 use Illuminate\Support\Collection;
+use LogicException;
 use Panneau\Fields\Media;
 use Panneau\Media\MediaTransform;
 use Panneau\Media\MediaTypes;
@@ -24,6 +25,33 @@ class MediaTest extends TestCase
         ], Media::make('gallery')->resource('images')->multiple()->accept('image/*')->maxSize(1000)->toDefinition());
         $this->assertSame('images', Media::make('image')->resource('images')->relatedResource());
         $this->assertFalse(Media::make('image')->transforms(false)->keepsTransforms());
+    }
+
+    public function test_a_media_field_can_allow_several_libraries(): void
+    {
+        $field = Media::make('media')->resource(['images', 'documents', 'images']);
+        $this->assertSame(['name' => 'media', 'type' => 'media', 'resource' => ['images', 'documents']], $field->toDefinition());
+        $this->assertSame(['images', 'documents'], $field->libraries());
+        $this->assertNull($field->relatedResource());
+        $this->assertSame(['images', 'documents'], Media::make('media')->resource('images', 'documents')->libraries());
+        $this->assertSame([], Media::make('media')->libraries());
+
+        // Values keep the library of each media
+        $this->assertSame(['id' => 'med_1', 'resource' => 'documents', 'transform' => ['rotate' => 90]], $field->serialize(['id' => 'med_1', 'resource' => 'documents', 'transform' => ['rotate' => 90]]));
+    }
+
+    public function test_a_media_field_that_keeps_ids_allows_one_library(): void
+    {
+        $this->assertSame('images', Media::make('cover')->transforms(false)->resource(['images'])->relatedResource());
+
+        $this->expectException(LogicException::class);
+        Media::make('cover')->transforms(false)->resource('images', 'documents');
+    }
+
+    public function test_a_media_field_that_keeps_ids_can_t_be_given_several_libraries_first(): void
+    {
+        $this->expectException(LogicException::class);
+        Media::make('cover')->resource('images', 'documents')->transforms(false);
     }
 
     public function test_values_read_from_an_item_become_references(): void

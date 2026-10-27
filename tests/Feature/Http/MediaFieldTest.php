@@ -116,6 +116,7 @@ class MediaFieldTest extends HttpTestCase
         $url = Storage::disk('public')->url($cover->file['path']);
         $response->assertJsonPath('data.cover', [
             'id' => (string) $cover->id,
+            'resource' => 'images',
             'label' => 'Portrait',
             'media' => ['type' => 'image', 'mime' => 'image/png', 'size' => 1000, 'url' => $url, 'thumbnailUrl' => $url],
             'transform' => self::TRANSFORM,

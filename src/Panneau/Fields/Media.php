@@ -5,29 +5,34 @@ namespace Panneau\Fields;
 use ArrayObject;
 use Closure;
 use Illuminate\Support\Collection;
+use LogicException;
 use Panneau\Fields\Concerns\AcceptsFiles;
 use Panneau\Forms\RuleSet;
 use Panneau\Forms\ValidationContext;
 use Panneau\Media\MediaTransform;
 
 /**
- * Media of a library: a resource of kind `media` (`MediaResource`). One media, or a list with
+ * Media of libraries: resources of kind `media` (`MediaResource`). One media, or a list with
  * `multiple()`.
  *
- * - **The library** is named by `resource()`, by class or id. It can be left out when there is
- *   only one library.
- * - **Requests** send an id, or `{ "id", "transform" }` with the edits of the image for this use
- *   (the protocol's `MediaTransform`). An id is found through the library's repository, within
- *   its scope (`scope()` and its media types): an unknown id, or one outside the scope, is a
- *   `422`. `accept()` and `maxSize()` are checked on the MIME type and size of the media found,
- *   never on what the client sends.
- * - **The repository receives** `{ "id": "…" }`, with a `transform` when the value has one: a
- *   list of them with `multiple()`. With Eloquent, the attribute needs a JSON column with the
- *   `array` cast. With `transforms(false)`, it receives the ids only (a string, or a list of
- *   them), for a column of ids, and transforms are ignored.
- * - **Items** give the protocol's `MediaReference`: `{ "id", "label", "media", "transform" }`,
- *   where `label` is the media's `itemTitle` and `media` its `MediaInfo`. In groups and blocks,
- *   values give `{ "id", "transform" }`.
+ * - **The libraries** are named by `resource()`, by class or id: one, or several in the order
+ *   the picker shows them. Without, the field allows every library of the definition.
+ * - **Requests** send an id, or `{ "id", "resource", "transform" }` with the media's library and
+ *   the edits of the image for this use (the protocol's `MediaTransform`). Ids are unique only
+ *   within their library, so a field that allows several libraries needs the `resource` of each
+ *   media, among its libraries. An id is found through its library's repository, within its
+ *   scope (`scope()` and its media types): an unknown id, or one outside the scope, is a `422`.
+ *   `accept()` and `maxSize()` are checked on the MIME type and size of the media found, never
+ *   on what the client sends.
+ * - **The repository receives** `{ "id": "…" }`, with the `resource` of the media when the field
+ *   allows several libraries, and a `transform` when the value has one: a list of them with
+ *   `multiple()`. With Eloquent, the attribute needs a JSON column with the `array` cast. With
+ *   `transforms(false)`, it receives the ids only (a string, or a list of them), for a column
+ *   of ids, and transforms are ignored: the field then allows one library only.
+ * - **Items** give the protocol's `MediaReference`: `{ "id", "resource", "label", "media",
+ *   "transform" }`, where `resource` is the media's library, `label` its `itemTitle` and `media`
+ *   its `MediaInfo`. In groups and blocks, values give `{ "id", "resource", "transform" }`, as
+ *   the repository received them.
  */
 class Media extends Field
 {
@@ -35,7 +40,10 @@ class Media extends Field
         typeDefinition as filesTypeDefinition;
     }
 
-    protected ?string $resource = null;
+    /**
+     * @var list<string>
+     */
+    protected array $resources = [];
 
     protected bool $transforms = true;
 
@@ -45,31 +53,48 @@ class Media extends Field
     }
 
     /**
-     * The library: the class or the id of a `MediaResource`. Optional when there is only one
-     * library.
+     * The libraries the field allows: classes or ids of `MediaResource`s, one, a list
+     * (`resource([Images::class, Documents::class])`) or several arguments, in the order the
+     * picker shows them. Without, the field allows every library of the definition.
+     *
+     * @param  string|array<array-key, string>  $resource
      */
-    public function resource(string $resource): static
+    public function resource(string|array $resource, string ...$more): static
     {
-        $this->resource = $resource;
+        $resources = [...(is_string($resource) ? [$resource] : array_values($resource)), ...array_values($more)];
+        $this->resources = array_values(array_unique($resources));
+        $this->checkLibraries(count($this->resources));
 
         return $this;
     }
 
     /**
-     * The library, as given to `resource()`.
+     * The libraries the field names, as given to `resource()`. Empty: every library of the
+     * definition.
+     *
+     * @return list<string>
+     */
+    public function libraries(): array
+    {
+        return $this->resources;
+    }
+
+    /**
+     * The library, when the field names one only.
      */
     public function relatedResource(): ?string
     {
-        return $this->resource;
+        return count($this->resources) === 1 ? $this->resources[0] : null;
     }
 
     /**
      * Whether values keep the edits of the image for this use (`transform`). Without, the
-     * repository receives ids only.
+     * repository receives ids only, so the field allows one library only.
      */
     public function transforms(bool $transforms = true): static
     {
         $this->transforms = $transforms;
+        $this->checkLibraries(count($this->resources));
 
         return $this;
     }
@@ -82,8 +107,8 @@ class Media extends Field
     protected function typeDefinition(): array
     {
         $definition = $this->filesTypeDefinition();
-        if ($this->resource !== null) {
-            $definition['resource'] = $this->resource;
+        if (count($this->resources) > 0) {
+            $definition['resource'] = count($this->resources) === 1 ? $this->resources[0] : $this->resources;
         }
 
         return $definition;
@@ -122,7 +147,8 @@ class Media extends Field
 
     protected function collectNestedRules(RuleSet $rules, string $path, mixed $value, ValidationContext $context): void
     {
-        $entryRules = [$this->mediaRule($context), ...$this->foundMediaRules($context)];
+        $libraries = $this->allowedLibraries($context);
+        $entryRules = [$this->mediaRule($context, $libraries), ...$this->foundMediaRules($context, $libraries)];
         if ($this->multiple) {
             $rules->attribute($path.'.*', $this->label ?? str_replace('_', ' ', $this->name));
             $rules->add($path.'.*', ['required', ...$entryRules]);
@@ -144,16 +170,17 @@ class Media extends Field
         if ($value === null) {
             return null;
         }
+        $keepsLibrary = count($this->allowedLibraries($context)) > 1;
         if ($this->multiple) {
-            return is_array($value) ? array_values(array_map($this->extractEntry(...), $value)) : [];
+            return is_array($value) ? array_values(array_map(fn (mixed $entry): array|string|null => $this->extractEntry($entry, $keepsLibrary), $value)) : [];
         }
 
-        return $this->extractEntry($value);
+        return $this->extractEntry($value, $keepsLibrary);
     }
 
     /**
-     * Turns a value read from an item into references (`{ "id", "transform" }`), or a list of
-     * them. The value is what the repository received, ids, or media items (objects, such as the
+     * Turns a value read from an item into references (`{ "id", "resource", "transform" }`), or a
+     * list of them. The value is what the repository received, ids, or media items (objects, such as the
      * models of a relation), which the serializer turns into references.
      */
     protected function serializeValue(mixed $value): mixed
@@ -193,15 +220,20 @@ class Media extends Field
     }
 
     /**
-     * @return array{id: string, transform?: array<string, mixed>}|string|null
+     * @param  bool  $keepsLibrary  Whether the field allows several libraries, so that the value
+     *                              keeps the library of the media.
+     * @return array{id: string, resource?: string, transform?: array<string, mixed>}|string|null
      */
-    private function extractEntry(mixed $value): array|string|null
+    private function extractEntry(mixed $value, bool $keepsLibrary): array|string|null
     {
         $id = self::idOf($value);
         if ($id === null || ! $this->transforms) {
             return $id;
         }
         $entry = ['id' => $id];
+        if ($keepsLibrary && is_array($value) && is_string($value['resource'] ?? null)) {
+            $entry['resource'] = $value['resource'];
+        }
         $transform = is_array($value) ? MediaTransform::normalize($value['transform'] ?? null) : null;
         if ($transform !== null) {
             $entry['transform'] = $transform;
@@ -223,6 +255,9 @@ class Media extends Field
             return null;
         }
         $reference = ['id' => $id];
+        if ($this->transforms && is_array($value) && is_string($value['resource'] ?? null) && $value['resource'] !== '') {
+            $reference['resource'] = $value['resource'];
+        }
         $transform = $this->transforms && is_array($value) ? MediaTransform::normalize($value['transform'] ?? null) : null;
         if ($transform !== null) {
             $reference['transform'] = $transform;
@@ -232,17 +267,27 @@ class Media extends Field
     }
 
     /**
-     * Checks that a value is an id, or an object with an `id` and an optional `transform`, of a
-     * media of the library, within its scope.
+     * Checks that a value is an id, or an object with an `id`, the `resource` of the media among
+     * the field's libraries (required when it allows several), and an optional `transform`, of a
+     * media of that library, within its scope.
      *
+     * @param  list<string>  $libraries  From `allowedLibraries()`.
      * @return Closure(string, mixed, Closure): void
      */
-    private function mediaRule(ValidationContext $context): Closure
+    private function mediaRule(ValidationContext $context, array $libraries): Closure
     {
-        return function (string $attribute, mixed $value, Closure $fail) use ($context): void {
+        return function (string $attribute, mixed $value, Closure $fail) use ($context, $libraries): void {
             $id = self::idOf($value);
             if ($id === null) {
                 $fail(__('The :attribute must be a media.'));
+
+                return;
+            }
+            $library = self::libraryOf($value, $libraries);
+            if ($library === false) {
+                $fail(is_array($value) && array_key_exists('resource', $value) && $value['resource'] !== null
+                    ? __('The library of the :attribute is not one this field allows.')
+                    : __('The :attribute allows several libraries: name the library.'));
 
                 return;
             }
@@ -251,24 +296,73 @@ class Media extends Field
 
                 return;
             }
-            if ($context->media !== null && ($context->media)($this->resource, $id) === null) {
+            if ($context->media !== null && ($context->media)($library, $id) === null) {
                 $fail(__('The selected :attribute is invalid.'));
             }
         };
     }
 
     /**
+     * The ids of the libraries the field allows for a request: those it names, or every library
+     * of the definition (`ValidationContext::$libraries`). Without a registry to ask, those it
+     * names.
+     *
+     * @return list<string>
+     */
+    private function allowedLibraries(ValidationContext $context): array
+    {
+        $libraries = $context->libraries !== null ? ($context->libraries)($this->resources) : $this->resources;
+        $this->checkLibraries(count($libraries));
+
+        return $libraries;
+    }
+
+    /**
+     * The library of a value: the `resource` it names, among the libraries, or the only library.
+     * Null for the only library of the registry, when the field doesn't know its libraries.
+     * False when the value names a library the field doesn't allow, or none when it allows
+     * several.
+     *
+     * @param  list<string>  $libraries
+     */
+    private static function libraryOf(mixed $value, array $libraries): string|false|null
+    {
+        $named = is_array($value) ? ($value['resource'] ?? null) : null;
+        if ($named !== null) {
+            return is_string($named) && (count($libraries) === 0 || in_array($named, $libraries, true)) ? $named : false;
+        }
+
+        return count($libraries) > 1 ? false : ($libraries[0] ?? null);
+    }
+
+    /**
+     * A field that keeps ids only (`transforms(false)`) can't keep the library of each media, so
+     * it allows one library only.
+     */
+    private function checkLibraries(int $count): void
+    {
+        if (! $this->transforms && $count > 1) {
+            throw new LogicException(sprintf(
+                'The media field "%s" keeps ids only (transforms(false)), so it allows one library only: name it with resource().',
+                $this->name,
+            ));
+        }
+    }
+
+    /**
      * The `accept` and `maxSize` rules, checked on the MIME type and size of the media found. A
      * media that isn't found is reported by the media rule.
      *
+     * @param  list<string>  $libraries  From `allowedLibraries()`.
      * @return list<Closure(string, mixed, Closure): void>
      */
-    private function foundMediaRules(ValidationContext $context): array
+    private function foundMediaRules(ValidationContext $context, array $libraries): array
     {
-        $found = function (mixed $value) use ($context): ?array {
+        $found = function (mixed $value) use ($context, $libraries): ?array {
             $id = self::idOf($value);
+            $library = self::libraryOf($value, $libraries);
 
-            return $id !== null && $context->media !== null ? ($context->media)($this->resource, $id) : null;
+            return $id !== null && $library !== false && $context->media !== null ? ($context->media)($library, $id) : null;
         };
         $checks = [];
         foreach ($this->portableRules as $rule) {

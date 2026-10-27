@@ -317,6 +317,42 @@ class FormTest extends TestCase
         $this->assertSame(['image'], array_keys($this->errors($fields, ['image' => ['name' => 'no id']])));
     }
 
+    public function test_media_of_several_libraries(): void
+    {
+        $fields = [
+            Media::make('cover')->resource('images', 'documents'),
+            Media::make('gallery')->multiple(),
+            Media::make('logo')->resource('images'),
+        ];
+        $media = ['images' => ['1' => ['type' => 'image', 'mime' => 'image/png']], 'documents' => ['1' => ['type' => 'document', 'mime' => 'application/pdf']]];
+        $context = new ValidationContext(
+            media: fn (?string $library, string $id): ?array => $media[$library][$id] ?? null,
+            // Every library when the field names none
+            libraries: fn (array $libraries): array => count($libraries) > 0 ? $libraries : ['images', 'documents'],
+        );
+
+        $this->assertSame(
+            [
+                'cover' => ['id' => '1', 'resource' => 'documents', 'transform' => ['rotate' => 90]],
+                'gallery' => [['id' => '1', 'resource' => 'images'], ['id' => '1', 'resource' => 'documents']],
+                'logo' => ['id' => '1'],
+            ],
+            $this->validate($fields, [
+                'cover' => ['id' => '1', 'resource' => 'documents', 'label' => 'Sent back', 'transform' => ['rotate' => 90]],
+                'gallery' => [['id' => '1', 'resource' => 'images'], ['id' => 1, 'resource' => 'documents']],
+                'logo' => ['id' => '1', 'resource' => 'images'],
+            ], $context),
+        );
+        $this->assertSame(
+            ['cover', 'logo', 'gallery.0', 'gallery.1'],
+            array_keys($this->errors($fields, [
+                'cover' => '1',
+                'gallery' => [['id' => '1'], ['id' => '1', 'resource' => 'videos']],
+                'logo' => ['id' => '1', 'resource' => 'documents'],
+            ], $context)),
+        );
+    }
+
     public function test_media_without_transforms_keep_ids(): void
     {
         $fields = [Media::make('cover')->transforms(false), Media::make('gallery')->transforms(false)->multiple()];

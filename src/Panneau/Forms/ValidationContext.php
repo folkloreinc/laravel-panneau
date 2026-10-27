@@ -30,6 +30,12 @@ final readonly class ValidationContext
      *                                                                                for `Slug::unique()`. The item being updated doesn't count.
      *                                                                                The closure narrows the query of an `EloquentRepository`.
      *                                                                                Null in nested values and actions: nothing is checked.
+     * @param  (Closure(list<string>): list<string>)|null  $libraries  The ids of the libraries
+     *                                                                 a media field allows, from
+     *                                                                 those it names (by id or
+     *                                                                 class): those, in that
+     *                                                                 order, or every library
+     *                                                                 when it names none.
      */
     public function __construct(
         public FormMode $mode = FormMode::Create,
@@ -40,6 +46,7 @@ final readonly class ValidationContext
         public ?Closure $uploads = null,
         public ?Closure $media = null,
         public ?Closure $valueExists = null,
+        public ?Closure $libraries = null,
     ) {}
 
     /**
@@ -48,6 +55,6 @@ final readonly class ValidationContext
      */
     public function nested(): self
     {
-        return new self($this->mode, $this->locales, false, $this->item, $this->relationExists, $this->uploads, $this->media);
+        return new self($this->mode, $this->locales, false, $this->item, $this->relationExists, $this->uploads, $this->media, libraries: $this->libraries);
     }
 }
