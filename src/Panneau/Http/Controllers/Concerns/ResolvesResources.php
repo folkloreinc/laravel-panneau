@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\ValidationContext;
 use Panneau\Media\MediaReferences;
+use Panneau\Resources\MediaResource;
 use Panneau\Resources\Resource;
 use Panneau\Uploads\Upload;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -63,6 +64,10 @@ trait ResolvesResources
             uploads: $uploads ?? $this->uploadResolver($request),
             media: fn (?string $library, string $id): ?array => $media->media($library, $id),
             valueExists: $valueExists,
+            libraries: fn (array $libraries): array => array_map(
+                fn (MediaResource $library): string => $library->id(),
+                $this->resources->mediaLibraries($libraries),
+            ),
         );
     }
 

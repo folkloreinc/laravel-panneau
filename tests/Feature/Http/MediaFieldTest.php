@@ -100,14 +100,15 @@ class MediaFieldTest extends HttpTestCase
 
         $response = $this->postJson(self::API.'/resources/articles', [
             'title' => 'An article',
-            'cover' => ['id' => (string) $cover->id, 'transform' => self::TRANSFORM + ['unknown' => true]],
+            'cover' => ['id' => (string) $cover->id, 'transform' => self::TRANSFORM + ['flipY' => false, 'tool' => ['strength' => 2]]],
             'gallery' => [$first->id, ['id' => (string) $second->id, 'transform' => ['rotate' => 180]]],
             'attachment' => ['id' => (string) $document->id, 'transform' => ['rotate' => 90]],
             'blocks' => [['type' => 'image', 'image' => ['id' => (string) $first->id, 'transform' => ['flipY' => true]]]],
         ])->assertCreated();
 
         $article = Article::query()->findOrFail($response->json('data.id'));
-        $this->assertSame(['id' => (string) $cover->id, 'transform' => self::TRANSFORM], $article->cover);
+        // A key an editor tool adds is kept, a false flip is not
+        $this->assertSame(['id' => (string) $cover->id, 'transform' => self::TRANSFORM + ['tool' => ['strength' => 2]]], $article->cover);
         $this->assertSame([['id' => (string) $first->id], ['id' => (string) $second->id, 'transform' => ['rotate' => 180]]], $article->gallery);
         // Without transforms, the column holds the id
         $this->assertSame((string) $document->id, $article->attachment);
@@ -116,9 +117,10 @@ class MediaFieldTest extends HttpTestCase
         $url = Storage::disk('public')->url($cover->file['path']);
         $response->assertJsonPath('data.cover', [
             'id' => (string) $cover->id,
+            'resource' => 'images',
             'label' => 'Portrait',
             'media' => ['type' => 'image', 'mime' => 'image/png', 'size' => 1000, 'url' => $url, 'thumbnailUrl' => $url],
-            'transform' => self::TRANSFORM,
+            'transform' => self::TRANSFORM + ['tool' => ['strength' => 2]],
         ]);
         // Without a name, the label is the name of the file
         $response->assertJsonPath('data.gallery.0.label', $first->file['name']);
@@ -129,7 +131,7 @@ class MediaFieldTest extends HttpTestCase
         $response->assertJsonPath('data.blocks.0.image', ['id' => (string) $first->id, 'transform' => ['flipY' => true]]);
         $this->assertReferences($response->json('data'));
 
-        $this->getJson(self::API.'/resources/articles/'.$article->id)->assertOk()->assertJsonPath('data.cover.transform', self::TRANSFORM);
+        $this->getJson(self::API.'/resources/articles/'.$article->id)->assertOk()->assertJsonPath('data.cover.transform', self::TRANSFORM + ['tool' => ['strength' => 2]]);
     }
 
     public function test_unknown_and_out_of_scope_media_are_refused(): void

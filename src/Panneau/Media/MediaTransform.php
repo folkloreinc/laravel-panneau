@@ -13,16 +13,89 @@ namespace Panneau\Media;
  * - `crop`: whole pixels of the upright original, from its top left corner;
  * - `rotate`: 0, 90, 180 or 270 degrees, clockwise;
  * - `flipX`, `flipY`: mirrors left to right, top to bottom;
- * - `focalPoint`: from 0 to 1, relative to the upright original.
+ * - `focalPoint`: from 0 to 1, relative to the upright original;
+ * - `base`: what a transform for one use starts from: the original file (`original`, the
+ *   default), or the media's own transform (`media`), whose version its crop and focal point
+ *   are then relative to (panneau-js decision 0031);
+ * - `baseTransform`: with `base: "media"`, the media's own transform it was made on, itself a
+ *   transform without a base;
+ * - other keys, which editor tools can add, are kept as they are: renderers ignore the ones they
+ *   don't know.
  */
 final class MediaTransform
 {
+    public const BASE_MEDIA = 'media';
+
+    public const BASE_ORIGINAL = 'original';
+
     private const ROTATIONS = [0, 90, 180, 270];
 
     /**
      * Why a value is not a transform, or null when it is one (or null).
      */
     public static function error(mixed $value): ?string
+    {
+        return self::check($value, true);
+    }
+
+    /**
+     * A valid transform, with its known properties normalized (whole pixels, no rotation of 0,
+     * no false flips) and the others kept as they are, in their order. Null when it is invalid
+     * or has nothing.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function normalize(mixed $value): ?array
+    {
+        if (! is_array($value) || self::error($value) !== null) {
+            return null;
+        }
+
+        return self::normalized($value);
+    }
+
+    /**
+     * The size of the crop of a transform once rendered: a quarter turn swaps its width and its
+     * height. Null without a crop.
+     *
+     * @return array{width: int, height: int}|null
+     */
+    public static function renderedCropSize(mixed $value): ?array
+    {
+        if (! is_array($value) || ! is_array($value['crop'] ?? null)) {
+            return null;
+        }
+        $width = self::whole($value['crop']['width'] ?? 0);
+        $height = self::whole($value['crop']['height'] ?? 0);
+        $rotate = self::whole($value['rotate'] ?? 0);
+
+        return $rotate === 90 || $rotate === 270 ? ['width' => $height, 'height' => $width] : ['width' => $width, 'height' => $height];
+    }
+
+    /**
+     * The value of a ratio (`16:9` gives 1.777…), or null when it isn't one.
+     */
+    public static function parseRatio(string $ratio): ?float
+    {
+        if (preg_match('/^([1-9][0-9]*):([1-9][0-9]*)$/', $ratio, $matches) !== 1) {
+            return null;
+        }
+
+        return (int) $matches[1] / (int) $matches[2];
+    }
+
+    /**
+     * Whether a size has a ratio: its height is within one pixel of its width divided by the
+     * ratio, since crops are in whole pixels.
+     */
+    public static function matchesRatio(int $width, int $height, string $ratio): bool
+    {
+        $value = self::parseRatio($ratio);
+
+        return $value !== null && abs($width / $value - $height) <= 1;
+    }
+
+    private static function check(mixed $value, bool $allowsBase): ?string
     {
         if ($value === null) {
             return null;
@@ -53,45 +126,73 @@ final class MediaTransform
                 return 'focalPoint must have an x and a y from 0 to 1';
             }
         }
+        if (! $allowsBase) {
+            return array_key_exists('base', $value) || array_key_exists('baseTransform', $value)
+                ? 'baseTransform must be a transform without a base'
+                : null;
+        }
+        $base = $value['base'] ?? null;
+        if ($base !== null && ! in_array($base, [self::BASE_MEDIA, self::BASE_ORIGINAL], true)) {
+            return 'base must be media or original';
+        }
+        $baseTransform = $value['baseTransform'] ?? null;
+        if ($baseTransform !== null && ($error = self::check($baseTransform, false)) !== null) {
+            return str_starts_with($error, 'baseTransform') ? $error : 'baseTransform: '.$error;
+        }
 
         return null;
     }
 
     /**
-     * A valid transform with only the properties of the protocol, or null when it has none.
-     *
-     * @return array{crop?: array{x: int, y: int, width: int, height: int}, rotate?: int, flipX?: bool, flipY?: bool, focalPoint?: array{x: float|int, y: float|int}}|null
+     * @param  array<array-key, mixed>  $value  A valid transform.
+     * @return array<string, mixed>|null
      */
-    public static function normalize(mixed $value): ?array
+    private static function normalized(array $value): ?array
     {
-        if (! is_array($value) || self::error($value) !== null) {
-            return null;
-        }
         $transform = [];
-        if (is_array($value['crop'] ?? null)) {
-            $crop = $value['crop'];
-            $transform['crop'] = [
-                'x' => self::whole($crop['x'] ?? 0),
-                'y' => self::whole($crop['y'] ?? 0),
-                'width' => self::whole($crop['width'] ?? 1),
-                'height' => self::whole($crop['height'] ?? 1),
-            ];
-        }
-        if (isset($value['rotate']) && self::whole($value['rotate']) !== 0) {
-            $transform['rotate'] = self::whole($value['rotate']);
-        }
-        foreach (['flipX', 'flipY'] as $flip) {
-            if (($value[$flip] ?? null) === true) {
-                $transform[$flip] = true;
+        foreach ($value as $key => $property) {
+            $key = (string) $key;
+            if ($property === null) {
+                continue;
             }
-        }
-        if (is_array($value['focalPoint'] ?? null)) {
-            $x = $value['focalPoint']['x'] ?? 0;
-            $y = $value['focalPoint']['y'] ?? 0;
-            $transform['focalPoint'] = [
-                'x' => is_int($x) || is_float($x) ? $x : 0,
-                'y' => is_int($y) || is_float($y) ? $y : 0,
-            ];
+            switch ($key) {
+                case 'crop':
+                    $transform['crop'] = [
+                        'x' => self::whole($property['x'] ?? 0),
+                        'y' => self::whole($property['y'] ?? 0),
+                        'width' => self::whole($property['width'] ?? 1),
+                        'height' => self::whole($property['height'] ?? 1),
+                    ];
+                    break;
+                case 'rotate':
+                    if (self::whole($property) !== 0) {
+                        $transform['rotate'] = self::whole($property);
+                    }
+                    break;
+                case 'flipX':
+                case 'flipY':
+                    if ($property === true) {
+                        $transform[$key] = true;
+                    }
+                    break;
+                case 'focalPoint':
+                    $x = $property['x'] ?? 0;
+                    $y = $property['y'] ?? 0;
+                    $transform['focalPoint'] = [
+                        'x' => is_int($x) || is_float($x) ? $x : 0,
+                        'y' => is_int($y) || is_float($y) ? $y : 0,
+                    ];
+                    break;
+                case 'baseTransform':
+                    $base = is_array($property) ? self::normalized($property) : null;
+                    if ($base !== null) {
+                        $transform['baseTransform'] = $base;
+                    }
+                    break;
+                default:
+                    // `base`, and the keys of editor tools, as they are
+                    $transform[$key] = $property;
+            }
         }
 
         return count($transform) > 0 ? $transform : null;

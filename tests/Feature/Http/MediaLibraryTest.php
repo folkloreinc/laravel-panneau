@@ -106,7 +106,7 @@ class MediaLibraryTest extends HttpTestCase
         $this->assertValidDefinition($response->json());
         $images = collect($response->json('resources'))->firstWhere('id', 'images');
         $this->assertSame('media', $images['kind']);
-        $this->assertSame(['file', 'name', 'alt'], array_column($images['fields'], 'name'));
+        $this->assertSame(['file', 'name', 'alt', 'transform'], array_column($images['fields'], 'name'));
         $this->assertSame([
             'name' => 'file',
             'type' => 'file',

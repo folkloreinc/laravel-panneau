@@ -78,11 +78,15 @@ class ValidatesProtocolTest extends TestCase
         $definition['resources'][0]['fields'][] = ['name' => 'image', 'type' => 'media'];
         $this->assertSame([], self::lintDefinition($definition));
 
+        // Without a resource, a media field allows every library (decision 0027)
         $definition['resources'][] = ['id' => 'documents'] + $library;
-        $this->assertSame(['resources.0.fields.1.resource: a media field needs a resource when there is not exactly one library.'], self::lintDefinition($definition));
+        $this->assertSame([], self::lintDefinition($definition));
 
         $definition['resources'][0]['fields'][1]['resource'] = 'pages';
         $this->assertSame(['resources.0.fields.1.resource: no resource of kind media named pages'], self::lintDefinition($definition));
+
+        $definition['resources'][0]['fields'][1]['resource'] = ['documents', 'pages', 'media'];
+        $this->assertSame(['resources.0.fields.1.resource.1: no resource of kind media named pages'], self::lintDefinition($definition));
 
         $definition['resources'][0]['fields'][1]['resource'] = 'documents';
         $definition['resources'][2]['fields'][0]['multiple'] = true;

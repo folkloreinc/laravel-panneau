@@ -71,6 +71,8 @@ return new class extends Migration
             $table->json('file')->nullable();
             $table->string('name')->nullable();
             $table->json('alt')->nullable();
+            // The media's own transform: ImagesResource
+            $table->json('transform')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

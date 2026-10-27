@@ -96,8 +96,8 @@ final class ResourceRegistry
     }
 
     /**
-     * The library a `media` field references: by id or by class, or the only library when the
-     * field names none. Null when there is no such library, or several and the field names none.
+     * A library, by id or by class, or the only library when none is named. Null when there is
+     * no such library, or several and none is named.
      */
     public function library(?string $resource): ?MediaResource
     {
@@ -109,6 +109,29 @@ final class ResourceRegistry
         $libraries = $this->libraries();
 
         return count($libraries) === 1 ? $libraries[0] : null;
+    }
+
+    /**
+     * The libraries a `media` field allows: those it names, by id or by class, in that order, or
+     * every library when it names none. Names that aren't libraries are left out.
+     *
+     * @param  list<string>  $names
+     * @return list<MediaResource>
+     */
+    public function mediaLibraries(array $names): array
+    {
+        if (count($names) === 0) {
+            return $this->libraries();
+        }
+        $libraries = [];
+        foreach ($names as $name) {
+            $library = $this->library($name);
+            if ($library !== null) {
+                $libraries[$library->id()] = $library;
+            }
+        }
+
+        return array_values($libraries);
     }
 
     /**

@@ -225,15 +225,15 @@ final class DefinitionBuilder
     }
 
     /**
-     * Turns the resource classes of relation and media fields into resource ids, in nested
-     * fields too.
+     * Turns the resource classes of relation, media and image fields into resource ids (one, or
+     * a list for a media field that allows several libraries), in nested fields too.
      *
      * @param  array<array-key, mixed>  $field
      * @return array<array-key, mixed>
      */
     private function resolveFieldReferences(array $field): array
     {
-        if (in_array($field['type'] ?? null, ['relation', 'media'], true)) {
+        if (in_array($field['type'] ?? null, ['relation', 'media', 'image'], true)) {
             $field = $this->resolveResource($field);
         }
         if (isset($field['fields']) && is_array($field['fields'])) {
@@ -272,6 +272,11 @@ final class DefinitionBuilder
     {
         if (isset($definition['resource']) && is_string($definition['resource'])) {
             $definition['resource'] = $this->resources->idOf($definition['resource']);
+        } elseif (isset($definition['resource']) && is_array($definition['resource'])) {
+            $definition['resource'] = array_values(array_unique(array_map(
+                fn (mixed $resource): mixed => is_string($resource) ? $this->resources->idOf($resource) : $resource,
+                $definition['resource'],
+            )));
         }
 
         return $definition;

@@ -7,6 +7,7 @@ use LogicException;
 use Panneau\Fields\File;
 use Panneau\Lists\Filters\MediaTypeFilter;
 use Panneau\Lists\ResourceList;
+use Panneau\Media\MediaTransform;
 use Panneau\Media\MediaTypes;
 
 /**
@@ -16,7 +17,8 @@ use Panneau\Media\MediaTypes;
  *   `fields()`, which must not declare it: configure it with `file()`. Its `accept` defaults to
  *   the MIME types of `mediaTypes()`.
  * - **Its items** have a read-only `media`, from `media()`: type, MIME type, size, URLs,
- *   dimensions, status.
+ *   dimensions, status, and the media's own transform, from `mediaTransform()`: the value of
+ *   its `transform` field when it declares one.
  * - **Its list** has a `type` filter, added to the filters of `list()`.
  * - **Its scope** is `scope()`, plus the types of `mediaTypes()` under the `type` key: lists,
  *   items and `media` fields only reach media of those types, and a media of another type
@@ -39,6 +41,11 @@ abstract class MediaResource extends Resource
     public const MEDIA = 'media';
 
     public const TYPE = 'type';
+
+    /**
+     * The name of the field of the media's own transform, when the library declares one.
+     */
+    public const TRANSFORM = 'transform';
 
     private ?File $fileField = null;
 
@@ -165,7 +172,8 @@ abstract class MediaResource extends Resource
     /**
      * The media of an item, the protocol's `MediaInfo`: what the backend computed about its
      * file. By default, from the stored file of the `file` field: its type (the item's `type`,
-     * or its MIME type's), MIME type, size and URL, and the same URL as thumbnail for an image.
+     * or its MIME type's), MIME type, size and URL, the same URL as thumbnail for an image, and
+     * its own transform (`mediaTransform()`) when it has one.
      *
      * @return array<string, mixed>
      */
@@ -177,13 +185,32 @@ abstract class MediaResource extends Resource
         $type = is_string($type) && $type !== '' ? $type : MediaTypes::fromMime($stored['mime'] ?? null);
         $url = $stored !== null ? $field->url($stored) : null;
 
-        return [
+        $media = [
             'type' => $type,
             'mime' => $stored['mime'] ?? null,
             'size' => $stored['size'] ?? null,
             'url' => $url,
             'thumbnailUrl' => $type === MediaTypes::IMAGE ? $url : null,
         ];
+        $transform = $this->mediaTransform($item);
+        if ($transform !== null) {
+            $media['transform'] = $transform;
+        }
+
+        return $media;
+    }
+
+    /**
+     * The media's own transform (the protocol's `MediaTransform`), which the references of
+     * `media` and `image` fields give, so that a transform for one use can be made over it
+     * (panneau-js decision 0031). By default, the value of the library's `transform` field,
+     * when it declares one. Null without a transform, or with an invalid one.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function mediaTransform(object $item): ?array
+    {
+        return MediaTransform::normalize($this->field(self::TRANSFORM)?->resolve($item));
     }
 
     /**

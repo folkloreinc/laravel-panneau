@@ -4,13 +4,14 @@ namespace TestApp\Panneau\Resources;
 
 use Illuminate\Http\Request;
 use Panneau\Fields\File;
+use Panneau\Fields\Json;
 use Panneau\Fields\Text;
 use Panneau\Lists\ResourceList;
 use Panneau\Resources\MediaResource;
 use TestApp\Models\Asset;
 
 /**
- * An Eloquent library of the images of a team.
+ * An Eloquent library of the images of a team, with their own transform.
  */
 class ImagesResource extends MediaResource
 {
@@ -34,6 +35,8 @@ class ImagesResource extends MediaResource
         return [
             Text::make('name'),
             Text::make('alt')->localized(),
+            // The media's own transform, which references give in their media
+            Json::make('transform'),
         ];
     }
 

@@ -181,18 +181,18 @@ interface ResourceRepository
   - `Text`, `Textarea`, `RichText`, `Number`, `Boolean`;
   - `Date`, `DateTime`, `Time`;
   - `Select`, `Email`, `Url`, `Color`;
-  - `Media`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
+  - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
   - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
   - `localized()`, `readOnly()`, `visibleWhen()`;
   - `createOnly()`, `updateOnly()`.
-- **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
+- **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`, `crop()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
 - **Validation.** Rules are built for the submitted values, so they follow the form:
   - fields hidden by `visibleWhen`, read-only fields, and `createOnly`/`updateOnly` fields outside their mode are neither validated nor saved;
   - a partial update (`PATCH`) only validates the fields it sends;
   - localized values are validated per locale (`title.fr`), and blocks per index and type (`blocks.2.image`), so errors use the protocol's dot paths.
-- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items, and `Media` values `{ "id", "transform" }` (see [The `media` field](#the-media-field)). Folklore repositories already handle these values: `data` JSON attributes, relations and media.
+- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items, and `Media` values `{ "id", "transform" }`, with the media's `resource` when the field allows several libraries (see [The `media` field](#the-media-field)). Folklore repositories already handle these values: `data` JSON attributes, relations and media.
 - **Saving.** Once the values are valid, and before the `creating` and `updating` hooks, each field prepares its value with `prepare()` (see [decisions/0008](decisions/0008-field-preparation.md)). Most fields keep it as is. A field that keeps something outside the item, like `File`, does that work there, and registers with the `SaveContext` what to do once the repository saved the item (`afterSave()`) or if the save fails (`afterFailure()`). Groups and blocks are saved whole: their fields without a value get `prepareAbsent()`, since their previous value is gone.
 - **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, related items become references (`{ "id": "12", "label": "Ada" }`), and media media references.
 - **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
@@ -515,11 +515,11 @@ final class ImagesResource extends MediathequeResource
 
 ### On `laravel-mediatheque`
 
-`MediathequeResource` is a library on [`folklore/laravel-mediatheque`](https://github.com/folkloreinc/laravel-mediatheque) 2 (`^2.0@alpha`, suggested, not required). Its repository, `MediathequeRepository`, works with the model of `mediatheque.models.media`.
+`MediathequeResource` is a library on [`folklore/laravel-mediatheque`](https://github.com/folkloreinc/laravel-mediatheque) 2 (`^2.0@alpha`, 2.0.0-alpha.8 or later, suggested, not required). Its repository, `MediathequeRepository`, works with the model of `mediatheque.models.media`.
 
 - **Ingest.** A direct upload is ingested with `Mediatheque::ingest(Source::disk($upload->disk, $upload->path, $name), name: …, attributes: $scope)`: the mediatheque copies it on the storage, detects its type from its content, and processes it in its queue. A file of the request is ingested the same way. A file the mediatheque refuses, or of a type outside the library, is a `422` on `file`, and leaves neither a row nor a file.
 - **Fields** are attributes of the media: `name`, and the columns the application adds to the media table. The values other than `file` and `name` are set after the ingest, like `EloquentRepository` does.
-- **`media`** comes from the mediatheque: `type`, `status` (`pending` until it is probed and processed), `error` for a failed media (`{ code, message }`, from its latest failed run or the rendition of it that failed), the original's MIME type and size, `url` (the main rendition, or the original; temporary for a private media), `thumbnailUrl`, `variants` (the main renditions, such as `h264`), `width`, `height`, `duration` and `metadata`.
+- **`media`** comes from the mediatheque: `type`, `status` (`pending` until it is probed and processed), `error` for a failed media (`{ code, message }`, from its latest failed run or the rendition of it that failed), the original's MIME type and size, `url` (the main rendition, or the original; temporary for a private media), `thumbnailUrl`, `variants` (the main renditions, such as `h264`), `width`, `height`, `duration`, `metadata`, and `transform`, the media's own transform (`$media->transform()`, `laravel-mediatheque` 2.0.0-alpha.8 or later).
 - **Thumbnails.** With [`folklore/laravel-image`](https://github.com/folkloreinc/laravel-image) 2, the thumbnail of an image, or of a video's poster, is an image URL of its `media` resolver: a signed URL 480 pixels wide, or the preset of `thumbnailPreset()`. Without it, or before the mediatheque knows the image's checksum, it is the URL of the original image, or of the poster or first thumbnail of other types.
 - **Replacing the file.** A new `file` (a direct upload, or a file of the request) replaces the media's original with `Mediatheque::replaceOriginal()` (`laravel-mediatheque` 2.0.0-alpha.5 or later). The media keeps its id, so its references keep working; its renditions are made again, and its `media.status` is `pending` until then. A file the mediatheque refuses, of another type than the media's, or outside the library's types, is a `422` on `file`, and the media and its files stay as they were. The original sent back as the item gave it, or left out, is kept.
 - **Ingest and replace options.** Extend `MediathequeRepository` and override `ingest()` to choose the visibility or the pipeline of the media, or `replace()` to choose the options of a new original or to allow a file of another type (`replaceOriginal($media, $source, allowTypeChange: true)`); return the subclass from the library's `repository()`.
@@ -618,7 +618,7 @@ Schema::create('assets', function (Blueprint $table) {
 });
 ```
 
-- **`media`** is computed from the stored file: `type` (the `type` column, or the MIME type's), `mime`, `size`, `url` (the disk's URL, or a temporary URL for a private file), and `thumbnailUrl`, the same URL for an image. There is no status: the media is ready.
+- **`media`** is computed from the stored file: `type` (the `type` column, or the MIME type's), `mime`, `size`, `url` (the disk's URL, or a temporary URL for a private file), and `thumbnailUrl`, the same URL for an image. There is no status: the media is ready. Its `transform` is the value of the library's `transform` field, when it declares one (a `Json` field on a JSON column, for example).
 - **Replacing the file** with a `PATCH` stores the new file and deletes the old one once the item is saved, like a `File` field. Its type follows the new file: keep `accept` within the library's types.
 - Override `media()` to add what the project knows, such as image sizes from its own image service.
 
@@ -628,16 +628,48 @@ Schema::create('assets', function (Blueprint $table) {
 Media::make('cover')->resource(ImagesResource::class)->accept(['image/png', 'image/jpeg']),
 Media::make('gallery')->resource(ImagesResource::class)->multiple()->max(12),
 Media::make('attachment')->resource(DocumentsResource::class)->transforms(false), // a column of ids
-Media::make('image'),                                                              // the only library
+Media::make('files')->resource([ImagesResource::class, DocumentsResource::class]), // several libraries
+Media::make('image'),                                                              // every library
 ```
 
-- **The library** is named by `resource()`, by class or id, and serialized as its id. It can be left out when the definition has only one library. `lintDefinition()` refuses a `media` field without a library when there are several. The protocol now lets a field use every library, or several ([panneau-js decision 0027](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0027-media-picker.md)): **not built yet** here ([#95](https://github.com/folkloreinc/laravel-panneau/issues/95)).
-- **Requests** send an id (`"med_01H…"`), or `{ "id", "transform" }` with the edits of the image for this use (the protocol's `MediaTransform`: `crop`, `rotate`, `flipX`, `flipY`, `focalPoint`). The references the item gave can be sent back.
-- **Validation.** Ids are found through the library's repository, within its scope and its types: an unknown id, a deleted media, or one of another tenant or of another type is a `422` on the value's path (`cover`, `gallery.2`, `blocks.1.image`). An invalid transform is a `422` too. `accept` and `maxSize` are checked on the MIME type and size of the media found, never on what the client sends.
-- **Values.** The repository receives `{ "id": "…" }`, with a `transform` when the value has one (only the protocol's properties), or a list of them with `multiple()`. With Eloquent, the attribute needs a JSON column with the `array` cast. With `transforms(false)`, it receives the id only, or a list of ids, and transforms are ignored.
-- **Items** give `MediaReference`s: `{ "id", "label", "media", "transform" }`, where `label` and `media` come from the library. A media that left the library keeps its id and transform. The media of a page of items are found in one query per library. In groups and blocks, values give `{ "id", "transform" }`.
-- **From a relation.** An attribute or `resolveUsing()` that gives media items of the library (models of the mediatheque through `HasMedias`, for example) is turned into references too.
-- **Image edits** are rendered by `folklore/laravel-image` 2 URLs, from the media and the transform. The `image` field, the crop rule and the media's own transform are **not built yet** ([#98](https://github.com/folkloreinc/laravel-panneau/issues/98)).
+- **The libraries** are named by `resource()`, by class or id: one, or several (a list, or several arguments) in the order the picker's switcher shows them ([panneau-js decision 0027](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0027-media-picker.md)). The definition gives the id of one library, or the list of ids. Without `resource()`, the field allows every library of the definition. `libraries()` gives the libraries as named, and `ResourceRegistry::mediaLibraries()` the ones a field allows.
+- **Requests** send an id (`"med_01H…"`), or `{ "id", "resource", "transform" }` with the media's library and the edits of the image for this use (the protocol's `MediaTransform`: `crop`, `rotate`, `flipX`, `flipY`, `focalPoint`). The references the item gave can be sent back.
+  - **One library:** an id, or `{ "id", "transform" }`. A `resource` naming that library is accepted.
+  - **Several libraries:** ids are unique only within their library, so each media needs a `resource` among the field's libraries. A missing or unknown `resource` is a `422` on the value's path (`The cover allows several libraries: name the library.`).
+- **Validation.** Ids are found through the repository of their library, within its scope and its types: an unknown id, a deleted media, or one of another tenant or of another type is a `422` on the value's path (`cover`, `gallery.2`, `blocks.1.image`). An invalid transform is a `422` too. `accept` and `maxSize` are checked on the MIME type and size of the media found, never on what the client sends.
+- **Values.** The repository receives `{ "id": "…" }`, with the media's `resource` when the field allows several libraries, and a `transform` when the value has one (only the protocol's properties), or a list of them with `multiple()`. With Eloquent, the attribute needs a JSON column with the `array` cast. With `transforms(false)`, it receives the id only, or a list of ids, and transforms are ignored: the field can't keep the library of each media, so it allows one library only. Naming several throws a `LogicException`, and so does validating such a field without `resource()` when the definition has several libraries.
+- **Items** give `MediaReference`s: `{ "id", "resource", "label", "media", "transform" }`, where `resource` is the media's library, and `label` and `media` come from it. Each value is resolved in its own library: the `resource` it keeps, or the field's library when it allows one only. A value saved without a `resource` in a field that now allows several libraries is not resolved: migrate such values to `{ "id", "resource" }`. A media that left its library keeps its id, library and transform. The media of a page of items are found in one query per library. In groups and blocks, values give `{ "id", "resource", "transform" }` as they were saved.
+- **From a relation.** An attribute or `resolveUsing()` that gives media items (models of the mediatheque through `HasMedias`, for example) is turned into references too, of the first of the field's libraries whose items are of their class (`itemClass()`, the model by default), or of its only library. An object of none of them gives its `id` only.
+- **Image edits** are rendered by `folklore/laravel-image` 2 URLs, from the media and the transform.
+
+### The `image` field
+
+`Image` extends `Media`: a `media` field for images, with the image editor of `@panneau/media` ([panneau-js decision 0031](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0031-image-editor-and-image-field.md)). Its libraries, requests, values and references are those of `Media`, and its `accept` defaults to `image/*`.
+
+```php
+Image::make('cover')
+    ->resource(ImagesResource::class)
+    ->ratios(['16:9', '4:3'])                       // the ratios the editor suggests
+    ->rotate(false)                                 // no rotation and flips (true by default)
+    ->focalPoint()                                  // the focal point (true by default)
+    ->transformBase('choose')                       // media (the default), original, or choose
+    ->crop(['16:9', '1:1'], required: true),        // the crop rule
+```
+
+- **Options.** `ratios()`, `rotate()`, `focalPoint()` and `transformBase()` are given in the definition when they are set. A ratio is `width:height` in whole numbers, and an invalid one, or another base, throws an `InvalidArgumentException`.
+- **The `crop` rule** is a portable rule of `media` and `image` fields alike: `crop(ratios: [...], required: true)` gives `{ "rule": "crop", "value": { "ratios": [...], "required": true } }`. The server checks the transform of each media, as it checks `accept` and `maxSize`, with a `422` on the entry's path (`cover`, `gallery.2`):
+  - with `required`, each media needs a crop for this use: an id alone, or `{ "id" }`, has none;
+  - with `ratios`, a crop must have one of them once rendered: a quarter turn swaps its width and its height. A crop has a ratio when its height is within one pixel of its width divided by the ratio, so a 1601×900 crop is 16:9.
+
+  A field with `transforms(false)` keeps no crop, so it can't have the rule (`LogicException`).
+- **Transforms** (`Panneau\Media\MediaTransform`) are the protocol's `MediaTransform`, checked and normalized before they reach the repository:
+  - `crop`, `rotate`, `flipX`, `flipY` and `focalPoint`, as above. A rotation of 0 and false flips are dropped;
+  - `base`: without it, a transform for one use starts from the original file. With `media`, it applies over the media's own transform, and its crop and focal point are in pixels of the media's version. `original` is kept as sent;
+  - `baseTransform`: with `base: "media"`, the media's own transform it was made on, itself a valid transform without `base` or `baseTransform` (one level deep);
+  - other keys, which editor tools add, are kept as they are, through save and read. Renderers ignore the ones they don't know.
+
+  An invalid `crop`, `rotate`, flip, `focalPoint`, `base` or `baseTransform` is a `422`.
+- **The media's own transform.** `MediaResource::media()` gives `transform`, from `mediaTransform()`: the library's `transform` field, or the mediatheque's `transform` on a `MediathequeResource`. References carry it in their `media`, so the editor draws a transform made over it, and sees that it changed since `baseTransform`. A value that isn't a valid transform gives none. An Eloquent library that declares a `transform` field edits it with a `PATCH` of that field; editing it in the app (the picker's details, an editor on a library's pages) is not decided yet (decision 0031).
 
 ## Search and dashboard
 
