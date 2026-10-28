@@ -48,6 +48,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [ ] Auth: password, reset, 2FA, passkeys, email verification (Fortify), OAuth providers (Socialite, [#34](https://github.com/folkloreinc/laravel-panneau/issues/34)), with a separate guard or the site's existing auth ([decisions/0005](decisions/0005-auth.md))
 - [ ] Optional roles module, and permissions in the UI
 - [ ] Actions: queued runs with progress; built-in duplicate, restore, export and import
+- [ ] Inline editing in lists: what a column needs to edit its field in place; the update already takes a single field with `If-Match`
 - [ ] The `laravel-folklore` plugin, built in `laravel-folklore` 2 ([its decision 0018](https://github.com/folkloreinc/laravel-folklore/blob/v2.x/docs/decisions/0018-panneau-plugin-php-only.md)): a repository adapter on its typed query, and the `Page`, `Pages`, `Blocks` and `PageSlug` fields in PHP on the built-in types (`relation`, `repeater`, `slug`). Here: what the adapter needs, and `ChecksSlugs` (done)
 - [ ] Migration guide, `panneau:install --upgrade` and Rector rules, validated on the contests platform
 
@@ -60,6 +61,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [ ] Dashboard widgets
 - [ ] Preview, drafts and revisions
 - [ ] Realtime collaboration support (signed tokens for a Yjs server)
+- [ ] An MCP server for AI agents, authenticated as the user with OAuth, with the user's abilities and the policies: the resources and actions of the definition as tools (see the panneau-js roadmap)
 
 ## Maintenance of 1.x
 
