@@ -61,7 +61,9 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [ ] Dashboard widgets
 - [ ] Preview, drafts and revisions
 - [ ] Realtime collaboration support (signed tokens for a Yjs server)
-- [ ] An MCP server for AI agents, authenticated as the user with OAuth, with the user's abilities and the policies: the resources and actions of the definition as tools (see the panneau-js roadmap)
+- [ ] AI agents, with the user's abilities and the policies: the resources and actions of the definition as tools, built once (see the panneau-js roadmap)
+    - an MCP server on `laravel/mcp`, for outside AI clients signed in as the user with OAuth 2.1 (Passport) or a Sanctum token;
+    - an assistant inside Panneau on the Laravel AI SDK (`laravel/ai`), on the same tools, with streamed answers
 
 ## Maintenance of 1.x
 
