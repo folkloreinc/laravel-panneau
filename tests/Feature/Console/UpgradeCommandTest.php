@@ -265,6 +265,26 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('app/Http/Responses/LoginResponse.php:11', $this->finding('macros', 'isPanneau()')->location);
     }
 
+    public function test_the_check_lists_what_the_rector_rules_left(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Resources/Tags.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            class Tags
+            {
+                // TODO(panneau-5): canCreate is false: the create() of the policy denies it
+            }
+            PHP);
+
+        $finding = $this->finding('todos', 'canCreate is false: the create() of the policy denies it');
+
+        $this->assertSame('app/Panneau/Resources/Tags.php:7', $finding->location);
+        $this->assertTrue($finding->isManual());
+    }
+
     public function test_the_upgrade_converts_a_1_4_project(): void
     {
         $this->project('v1.4');

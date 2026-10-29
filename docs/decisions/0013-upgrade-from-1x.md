@@ -2,7 +2,7 @@
 
 - Status: proposed
 - Date: 2026-10-29
-- Issue: [#114](https://github.com/folkloreinc/laravel-panneau/issues/114)
+- Issues: [#114](https://github.com/folkloreinc/laravel-panneau/issues/114), [#115](https://github.com/folkloreinc/laravel-panneau/issues/115)
 
 ## Context
 
@@ -19,6 +19,7 @@
 - **Backups, and refusals.** A file the upgrade recognizes as 1.x is replaced, and kept as `{file}.1x.bak`. A file it doesn't recognize is kept unless `--force`. An older backup that differs is never replaced without `--force`. The files the package now provides are deleted only once the user confirms, in a terminal.
 - **The config keeps what 5.x doesn't know.** Keys that aren't 1.x keys are kept, as written, at the end of the new config: projects read their own keys from it.
 - **The 5.x provider takes the 1.x provider's line** in `config/app.php` or `bootstrap/providers.php`, even commented out, since the guide has the project comment it before installing 5.x.
+- **Rector rules for the code.** The mechanical part of resources and fields (static properties, `index()`, field classes, builder methods) is rewritten by Rector rules shipped in `rector.php`, which read parents the same way. They convert only what the docs settle; elsewhere they leave a `// TODO(panneau-5)` comment, and `--check` lists those comments. Classes whose 5.x counterpart is configured differently (resource types, field classes, controllers) keep their 1.x parent, with a TODO, rather than a parent whose methods they'd clash with.
 - **Vite next to the site's bundler.** A project without a Vite config gets one that builds the admin only, and scripts that `build` runs. The site keeps its bundler; the deployment files are checked for what they copy.
 
 ## Consequences

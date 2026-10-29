@@ -94,6 +94,7 @@ final class Audit
             'generated' => 'Files the package now provides (to delete)',
             'macros' => 'Uses of the 1.x request macros and helpers',
             'deployment' => 'Build and deployment',
+            'todos' => 'Left by the Rector rules (// TODO(panneau-5))',
         ] as $key => $title) {
             $this->sections[$key] = new Section($key, $title);
         }
@@ -109,6 +110,7 @@ final class Audit
         $this->auditGeneratedFiles();
         $this->auditRequestMacros();
         $this->auditDeployment();
+        $this->auditTodos();
         if ($this->configShape === '1.x') {
             $this->sections['config']->add('auth', 'mode external, on '.($this->guard === null ? 'the default guard' : "the guard {$this->guard}"), self::CONFIG);
         }
@@ -1088,6 +1090,16 @@ final class Audit
         $gitignore = $this->code->read('.gitignore');
         if ($gitignore !== null && ! $hasVite && ! str_contains($gitignore, 'public/build')) {
             $section->add('.gitignore', 'manual: ignore /public/build and /public/hot', '.gitignore');
+        }
+    }
+
+    /**
+     * The `// TODO(panneau-5)` comments of the Rector rules, where they couldn't convert.
+     */
+    private function auditTodos(): void
+    {
+        foreach ($this->sourceFiles() as $file) {
+            $this->grep($this->sections['todos'], $file, '/\/\/\s*TODO\(panneau-5\):?\s*(.*)$/m', fn (array $match): string => trim($match[1]), 'manual: left by the Rector rules');
         }
     }
 

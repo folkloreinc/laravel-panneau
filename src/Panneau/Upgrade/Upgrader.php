@@ -101,7 +101,7 @@ final class Upgrader
         $this->command->newLine();
         $this->components->info('Next steps:');
         $this->components->bulletList(array_values(array_filter([
-            'Run the Rector rules on the resources and fields (docs/migration.md).',
+            'Run the Rector rules on the resources and fields: vendor/bin/rector process app/Panneau --config vendor/folklore/laravel-panneau/rector.php',
             "Port the 1.x PanneauPolicy to the viewPanneau gate of {$provider}: nobody can use the admin until then.",
             'Write a policy for every item class: resources without one are denied.',
             $this->audit->usesPanneauLogin() ? "Set 'auth.login_url' in config/panneau.php to a login page of the site: 1.x served its own." : null,
