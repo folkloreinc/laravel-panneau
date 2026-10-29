@@ -11,10 +11,10 @@ The migration strategy, order and v1 → 5 mapping are in [`panneau-js/docs/migr
 ## 2. Require the new versions
 
 ```bash
-composer require folklore/laravel-panneau:^5.0@alpha
+composer require folklore/laravel-panneau:^5.0@alpha folklore/laravel-folklore:^2.0@alpha
 ```
 
-Folklore projects also require `folklore/laravel-folklore:^2.0@alpha`, whose Panneau adapter maps resources to their repositories.
+Require them in the same command: `composer require` runs `package:discover`, which boots the app, and the app can't boot with `laravel-panneau` 5 and `laravel-folklore` 1.1 together. `laravel-folklore` 2's Panneau adapter maps resources to their repositories; projects without it leave it out.
 
 ## 3. Audit the project: `--check`
 
@@ -22,22 +22,22 @@ Folklore projects also require `folklore/laravel-folklore:^2.0@alpha`, whose Pan
 php artisan panneau:install --upgrade --check
 ```
 
-It writes nothing. It lists what the project has and what each part becomes in 5.x, with its file and line, or `manual` when it is moved by hand:
+It writes nothing, and works at every step of the migration. It lists what the project has and what each part becomes in 5.x, with its file and line, or `manual` when it is moved by hand:
 
 | Section | What it reads |
 |---|---|
-| Packages | `folklore/laravel-panneau` and `laravel-folklore` in `composer.json`; the `@panneau/*` 4 packages in `package.json`, which `@panneau/app` 5 replaces |
+| Packages | `folklore/laravel-panneau` and `laravel-folklore` in `composer.json`; the `@panneau/*` 4 packages in `package.json`, which `@panneau/app` 5 replaces, and the files of `resources/js` that import them: the site's bundle stops building once `@panneau/app` is 5, until the JS codemods move them |
 | Config | Each key of `config/panneau.php`: `name`, `intl.locales` → `locales`, `routes.prefix` → `path`, `routes.middleware` → `middleware`; keys 5.x drops (`intl.translations`, `routes.map`, `only_declared_fields`…); keys that aren't 1.x keys, kept |
-| Resources | Those of the config, and other subclasses of `Panneau\Support\Resource`: their static properties (`$repository` → `repository()`, `$jsonResource` → `jsonResource()` or `toItem()`, `$types`, `$settings`…), their methods, and their `index()`: columns, sorts, filters and actions → `list()` and `actions()`. The 1.x id is camel case (`jobListings`), the 5.x id kebab case (`job-listings`): keep the 1.x one with `id()` if URLs or fields name it |
+| Resources | Those of the config, and other subclasses of `Panneau\Support\Resource`: their static properties (`$repository` → `repository()`, `$jsonResource` → `toItem()`, which resolves it (`jsonResource()` is not built yet), `$types`, `$settings`…), their methods, and their `index()`: columns, sorts, filters and actions → `list()` and `actions()`. The 1.x id is camel case (`jobListings`), the 5.x id kebab case (`job-listings`): keep the 1.x one with `id()` if URLs or fields name it |
 | Resource types | Subclasses of `Panneau\Support\ResourceType`, with the resources that list them: block types become `BlockType`s of a `Repeater`; other types wait for `types()` |
 | Field classes | The project's fields, grouped by the 1.x class they extend, with the component they send to the JS: `Items` → `Repeater`, `Fields` → `Group`, `ResourceItem(s)` → `Relation`, `*Localized` → `->localized()`, built-in fields, the fields of `laravel-folklore` 1.1. A direct subclass of `Field`, or a component that only the project's JS knows, is `manual`: a built-in type, or a field type with a JS plugin |
 | Fields used | How many times each 1.x field class is used, and what it becomes |
 | Resource controllers | Subclasses of `ResourceController`, the resources that use them, and their methods: `getIndexQueryFromRequest()` → `scope()` or list filters, `getStoreDataFromRequest()` → `creating()`, other public methods → actions or plugin pages |
 | Routes | `routes/panneau.php`: `Panneau::router()->resources()` → `Panneau::routes()`, the generated routes (home, upload, account) the package provides, custom routes (`manual`), the guard of the `auth` middleware, `can:view` → the `viewPanneau` gate, other middleware, and Panneau's own login (`Panneau::router()->auth()`) |
-| Route names | `route('panneau.…')` calls in PHP and Blade: 5.x routes are `panneau.app` and `panneau.api.*` |
+| Route names | `route('panneau.…')`, `to_route()`, `redirect()->route()` and `URL::route()` calls in PHP and Blade: 5.x routes are `panneau.app` and `panneau.api.*` |
 | Service providers | The 1.x provider and where it is registered; static resolvers (`LocalizedField::setLocalesResolver()`, `Upload::setEndpoint()`, `PageSlug::setRoutesResolver()`), `Panneau::serving()`, the `Panneau::class` policy, composers of `panneau::app` |
-| Files to delete | What the package now provides: `HomeController`, `AccountController`, `UploadController` and their requests, `PanneauPolicy`, `AppComposer` and `PanneauComposer`, definition classes, the overridden views and translations of `vendor/panneau` |
-| Request macros | `isPanneau()`, `isPanneauIndex()`, `isInPanneau()`… and `panneau_route()`, usually in API resources, auth controllers and middleware: `$request->routeIs('panneau.*')` |
+| Files to delete | What the package now provides: `HomeController`, `AccountController`, `UploadController` and their requests, `PanneauPolicy`, the overridden views and translations of `vendor/panneau`. `AppComposer`, `PanneauComposer` and definition classes are `manual`: what they add to the page (props, menus, a home component) moves by hand |
+| Request macros | `isPanneau()`, `isPanneauIndex()`, `isInPanneau()`… and `panneau_route()`, usually in API resources, auth controllers and middleware. They are `manual`: 5.x has no such macros, so each call throws until it becomes `$request->routeIs('panneau.*')` |
 | Build and deployment | The site's bundler, the `build` script, `Envoy.blade.php` (the built files it copies need `public/build/`), Node versions in `.github/workflows`, `.nvmrc` and `engines`, composer scripts and Envoy lines that name Panneau, `.gitignore` |
 
 ## 4. Upgrade: `--upgrade`
@@ -48,15 +48,15 @@ php artisan panneau:install --upgrade
 
 It writes:
 
-- **`config/panneau.php`**, the 5.x config with the 1.x values that have a 5.x key, written as the code they were (`env()` calls stay calls). Keys that aren't 1.x keys are kept at the end. Auth is `external`, on the guard of the 1.x routes' `auth` middleware.
-- **`app/Providers/PanneauServiceProvider.php`**, which registers the resources of the 1.x config with `Panneau::resources()`, defines the `viewPanneau` gate (closed: nobody gets in until the project opens it) and loads the routes. It replaces the 1.x provider's line in `config/app.php` or `bootstrap/providers.php`, commented or not, or is added to `bootstrap/providers.php`.
+- **`config/panneau.php`**, the 5.x config with the 1.x values that have a 5.x key, written as the code they were (`env()` calls stay calls). Keys that aren't 1.x keys are kept at the end. The project's own middleware of the 1.x routes and config is kept; the session, auth and gate middleware (`web`, `auth`, `can:view`) is replaced by `['web', 'panneau.auth']`. Auth is `external`, on the guard of the 1.x `auth:{guard}` middleware.
+- **`app/Providers/PanneauServiceProvider.php`**, which registers the resources of the 1.x config with `Panneau::resources()`, defines the `viewPanneau` gate (closed: nobody gets in until the project opens it) and loads the routes. It replaces the 1.x provider's line in `config/app.php` or `bootstrap/providers.php` (by its full name, or its short name when the file imports it), commented or not, or is added to `bootstrap/providers.php`. Once the config is 5.x, the provider isn't written again.
 - **`routes/panneau.php`**: `Panneau::routes()`.
-- **`resources/views/vendor/panneau/app.blade.php`**, the 5.x page, when the project overrides the 1.x one: an override would shadow `panneau::app`. Delete it to use the package's page, or move what the 1.x view added (fonts, scripts) into it.
+- **The page.** A 1.x override of `resources/views/vendor/panneau/app.blade.php` would shadow the package's page: it is moved to `app.blade.php.1x.bak`. Move what it added (fonts, scripts) by hand, in a view of the project named in `panneau.app.view`.
 - **The JS entry** (`resources/js/panneau.tsx`) and Vite. A project that builds its site with another bundler (`@folklore/cli`, webpack, Mix) keeps it: `vite.config.mjs` builds the admin only, into `public/build`, and `package.json` gets `vite`, `laravel-vite-plugin`, the `build:panneau` and `dev:panneau` scripts, and `npm run build:panneau` at the end of `build`. A project on Vite gets the entry in its config. `@panneau/app` 4 becomes 5; the other `@panneau/*` 4 packages stay until the JS codemods move their imports. `--no-js` skips this part.
 
-**It never loses a file.** A 1.x file it replaces (the config, the routes, the provider at the same path, the view, the provider list) is kept next to it as `{file}.1x.bak`. A file it doesn't recognize as 1.x is kept, unless `--force`. When a backup is already there and differs, it refuses to replace it, unless `--force`. Running it again changes nothing.
+**It never loses a file.** A file it changes (the config, the routes, the provider at the same path, the view, the provider list, `package.json`, the Vite config) is kept next to it as `{file}.1x.bak`. A file it doesn't recognize as 1.x is kept, unless `--force`. When `{file}.1x.bak` is already there with other contents, it keeps the file, or with `--force` backs it up again as `{file}.1x.bak.2`: a backup is never overwritten. Running it again changes nothing.
 
-It then lists what is left to move by hand (the `manual` findings of `--check`), and the files the package now provides. It asks before deleting them; without a terminal (`--no-interaction`), it keeps them.
+It then lists what is left to move by hand (the `manual` findings of `--check`), and the 1.x files the package replaces. It asks before deleting them, without a backup; without a terminal (`--no-interaction`), it keeps them.
 
 ## 5. Run the Rector rules
 
@@ -66,7 +66,7 @@ It then lists what is left to move by hand (the `manual` findings of `--check`),
 
 `--check` lists it; run it again as you go.
 
-- **Resources:** Folklore projects point each resource to its repository contract (`repository()`), and the `laravel-folklore` adapter does the rest; static `$repository` and `$jsonResource` become `repository()` and `toItem()` or `jsonResource()`.
+- **Resources:** Folklore projects point each resource to its repository contract (`repository()`), and the `laravel-folklore` adapter does the rest; static `$repository` and `$jsonResource` become `repository()` and `toItem()`.
 - **Custom controllers** become hooks and `Action` classes: exports and imports `ExportAction` and `ImportAction`, other operations on items custom actions.
 - **Custom routes** of `routes/panneau.php` (kept in its backup) become actions or plugin pages.
 - **The gate.** Port the `view()` of the 1.x `PanneauPolicy` to the `viewPanneau` gate of the new provider.

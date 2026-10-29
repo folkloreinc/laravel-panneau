@@ -135,8 +135,8 @@ class UpgradeCommandTest extends TestCase
         $pages = $this->finding('resources', 'Pages (pages)');
         $this->assertSame('app/Panneau/Resources/Pages.php:15', $pages->location);
         $this->assertSame('repository()', $pages->detail('$repository = App\\Contracts\\Repositories\\Pages')?->target);
-        $this->assertSame('jsonResource(), or toItem()', $pages->detail('$jsonResource = App\\Http\\Resources\\PageResource')?->target);
-        $this->assertStringStartsWith('types()', (string) $pages->detail('$types: 2 types')?->target);
+        $this->assertSame('toItem(), which resolves the JsonResource', $pages->detail('$jsonResource = App\\Http\\Resources\\PageResource')?->target);
+        $this->assertStringStartsWith('manual: types()', (string) $pages->detail('$types: 2 types')?->target);
         $this->assertSame('nothing: the default', $pages->detail("\$settings['hideInNavbar'] = false")?->target);
 
         $index = $pages->detail('index()');
@@ -153,7 +153,8 @@ class UpgradeCommandTest extends TestCase
         $this->assertNull($pages->detail('id pages'));
         $this->assertTrue((bool) $jobs->detail("\$settings['hideInNavbar'] = true")?->isManual());
 
-        $this->assertStringStartsWith('BlockType::make()', $this->finding('types', 'TextBlock (text) of Blocks')->target);
+        $this->assertStringStartsWith('manual: a BlockType', $this->finding('types', 'TextBlock (text) of Blocks')->target);
+        $this->assertTrue($this->finding('types', 'Page (page) of Pages')->isManual(), 'A type that other types extend is still a type when a resource lists it.');
         $home = $this->finding('types', 'Home (home) of Pages');
         $this->assertSame('the create ability of the policy', $home->detail("\$settings['canCreate'] = false")?->target);
         $this->assertNull($this->audit()->section('types')->find('Block'), 'Abstract types are left out.');
@@ -213,7 +214,7 @@ class UpgradeCommandTest extends TestCase
         $this->assertNotContains('app/Http/Controllers/HomeController.php', $files);
 
         $this->assertSame('manual: the 5.x routes are panneau.app and panneau.api.*', $this->finding('route-names', "route('panneau.resources.pages.index')")->target);
-        $this->assertSame("\$request->routeIs('panneau.api.resources.index')", $this->finding('macros', 'isPanneauIndex()')->target);
+        $this->assertSame("manual: \$request->routeIs('panneau.api.resources.index') (5.x has no such macro)", $this->finding('macros', 'isPanneauIndex()')->target);
         $this->assertSame('app/Http/Resources/PageResource.php:14', $this->finding('macros', 'isPanneauIndex()')->location);
         $this->assertTrue($this->finding('macros', 'panneau_route()')->isManual());
     }
@@ -258,6 +259,7 @@ class UpgradeCommandTest extends TestCase
         // The 1.x provider is where the 5.x one goes; the policy is in AuthServiceProvider
         $this->assertSame('replaced by the 5.x provider (--upgrade, with a backup)', $this->finding('providers', 'PanneauServiceProvider')->target);
         $this->assertNotNull($this->finding('providers', 'AuthServiceProvider')->detail('$policies[Panneau::class]'));
+        $this->assertTrue($this->finding('providers', 'AuthServiceProvider')->isManual());
         $this->assertNotContains('app/Providers/PanneauServiceProvider.php', $audit->generatedFiles());
         $this->assertContains('lang/vendor/panneau', $audit->generatedFiles());
 
@@ -294,7 +296,8 @@ class UpgradeCommandTest extends TestCase
 
         $this->assertStringContainsString('Panneau::routes();', $this->read('routes/panneau.php'));
         $this->assertSame($routes1x, $this->read('routes/panneau.php.1x.bak'));
-        $this->assertStringContainsString('id="panneau-boot"', $this->read('resources/views/vendor/panneau/app.blade.php'));
+        // The 1.x page is moved aside, so the package's page is used
+        $this->assertFileDoesNotExist($this->project.'/resources/views/vendor/panneau/app.blade.php');
         $this->assertStringContainsString('$props', $this->read('resources/views/vendor/panneau/app.blade.php.1x.bak'));
 
         // Vite builds the admin next to the site's bundler
@@ -307,6 +310,7 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('^3.0.0', $package['devDependencies']['laravel-vite-plugin']);
         $this->assertSame('vite build', $package['scripts']['build:panneau']);
         $this->assertSame('npm run clean && npm run build:scripts && npm run build:views && npm run build:panneau', $package['scripts']['build']);
+        $this->assertArrayNotHasKey('vite', json_decode($this->read('package.json.1x.bak'), true)['devDependencies']);
 
         // The files to delete are listed, and kept without a confirmation
         $this->assertStringContainsString('app/Panneau/Http/Controllers/HomeController.php', $output);
@@ -343,14 +347,96 @@ class UpgradeCommandTest extends TestCase
 
         $this->panneau(['--upgrade' => true, '--force' => true]);
 
-        $this->assertSame($config1x, $this->read('config/panneau.php.1x.bak'));
+        // The older backup stays, and the 1.x config gets the next one
+        $this->assertStringContainsString("'older' => true", $this->read('config/panneau.php.1x.bak'));
+        $this->assertSame($config1x, $this->read('config/panneau.php.1x.bak.2'));
         $this->assertArrayHasKey('path', require $this->project.'/config/panneau.php');
+    }
+
+    public function test_a_forced_run_after_the_upgrade_loses_nothing(): void
+    {
+        $this->project('v1.4');
+        $config1x = $this->read('config/panneau.php');
+        $routes1x = $this->read('routes/panneau.php');
+        $this->panneau(['--upgrade' => true]);
+        $provider = $this->read('app/Providers/PanneauServiceProvider.php');
+
+        $this->panneau(['--upgrade' => true, '--force' => true]);
+
+        $this->assertSame($config1x, $this->read('config/panneau.php.1x.bak'));
+        $this->assertSame($routes1x, $this->read('routes/panneau.php.1x.bak'));
+        // The config is 5.x: the provider, which has the resources, isn't written again
+        $this->assertSame($provider, $this->read('app/Providers/PanneauServiceProvider.php'));
+        $this->assertStringContainsString('\\App\\Panneau\\Resources\\Pages::class', $provider);
+    }
+
+    public function test_the_check_still_reports_after_the_upgrade(): void
+    {
+        $this->project('v1.4');
+        $this->panneau(['--upgrade' => true]);
+
+        $output = $this->panneau(['--upgrade' => true, '--check' => true]);
+
+        $this->assertStringNotContainsString('Nothing of Panneau 1.x', $output);
+        $this->assertStringContainsString('Credits extends Items (items)', $output);
+        $this->assertStringContainsString('PagesController of Pages', $output);
+        $this->assertStringContainsString('isPanneauIndex()', $output);
+    }
+
+    public function test_the_upgrade_filters_the_middleware_of_the_1x_config(): void
+    {
+        $this->project('v1.4');
+        $config = str_replace(
+            "'middleware' => [\\Panneau\\Http\\Middleware\\DispatchHandlingRequestEvent::class],",
+            "'middleware' => ['web', 'auth:editors', 'can:view,' . \\Panneau\\Panneau::class, \\App\\Http\\Middleware\\SetLocale::class],",
+            $this->read('config/panneau.php'),
+        );
+        $this->assertStringContainsString('auth:editors', $config);
+        file_put_contents($this->project.'/config/panneau.php', $config);
+
+        $this->panneau(['--upgrade' => true, '--no-js' => true]);
+
+        $converted = require $this->project.'/config/panneau.php';
+        $this->assertSame(['web', 'panneau.auth', 'App\\Http\\Middleware\\SetLocale'], $converted['middleware']);
+        $this->assertSame('editors', $converted['auth']['guard']);
+    }
+
+    public function test_the_upgrade_replaces_a_provider_registered_by_its_short_name(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/config/app.php', "<?php\n\nreturn ['providers' => []];\n");
+        mkdir($this->project.'/bootstrap');
+        file_put_contents($this->project.'/bootstrap/providers.php', <<<'PHP'
+            <?php
+
+            use App\Panneau\PanneauServiceProvider;
+
+            return [
+                App\Providers\AppServiceProvider::class,
+                PanneauServiceProvider::class,
+            ];
+            PHP);
+        $this->assertSame('bootstrap/providers.php:7', $this->finding('providers', 'PanneauServiceProvider registered in bootstrap/providers.php')->location);
+
+        $this->panneau(['--upgrade' => true, '--no-js' => true]);
+
+        $providers = $this->read('bootstrap/providers.php');
+        $this->assertStringContainsString("    \\App\\Providers\\PanneauServiceProvider::class,\n];", $providers);
+        $this->assertStringNotContainsString('    PanneauServiceProvider::class', $providers);
+    }
+
+    public function test_the_check_reads_the_js_imports_and_more_route_helpers(): void
+    {
+        $this->project('v1.4');
+
+        $this->assertTrue($this->finding('packages', 'resources/js/components/Panneau.jsx imports @panneau/core, @panneau/field-localized, @panneau/app')->isManual());
+        $this->assertTrue($this->finding('route-names', "route('panneau.home')")->isManual());
+        $this->assertNull($this->audit()->section('route-names')->find("to_route('home')"));
     }
 
     public function test_the_upgrade_keeps_files_it_does_not_recognize(): void
     {
         $this->project('v1.4');
-        mkdir($this->project.'/resources/js');
         file_put_contents($this->project.'/resources/js/panneau.tsx', "// The project's entry\n");
 
         $output = $this->panneau(['--upgrade' => true]);
@@ -388,7 +474,7 @@ class UpgradeCommandTest extends TestCase
     {
         $this->project('');
 
-        $this->assertStringContainsString('No 1.x Panneau found', $this->panneau(['--upgrade' => true, '--check' => true]));
+        $this->assertStringContainsString('Nothing of Panneau 1.x is left', $this->panneau(['--upgrade' => true, '--check' => true]));
         $this->assertStringContainsString('No 1.x Panneau found', $this->panneau(['--upgrade' => true], 1));
         $this->assertFileDoesNotExist($this->project.'/config/panneau.php');
     }

@@ -8,7 +8,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Added
 
-- `php artisan panneau:install --upgrade` migrates a 1.3 or 1.4 project: it converts `config/panneau.php`, writes the service provider, routes file, page and JS entry (Vite next to the site's bundler), keeps what it replaces as `{file}.1x.bak`, and lists what to move by hand and the files the package now provides. `--upgrade --check` reports what the project has and what each part becomes, without writing: resources, types, fields, controllers, routes, resolvers, request macros, build and deployment files. It reads the project without running it ([decisions/0013](docs/decisions/0013-upgrade-from-1x.md), [migration guide](docs/migration.md), #114).
+- `php artisan panneau:install --upgrade` migrates a 1.3 or 1.4 project: it converts `config/panneau.php`, writes the service provider, routes file and JS entry (Vite next to the site's bundler), moves a 1.x override of the page aside, keeps what it changes as `{file}.1x.bak` (never overwriting a backup), and lists what to move by hand and the files the package now provides. `--upgrade --check` reports what the project has and what each part becomes, without writing: resources, types, fields, controllers, routes, resolvers, request macros, build and deployment files. It reads the project without running it ([decisions/0013](docs/decisions/0013-upgrade-from-1x.md), [migration guide](docs/migration.md), #114).
 
 ### Changed
 

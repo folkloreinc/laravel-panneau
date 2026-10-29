@@ -18,13 +18,13 @@ use PhpParser\Node\Expr\Array_;
  */
 final class Upgrader
 {
-    public const BACKUP = '.1x.bak';
-
     private readonly Factory $components;
 
     private readonly Codebase $code;
 
     private readonly Audit $audit;
+
+    private readonly Backups $backups;
 
     public function __construct(
         private readonly Command $command,
@@ -36,6 +36,7 @@ final class Upgrader
         $this->components = new Factory($command->getOutput());
         $this->code = new Codebase($basePath, $files);
         $this->audit = new Audit($this->code);
+        $this->backups = new Backups($files);
     }
 
     public function audit(): Audit
@@ -48,8 +49,8 @@ final class Upgrader
      */
     public function check(): int
     {
-        if (! $this->isProject1x()) {
-            $this->components->info('No 1.x Panneau found: config/panneau.php and routes/panneau.php are not 1.x, and no class extends Panneau\\Support\\Resource.');
+        if ($this->audit->sections() === []) {
+            $this->components->info('Nothing of Panneau 1.x is left in the project.');
 
             return Command::SUCCESS;
         }
@@ -59,7 +60,7 @@ final class Upgrader
         $this->printErrors();
         $this->command->newLine();
         $this->components->info(sprintf(
-            '%d to move by hand (manual). php artisan panneau:install --upgrade writes the 5.x config, service provider, routes, page and JS entry.',
+            '%d to move by hand (manual). php artisan panneau:install --upgrade writes the 5.x config, service provider, routes and JS entry.',
             $this->audit->manualCount(),
         ));
 
@@ -71,7 +72,7 @@ final class Upgrader
      */
     public function upgrade(bool $withJs): int
     {
-        if (! $this->isProject1x()) {
+        if ($this->audit->sections() === []) {
             $this->components->error('No 1.x Panneau found: run php artisan panneau:install instead.');
 
             return Command::FAILURE;
@@ -80,15 +81,16 @@ final class Upgrader
 
         $this->writeConfig();
         $provider = 'app/Providers/PanneauServiceProvider.php';
-        $this->write($provider, $this->stub('provider', [
-            'namespace' => $namespace,
-            'resources' => implode('', array_map(fn (string $resource): string => '            \\'.$resource."::class,\n", $this->audit->resources())),
-        ]), $this->isOldProvider($namespace.'Providers\\PanneauServiceProvider'));
-        $this->write(Audit::ROUTES, $this->stub('routes'), $this->audit->routesShape() === '1.x');
-        $view = Audit::VIEWS.'/app.blade.php';
-        if ($this->code->exists($view)) {
-            $this->write($view, (string) $this->files->get(__DIR__.'/../../resources/views/app.blade.php'), ! str_contains((string) $this->code->read($view), 'panneau-boot'));
+        if ($this->audit->configShape() === '1.x') {
+            $this->write($provider, $this->stub('provider', [
+                'namespace' => $namespace,
+                'resources' => implode('', array_map(fn (string $resource): string => '            \\'.$resource."::class,\n", $this->audit->resources())),
+            ]), $this->isOldProvider($namespace.'Providers\\PanneauServiceProvider'));
+        } elseif ($this->code->exists($provider)) {
+            $this->components->twoColumnDetail($provider, '<fg=yellow>KEPT (the config is already 5.x)</>');
         }
+        $this->write(Audit::ROUTES, $this->stub('routes'), $this->audit->routesShape() === '1.x');
+        $this->moveView();
         $this->registerProvider($namespace.'Providers\\PanneauServiceProvider');
         if ($withJs) {
             $this->writeJs();
@@ -112,11 +114,24 @@ final class Upgrader
         return Command::SUCCESS;
     }
 
-    private function isProject1x(): bool
+    /**
+     * Moves a 1.x override of the page aside: it would shadow the package's `panneau::app`.
+     */
+    private function moveView(): void
     {
-        return $this->audit->configShape() === '1.x'
-            || $this->audit->routesShape() === '1.x'
-            || $this->code->subclassesOf([V1::RESOURCE]) !== [];
+        $view = Audit::VIEWS.'/app.blade.php';
+        $path = $this->code->path($view);
+        if (! $this->files->exists($path) || str_contains((string) $this->files->get($path), 'panneau-boot')) {
+            return;
+        }
+        $backup = $this->backups->backup($path);
+        $this->files->delete($path);
+        $this->components->twoColumnDetail($view, '<fg=green>MOVED to '.$this->relative($backup).' (the package\'s page replaces it)</>');
+    }
+
+    private function relative(string $path): string
+    {
+        return ltrim(substr($path, strlen(rtrim($this->basePath, '/'))), '/');
     }
 
     private function writeConfig(): void
@@ -167,8 +182,13 @@ final class Upgrader
             }
             $replaced = $code;
             foreach ($this->audit->providers() as $provider) {
+                // By its full name, or by its short name when the file imports it
+                $names = [preg_quote($provider->name, '/')];
+                if (preg_match('/^use\s+\\\\?'.preg_quote($provider->name, '/').'\s*;/m', $code) === 1) {
+                    $names[] = preg_quote($provider->shortName(), '/');
+                }
                 $replaced = (string) preg_replace(
-                    '/^(\s*)(?:\/\/\s*)?\\\\?'.preg_quote($provider->name, '/').'::class,?.*$/m',
+                    '/^(\s*)(?:\/\/\s*)?\\\\?(?:'.implode('|', $names).')::class,?.*$/m',
                     '$1\\'.$class.'::class,',
                     $replaced,
                     1,
@@ -193,7 +213,7 @@ final class Upgrader
 
     private function writeJs(): void
     {
-        $js = new JsInstaller($this->files, $this->components, $this->basePath);
+        $js = new JsInstaller($this->files, $this->components, $this->basePath, $this->backups);
         $this->write(JsInstaller::ENTRY, $this->stub('entry'), false);
         if ($js->viteConfig() !== null) {
             $js->updatePackageJson();
@@ -212,8 +232,9 @@ final class Upgrader
 
     /**
      * Writes a file. An existing file is replaced when it is a 1.x file (`$replaceable`) or with
-     * `--force`, and kept as `{file}.1x.bak`. An older backup that differs is never replaced
-     * without `--force`.
+     * `--force`, and kept as `{file}.1x.bak`. When that backup exists with other contents, the
+     * file is kept, or with `--force` backed up again (`{file}.1x.bak.2`…): a backup is never
+     * overwritten.
      */
     private function write(string $relative, string $contents, bool $replaceable): void
     {
@@ -236,15 +257,14 @@ final class Upgrader
 
             return;
         }
-        $backup = $path.self::BACKUP;
-        if ($this->files->exists($backup) && (string) $this->files->get($backup) !== $current && ! $this->force) {
-            $this->components->twoColumnDetail($relative, '<fg=red>REFUSED ('.$relative.self::BACKUP.' exists: use --force to replace both)</>');
+        if ($this->backups->differs($path) && ! $this->force) {
+            $this->components->twoColumnDetail($relative, '<fg=red>REFUSED ('.$relative.Backups::SUFFIX.' has other contents: use --force to back it up again and replace it)</>');
 
             return;
         }
-        $this->files->put($backup, $current);
+        $backup = $this->backups->backup($path);
         $this->files->put($path, $contents);
-        $this->components->twoColumnDetail($relative, '<fg=green>REPLACED (1.x kept in '.$relative.self::BACKUP.')</>');
+        $this->components->twoColumnDetail($relative, '<fg=green>REPLACED (kept in '.$this->relative($backup).')</>');
     }
 
     private function printSection(Section $section): void
@@ -309,9 +329,9 @@ final class Upgrader
             return;
         }
         $this->command->newLine();
-        $this->components->info('The package now provides these files. Move what they add to the project, then delete them:');
+        $this->components->info('The package replaces these 1.x files. Move what they add to the project (props, menus, checks) first:');
         $this->components->bulletList($files);
-        if ($this->interactive && $this->command->confirm('Delete them now?', false)) {
+        if ($this->interactive && $this->command->confirm('Delete these files now? They are not backed up.', false)) {
             foreach ($files as $file) {
                 $path = $this->code->path($file);
                 $this->files->isDirectory($path) ? $this->files->deleteDirectory($path) : $this->files->delete($path);

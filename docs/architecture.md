@@ -31,7 +31,7 @@ It also edits two project files, keeping their formatting and what they already 
 - **`vite.config.js`** (or `.ts`, `.mjs`, `.mts`): the entry is added to the `input` of `laravel()`, and the `react()` plugin of `@vitejs/plugin-react` to `plugins`. When the file doesn't have that shape, it says what to add instead.
 - **`package.json`:** `@panneau/app`, `react`, `react-dom` and `@tanstack/react-query` in `dependencies`, and `@vitejs/plugin-react` in `devDependencies`. Packages already there keep their version, except an older major of `@panneau/app`. Until 5.0.0, the range is explicit (`^5.0.0-alpha.0`): v5 is published on the `alpha` tag, and `latest` is v4.
 
-With `--upgrade`, it migrates a 1.3 or 1.4 project: it converts its config, writes the provider, routes, page and JS entry (Vite next to the site's bundler), keeps what it replaces as `{file}.1x.bak`, and lists what to move by hand and the files the package now provides. `--upgrade --check` only reports, without writing. See the [migration guide](migration.md) and [decisions/0013](decisions/0013-upgrade-from-1x.md).
+With `--upgrade`, it migrates a 1.3 or 1.4 project: it converts its config, writes the provider, routes and JS entry (Vite next to the site's bundler), moves a 1.x override of the page aside, keeps what it changes as `{file}.1x.bak`, and lists what to move by hand and the files the package now provides. `--upgrade --check` only reports, without writing. See the [migration guide](migration.md) and [decisions/0013](decisions/0013-upgrade-from-1x.md).
 
 ## Resources
 

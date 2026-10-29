@@ -4,10 +4,12 @@ namespace Panneau\Console;
 
 use Illuminate\Console\View\Components\Factory;
 use Illuminate\Filesystem\Filesystem;
+use Panneau\Upgrade\Backups;
 use stdClass;
 
 /**
- * Adds the npm packages of the app to package.json, and its entry to the Vite config.
+ * Adds the npm packages of the app to package.json, and its entry to the Vite config. During an
+ * upgrade, the files it changes are backed up first.
  *
  * @internal
  */
@@ -51,6 +53,7 @@ final class JsInstaller
         private readonly Filesystem $files,
         private readonly Factory $components,
         private readonly string $basePath,
+        private readonly ?Backups $backups = null,
     ) {}
 
     /**
@@ -128,6 +131,7 @@ final class JsInstaller
         $json = (string) json_encode($package, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $indent = preg_match('/^([ \t]+)"/m', (string) $this->files->get($path), $matches) === 1 ? $matches[1] : '    ';
         $json = (string) preg_replace_callback('/^(?: {4})+/m', fn (array $spaces): string => str_repeat($indent, intdiv(strlen($spaces[0]), 4)), $json);
+        $this->backups?->backup($path);
         $this->files->put($path, $json."\n");
         $this->components->twoColumnDetail('package.json', '<fg=green>ADDED '.implode(', ', $added).'</>');
     }
@@ -158,6 +162,7 @@ final class JsInstaller
 
             return;
         }
+        $this->backups?->backup($this->path($file));
         $this->files->put($this->path($file), $config->source());
         $this->components->twoColumnDetail($file, '<fg=green>UPDATED</>');
     }
