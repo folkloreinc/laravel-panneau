@@ -3,6 +3,7 @@
 namespace Panneau\Upgrade;
 
 use Illuminate\Support\Str;
+use Panneau\Console\JsInstaller;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
@@ -229,6 +230,20 @@ final class Audit
             $section->add('folklore/laravel-folklore '.$folklore, 'folklore/laravel-folklore ^2.0@alpha: its Panneau adapter maps resources to Folklore repositories', 'composer.json');
         }
 
+        foreach ($this->code->phpFiles(['resources/js', 'resources/assets/js'], '*.{js,jsx,ts,tsx,mjs}') as $file) {
+            if ($file === JsInstaller::ENTRY) {
+                continue;
+            }
+            preg_match_all('/(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s+)[\'"](@panneau\/[^\'"\/]+)/', $this->code->read($file) ?? '', $matches);
+            if ($matches[1] !== []) {
+                $section->add(
+                    $file.' imports '.implode(', ', array_unique($matches[1])),
+                    'manual: the JS codemods of @panneau/* 5; until then the build of the site breaks once @panneau/app is 5',
+                    $file,
+                );
+            }
+        }
+
         $package = json_decode($this->code->read('package.json') ?? '', true);
         if (! is_array($package)) {
             return;
@@ -311,11 +326,17 @@ final class Audit
     private function auditRoutesConfig(Section $section, Expr $routes, callable $location): void
     {
         foreach (Php::items($routes) as $key => $value) {
+            if ($key === 'middleware') {
+                foreach ($this->middlewareNames($value) as $middleware) {
+                    $this->auditMiddleware($section, $middleware, $location($value));
+                }
+
+                continue;
+            }
             $described = $this->describe($value);
             $section->add("routes.{$key}: {$described}", match ($key) {
                 'prefix' => 'path',
                 'domain' => 'domain',
-                'middleware' => "middleware: ['web', 'panneau.auth'], with the project's own middleware",
                 'map' => str_contains($described, 'routes/panneau.php')
                     ? 'nothing: the service provider loads routes/panneau.php'
                     : 'manual: the service provider loads routes/panneau.php',
@@ -514,8 +535,12 @@ final class Audit
                 }
             }
         }
-        foreach ($this->code->subclassesOf([V1::RESOURCE_TYPE, V1::RESOURCE_TYPE_CONTRACT, 'Folklore\\Panneau\\Resources\\BlockWithBlocks']) as $class) {
-            if ($class->isAbstract()) {
+        $types = $this->code->subclassesOf([V1::RESOURCE_TYPE, V1::RESOURCE_TYPE_CONTRACT, 'Folklore\\Panneau\\Resources\\BlockWithBlocks']);
+        $bases = array_filter(array_map(fn (PhpClass $type): ?string => $type->parent, $types));
+        foreach ($types as $class) {
+            // Bases of other types, and helpers that implement the contract, aren't types
+            if ($class->isAbstract() || (! isset($usedBy[$class->name])
+                && (in_array($class->name, $bases, true) || ! $this->code->isA($class->name, [V1::RESOURCE_TYPE])))) {
                 continue;
             }
             $id = Php::value($class->returned('id'));
@@ -523,7 +548,7 @@ final class Audit
             $isBlock = str_contains($class->name, 'Block');
             $finding = $section->add(
                 $class->shortName().(is_string($id) ? " ({$id})" : '').($resources !== [] ? ' of '.implode(', ', $resources) : ''),
-                $isBlock ? 'BlockType::make() in the Repeater of the blocks (the Blocks field of laravel-folklore 2)' : 'a type of types() (resource types are not built yet in 5.x)',
+                $isBlock ? 'manual: a BlockType of the Repeater of the blocks (BlockTypes::register() of laravel-folklore 2)' : 'manual: resource types are not built yet in 5.x',
                 $class->location(),
             );
             $fields = $class->returned('fields');
@@ -739,11 +764,15 @@ final class Audit
             return;
         }
         if ($middleware === 'web') {
+            $section->add("middleware {$middleware}", "'middleware' in config/panneau.php", $location);
+
             return;
         }
         if ($middleware === 'auth' || str_starts_with($middleware, 'auth:') || str_ends_with($middleware, '\\Authenticate')) {
-            $this->guard = str_starts_with($middleware, 'auth:') ? explode(',', substr($middleware, 5))[0] : null;
-            $section->add("middleware {$middleware}", 'panneau.auth, on the guard of '.($this->guard === null ? 'the site' : $this->guard), $location);
+            if (str_starts_with($middleware, 'auth:')) {
+                $this->guard = explode(',', substr($middleware, 5))[0];
+            }
+            $section->add("middleware {$middleware}", 'panneau.auth, on '.(str_starts_with($middleware, 'auth:') ? 'the guard '.$this->guard : 'the default guard'), $location);
 
             return;
         }
@@ -753,6 +782,8 @@ final class Audit
             return;
         }
         if (str_ends_with($middleware, 'DispatchHandlingRequestEvent')) {
+            $section->add("middleware {$middleware}", 'nothing: 5.x has no serving event', $location);
+
             return;
         }
         if (! in_array($middleware, $this->middleware, true)) {
@@ -828,19 +859,22 @@ final class Audit
         $prefix = is_string($prefix) ? str_replace('/', '.', trim($prefix, '/')) : 'panneau';
         $target = 'manual: the 5.x routes are panneau.app and panneau.api.*';
         foreach ([...$this->sourceFiles(), ...$this->code->phpFiles(['routes', 'config'])] as $file) {
-            foreach ($this->code->find($file, Expr\FuncCall::class) as $call) {
-                if ($this->callName($call) !== 'route') {
+            // route(), to_route(), redirect()->route(), URL::route(), Redirect::route()
+            foreach ($this->code->find($file, Expr\CallLike::class) as $call) {
+                $function = $this->callName($call);
+                if (! in_array($function, ['route', 'to_route'], true) || $call instanceof Expr\New_
+                    || ($function === 'to_route' && ! $call instanceof Expr\FuncCall)) {
                     continue;
                 }
                 $name = $call->getArgs()[0]->value ?? null;
                 $value = $name instanceof String_ ? $name->value : ($name instanceof Expr\BinaryOp\Concat ? Php::value($name->left) : null);
                 if (is_string($value) && str_starts_with($value, $prefix.'.')) {
-                    $section->add("route('{$value}')", $target, $file.':'.$call->getStartLine());
+                    $section->add("{$function}('{$value}')", $target, $file.':'.$call->getStartLine());
                 }
             }
         }
         foreach ($this->code->phpFiles(['resources/views'], '*.blade.php') as $file) {
-            $this->grep($section, $file, '/route\(\s*[\'"]('.preg_quote($prefix, '/').'\.[^\'"]*)/', fn (array $match): string => "route('{$match[1]}')", $target);
+            $this->grep($section, $file, '/(route|to_route)\(\s*[\'"]('.preg_quote($prefix, '/').'\.[^\'"]*)/', fn (array $match): string => "{$match[1]}('{$match[2]}')", $target);
         }
     }
 
@@ -891,7 +925,7 @@ final class Audit
                 $this->providers[] = $class;
             }
             $finding = $section->add($class->shortName(), match (true) {
-                ! $is1x => 'its 1.x calls are removed',
+                ! $is1x => 'manual: remove its 1.x calls',
                 $class->name === $this->code->appNamespace().'Providers\\PanneauServiceProvider' => 'replaced by the 5.x provider (--upgrade, with a backup)',
                 default => 'App\\Providers\\PanneauServiceProvider (--upgrade writes it), then delete it',
             }, $class->location());
@@ -904,7 +938,9 @@ final class Audit
                 continue;
             }
             foreach (['config/app.php', 'bootstrap/providers.php'] as $file) {
-                $line = $this->lineOf($file, $provider->name.'::class');
+                $line = $this->lineOf($file, $provider->name.'::class')
+                    ?? (preg_match('/^use\s+\\\\?'.preg_quote($provider->name, '/').'\s*;/m', $this->code->read($file) ?? '') === 1
+                        ? $this->lineOf($file, ' '.$provider->shortName().'::class') : null);
                 if ($line !== null) {
                     $section->add("{$provider->shortName()} registered in {$file}", 'replaced by App\\Providers\\PanneauServiceProvider (--upgrade)', $file.':'.$line);
                 }
@@ -944,7 +980,7 @@ final class Audit
             return null;
         }
         foreach (explode("\n", $code) as $index => $line) {
-            if (str_contains(ltrim($line, '\\ '), ltrim($needle, '\\'))) {
+            if (str_contains(' '.ltrim($line, '\\ '), ltrim($needle, '\\'))) {
                 return $index + 1;
             }
         }
@@ -963,8 +999,8 @@ final class Audit
             $target = match (true) {
                 isset(V1::GENERATED_CLASSES[$short]) && ($inPanneau || str_contains($short, 'Panneau')) => V1::GENERATED_CLASSES[$short],
                 $short === 'Controller' && $inPanneau => 'nothing: the base of the generated controllers',
-                $this->code->isA($class->name, [V1::DEFINITION, V1::DEFINITION_CONTRACT]) => 'the definition: config (name), resources, and later pages and menus',
-                $this->code->isA($class->name, V1::COMPOSERS) => 'the boot config of the page (Panneau::bootConfig())',
+                $this->code->isA($class->name, [V1::DEFINITION, V1::DEFINITION_CONTRACT]) => V1::GENERATED_CLASSES['PanneauDefinition'],
+                $this->code->isA($class->name, V1::COMPOSERS) => V1::GENERATED_CLASSES['AppComposer'],
                 default => null,
             };
             if ($target !== null) {
@@ -980,7 +1016,7 @@ final class Audit
         }
         foreach ($this->code->phpFiles([self::VIEWS], '*.blade.php') as $file) {
             $section->add($file, basename($file) === 'app.blade.php'
-                ? 'the 5.x page of the app: --upgrade replaces it (it shadows panneau::app)'
+                ? 'the page of the package: --upgrade moves it aside (it shadows panneau::app); move what it adds by hand'
                 : 'nothing: the 5.x page has no layout', $file);
             if (basename($file) !== 'app.blade.php') {
                 $this->generatedFiles[] = $file;
@@ -1006,7 +1042,7 @@ final class Audit
             foreach ([...$this->code->find($file, Expr\MethodCall::class), ...$this->code->find($file, Expr\NullsafeMethodCall::class)] as $call) {
                 $name = $this->callName($call);
                 if ($name !== null && isset(V1::REQUEST_MACROS[$name])) {
-                    $section->add("{$name}()", V1::REQUEST_MACROS[$name], $file.':'.$call->getStartLine());
+                    $section->add("{$name}()", 'manual: '.V1::REQUEST_MACROS[$name].' (5.x has no such macro)', $file.':'.$call->getStartLine());
                 }
             }
             foreach ($this->code->find($file, Expr\FuncCall::class) as $call) {
@@ -1017,7 +1053,7 @@ final class Audit
             }
         }
         foreach ($this->code->phpFiles(['resources/views'], '*.blade.php') as $file) {
-            $this->grep($section, $file, '/\$isPanneau\b|isPanneau\(\)/', fn (): string => '$isPanneau', "\$request->routeIs('panneau.*'): 5.x shares no \$isPanneau");
+            $this->grep($section, $file, '/\$isPanneau\b|isPanneau\(\)/', fn (): string => '$isPanneau', "manual: request()->routeIs('panneau.*'): 5.x shares no \$isPanneau");
         }
     }
 

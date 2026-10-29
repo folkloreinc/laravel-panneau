@@ -15,13 +15,8 @@ use PhpParser\Node\Expr;
 final class ConfigConverter
 {
     /**
-     * Middleware of the 1.x routes that 5.x replaces.
-     */
-    private const REPLACED_MIDDLEWARE = ['web', 'Panneau\\Http\\Middleware\\DispatchHandlingRequestEvent'];
-
-    /**
      * @param  string  $stub  The package's config.
-     * @param  list<string>  $middleware  More middleware, from the 1.x routes file.
+     * @param  list<string>  $middleware  The project's own middleware, from the 1.x routes and config (Audit::middleware()).
      */
     public function __construct(
         private readonly string $stub,
@@ -78,21 +73,14 @@ final class ConfigConverter
     }
 
     /**
-     * The 1.x middleware that 5.x doesn't replace, as PHP code.
+     * The middleware of the 1.x routes and config that 5.x doesn't replace (not the session, the
+     * auth or the gate), as PHP code.
      *
      * @return list<string>
      */
     private function middleware(): array
     {
         $codes = [];
-        foreach (Php::items(Php::get($this->config, 'routes.middleware')) as $item) {
-            $class = Php::className($item);
-            $value = $class ?? Php::value($item);
-            if (is_string($value) && in_array(ltrim($value, '\\'), self::REPLACED_MIDDLEWARE, true)) {
-                continue;
-            }
-            $codes[] = $class !== null ? '\\'.$class.'::class' : Php::print($item);
-        }
         foreach ($this->middleware as $middleware) {
             $code = str_contains($middleware, '\\') ? '\\'.ltrim($middleware, '\\').'::class' : var_export($middleware, true);
             if (! in_array($code, $codes, true)) {

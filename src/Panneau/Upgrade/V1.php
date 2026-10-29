@@ -111,10 +111,10 @@ final class V1
      */
     public const RESOURCE_PROPERTIES = [
         'repository' => 'repository()',
-        'jsonResource' => 'jsonResource(), or toItem()',
+        'jsonResource' => 'toItem(), which resolves the JsonResource',
         'jsonCollection' => 'nothing: lists serialize each item like a single item',
         'controller' => 'hooks (creating(), updating(), saved()…) and actions: see the controllers',
-        'types' => 'types() (resource types are not built yet in 5.x)',
+        'types' => 'manual: types() (resource types are not built yet in 5.x)',
         'settings' => 'see the settings',
         'index' => 'list()',
         'components' => 'manual: a JS plugin',
@@ -130,7 +130,7 @@ final class V1
      */
     public const RESOURCE_SETTINGS = [
         'hideInNavbar' => 'manual: the navigation is not configurable yet in 5.x',
-        'indexIsPaginated' => 'nothing: lists are paginated',
+        'indexIsPaginated' => 'manual: 5.x lists are paginated',
         'canCreate' => 'the create ability of the policy',
     ];
 
@@ -222,8 +222,9 @@ final class V1
         'UploadRequest' => "direct uploads ('uploads' in config/panneau.php)",
         'AccountUpdateRequest' => 'the account of the app (not built yet)',
         'PanneauPolicy' => 'the viewPanneau gate, and a policy per item class',
-        'AppComposer' => 'the boot config of the page (Panneau::bootConfig())',
-        'PanneauComposer' => 'the boot config of the page (Panneau::bootConfig())',
+        'AppComposer' => 'manual: what it adds to the page (the user, props) goes to the boot config or a JS plugin, then delete it',
+        'PanneauComposer' => 'manual: what it adds to the page (the user, props) goes to the boot config or a JS plugin, then delete it',
+        'PanneauDefinition' => "manual: its name goes to 'name' in config/panneau.php; its pages, menus and home wait for the pages of 5.x",
     ];
 
     /**
