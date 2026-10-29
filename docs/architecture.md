@@ -198,6 +198,23 @@ interface ResourceRepository
 - **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
 - **Field types from other packages** extend `Field` and declare their protocol type. A type that `@panneau/fields` doesn't render needs a JS plugin; the `laravel-folklore` plugin needs none, since its fields are built-in types ([below](#laravel-folklore)).
 
+### Rich text
+
+`RichText` is the `richtext` type: HTML, edited with the `@panneau/editor` plugin on TipTap ([panneau-js decision 0007](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0007-rich-text.md)). Its methods write the protocol's `RichTextSettings`, with no JS:
+
+```php
+RichText::make('body')
+    ->toolbar(['heading', 'style', '|', 'bold', 'italic', 'link', 'bulletList', 'orderedList'])
+    ->headings(2, 3)                       // the levels the toolbar offers (2, 3 and 4 by default)
+    ->style('big', 'Big paragraph')        // <p class="big">
+    ->style('small', 'Small title', 'h2')  // <h2 class="small">
+    ->linksInNewTab('external'),           // choose (the default), external or never
+```
+
+- `toolbar()` also takes the buttons of a project's JS plugin (`createEditorPlugin()`), such as an inline logo.
+- The settings only limit what users add: the HTML a field already holds, from CKEditor in 1.x, saves unchanged until it is edited, and keeps what the toolbar doesn't offer once it is.
+- The value is a string, saved as it is sent.
+
 ### More field types
 
 The types of [panneau-js decision 0033](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0033-more-field-types.md). See [decisions/0012](decisions/0012-embeds-and-more-field-types.md).

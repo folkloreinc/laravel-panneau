@@ -124,6 +124,29 @@ class FieldTest extends TestCase
         );
     }
 
+    public function test_rich_text_settings(): void
+    {
+        $this->assertSame(
+            ['name' => 'body', 'type' => 'richtext', 'settings' => [
+                'toolbar' => ['heading', 'style', '|', 'bold', 'italic', 'link', 'logo'],
+                'headings' => [2, 4],
+                'styles' => [
+                    ['label' => 'Big paragraph', 'class' => 'big'],
+                    ['label' => 'Small heading', 'class' => 'small', 'element' => 'h2'],
+                ],
+                'links' => ['newTab' => 'external'],
+            ]],
+            RichText::make('body')
+                ->toolbar(['heading', 'style', '|', 'bold', 'italic', 'link', 'logo'])
+                ->headings(2, 4)
+                ->style('big', 'Big paragraph')
+                ->style('small', 'Small heading', 'h2')
+                ->linksInNewTab('external')
+                ->toDefinition(),
+        );
+        $this->assertSame(['name' => 'body', 'type' => 'richtext'], RichText::make('body')->toDefinition());
+    }
+
     public function test_values_are_read_from_any_object(): void
     {
         $item = (object) [
