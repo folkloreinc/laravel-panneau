@@ -1,0 +1,21 @@
+{
+    "name": "example-agency",
+    "private": true,
+    "scripts": {
+        "clean": "rm -rf public/static",
+        "build:scripts": "flklr build --load-env ./resources/js/index.js",
+        "build:views": "php artisan assets:view",
+        "build": "npm run clean && npm run build:scripts && npm run build:views",
+        "server": "flklr serve --load-env ./resources/js/index.js"
+    },
+    "dependencies": {
+        "@panneau/app": "^4.1.1",
+        "@panneau/core": "^4.1.1",
+        "@panneau/field-localized": "^4.1.1",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0"
+    },
+    "devDependencies": {
+        "@folklore/cli": "^0.1.40"
+    }
+}

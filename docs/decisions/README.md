@@ -16,3 +16,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0010](0010-global-search.md) | The global search goes through the repositories, and through Scout for searchable models | Accepted |
 | [0011](0011-slug-checks.md) | Slugs check their value through the repository, and saving checks it again | Accepted |
 | [0012](0012-embeds-and-more-field-types.md) | Embeds come from an allowlist of oEmbed providers, and saving resolves them again | Accepted |
+| [0013](0013-upgrade-from-1x.md) | The upgrade from 1.x reads the project without running it, and never loses a file | Proposed |
