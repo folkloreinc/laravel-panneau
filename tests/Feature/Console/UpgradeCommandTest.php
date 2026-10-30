@@ -310,6 +310,9 @@ class UpgradeCommandTest extends TestCase
         // What the rules leave on 1.x parents, and the rest of the project, is still listed
         $this->assertStringContainsString('Credits extends Items (items)', $output);
         $this->assertStringContainsString('isPanneauIndex()', $output);
+        // types() is read like $types
+        $this->assertNotNull($this->audit()->section('types')->find('TextBlock (text) of Blocks'));
+        $this->assertSame('a 5.x Resource', $this->finding('resources', 'Pages (pages)')->target);
         $this->assertPhpFilesAreValid();
     }
 
