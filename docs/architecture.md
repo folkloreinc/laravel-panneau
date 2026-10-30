@@ -208,11 +208,12 @@ RichText::make('body')
     ->headings(2, 3)                       // the levels the toolbar offers (2, 3 and 4 by default)
     ->style('big', 'Big paragraph')        // <p class="big">
     ->style('small', 'Small title', 'h2')  // <h2 class="small">
-    ->linksInNewTab('external'),           // choose (the default), external or never
+    ->linksInNewTab('external');           // choose (the default), external or never
 ```
 
 - `toolbar()` also takes the buttons of a project's JS plugin (`createEditorPlugin()`), such as an inline logo.
 - The settings only limit what users add: the HTML a field already holds, from CKEditor in 1.x, saves unchanged until it is edited, and keeps what the toolbar doesn't offer once it is.
+- Settings the protocol refuses (a level outside 1 to 6, a style on another element) throw an `InvalidArgumentException`.
 - The value is a string, saved as it is sent.
 
 ### More field types

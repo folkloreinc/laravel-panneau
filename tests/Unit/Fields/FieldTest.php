@@ -3,6 +3,8 @@
 namespace Panneau\Tests\Unit\Fields;
 
 use Carbon\CarbonImmutable;
+use Closure;
+use InvalidArgumentException;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Color;
 use Panneau\Fields\Date;
@@ -25,6 +27,7 @@ use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
 use Panneau\Fields\Time;
 use Panneau\Forms\Condition;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use TestApp\Models\PostStatus;
 
@@ -145,6 +148,28 @@ class FieldTest extends TestCase
                 ->toDefinition(),
         );
         $this->assertSame(['name' => 'body', 'type' => 'richtext'], RichText::make('body')->toDefinition());
+    }
+
+    /**
+     * @return array<string, array{Closure(): mixed}>
+     */
+    public static function invalidRichTextSettings(): array
+    {
+        return [
+            'heading level 7' => [fn () => RichText::make('body')->headings(2, 7)],
+            'heading level 0' => [fn () => RichText::make('body')->headings(0)],
+            'new tab always' => [fn () => RichText::make('body')->linksInNewTab('always')],
+            'style on a div' => [fn () => RichText::make('body')->style('big', 'Big', 'div')],
+            'style without class' => [fn () => RichText::make('body')->style(' ', 'Big')],
+            'empty toolbar item' => [fn () => RichText::make('body')->toolbar(['bold', ''])],
+        ];
+    }
+
+    #[DataProvider('invalidRichTextSettings')]
+    public function test_rich_text_settings_the_protocol_refuses_throw(Closure $build): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $build();
     }
 
     public function test_values_are_read_from_any_object(): void

@@ -8,7 +8,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Added
 
-- `RichText` settings, for the rich text field of `@panneau/editor`: `toolbar()`, `headings()`, `style()` for block styles (a class on an element, `<p class="big">`), and `linksInNewTab()` (folkloreinc/panneau-js#128).
+- `RichText` settings, for the rich text field of `@panneau/editor`: `toolbar()`, `headings()`, `style()` for block styles (a class on an element, `<p class="big">`), and `linksInNewTab()`, which refuse what the protocol refuses (folkloreinc/panneau-js#128).
 
 ## [5.0.0-alpha.5] - 2026-10-27
 
