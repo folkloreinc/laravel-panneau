@@ -26,6 +26,12 @@ final class Audit
 
     public const VIEWS = 'resources/views/vendor/panneau';
 
+    /**
+     * Where projects keep their JS: 1.x projects generated with an older skeleton use
+     * `resources/assets/js`.
+     */
+    public const JS_DIRECTORIES = ['resources/js', 'resources/assets/js'];
+
     private const ROUTE_VERBS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'any', 'match'];
 
     private const ROUTE_FACADES = ['Route', 'Illuminate\\Support\\Facades\\Route'];
@@ -45,6 +51,8 @@ final class Audit
     private array $sections = [];
 
     private ?string $configShape = null;
+
+    private string $jsDirectory = 'resources/js';
 
     private ?Expr\Array_ $config = null;
 
@@ -79,6 +87,14 @@ final class Audit
      */
     private ?array $sourceFiles = null;
 
+    /**
+     * Files of the classes that the types and controllers sections list: their uses of 1.x
+     * contracts go with them.
+     *
+     * @var list<string>
+     */
+    private array $listedFiles = [];
+
     public function __construct(private readonly Codebase $code)
     {
         foreach ([
@@ -94,11 +110,13 @@ final class Audit
             'providers' => 'Service providers and static resolvers',
             'generated' => 'Files the package now provides (to delete)',
             'macros' => 'Uses of the 1.x request macros and helpers',
+            'contracts' => 'Uses of 1.x contracts (fatal errors in the site too)',
             'deployment' => 'Build and deployment',
             'todos' => 'Left by the Rector rules (// TODO(panneau-5))',
         ] as $key => $title) {
             $this->sections[$key] = new Section($key, $title);
         }
+        $this->jsDirectory = $this->readJsDirectory();
         $this->auditPackages();
         $this->auditConfig();
         $this->readRegisteredResources();
@@ -111,6 +129,7 @@ final class Audit
         $this->auditProviders();
         $this->auditGeneratedFiles();
         $this->auditRequestMacros();
+        $this->auditContracts();
         $this->auditDeployment();
         $this->auditTodos();
         if ($this->configShape === '1.x') {
@@ -209,6 +228,14 @@ final class Audit
         return $this->generatedFiles;
     }
 
+    /**
+     * The JS entry of the admin, in the project's JS directory: where `--upgrade` writes it.
+     */
+    public function entry(): string
+    {
+        return $this->jsDirectory.'/'.basename(JsInstaller::ENTRY);
+    }
+
     public function manualCount(): int
     {
         return array_sum(array_map(fn (Section $section): int => $section->manualCount(), $this->sections));
@@ -231,18 +258,15 @@ final class Audit
             $section->add('folklore/laravel-folklore '.$folklore, 'folklore/laravel-folklore ^2.0@alpha: its Panneau adapter maps resources to Folklore repositories', 'composer.json');
         }
 
-        foreach ($this->code->phpFiles(['resources/js', 'resources/assets/js'], '*.{js,jsx,ts,tsx,mjs}') as $file) {
-            if ($file === JsInstaller::ENTRY) {
-                continue;
-            }
-            preg_match_all('/(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s+)[\'"](@panneau\/[^\'"\/]+)/', $this->code->read($file) ?? '', $matches);
-            if ($matches[1] !== []) {
-                $section->add(
-                    $file.' imports '.implode(', ', array_unique($matches[1])),
-                    'manual: the JS codemods of @panneau/* 5; until then the build of the site breaks once @panneau/app is 5',
-                    $file,
-                );
-            }
+        foreach ($this->panneauImports($this->isEntry($this->entry()) ? $this->entry() : null) as $file => $packages) {
+            $section->add(
+                $file.' imports '.implode(', ', $packages),
+                'manual: the JS codemods of @panneau/* 5; until then the build of the site breaks once @panneau/app is 5',
+                $file,
+            );
+        }
+        if ($this->jsDirectory !== 'resources/js') {
+            $section->add("the project's JS is in {$this->jsDirectory}", "--upgrade writes the entry there: {$this->entry()}, in the Vite config and 'app.entry'");
         }
 
         $package = json_decode($this->code->read('package.json') ?? '', true);
@@ -259,6 +283,82 @@ final class Audit
                     : 'removed: 5.x has about a dozen packages, which @panneau/app brings (the JS codemods move the imports)', 'package.json');
             }
         }
+    }
+
+    /**
+     * The files of the project's JS that import `@panneau/*` packages, other than the 5.x entry.
+     *
+     * @return array<string, list<string>>
+     */
+    private function panneauImports(?string $entry = null): array
+    {
+        $imports = [];
+        foreach ($this->code->phpFiles(self::JS_DIRECTORIES, '*.{js,jsx,ts,tsx,mjs}') as $file) {
+            if ($file === $entry) {
+                continue;
+            }
+            preg_match_all('/(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s+)[\'"](@panneau\/[^\'"\/]+)/', $this->code->read($file) ?? '', $matches);
+            if ($matches[1] !== []) {
+                $imports[$file] = array_values(array_unique($matches[1]));
+            }
+        }
+
+        return $imports;
+    }
+
+    /**
+     * The project's JS directory:
+     *
+     * 1. the one with the 5.x entry of an earlier upgrade;
+     * 2. the one with the most files that import `@panneau/*` (the 1.x container);
+     * 3. the one that package.json or tsconfig.json names;
+     * 4. the only one there is;
+     * 5. `resources/js`.
+     *
+     * Ties go to the next step, then to the order of JS_DIRECTORIES.
+     */
+    private function readJsDirectory(): string
+    {
+        foreach (self::JS_DIRECTORIES as $directory) {
+            if ($this->isEntry($directory.'/'.basename(JsInstaller::ENTRY))) {
+                return $directory;
+            }
+        }
+        $imports = array_fill_keys(self::JS_DIRECTORIES, 0);
+        foreach (array_keys($this->panneauImports()) as $file) {
+            foreach (self::JS_DIRECTORIES as $directory) {
+                if (str_starts_with($file, $directory.'/')) {
+                    $imports[$directory]++;
+                }
+            }
+        }
+        $config = ($this->code->read('package.json') ?? '').($this->code->read('tsconfig.json') ?? '');
+        $named = array_filter(self::JS_DIRECTORIES, fn (string $directory): bool => preg_match('#(?<![\w-])'.preg_quote($directory, '#').'(?![\w-])#', $config) === 1);
+        $existing = array_filter(self::JS_DIRECTORIES, fn (string $directory): bool => $this->code->exists($directory));
+        $candidates = self::JS_DIRECTORIES;
+        if (max($imports) > 0) {
+            $candidates = array_keys($imports, max($imports), true);
+        }
+        foreach ([$named, count($existing) === 1 ? $existing : []] as $preferred) {
+            $narrowed = array_intersect($candidates, $preferred);
+            if ($narrowed !== []) {
+                $candidates = $narrowed;
+            }
+        }
+
+        return array_values($candidates)[0];
+    }
+
+    /**
+     * Whether a file is the 5.x entry: named exactly so (file systems may ignore case, and a 1.x
+     * container can be `Panneau.tsx`), and mounting the 5.x app.
+     */
+    private function isEntry(string $file): bool
+    {
+        $code = $this->code->read($file);
+
+        return $code !== null && in_array(basename($file), scandir($this->code->path(dirname($file))) ?: [], true)
+            && str_contains($code, '@panneau/app') && str_contains($code, 'createPanneauApp');
     }
 
     private function isMajor(string $constraint, int $major): bool
@@ -456,7 +556,7 @@ final class Audit
             'index' => 'list()',
             'name' => 'pluralLabel() and singularLabel()',
             'id' => 'id()',
-            'translationsNamespace' => 'nothing: labels are set on fields and resources',
+            'translationsNamespace' => 'pluralLabel() and singularLabel(), with __(): the Rector rules remove it, with a TODO that names its keys',
             'authorize' => 'manual: a policy for the item class',
             'types', 'settings', 'attributes', 'components', 'forms', 'makeRepository', 'makeJsonResource', 'makeJsonCollection', 'onlyDeclaredFields', 'indexIsPaginated' => 'manual: no 5.x equivalent',
             '__construct' => 'manual: resources are resolved from the container',
@@ -567,6 +667,7 @@ final class Audit
                 && (in_array($class->name, $bases, true) || ! $this->code->isA($class->name, [V1::RESOURCE_TYPE])))) {
                 continue;
             }
+            $this->listedFiles[] = $class->file;
             $id = Php::value($class->returned('id'));
             $resources = $usedBy[$class->name] ?? [];
             $isBlock = str_contains($class->name, 'Block');
@@ -725,6 +826,7 @@ final class Audit
             }
         }
         foreach ($this->code->subclassesOf([V1::RESOURCE_CONTROLLER]) as $class) {
+            $this->listedFiles[] = $class->file;
             $resources = $usedBy[$class->name] ?? [];
             $finding = $section->add(
                 $class->shortName().($resources !== [] ? ' of '.implode(', ', $resources) : ''),
@@ -1085,6 +1187,58 @@ final class Audit
         }
     }
 
+    // Contracts
+
+    /**
+     * References to the 1.x contracts that 5.x doesn't have, anywhere in the project: entity
+     * contracts that extend `ResourceItem`, types, `instanceof`. A class that extends or
+     * implements one can't be loaded once 5.x is installed. Files that another section lists
+     * (resource types, controllers, files to delete) are left out, and the other uses are
+     * counted by file.
+     */
+    private function auditContracts(): void
+    {
+        $section = $this->sections['contracts'];
+        $entity = 'Folklore\\Contracts\\Entities\\Entity';
+        foreach (array_diff($this->sourceFiles(), $this->listedFiles, $this->generatedFiles) as $file) {
+            $declared = [];
+            foreach ($this->code->find($file, Stmt\ClassLike::class) as $class) {
+                [$extends, $implements] = match (true) {
+                    $class instanceof Stmt\Class_ => [$class->extends !== null ? [$class->extends] : [], $class->implements],
+                    $class instanceof Stmt\Interface_ => [$class->extends, []],
+                    $class instanceof Stmt\Enum_ => [[], $class->implements],
+                    default => [[], []],
+                };
+                $names = array_map(fn (Node\Name $name): string => $name->toString(), [...$extends, ...$implements]);
+                foreach ([...$extends, ...$implements] as $name) {
+                    $contract = $name->toString();
+                    $declared[spl_object_id($name)] = true;
+                    if (! isset(V1::CONTRACTS[$contract])) {
+                        continue;
+                    }
+                    $section->add(
+                        sprintf('%s %s %s', $class->name?->toString() ?? 'class', in_array($name, $extends, true) ? 'extends' : 'implements', class_basename($contract)),
+                        $contract === 'Panneau\\Contracts\\ResourceItem' && in_array($entity, $names, true)
+                            ? 'manual: remove it: Entity, which it extends too, declares id()'
+                            : 'manual: '.V1::CONTRACTS[$contract],
+                        $file.':'.$name->getStartLine(),
+                    );
+                }
+            }
+            // Types, instanceof, ::class, once by contract: names in use statements aren't resolved
+            $uses = [];
+            foreach ($this->code->find($file, Node\Name\FullyQualified::class) as $name) {
+                $contract = $name->toString();
+                if (isset(V1::CONTRACTS[$contract]) && ! isset($declared[spl_object_id($name)])) {
+                    $uses[$contract][] = $name->getStartLine();
+                }
+            }
+            foreach ($uses as $contract => $lines) {
+                $section->add($contract.(count($lines) > 1 ? ' ×'.count($lines) : ''), 'manual: '.V1::CONTRACTS[$contract], $file.':'.min($lines));
+            }
+        }
+    }
+
     // Deployment and build
 
     private function auditDeployment(): void
@@ -1137,8 +1291,9 @@ final class Audit
         }
         foreach ($this->code->phpFiles(['.github/workflows'], '*.yml') as $file) {
             $this->grep($section, $file, '/node-version:\s*[\'"]?(\d+)(?:\.(\d+))?/', fn (array $match): string => 'node-version '.$match[1].(isset($match[2]) ? '.'.$match[2] : ''), 'manual: Vite 8 needs Node 20.19+ or 22.12+', fn (array $match): bool => $this->isOldNode($match[1].'.'.($match[2] ?? '0')));
-            $this->grep($section, $file, '/^.*panneau.*$/mi', fn (array $match): string => trim($match[0]), 'manual: check it for 5.x');
             $workflow = $this->code->read($file) ?? '';
+            $names = $this->workflowBranchLines($workflow);
+            $this->grep($section, $file, '/^.*panneau.*$/mi', fn (array $match): string => trim($match[0]), 'manual: check it for 5.x', fn (array $match, int $line): bool => ! in_array($line, $names, true));
             if (preg_match('#public/static#', $workflow) === 1 && ! str_contains($workflow, 'public/build')) {
                 $this->grep($section, $file, '#^.*public/static.*$#m', fn (array $match): string => trim($match[0]), "manual: add public/build/, Vite's build of the admin");
             }
@@ -1155,6 +1310,53 @@ final class Audit
         if ($gitignore !== null && ! $hasVite && ! str_contains($gitignore, 'public/build')) {
             $section->add('.gitignore', 'manual: ignore /public/build and /public/hot', '.gitignore');
         }
+    }
+
+    /**
+     * The lines of a workflow that name the branches or tags of its triggers (`branches:`,
+     * `tags:` and their lists, under `on:`): a branch named after Panneau depends on nothing.
+     *
+     * @return list<int>
+     */
+    private function workflowBranchLines(string $workflow): array
+    {
+        $lines = [];
+        $on = null;
+        $indent = null;
+        foreach (explode("\n", $workflow) as $index => $text) {
+            $depth = strlen($text) - strlen(ltrim($text));
+            $blank = trim($text) === '' || str_starts_with(ltrim($text), '#');
+            if (! $blank && $on !== null && $depth <= $on) {
+                $on = null;
+            }
+            if (preg_match('/^(\s*)[\'"]?on[\'"]?:(.*)$/', $text, $matches) === 1) {
+                $on = strlen($matches[1]);
+                // on: { push: { branches: [...] } }
+                if (preg_match('/\b(branches|branches-ignore|tags|tags-ignore)\s*:/', $matches[2]) === 1) {
+                    $lines[] = $index + 1;
+                }
+
+                continue;
+            }
+            if ($on === null) {
+                continue;
+            }
+            if (preg_match('/^(\s*)(branches|branches-ignore|tags|tags-ignore):(.*)$/', $text, $matches) === 1) {
+                $lines[] = $index + 1;
+                $indent = trim($matches[3]) === '' ? strlen($matches[1]) : null;
+
+                continue;
+            }
+            // The items of the list: deeper, or at the same depth with a dash
+            if ($indent !== null && ($blank || $depth > $indent || ($depth === $indent && str_starts_with(ltrim($text), '-')))) {
+                $lines[] = $index + 1;
+
+                continue;
+            }
+            $indent = null;
+        }
+
+        return $lines;
     }
 
     /**
@@ -1186,7 +1388,7 @@ final class Audit
      * Adds a finding for each match of a pattern in a file.
      *
      * @param  callable(array<int, string>): string  $subject
-     * @param  (callable(array<int, string>): bool)|null  $filter
+     * @param  (callable(array<int, string>, int): bool)|null  $filter  Receives the match and its line.
      */
     private function grep(Section $section, string $file, string $pattern, callable $subject, string $target, ?callable $filter = null): void
     {
@@ -1196,10 +1398,10 @@ final class Audit
         }
         foreach ($matches as $match) {
             $values = array_map(fn (array $group): string => $group[0], $match);
-            if ($filter !== null && ! $filter($values)) {
+            $line = substr_count(substr($code, 0, $match[0][1]), "\n") + 1;
+            if ($filter !== null && ! $filter($values, $line)) {
                 continue;
             }
-            $line = substr_count(substr($code, 0, $match[0][1]), "\n") + 1;
             $section->add($subject($values), $target, $file.':'.$line);
         }
     }

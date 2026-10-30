@@ -1,0 +1,16 @@
+name: Checks
+
+on:
+    push:
+        branches:
+            - develop
+            - feature/13-panneau-5
+    pull_request:
+        branches: [develop, feature/13-panneau-5]
+
+jobs:
+    checks:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v5
+            - run: php artisan panneau:assets

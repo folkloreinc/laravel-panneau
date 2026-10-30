@@ -58,9 +58,33 @@ final class ResourcePropertiesRector extends AbstractRector
             $changed = true;
         }
 
+        // 5.x never calls translationsNamespace(): in 1.x, it named the keys of the resource's
+        // labels ({namespace}.name, .plural, .singular). A TODO names it where it was, and it
+        // stays when another method of the class calls it.
+        $namespace = $node->getMethod('translationsNamespace');
+        $namespaceTodo = null;
+        if ($namespace !== null) {
+            $return = (new NodeFinder)->findFirstInstanceOf($namespace->stmts ?? [], Stmt\Return_::class);
+            $namespaceTodo = sprintf(
+                '5.x never calls translationsNamespace() (%s): its name, plural and singular keys go to pluralLabel() and singularLabel(), with __()',
+                Php::describe($return?->expr),
+            );
+            $others = array_values(array_filter($node->stmts, fn (Stmt $stmt): bool => $stmt !== $namespace));
+            if ($this->callsOwnMethod($others, 'translationsNamespace')) {
+                $changed = Todo::add($namespace, [$namespaceTodo.'; other methods call it: move their labels too, then delete it']) || $changed;
+                $namespace = null;
+            }
+        }
+
         $reads = $this->staticReads($node);
         $stmts = [];
         foreach ($node->stmts as $stmt) {
+            if ($stmt === $namespace) {
+                $stmts[] = $this->todo((string) $namespaceTodo);
+                $changed = true;
+
+                continue;
+            }
             if (! $stmt instanceof Stmt\Property || ! $stmt->isStatic() || count($stmt->props) !== 1) {
                 $stmts[] = $stmt;
 
@@ -107,6 +131,26 @@ final class ResourcePropertiesRector extends AbstractRector
         }
 
         return $changed ? $node : null;
+    }
+
+    /**
+     * Whether statements of a class call one of its methods (`$this->x()`, `static::x()`).
+     *
+     * @param  list<Stmt>  $stmts
+     */
+    private function callsOwnMethod(array $stmts, string $method): bool
+    {
+        foreach ((new NodeFinder)->find($stmts, fn (Node $node): bool => $node instanceof Expr\MethodCall || $node instanceof Expr\StaticCall) as $call) {
+            /** @var Expr\MethodCall|Expr\StaticCall $call */
+            $caller = $call instanceof Expr\MethodCall ? $call->var : $call->class;
+            $isOwn = ($caller instanceof Expr\Variable && $caller->name === 'this')
+                || ($caller instanceof Node\Name && in_array(strtolower($caller->toString()), ['static', 'self', 'parent'], true));
+            if ($isOwn && $call->name instanceof Node\Identifier && $call->name->toString() === $method) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
