@@ -267,6 +267,36 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('app/Http/Responses/LoginResponse.php:11', $this->finding('macros', 'isPanneau()')->location);
     }
 
+    public function test_the_check_lists_the_1x_contracts_outside_the_resources(): void
+    {
+        $this->project('v1.3');
+
+        // Entity contracts of the site that extend ResourceItem break the site once 5.x is installed
+        $order = $this->finding('contracts', 'Order extends ResourceItem');
+        $this->assertSame('app/Contracts/Entities/Order.php:8', $order->location);
+        $this->assertSame('manual: remove it: Entity, which it extends too, declares id()', $order->target);
+        $store = $this->finding('contracts', 'Store extends ResourceItem');
+        $this->assertSame('app/Contracts/Entities/Store.php:5', $store->location);
+        $this->assertStringStartsWith('manual: Folklore\\Contracts\\Entities\\Entity', $store->target);
+        // Other references, but not the imports
+        $this->assertSame('app/Http/Resources/OrderResource.php:13', $this->finding('contracts', 'Panneau\\Contracts\\ResourceItem')->location);
+        $this->assertCount(3, $this->audit()->section('contracts')->findings);
+
+        $output = $this->panneau(['--upgrade' => true, '--no-js' => true]);
+        $this->assertStringContainsString('Uses of 1.x contracts', $output);
+        $this->assertStringContainsString('app/Contracts/Entities/Order.php:8', $output);
+    }
+
+    public function test_the_check_skips_the_branches_of_the_workflows(): void
+    {
+        $this->project('v1.3');
+
+        // A branch named after Panneau, in the triggers, depends on nothing
+        $this->assertNull($this->audit()->section('deployment')->find('- feature/13-panneau-5'));
+        $this->assertNull($this->audit()->section('deployment')->find('branches: [develop, feature/13-panneau-5]'));
+        $this->assertSame('.github/workflows/checks.yml:16', $this->finding('deployment', '- run: php artisan panneau:assets')->location);
+    }
+
     public function test_the_check_lists_what_the_rector_rules_left(): void
     {
         $this->project('v1.4');
@@ -530,6 +560,33 @@ class UpgradeCommandTest extends TestCase
         $this->assertFileDoesNotExist($this->project.'/resources/js/panneau.tsx');
         $this->assertFileDoesNotExist($this->project.'/vite.config.mjs');
         $this->assertPhpFilesAreValid();
+    }
+
+    public function test_the_upgrade_writes_the_entry_in_the_js_directory_of_the_project(): void
+    {
+        $this->project('v1.3');
+        $this->assertSame('resources/assets/js/panneau.tsx', $this->audit()->entry());
+        $this->assertStringStartsWith('--upgrade writes the entry there', $this->finding('packages', "the project's JS is in resources/assets/js")->target);
+
+        $this->panneau(['--upgrade' => true]);
+
+        $this->assertStringContainsString('createPanneauApp', $this->read('resources/assets/js/panneau.tsx'));
+        $this->assertDirectoryDoesNotExist($this->project.'/resources/js');
+        $this->assertStringContainsString("input: ['resources/assets/js/panneau.tsx']", $this->read('vite.config.mjs'));
+        $this->assertSame('resources/assets/js/panneau.tsx', (require $this->project.'/config/panneau.php')['app']['entry']);
+        // The entry isn't one of the files to move with the codemods; a second run keeps it
+        $this->assertNull($this->audit()->section('packages')->find('resources/assets/js/panneau.tsx imports @panneau/app'));
+        $after = $this->snapshot();
+        $this->panneau(['--upgrade' => true]);
+        $this->assertSame($after, $this->snapshot());
+    }
+
+    public function test_the_upgrade_writes_the_entry_in_resources_js_by_default(): void
+    {
+        $this->project('v1.4');
+
+        $this->assertSame('resources/js/panneau.tsx', $this->audit()->entry());
+        $this->assertNull($this->audit()->section('packages')->find("the project's JS is in resources/js"));
     }
 
     public function test_it_tells_when_there_is_nothing_to_upgrade(): void

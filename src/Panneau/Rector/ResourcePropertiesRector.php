@@ -58,9 +58,24 @@ final class ResourcePropertiesRector extends AbstractRector
             $changed = true;
         }
 
+        // 5.x never calls translationsNamespace(): labels are set on fields and resources. It
+        // stays, with a TODO, when another method of the class calls it.
+        $namespace = $node->getMethod('translationsNamespace');
+        $others = array_values(array_filter($node->stmts, fn (Stmt $stmt): bool => $stmt !== $namespace));
+        if ($namespace !== null && $this->callsOwnMethod($others, 'translationsNamespace')) {
+            $changed = Todo::add($namespace, ['5.x never calls translationsNamespace(): set the labels with __() on the fields and the resource, then delete it']) || $changed;
+            $namespace = null;
+        }
+
         $reads = $this->staticReads($node);
         $stmts = [];
         foreach ($node->stmts as $stmt) {
+            if ($stmt === $namespace) {
+                $stmts[] = new Stmt\Nop;
+                $changed = true;
+
+                continue;
+            }
             if (! $stmt instanceof Stmt\Property || ! $stmt->isStatic() || count($stmt->props) !== 1) {
                 $stmts[] = $stmt;
 
@@ -107,6 +122,26 @@ final class ResourcePropertiesRector extends AbstractRector
         }
 
         return $changed ? $node : null;
+    }
+
+    /**
+     * Whether statements of a class call one of its methods (`$this->x()`, `static::x()`).
+     *
+     * @param  list<Stmt>  $stmts
+     */
+    private function callsOwnMethod(array $stmts, string $method): bool
+    {
+        foreach ((new NodeFinder)->find($stmts, fn (Node $node): bool => $node instanceof Expr\MethodCall || $node instanceof Expr\StaticCall) as $call) {
+            /** @var Expr\MethodCall|Expr\StaticCall $call */
+            $caller = $call instanceof Expr\MethodCall ? $call->var : $call->class;
+            $isOwn = ($caller instanceof Expr\Variable && $caller->name === 'this')
+                || ($caller instanceof Node\Name && in_array(strtolower($caller->toString()), ['static', 'self', 'parent'], true));
+            if ($isOwn && $call->name instanceof Node\Identifier && $call->name->toString() === $method) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

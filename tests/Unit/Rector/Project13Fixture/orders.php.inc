@@ -79,10 +79,7 @@ class Invoices extends Resource
     // TODO(panneau-5): canCreate is false: the create() of the policy denies it
 
 
-    public function translationsNamespace(): ?string
-    {
-        return 'panneau.' . $this->id();
-    }
+
 
     public function list(ResourceList $list): ResourceList
     {

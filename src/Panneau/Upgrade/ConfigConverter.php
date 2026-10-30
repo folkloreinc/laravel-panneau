@@ -3,6 +3,7 @@
 namespace Panneau\Upgrade;
 
 use LogicException;
+use Panneau\Console\JsInstaller;
 use PhpParser\Node\Expr;
 
 /**
@@ -17,12 +18,14 @@ final class ConfigConverter
     /**
      * @param  string  $stub  The package's config.
      * @param  list<string>  $middleware  The project's own middleware, from the 1.x routes and config (Audit::middleware()).
+     * @param  string  $entry  The JS entry, in the project's JS directory (Audit::entry()).
      */
     public function __construct(
         private readonly string $stub,
         private readonly Expr\Array_ $config,
         private readonly ?string $guard,
         private readonly array $middleware = [],
+        private readonly string $entry = JsInstaller::ENTRY,
     ) {}
 
     public function convert(): string
@@ -49,6 +52,9 @@ final class ConfigConverter
         $middleware = $this->middleware();
         if ($middleware !== []) {
             $config = $this->replace($config, "'middleware' => ['web', 'panneau.auth'],", "'middleware' => ['web', 'panneau.auth', ".implode(', ', $middleware).'],');
+        }
+        if ($this->entry !== JsInstaller::ENTRY) {
+            $config = $this->replace($config, "'entry' => '".JsInstaller::ENTRY."',", "'entry' => ".var_export($this->entry, true).',');
         }
         if ($this->guard !== null) {
             $config = $this->replace($config, "'guard' => null,", "'guard' => ".var_export($this->guard, true).',');

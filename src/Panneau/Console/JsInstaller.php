@@ -49,11 +49,15 @@ final class JsInstaller
 
     public const VITE_CONFIGS = ['vite.config.js', 'vite.config.ts', 'vite.config.mjs', 'vite.config.mts'];
 
+    /**
+     * @param  string  $entry  The JS entry, relative to the base path: an upgraded project keeps its JS directory.
+     */
     public function __construct(
         private readonly Filesystem $files,
         private readonly Factory $components,
         private readonly string $basePath,
         private readonly ?Backups $backups = null,
+        private readonly string $entry = self::ENTRY,
     ) {}
 
     /**
@@ -142,7 +146,7 @@ final class JsInstaller
     public function updateViteConfig(): void
     {
         $file = $this->viteConfig();
-        $manual = sprintf("add '%s' to the input of laravel() and the react() plugin of @vitejs/plugin-react.", self::ENTRY);
+        $manual = sprintf("add '%s' to the input of laravel() and the react() plugin of @vitejs/plugin-react.", $this->entry);
         if ($file === null) {
             $this->components->warn('No Vite config: '.$manual);
 
@@ -150,7 +154,7 @@ final class JsInstaller
         }
 
         $config = new ViteConfig((string) $this->files->get($this->path($file)));
-        $input = $config->addInput(self::ENTRY);
+        $input = $config->addInput($this->entry);
         $plugin = $config->addPlugin('@vitejs/plugin-react', 'react', 'react()');
         if ($input === null || $plugin === null) {
             $this->components->warn(sprintf('%s could not be updated: %s', $file, $manual));
@@ -177,7 +181,7 @@ final class JsInstaller
     {
         $package = json_decode((string) ($this->files->exists($this->path('package.json')) ? $this->files->get($this->path('package.json')) : ''), true);
         $file = is_array($package) && ($package['type'] ?? null) === 'module' ? 'vite.config.js' : 'vite.config.mjs';
-        $this->files->put($this->path($file), (string) $this->files->get(__DIR__.'/../../stubs/vite.stub'));
+        $this->files->put($this->path($file), str_replace(self::ENTRY, $this->entry, (string) $this->files->get(__DIR__.'/../../stubs/vite.stub')));
         $this->components->twoColumnDetail($file, '<fg=green>WRITTEN</>');
 
         return $file;

@@ -211,6 +211,27 @@ final class V1
     ];
 
     /**
+     * Contracts of 1.x that 5.x doesn't have, and what replaces them. Loading a class of the
+     * project that extends or implements one is a fatal error once 5.x is installed, in the site
+     * as in the admin. `Panneau\Contracts\Panneau` is left out: 5.x has a contract of that name.
+     *
+     * @var array<string, string>
+     */
+    public const CONTRACTS = [
+        'Panneau\\Contracts\\ResourceItem' => 'Folklore\\Contracts\\Entities\\Entity in Folklore projects, or nothing: 5.x items are any object',
+        'Panneau\\Contracts\\Repository' => 'Folklore\\Contracts\\Repositories\\Entities in Folklore projects; a resource reads a Panneau\\Contracts\\ResourceRepository',
+        'Panneau\\Contracts\\Resource' => 'Panneau\\Resources\\Resource',
+        self::RESOURCE_TYPE_CONTRACT => 'nothing yet: resource types are not built in 5.x',
+        'Panneau\\Contracts\\Field' => 'Panneau\\Fields\\Field',
+        'Panneau\\Contracts\\Form' => 'nothing: forms are the layout() of a resource',
+        'Panneau\\Contracts\\HasResourceType' => 'nothing yet: resource types are not built in 5.x',
+        self::DEFINITION_CONTRACT => "nothing: the name goes to 'name' in config/panneau.php",
+        'Panneau\\Contracts\\Intl' => 'nothing: labels are set with __()',
+        'Panneau\\Contracts\\PanneauIntl' => 'nothing: labels are set with __()',
+        'Panneau\\Contracts\\Router' => 'Panneau::routes()',
+    ];
+
+    /**
      * Files that projects generated, now provided by the package, by class name.
      *
      * @var array<string, string>

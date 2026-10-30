@@ -144,11 +144,11 @@ final class Upgrader
             return;
         }
         if ($config === null) {
-            $this->write(Audit::CONFIG, (new ConfigConverter($stub, new Array_, $this->audit->guard()))->convert(), false);
+            $this->write(Audit::CONFIG, (new ConfigConverter($stub, new Array_, $this->audit->guard(), entry: $this->audit->entry()))->convert(), false);
 
             return;
         }
-        $converted = (new ConfigConverter($stub, $config, $this->audit->guard(), $this->audit->middleware()))->convert();
+        $converted = (new ConfigConverter($stub, $config, $this->audit->guard(), $this->audit->middleware(), $this->audit->entry()))->convert();
         $this->write(Audit::CONFIG, $converted, true);
     }
 
@@ -213,8 +213,8 @@ final class Upgrader
 
     private function writeJs(): void
     {
-        $js = new JsInstaller($this->files, $this->components, $this->basePath, $this->backups);
-        $this->write(JsInstaller::ENTRY, $this->stub('entry'), false);
+        $js = new JsInstaller($this->files, $this->components, $this->basePath, $this->backups, $this->audit->entry());
+        $this->write($this->audit->entry(), $this->stub('entry'), false);
         if ($js->viteConfig() !== null) {
             $js->updatePackageJson();
             $js->updateViteConfig();
