@@ -24,13 +24,21 @@ return [
 
     'auth' => [
         // "external": the site handles login, and unauthenticated users are sent to
-        // login_url. Panneau's own login ("panneau") comes in a later version.
+        // login_url. "panneau": the app shows its own login page, which logs in with an email
+        // and a password on the guard (a session guard). Two-factor, passkeys, password reset
+        // and OAuth providers come in a later version.
         'mode' => 'external',
 
         // Guard of the admin users. Null: the default guard.
         'guard' => null,
 
+        // "external" mode: where guests are sent to log in.
         'login_url' => '/login',
+
+        // "external" mode: where the browser goes to log out, the site's own logout. It has to
+        // accept a GET navigation (a route that logs out and redirects). Null: the app has no
+        // "Log out" button.
+        'logout_url' => null,
     ],
 
     // The page of the app, served for every path under {path} except the API.

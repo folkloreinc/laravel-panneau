@@ -88,16 +88,21 @@ final class DefinitionBuilder
     }
 
     /**
-     * @return array{mode: 'external'|'panneau', loginUrl: string|null}
+     * The `auth` of the definition and of the boot config. The login and logout URLs are those
+     * of the site, in `external` mode.
+     *
+     * @return array{mode: 'external'|'panneau', loginUrl: string|null, logoutUrl: string|null}
      */
     public function auth(): array
     {
         $mode = $this->config->get('panneau.auth.mode') === 'panneau' ? 'panneau' : 'external';
         $loginUrl = $this->config->get('panneau.auth.login_url');
+        $logoutUrl = $this->config->get('panneau.auth.logout_url');
 
         return [
             'mode' => $mode,
             'loginUrl' => $mode === 'external' && is_string($loginUrl) ? $loginUrl : null,
+            'logoutUrl' => $mode === 'external' && is_string($logoutUrl) && $logoutUrl !== '' ? $logoutUrl : null,
         ];
     }
 

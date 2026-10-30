@@ -22,6 +22,9 @@
         "definition": {
             "$ref": "#/$defs/Definition"
         },
+        "auth": {
+            "$ref": "#/$defs/Auth"
+        },
         "loginUrl": {
             "type": [
                 "string",
@@ -1161,8 +1164,17 @@
                         "null"
                     ]
                 },
+                "logoutUrl": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "password": {
                     "type": "boolean"
+                },
+                "token": {
+                    "$ref": "#/$defs/AuthToken"
                 },
                 "providers": {
                     "type": "array",
@@ -1186,6 +1198,18 @@
             "required": [
                 "mode"
             ],
+            "additionalProperties": {}
+        },
+        "AuthToken": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "help": {
+                    "type": "string"
+                }
+            },
             "additionalProperties": {}
         },
         "AuthProvider": {

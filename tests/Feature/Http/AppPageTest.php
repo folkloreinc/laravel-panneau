@@ -58,6 +58,7 @@ class AppPageTest extends HttpTestCase
         $this->assertSame('/panneau', $boot['basePath']);
         $this->assertSame('en', $boot['locale']);
         $this->assertSame('/login', $boot['loginUrl']);
+        $this->assertSame(['mode' => 'external', 'loginUrl' => '/login', 'logoutUrl' => null], $boot['auth']);
         $this->assertEquals(json_decode((string) json_encode(Panneau::definition(auth()->user())), true), $boot['definition']);
         $this->assertSame(['posts', 'authors', 'tags'], array_column($boot['definition']['resources'], 'id'));
     }
@@ -163,6 +164,68 @@ class AppPageTest extends HttpTestCase
 
         // The API still answers with a problem
         $this->get('/panneau/api/definition')->assertStatus(401)->assertHeader('Content-Type', Problem::CONTENT_TYPE);
+    }
+
+    public function test_the_logout_url_is_in_the_boot_config(): void
+    {
+        $this->app['config']->set('panneau.auth.logout_url', '/logout');
+
+        $boot = $this->bootConfig($this->get('/panneau')->assertOk());
+
+        $this->assertValidBootConfig($boot);
+        $this->assertSame('/logout', $boot['auth']['logoutUrl']);
+        $this->assertSame('/logout', $boot['definition']['auth']['logoutUrl']);
+    }
+
+    public function test_guests_get_the_page_in_the_panneau_mode(): void
+    {
+        $this->app['config']->set('panneau.auth.mode', 'panneau');
+        $this->app['auth']->guard()->forgetUser();
+
+        $response = $this->get('/panneau/resources/posts?page=2')->assertOk()->assertSee('<div id="panneau"></div>', false);
+
+        $boot = $this->bootConfig($response);
+        $this->assertValidBootConfig($boot);
+        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null], $boot['auth']);
+        $this->assertArrayNotHasKey('loginUrl', $boot);
+        // The definition is the user's: the app fetches it after the login
+        $this->assertArrayNotHasKey('definition', $boot);
+        $this->assertNull(session('url.intended'));
+
+        // The API still answers with a problem, which shows the login page
+        $this->get('/panneau/api/definition')->assertStatus(401)->assertHeader('Content-Type', Problem::CONTENT_TYPE);
+    }
+
+    public function test_guests_of_a_separate_guard_get_the_page_in_the_panneau_mode(): void
+    {
+        $this->app['config']->set('auth.guards.admin', ['driver' => 'session', 'provider' => 'users']);
+        $this->app['config']->set('panneau.auth.guard', 'admin');
+        $this->app['config']->set('panneau.auth.mode', 'panneau');
+
+        // Ada is logged in on the site's guard, not on the admin's
+        $boot = $this->bootConfig($this->get('/panneau')->assertOk());
+
+        $this->assertValidBootConfig($boot);
+        $this->assertArrayNotHasKey('definition', $boot);
+    }
+
+    public function test_users_get_the_definition_in_the_panneau_mode(): void
+    {
+        $this->app['config']->set('panneau.auth.mode', 'panneau');
+
+        $boot = $this->bootConfig($this->get('/panneau')->assertOk());
+
+        $this->assertValidBootConfig($boot);
+        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null], $boot['auth']);
+        $this->assertSame('1', $boot['definition']['user']['id']);
+    }
+
+    public function test_users_need_the_view_panneau_gate_in_the_panneau_mode(): void
+    {
+        $this->app['config']->set('panneau.auth.mode', 'panneau');
+        $this->actingAs(new GenericUser(['id' => 99, 'name' => 'Eve']));
+
+        $this->get('/panneau')->assertForbidden()->assertDontSee('panneau-boot');
     }
 
     public function test_users_need_the_view_panneau_gate(): void

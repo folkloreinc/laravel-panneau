@@ -106,7 +106,7 @@ The field rules apply to chains that make a 1.x field, or a field of the project
 - **Custom controllers** become hooks and `Action` classes: exports and imports `ExportAction` and `ImportAction`, other operations on items custom actions.
 - **Custom routes** of `routes/panneau.php` (kept in its backup) become actions or plugin pages.
 - **The gate.** Port the `view()` of the 1.x `PanneauPolicy` to the `viewPanneau` gate of the new provider.
-- **The login page.** 1.x served its own (`Panneau::router()->auth()`, at `{prefix}/login`). 5.x's own login isn't built yet: set `auth.login_url` to a login page of the site.
+- **The login page.** 1.x served its own (`Panneau::router()->auth()`, at `{prefix}/login`). 5.x's own login is the `panneau` auth mode, with an email and a password for now (no reset, two-factor or OAuth providers yet): the app shows its login page to guests. Or keep the site's login with the `external` mode and `auth.login_url`, and `auth.logout_url` for the "Log out" button.
 - **Locales.** A `setLocalesResolver()` becomes `locales` in `config/panneau.php`.
 - **Request macros and route names:** `$request->routeIs('panneau.*')`, and the 5.x route names.
 - **Deployment:** deploy `public/build/` with the other built files (an Envoy task that copies `public/static/` copies `public/build/` too), and ignore `/public/build` and `/public/hot` in git.

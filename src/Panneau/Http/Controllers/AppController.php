@@ -11,7 +11,8 @@ use Panneau\Definition\DefinitionBuilder;
 
 /**
  * The page of the app: the boot config and the project's Vite entry, which mounts
- * `@panneau/app`. Served for every path of the app, since the app routes on the client.
+ * `@panneau/app`. Served for every path of the app, since the app routes on the client. Guests
+ * get it in the `panneau` auth mode, without the definition: the app shows its login page.
  *
  * @internal
  */
@@ -26,7 +27,8 @@ final class AppController
 
     public function __invoke(Request $request): Response
     {
-        $boot = $this->panneau->bootConfig($request->user(), (bool) $this->config->get('panneau.app.inline_definition', true));
+        $user = $request->user();
+        $boot = $this->panneau->bootConfig($user, $user !== null && (bool) $this->config->get('panneau.app.inline_definition', true));
         $entry = $this->config->get('panneau.app.entry');
         $buildDirectory = $this->config->get('panneau.app.build_directory');
         $view = $this->config->get('panneau.app.view');

@@ -40,7 +40,8 @@ interface Panneau
     /**
      * Registers the routes of the admin, with the middleware of `panneau.middleware`: the API
      * under `{path}/api`, and the app's page for every other path under `{path}`. Routes of
-     * the project under `{path}` must be registered before.
+     * the project under `{path}` must be registered before. In the `panneau` auth mode, the API
+     * also has `POST auth/login` and `POST auth/logout`.
      *
      * @param  bool  $app  Whether to register the app's page. Without it, only the API.
      */
@@ -70,8 +71,10 @@ interface Panneau
 
     /**
      * The boot config of the app's page, as `boot.schema.json` of the protocol describes it:
-     * where the API and the app are, the locale, the login URL and, unless asked otherwise,
-     * the definition for the user. For projects that render the app in their own page.
+     * where the API and the app are, the locale, the `auth` of the definition (for the login
+     * page of the app, shown before the definition is loaded), the login URL and, unless asked
+     * otherwise, the definition for the user. For projects that render the app in their own
+     * page.
      *
      * @return array<string, mixed>
      */
