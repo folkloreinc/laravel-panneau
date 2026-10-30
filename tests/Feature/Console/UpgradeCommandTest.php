@@ -287,6 +287,32 @@ class UpgradeCommandTest extends TestCase
         $this->assertTrue($finding->isManual());
     }
 
+    public function test_the_check_after_the_upgrade_and_the_rector_rules(): void
+    {
+        $this->project('v1.4');
+        $this->panneau(['--upgrade' => true]);
+        $root = dirname(__DIR__, 3);
+
+        exec(sprintf(
+            'cd %s && %s %s process app/Panneau --config %s --no-progress-bar --no-diffs 2>&1',
+            escapeshellarg($this->project),
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($root.'/vendor/bin/rector'),
+            escapeshellarg($root.'/rector.php'),
+        ), $rector, $status);
+        $this->assertSame(0, $status, implode("\n", $rector));
+        $this->assertStringContainsString('Text::make(\'title\')->localized()', $this->read('app/Panneau/Resources/Projects.php'));
+
+        $output = $this->panneau(['--upgrade' => true, '--check' => true]);
+
+        $this->assertStringContainsString('Left by the Rector rules', $output);
+        $this->assertStringContainsString("'published' was hidden from the form", $output);
+        // What the rules leave on 1.x parents, and the rest of the project, is still listed
+        $this->assertStringContainsString('Credits extends Items (items)', $output);
+        $this->assertStringContainsString('isPanneauIndex()', $output);
+        $this->assertPhpFilesAreValid();
+    }
+
     public function test_the_upgrade_converts_a_1_4_project(): void
     {
         $this->project('v1.4');

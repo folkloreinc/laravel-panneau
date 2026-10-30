@@ -207,8 +207,19 @@ final class FieldCallsRector extends AbstractRector
             $method = $this->getName($call->name);
             $hasResource = $hasResource || in_array($method, ['resource', 'withResource'], true);
             if ($method === null || in_array($method, self::KEPT[$target] ?? [], true)
-                || ($isOwnClass && $this->classes->declares($class, $method))
-                || (! isset(self::METHODS[$method]) && $method !== 'isTextarea')) {
+                || ($isOwnClass && $this->classes->declares($class, $method))) {
+                $kept[] = $call;
+
+                continue;
+            }
+            if (! isset(self::METHODS[$method]) && $method !== 'isTextarea') {
+                // A 1.x method that the 5.x class doesn't have would throw: it's left out
+                if (! $isOwnClass && $this->lacks($target, $method)) {
+                    $changed = true;
+                    $todos[] = sprintf('%s called %s(), which %s doesn\'t have in 5.x: settings(), or a JS plugin', $name, $method, class_basename($target));
+
+                    continue;
+                }
                 $kept[] = $call;
 
                 continue;
@@ -267,6 +278,15 @@ final class FieldCallsRector extends AbstractRector
         }
 
         return $field;
+    }
+
+    /**
+     * Whether a 5.x field class of the package lacks a method. Classes it can't load, such as
+     * the fields of other packages, are trusted.
+     */
+    private function lacks(string $class, string $method): bool
+    {
+        return str_starts_with($class, self::FIELDS) && class_exists($class) && ! method_exists($class, $method);
     }
 
     /**

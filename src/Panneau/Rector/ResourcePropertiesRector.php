@@ -9,6 +9,7 @@ use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt;
+use PhpParser\NodeFinder;
 use Rector\Rector\AbstractRector;
 
 /**
@@ -22,6 +23,18 @@ use Rector\Rector\AbstractRector;
 final class ResourcePropertiesRector extends AbstractRector
 {
     private const RESOURCE = 'Panneau\\Resources\\Resource';
+
+    /**
+     * The 1.x methods that read a property, and the 5.x method that replaces them.
+     *
+     * @var array<string, array{string, string}>
+     */
+    private const OVERRIDES = [
+        'repository' => ['makeRepository', 'repository()'],
+        'jsonResource' => ['makeJsonResource', 'toItem()'],
+        'jsonCollection' => ['makeJsonCollection', 'toItem()'],
+        'types' => ['getTypes', 'types()'],
+    ];
 
     public function __construct(private readonly ProjectClasses $classes) {}
 
@@ -45,6 +58,7 @@ final class ResourcePropertiesRector extends AbstractRector
             $changed = true;
         }
 
+        $reads = $this->staticReads($node);
         $stmts = [];
         foreach ($node->stmts as $stmt) {
             if (! $stmt instanceof Stmt\Property || ! $stmt->isStatic() || count($stmt->props) !== 1) {
@@ -52,13 +66,35 @@ final class ResourcePropertiesRector extends AbstractRector
 
                 continue;
             }
-            $replacement = $this->convertProperty($node, $stmt->props[0]->name->toString(), $stmt->props[0]->default);
+            $property = $stmt->props[0]->name->toString();
+            $replacement = $this->convertProperty($node, $property, $stmt->props[0]->default);
             if ($replacement === null) {
                 $stmts[] = $stmt;
 
                 continue;
             }
             $changed = true;
+            // A 1.x method that overrides what the property does, or code that reads it: the
+            // property stays for them, and both get a TODO
+            [$override, $replacedBy] = self::OVERRIDES[$property] ?? [null, null];
+            $overridden = $override !== null ? $node->getMethod($override) : null;
+            if ($overridden !== null || ($replacedBy !== null && in_array($property, $reads, true))) {
+                $stmts[] = $stmt;
+                $todo = sprintf(
+                    '%s still uses the 1.x $%s: move it to %s, then delete the property',
+                    $overridden !== null ? $override.'()' : 'static::$'.$property,
+                    $property,
+                    $replacedBy,
+                );
+                foreach ($replacement as $method) {
+                    if ($method instanceof Stmt\ClassMethod) {
+                        Todo::add($method, [$todo]);
+                    }
+                }
+                if ($overridden !== null) {
+                    Todo::add($overridden, [sprintf('a 1.x method that 5.x doesn\'t call: move what it does to %s, then delete it', $replacedBy)]);
+                }
+            }
             array_push($stmts, ...$replacement);
         }
         $node->stmts = $stmts;
@@ -71,6 +107,24 @@ final class ResourcePropertiesRector extends AbstractRector
         }
 
         return $changed ? $node : null;
+    }
+
+    /**
+     * The static properties of its own that a class reads (`static::$x`, `self::$x`).
+     *
+     * @return list<string>
+     */
+    private function staticReads(Stmt\Class_ $class): array
+    {
+        $reads = [];
+        foreach ((new NodeFinder)->findInstanceOf($class->stmts, Expr\StaticPropertyFetch::class) as $fetch) {
+            if ($fetch->class instanceof Node\Name && $fetch->name instanceof Node\VarLikeIdentifier
+                && in_array(strtolower($fetch->class->toString()), ['static', 'self'], true)) {
+                $reads[] = $fetch->name->toString();
+            }
+        }
+
+        return array_values(array_unique($reads));
     }
 
     /**

@@ -76,6 +76,7 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | | `$types` | `types()`, with a TODO: resource types are not built yet |
 | | `$settings` | Defaults removed; `canCreate` false and `hideInNavbar` true become TODOs; other keys go to `settings()` |
 | | `$controller`, `$index`, `$attributes`, `$components`, `$forms` | TODOs |
+| | A property that `makeRepository()`, `makeJsonResource()` or `makeJsonCollection()` overrides, or that the class reads (`static::$repository`) | Kept next to the 5.x method, with a TODO on both and on the override: 5.x never calls the override |
 | | `$jsonCollection`, `$onlyDeclaredFields` | Removed: lists serialize each item with `toItem()`, and only declared fields are saved |
 | | `name()` | `pluralLabel()` |
 | `ResourceIndexRector` | `index()` returning an array | `list()` with the columns that are fields and the sortable ones, `actions()` with `DeleteAction` for a `delete` action. `index()` stays, with a TODO listing what's left (filters, search, other actions and columns), or is removed when nothing is left |
@@ -92,7 +93,7 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | | `withButton()`, `withoutReset()`, `uploadOnly()`, `withEndpoint()`, `isNullable()`, `isEnabled()`, `isText()`, `showInForm()` | Removed: they only changed the 1.x UI, or were defaults |
 | `ClassesToMoveByHandRector` | Subclasses of `ResourceType`, of 1.x fields, and of `ResourceController` | A TODO on the class: they keep their 1.x parent until they're moved by hand |
 
-The field rules apply to chains that make a 1.x field, or a field of the project that extends one; a method that the project's field class declares itself is kept. Where a rule can't convert, it leaves a `// TODO(panneau-5): …` comment, and `--check` lists them under "Left by the Rector rules".
+The field rules apply to chains that make a 1.x field, or a field of the project that extends one; a method that the project's field class declares itself is kept. On a 1.x field class that becomes a 5.x class, a method the 5.x class doesn't have (`withFieldAttributes()`, `asItem()`, `isMultiple()`…) is removed with a TODO, since it would throw. Where a rule can't convert, it leaves a `// TODO(panneau-5): …` comment, and `--check` lists them under "Left by the Rector rules".
 
 ## 6. Move the rest by hand
 
