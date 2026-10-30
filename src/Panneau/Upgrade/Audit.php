@@ -611,7 +611,10 @@ final class Audit
         foreach ($this->sourceFiles() as $file) {
             foreach ([...$this->code->find($file, Expr\StaticCall::class), ...$this->code->find($file, Expr\New_::class)] as $node) {
                 $class = $node->class instanceof Node\Name ? $node->class->toString() : null;
+                // Classes that 5.x has under the same name (Text, Select…) are left out: once
+                // converted, they would still be counted
                 if ($class !== null && isset(V1::FIELDS[$class]) && ! in_array($class, [V1::FIELD, V1::LOCALIZED_FIELD], true)
+                    && ! (str_starts_with($class, 'Panneau\\Fields\\') && class_exists($class))
                     && ($node instanceof Expr\New_ || ($node->name instanceof Node\Identifier && $node->name->toString() === 'make'))) {
                     $counts[$class] = ($counts[$class] ?? 0) + 1;
                 }
