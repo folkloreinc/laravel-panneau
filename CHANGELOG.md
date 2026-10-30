@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- In the `panneau` auth mode, guests get the page of the app, without the definition, instead of a redirect: the app shows its login page when the API answers `401` (panneau-js decision 0037). `POST /auth/login` logs in with an email and a password on the guard of `panneau.auth.guard` (a session guard), throttled, and only for users the `viewPanneau` gate allows in; `POST /auth/logout` logs out. Password reset, two-factor and OAuth providers come later (#132).
+- The boot config has `auth`, the `auth` of the definition, so the login page knows which logins to offer before the definition is loaded (#132).
+- `panneau.auth.logout_url`, sent as `auth.logoutUrl` in the `external` mode: where the browser goes to log out, the site's own logout, which has to accept a `GET`. The app shows a "Log out" button only when it is set (#132).
+
 ## [5.0.0-alpha.7] - 2026-10-30
 
 Goes with `@panneau/*` `5.0.0-alpha.7`.

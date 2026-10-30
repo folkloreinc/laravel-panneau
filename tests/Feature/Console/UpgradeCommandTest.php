@@ -458,7 +458,7 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame(['fr', 'en'], $config['locales']);
         $this->assertSame('panneau', $config['path']);
         $this->assertSame(['web', 'panneau.auth'], $config['middleware']);
-        $this->assertSame(['mode' => 'external', 'guard' => null, 'login_url' => '/login'], $config['auth']);
+        $this->assertSame(['mode' => 'external', 'guard' => null, 'login_url' => '/login', 'logout_url' => null], $config['auth']);
         $this->assertSame([], $config['resources']);
         $this->assertArrayHasKey('analytics_id', $config);
         $this->assertArrayNotHasKey('routes', $config);
@@ -494,7 +494,7 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('app/Panneau/Http/Controllers/HomeController.php', $output);
         $this->assertFileExists($this->project.'/app/Panneau/Http/Controllers/HomeController.php');
         $this->assertStringContainsString('to move by hand', $output);
-        $this->assertStringContainsString("Set 'auth.login_url'", $output);
+        $this->assertStringContainsString("Set 'auth.mode' to 'panneau'", $output);
         $this->assertPhpFilesAreValid();
     }
 

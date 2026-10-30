@@ -424,8 +424,8 @@ final class PublishPages extends Action
     ```
 - **The page of the app** follows the entry contract of `@panneau/app` ([panneau-js decision 0019](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0019-app-entry.md)):
   - a Blade view (`panneau::app`, or `panneau.app.view`) with the project's Vite entry (`panneau.app.entry`) and an empty `<div id="panneau">`;
-  - the boot config in `<script type="application/json" id="panneau-boot">`: `apiBaseUrl`, `basePath`, `locale`, `loginUrl`, and the definition for the user unless `panneau.app.inline_definition` is off, so the app renders without fetching it. `Panneau::bootConfig()` builds it for projects that render the app in their own page. The tests check it against the protocol's `boot.schema.json`;
-  - guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. The API answers them with a `401`.
+  - the boot config in `<script type="application/json" id="panneau-boot">`: `apiBaseUrl`, `basePath`, `locale`, `auth` (the `auth` of the definition, for the login page of the app), `loginUrl`, and the definition for the user unless `panneau.app.inline_definition` is off, so the app renders without fetching it. `Panneau::bootConfig()` builds it for projects that render the app in their own page. The tests check it against the protocol's `boot.schema.json`;
+  - in the `external` auth mode, guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. In the `panneau` mode, they get the page without the definition, and the app shows its login page at the URL they asked for ([panneau-js decision 0037](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0037-login-page-token-and-logout.md)). The API answers them with a `401` in both modes.
 - **Generic controllers implement the protocol:**
   - definition, resources, field checks, actions and action runs;
   - uploads (media are resources) and search;
@@ -449,10 +449,12 @@ final class PublishPages extends Action
 
 See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0012-authentication.md).
 
-**Not built yet** (slice "App and content"): today the app uses the site's guard and `panneau.auth.login_url`, as in the `external` mode below.
-
-- **`panneau` mode.** The package registers its own auth routes, using Fortify actions for passwords, 2FA, passkeys and email verification, and Socialite for OAuth providers. It uses the guard set in `config('panneau.auth.guard')`, which can be a separate `panneau` guard and user provider.
+- **`panneau` mode.** The package registers its own auth routes, on the guard set in `config('panneau.auth.guard')`, which can be a separate `panneau` guard and user provider. It must be a session guard.
+  - **Built:** the login page of the app ([panneau-js decision 0037](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0037-login-page-token-and-logout.md)), served to guests at any path of the app; `POST /auth/login` with an email and a password (`remember` optional), throttled to 5 failed attempts a minute per email and IP address; `POST /auth/logout` (`204`), which invalidates the session. A user that the `viewPanneau` gate refuses can't log in, and gets the error of wrong credentials. Logout skips the gate, so that a refused user can still log out.
+  - **Not built yet** (slice "App and content"): password reset, 2FA, passkeys and email verification with Fortify actions, OAuth providers with Socialite, the login with a token (`auth.token`).
 - **`external` mode.** The site keeps its own login. Panneau only checks the session on the site's guard and the `viewPanneau` gate.
+  - Guests are sent to `panneau.auth.login_url`.
+  - `panneau.auth.logout_url` is where the browser goes to log out (`auth.logoutUrl`), the site's own logout. It has to accept a `GET` navigation: Laravel's default logout route is a `POST`, so the site needs a route that logs out and redirects. Without it, the app has no "Log out" button.
 - **Isolation.** Panneau never changes the site's Fortify configuration, views or guards.
 - **Roles module (optional, not built yet).** Roles and permissions are defined in config, with a `panneau_roles` pivot, an assignment UI, invitations, and a policy base class that checks permissions such as `pages.update`.
 

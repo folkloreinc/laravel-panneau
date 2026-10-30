@@ -106,7 +106,7 @@ final class Upgrader
             'Run the Rector rules on the resources and fields: vendor/bin/rector process app/Panneau --config vendor/folklore/laravel-panneau/rector.php',
             "Port the 1.x PanneauPolicy to the viewPanneau gate of {$provider}: nobody can use the admin until then.",
             'Write a policy for every item class: resources without one are denied.',
-            $this->audit->usesPanneauLogin() ? "Set 'auth.login_url' in config/panneau.php to a login page of the site: 1.x served its own." : null,
+            $this->audit->usesPanneauLogin() ? "Set 'auth.mode' to 'panneau' in config/panneau.php for Panneau's login page (email and password only, for now), or 'auth.login_url' to a login page of the site: 1.x served its own." : null,
             $withJs ? 'Run npm install, then npm run dev:panneau (or vite), and open the admin.' : null,
             'php artisan panneau:install --upgrade --check lists what is left.',
         ])));

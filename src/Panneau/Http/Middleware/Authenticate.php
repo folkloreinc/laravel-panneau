@@ -10,6 +10,7 @@ use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Http\Request;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Http\Controllers\AppController;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -17,8 +18,9 @@ use Symfony\Component\HttpFoundation\Response;
  * `panneau.auth.guard`, and the `viewPanneau` gate must allow them. Without a `viewPanneau`
  * gate, nobody gets in.
  *
- * Guests of the app's page are redirected to the login URL of the `external` auth mode. The API
- * answers them with a `401`.
+ * Guests of the app's page are redirected to the login URL of the `external` auth mode. In the
+ * `panneau` mode, they get the page, without the definition, and the app shows its login page
+ * when the API answers them with a `401`.
  */
 final class Authenticate
 {
@@ -34,6 +36,13 @@ final class Authenticate
         $guard = $this->config->get('panneau.auth.guard');
         $guard = is_string($guard) ? $guard : null;
         if ($this->auth->guard($guard)->guest()) {
+            if ($this->servesGuests($request)) {
+                if ($guard !== null) {
+                    $this->auth->shouldUse($guard);
+                }
+
+                return $next($request);
+            }
             throw new AuthenticationException('Unauthenticated.', array_filter([$guard]), $this->definition->auth()['loginUrl']);
         }
         if ($guard !== null) {
@@ -45,5 +54,14 @@ final class Authenticate
         }
 
         return $next($request);
+    }
+
+    /**
+     * Whether a guest gets the request: the app's page, in the `panneau` mode.
+     */
+    private function servesGuests(Request $request): bool
+    {
+        return $this->definition->auth()['mode'] === 'panneau'
+            && $request->route()?->getControllerClass() === AppController::class;
     }
 }

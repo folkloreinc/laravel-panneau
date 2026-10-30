@@ -15,12 +15,14 @@ use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
+use Panneau\Http\Controllers\AuthController;
 use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\FieldCheckController;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\UploadController;
+use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\Resource;
@@ -77,9 +79,19 @@ class Panneau implements PanneauContract
 
         $search = (bool) $config->get('panneau.search.enabled', true);
         $embeds = (bool) $config->get('panneau.embeds.enabled', true);
+        $auth = $this->container->make(DefinitionBuilder::class)->auth()['mode'] === 'panneau';
 
-        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search, $embeds): void {
-            $router->prefix('api')->as('api.')->group(function (Router $router) use ($search, $embeds): void {
+        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search, $embeds, $auth): void {
+            $router->prefix('api')->as('api.')->group(function (Router $router) use ($search, $embeds, $auth): void {
+                if ($auth) {
+                    // Guests log in, and users the gate refuses can still log out
+                    $router->post('auth/login', [AuthController::class, 'login'])
+                        ->withoutMiddleware(Authenticate::class)
+                        ->name('auth.login');
+                    $router->post('auth/logout', [AuthController::class, 'logout'])
+                        ->withoutMiddleware(Authenticate::class)
+                        ->name('auth.logout');
+                }
                 $router->get('definition', DefinitionController::class)->name('definition');
                 if ($search) {
                     $router->get('search', SearchController::class)
@@ -101,7 +113,8 @@ class Panneau implements PanneauContract
         }
 
         // The page of the app, for every path the app routes on the client. Registered last,
-        // without RenderProblems: guests are redirected and errors are the app's error pages.
+        // without RenderProblems: guests are redirected (or get the login page of the app, in
+        // the `panneau` auth mode) and errors are the app's error pages.
         $router->group([...$group, 'middleware' => $middleware], function (Router $router): void {
             $router->get('{path?}', AppController::class)->where('path', '(?!api(?:/|$)).*')->name('app');
         });
@@ -184,6 +197,8 @@ class Panneau implements PanneauContract
         $config = $this->container->make(Config::class);
         $definition = $this->container->make(DefinitionBuilder::class);
         $path = trim((string) $config->get('panneau.path', 'panneau'), '/');
+        // Before the definition, for the login page of the app
+        $auth = $definition->auth();
 
         return array_filter([
             'protocol' => DefinitionBuilder::PROTOCOL_VERSION,
@@ -191,7 +206,8 @@ class Panneau implements PanneauContract
             'basePath' => '/'.$path,
             'locale' => $this->container->make(Application::class)->getLocale(),
             'definition' => $withDefinition ? $definition->build($user) : null,
-            'loginUrl' => $definition->auth()['loginUrl'],
+            'auth' => $auth,
+            'loginUrl' => $auth['loginUrl'],
         ], fn (mixed $value): bool => $value !== null);
     }
 

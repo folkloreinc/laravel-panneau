@@ -866,7 +866,7 @@ final class Audit
             $name = $this->callName($call);
             if ($name === 'auth' && $call instanceof Expr\MethodCall && $this->callName($call->var) === 'router') {
                 $this->usesPanneauLogin = true;
-                $section->add('Panneau::router()->auth(): the login page of Panneau', "manual: 5.x has no login page yet: 'auth.login_url' must be a login page of the site", self::ROUTES.':'.$call->getStartLine());
+                $section->add('Panneau::router()->auth(): the login page of Panneau', "manual: 'auth.mode' => 'panneau' for Panneau's login page (email and password only, for now), or 'auth.login_url' to a login page of the site", self::ROUTES.':'.$call->getStartLine());
             }
             if ($name === 'resources' && $call instanceof Expr\MethodCall && $this->callName($call->var) === 'router') {
                 $section->add('Panneau::router()->resources()', 'Panneau::routes()', self::ROUTES.':'.$call->getStartLine());

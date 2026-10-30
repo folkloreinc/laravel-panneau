@@ -253,8 +253,29 @@ class DefinitionBuilderTest extends TestCase
     {
         $definition = $this->app->make(DefinitionBuilder::class)->build(new GenericUser(['id' => 7, 'name' => 'Ada', 'email' => 'ada@example.com']));
 
-        $this->assertSame(['mode' => 'external', 'loginUrl' => '/login'], $definition['auth']);
+        $this->assertSame(['mode' => 'external', 'loginUrl' => '/login', 'logoutUrl' => null], $definition['auth']);
         $this->assertSame(['id' => '7', 'name' => 'Ada', 'email' => 'ada@example.com', 'abilities' => ['panneau.view' => true]], $definition['user']);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_the_logout_url_of_the_external_mode(): void
+    {
+        $this->app['config']->set('panneau.auth.logout_url', '/logout');
+
+        $definition = $this->definition();
+
+        $this->assertSame(['mode' => 'external', 'loginUrl' => '/login', 'logoutUrl' => '/logout'], $definition['auth']);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_the_panneau_mode_has_no_login_or_logout_url(): void
+    {
+        $this->app['config']->set('panneau.auth.mode', 'panneau');
+        $this->app['config']->set('panneau.auth.logout_url', '/logout');
+
+        $definition = $this->definition();
+
+        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null], $definition['auth']);
         $this->assertValidDefinition($definition);
     }
 

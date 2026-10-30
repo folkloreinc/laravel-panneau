@@ -46,6 +46,7 @@ Index: [#35](https://github.com/folkloreinc/laravel-panneau/issues/35). Each ite
 In the order the contests platform moves its admin ([its tranches](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/roadmap.md)):
 
 - [ ] Pages and menus in the definition, for the app shell ([#33](https://github.com/folkloreinc/laravel-panneau/issues/33))
+- [x] The login page of the app in the `panneau` auth mode, with a login by email and password and a logout, and `auth.logoutUrl` in the `external` mode ([#132](https://github.com/folkloreinc/laravel-panneau/issues/132), panneau-js decision 0037) — unreleased
 - [ ] Auth: password, reset, 2FA, passkeys, email verification (Fortify), OAuth providers (Socialite, [#34](https://github.com/folkloreinc/laravel-panneau/issues/34)), with a separate guard or the site's existing auth ([decisions/0005](decisions/0005-auth.md))
 - [ ] Optional roles module, and permissions in the UI
 - [ ] Actions: queued runs with progress; built-in duplicate, restore, export and import
