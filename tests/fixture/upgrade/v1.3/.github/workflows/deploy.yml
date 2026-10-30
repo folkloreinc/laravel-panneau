@@ -1,0 +1,16 @@
+name: Deploy
+
+on: workflow_dispatch
+
+jobs:
+    deploy:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 18
+            - run: npm ci
+            # "php artisan assets:view" needs a bootable app
+            - run: composer install
+            - run: ~/.composer/vendor/bin/envoy run build

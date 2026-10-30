@@ -1,0 +1,14 @@
+import react from '@vitejs/plugin-react';
+import laravel from 'laravel-vite-plugin';
+import { defineConfig } from 'vite';
+
+// Builds the admin panel (Panneau) into public/build. The site keeps its own bundler.
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: ['resources/js/panneau.tsx'],
+            refresh: true,
+        }),
+        react(),
+    ],
+});
