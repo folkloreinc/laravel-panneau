@@ -34,6 +34,7 @@ Index: [#35](https://github.com/folkloreinc/laravel-panneau/issues/35). Each ite
 - [x] Global search, through the repositories or Scout ([decisions/0010](decisions/0010-global-search.md), #96) — 5.0.0-alpha.4
 - [x] Slugs that check their value ([decisions/0011](decisions/0011-slug-checks.md), #99) — 5.0.0-alpha.4
 - [x] More field types: `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` ([decisions/0012](decisions/0012-embeds-and-more-field-types.md), #100) — 5.0.0-alpha.5
+- [x] `RichText` settings for the rich text field of `@panneau/editor`: toolbar, headings, block styles, links in a new tab (folkloreinc/panneau-js#128, #120) — 5.0.0-alpha.6
 
 ## Media (next)
 
@@ -50,6 +51,8 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [ ] Actions: queued runs with progress; built-in duplicate, restore, export and import
 - [ ] Inline editing in lists: what a column needs to edit its field in place; the update already takes a single field with `If-Match`
 - [ ] The `laravel-folklore` plugin, built in `laravel-folklore` 2 ([its decision 0018](https://github.com/folkloreinc/laravel-folklore/blob/v2.x/docs/decisions/0018-panneau-plugin-php-only.md)): a repository adapter on its typed query, and the `Page`, `Pages`, `Blocks` and `PageSlug` fields in PHP on the built-in types (`relation`, `repeater`, `slug`). Here: what the adapter needs, and `ChecksSlugs` (done)
+- [x] `panneau:install --upgrade`, with a `--check` audit of 1.3 and 1.4 projects ([decisions/0013](decisions/0013-upgrade-from-1x.md), [#114](https://github.com/folkloreinc/laravel-panneau/issues/114)) — 5.0.0-alpha.6
+- [x] Rector rules for 1.x resources and fields ([#115](https://github.com/folkloreinc/laravel-panneau/issues/115)) — 5.0.0-alpha.6
 - [ ] Migration guide, `panneau:install --upgrade` and Rector rules, validated on the contests platform
 
 ## 5.0.0

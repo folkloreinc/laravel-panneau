@@ -6,16 +6,19 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.6] - 2026-10-30
+
+Goes with `@panneau/*` `5.0.0-alpha.7`.
+
 ### Added
 
-- `php artisan panneau:install --upgrade` migrates a 1.3 or 1.4 project: it converts `config/panneau.php`, writes the service provider, routes file and JS entry (Vite next to the site's bundler), moves a 1.x override of the page aside, keeps what it changes as `{file}.1x.bak` (never overwriting a backup), and lists what to move by hand and the files the package now provides. `--upgrade --check` reports what the project has and what each part becomes, without writing: resources, types, fields, controllers, routes, resolvers, request macros, build and deployment files. It reads the project without running it ([decisions/0013](docs/decisions/0013-upgrade-from-1x.md), [migration guide](docs/migration.md), #114).
-- `RichText` settings, for the rich text field of `@panneau/editor`: `toolbar()`, `headings()`, `style()` for block styles (a class on an element, `<p class="big">`), and `linksInNewTab()`, which refuse what the protocol refuses (folkloreinc/panneau-js#128).
-
-- Rector rules for 1.x resources and fields, in `rector.php`: static properties to methods, `index()` to `list()`, field classes and builder methods to 5.x, and `// TODO(panneau-5)` comments where they can't convert (overridden `make*()` methods, methods the 5.x class doesn't have), which `--check` lists ([migration guide](docs/migration.md#5-run-the-rector-rules), #115).
+- `php artisan panneau:install --upgrade` migrates a 1.3 or 1.4 project: it converts `config/panneau.php`, writes the service provider, routes file and JS entry (Vite next to the site's bundler), moves a 1.x override of the page aside, keeps what it changes as `{file}.1x.bak` (never overwriting a backup), and lists what to move by hand and the files the package now provides. `--upgrade --check` reports what the project has and what each part becomes, without writing: resources, types, fields, controllers, routes, resolvers, request macros, build and deployment files. It reads the project without running it ([decisions/0013](docs/decisions/0013-upgrade-from-1x.md), [migration guide](docs/migration.md), #114, #118).
+- Rector rules for 1.x resources and fields, in `rector.php`: static properties to methods, `index()` to `list()`, field classes and builder methods to 5.x, and `// TODO(panneau-5)` comments where they can't convert (overridden `make*()` methods, methods the 5.x class doesn't have), which `--check` lists ([migration guide](docs/migration.md#5-run-the-rector-rules), #115, #119).
+- `RichText` settings, for the rich text field of `@panneau/editor`: `toolbar()`, `headings()`, `style()` for block styles (a class on an element, `<p class="big">`), and `linksInNewTab()`, which refuse what the protocol refuses (folkloreinc/panneau-js#128, #120).
 
 ### Changed
 
-- `folklore/laravel-panneau` requires `nikic/php-parser` ^5.0, for the upgrade (#114).
+- `folklore/laravel-panneau` requires `nikic/php-parser` ^5.0, for the upgrade (#114, #118).
 
 ## [5.0.0-alpha.5] - 2026-10-27
 
@@ -100,7 +103,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.5...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.6...v5.x
+[5.0.0-alpha.6]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.6
 [5.0.0-alpha.5]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.5
 [5.0.0-alpha.4]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.4
 [5.0.0-alpha.3]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.3
