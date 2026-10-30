@@ -51,7 +51,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [ ] Actions: queued runs with progress; built-in duplicate, restore, export and import
 - [ ] Inline editing in lists: what a column needs to edit its field in place; the update already takes a single field with `If-Match`
 - [ ] The `laravel-folklore` plugin, built in `laravel-folklore` 2 ([its decision 0018](https://github.com/folkloreinc/laravel-folklore/blob/v2.x/docs/decisions/0018-panneau-plugin-php-only.md)): a repository adapter on its typed query, and the `Page`, `Pages`, `Blocks` and `PageSlug` fields in PHP on the built-in types (`relation`, `repeater`, `slug`). Here: what the adapter needs, and `ChecksSlugs` (done)
-- [x] `panneau:install --upgrade`, with a `--check` audit of 1.3 and 1.4 projects ([decisions/0013](decisions/0013-upgrade-from-1x.md), [#114](https://github.com/folkloreinc/laravel-panneau/issues/114)) — 5.0.0-alpha.6
+- [x] `panneau:install --upgrade`, with a `--check` audit of 1.3 and 1.4 projects ([decisions/0013](decisions/0013-upgrade-from-1x.md), [#114](https://github.com/folkloreinc/laravel-panneau/issues/114)) — 5.0.0-alpha.6; the fixes found on a second project, vini-vins.com: references to 1.x contracts anywhere in the project, the JS entry in the project's JS directory ([#122](https://github.com/folkloreinc/laravel-panneau/issues/122), [#123](https://github.com/folkloreinc/laravel-panneau/issues/123), [#124](https://github.com/folkloreinc/laravel-panneau/issues/124)) — 5.0.0-alpha.7
 - [x] Rector rules for 1.x resources and fields ([#115](https://github.com/folkloreinc/laravel-panneau/issues/115)) — 5.0.0-alpha.6
 - [ ] Migration guide, `panneau:install --upgrade` and Rector rules, validated on the contests platform
 
