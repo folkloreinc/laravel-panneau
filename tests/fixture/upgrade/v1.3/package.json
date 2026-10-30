@@ -1,0 +1,17 @@
+{
+    "name": "example-shop",
+    "private": true,
+    "scripts": {
+        "build:scripts": "flklr build --load-env ./resources/assets/js/index.js",
+        "build:views": "php artisan assets:view",
+        "build": "npm run build:scripts && npm run build:views",
+        "server": "flklr serve --load-env ./resources/assets/js/index.js"
+    },
+    "dependencies": {
+        "@panneau/app": "^4.1.1",
+        "@panneau/data": "^4.1.1",
+        "@panneau/themes": "^4.1.1",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1"
+    }
+}

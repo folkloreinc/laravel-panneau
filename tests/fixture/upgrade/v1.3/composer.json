@@ -1,0 +1,20 @@
+{
+    "name": "example/shop",
+    "type": "project",
+    "require": {
+        "php": "^8.3",
+        "folklore/laravel-folklore": "^1.1.7",
+        "folklore/laravel-panneau": "~1.3.2",
+        "laravel/framework": "^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": ["folklore/laravel-folklore"]
+        }
+    }
+}
