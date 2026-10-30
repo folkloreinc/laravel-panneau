@@ -60,7 +60,40 @@ It then lists what is left to move by hand (the `manual` findings of `--check`),
 
 ## 5. Run the Rector rules
 
-**Not built yet** ([#115](https://github.com/folkloreinc/laravel-panneau/issues/115)). They convert static properties to methods, rename field classes and turn `*Localized` fields into `->localized()`.
+```bash
+composer require --dev rector/rector
+vendor/bin/rector process app/Panneau --config vendor/folklore/laravel-panneau/rector.php
+vendor/bin/pint app/Panneau
+```
+
+Run them on the directories that hold the resources and fields (`app/Panneau` usually), and review the diff: they import the class names they write and remove unused imports in every file they process, so other directories would change too. Like the audit, they read the project's parents from its files: run them from the project's root. They change nothing on a second run.
+
+| Rule | 1.x | 5.x |
+|---|---|---|
+| `ResourcePropertiesRector` | `extends Panneau\Support\Resource` | `extends Panneau\Resources\Resource` |
+| | `$repository` | `repository()` |
+| | `$jsonResource` | `toItem()`, which resolves the `JsonResource` |
+| | `$types` | `types()`, with a TODO: resource types are not built yet |
+| | `$settings` | Defaults removed; `canCreate` false and `hideInNavbar` true become TODOs; other keys go to `settings()` |
+| | `$controller`, `$index`, `$attributes`, `$components`, `$forms` | TODOs |
+| | A property that `makeRepository()`, `makeJsonResource()` or `makeJsonCollection()` overrides, or that the class reads (`static::$repository`) | Kept next to the 5.x method, with a TODO on both and on the override: 5.x never calls the override |
+| | `$jsonCollection`, `$onlyDeclaredFields` | Removed: lists serialize each item with `toItem()`, and only declared fields are saved |
+| | `name()` | `pluralLabel()` |
+| `ResourceIndexRector` | `index()` returning an array | `list()` with the columns that are fields and the sortable ones, `actions()` with `DeleteAction` for a `delete` action. `index()` stays, with a TODO listing what's left (filters, search, other actions and columns), or is removed when nothing is left |
+| `FieldCallsRector` | `TextLocalized::make('title')`, and the other `*Localized` fields | `Text::make('title')->localized()` |
+| | `Text` and `TextLocalized` with `isTextarea()` | `Textarea` |
+| | `Html`, `Toggle`, `Telephone`, `Radios` | `RichText`, `Boolean`, `Tel`, `Select` |
+| | `Upload`, `Media`, `Image`, `ImageUpload`, `Video`, `Audio`, `Document` and their plurals | `Media` or `Image`, with `accept(['video/*'])`, `accept(['audio/*'])` or `multiple()`; documents get a TODO to name their library |
+| | `Items`, `Fields`, `Item`, `ResourceItem`, `ResourceItems` | `Repeater`, `Group`, `Relation`, `Relation->multiple()` |
+| | `PageSlugLocalized` of `laravel-folklore` 1.1 | `PageSlug`, localized by default |
+| | `make('name', 'Label')`, `new Text('name')` | `Text::make('name')->label('Label')` |
+| | `withTransLabel()`, `withLabel()`, `withTransHelpText()`, `withHelpText()` | `label(__())`, `label()`, `help(__())`, `help()` |
+| | `isRequired()`, `isDisabled()`, `withFields()`, `withDefaultValue()`, `withOptions()`, `withRules()`, `withSettings()`, `withResource()` | `required()`, `readOnly()`, `fields()`, `default()`, `options()`, `rules()`, `settings()`, `resource()` |
+| | `hideInForm()`, `onlyForTypes()`, `exceptForTypes()`, `onlyTypes()`, `exceptTypes()`, `withAttributes()`, `withComponents()`, `withSiblingFields()`, `withQuery()`, `withTypes()`, `withoutType()`, `isRequired([...])` with locales | Removed, with a TODO |
+| | `withButton()`, `withoutReset()`, `uploadOnly()`, `withEndpoint()`, `isNullable()`, `isEnabled()`, `isText()`, `showInForm()` | Removed: they only changed the 1.x UI, or were defaults |
+| `ClassesToMoveByHandRector` | Subclasses of `ResourceType`, of 1.x fields, and of `ResourceController` | A TODO on the class: they keep their 1.x parent until they're moved by hand |
+
+The field rules apply to chains that make a 1.x field, or a field of the project that extends one; a method that the project's field class declares itself is kept. On a 1.x field class that becomes a 5.x class, a method the 5.x class doesn't have (`withFieldAttributes()`, `asItem()`, `isMultiple()`…) is removed with a TODO, since it would throw. Where a rule can't convert, it leaves a `// TODO(panneau-5): …` comment, and `--check` lists them under "Left by the Rector rules".
 
 ## 6. Move the rest by hand
 

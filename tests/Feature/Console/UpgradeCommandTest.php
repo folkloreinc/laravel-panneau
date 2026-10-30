@@ -267,6 +267,55 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('app/Http/Responses/LoginResponse.php:11', $this->finding('macros', 'isPanneau()')->location);
     }
 
+    public function test_the_check_lists_what_the_rector_rules_left(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Resources/Tags.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            class Tags
+            {
+                // TODO(panneau-5): canCreate is false: the create() of the policy denies it
+            }
+            PHP);
+
+        $finding = $this->finding('todos', 'canCreate is false: the create() of the policy denies it');
+
+        $this->assertSame('app/Panneau/Resources/Tags.php:7', $finding->location);
+        $this->assertTrue($finding->isManual());
+    }
+
+    public function test_the_check_after_the_upgrade_and_the_rector_rules(): void
+    {
+        $this->project('v1.4');
+        $this->panneau(['--upgrade' => true]);
+        $root = dirname(__DIR__, 3);
+
+        exec(sprintf(
+            'cd %s && %s %s process app/Panneau --config %s --no-progress-bar --no-diffs 2>&1',
+            escapeshellarg($this->project),
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($root.'/vendor/bin/rector'),
+            escapeshellarg($root.'/rector.php'),
+        ), $rector, $status);
+        $this->assertSame(0, $status, implode("\n", $rector));
+        $this->assertStringContainsString('Text::make(\'title\')->localized()', $this->read('app/Panneau/Resources/Projects.php'));
+
+        $output = $this->panneau(['--upgrade' => true, '--check' => true]);
+
+        $this->assertStringContainsString('Left by the Rector rules', $output);
+        $this->assertStringContainsString("'published' was hidden from the form", $output);
+        // What the rules leave on 1.x parents, and the rest of the project, is still listed
+        $this->assertStringContainsString('Credits extends Items (items)', $output);
+        $this->assertStringContainsString('isPanneauIndex()', $output);
+        // types() is read like $types
+        $this->assertNotNull($this->audit()->section('types')->find('TextBlock (text) of Blocks'));
+        $this->assertSame('a 5.x Resource', $this->finding('resources', 'Pages (pages)')->target);
+        $this->assertPhpFilesAreValid();
+    }
+
     public function test_the_upgrade_converts_a_1_4_project(): void
     {
         $this->project('v1.4');

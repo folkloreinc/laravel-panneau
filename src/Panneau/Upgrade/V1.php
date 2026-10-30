@@ -101,7 +101,7 @@ final class V1
         'Folklore\\Panneau\\Fields\\Block' => ['resource-item', 'manual: a block type of the Blocks field of laravel-folklore 2', self::GROUP_FOLKLORE],
         'Folklore\\Panneau\\Fields\\Blocks' => ['items', 'the Blocks field of laravel-folklore 2 (a repeater of block types)', self::GROUP_FOLKLORE],
         'Folklore\\Panneau\\Fields\\PageSlug' => ['page-slug', 'the PageSlug field of laravel-folklore 2 (a slug with unique() and url())', self::GROUP_FOLKLORE],
-        'Folklore\\Panneau\\Fields\\PageSlugLocalized' => ['page-slug-localized', 'the PageSlug field of laravel-folklore 2, ->localized()', self::GROUP_FOLKLORE],
+        'Folklore\\Panneau\\Fields\\PageSlugLocalized' => ['page-slug-localized', 'the PageSlug field of laravel-folklore 2, localized by default', self::GROUP_FOLKLORE],
     ];
 
     /**
@@ -184,7 +184,7 @@ final class V1
         'Panneau\\Fields\\Upload::setEndpoint' => "nothing: uploads are 'uploads' in config/panneau.php",
         'Panneau\\Fields\\Upload::setEndpointResolver' => "nothing: uploads are 'uploads' in config/panneau.php",
         'Panneau\\Fields\\Item::setRequestUrlResolver' => 'nothing: relations read their resource',
-        'Folklore\\Panneau\\Fields\\PageSlug::setRoutesResolver' => 'the url() of the PageSlug field of laravel-folklore 2',
+        'Folklore\\Panneau\\Fields\\PageSlug::setRoutesResolver' => "'site.pages.routes' of laravel-folklore 2, or url() on the PageSlug field",
     ];
 
     /**
