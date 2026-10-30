@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.7] - 2026-10-30
+
+Goes with `@panneau/*` `5.0.0-alpha.7`.
+
 ### Fixed
 
 - `panneau:install --upgrade --check` lists the references to 1.x contracts that 5.x doesn't have (`Panneau\Contracts\ResourceItem`, `Repository`…) anywhere in the project, with their file and line: an entity contract that extends `ResourceItem` breaks the site, not only the admin, once 5.x is installed. Files that another section lists (resource types, controllers, files to delete) are left out, and the other uses are counted by file (#122).
@@ -109,7 +113,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.6...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.7...v5.x
+[5.0.0-alpha.7]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.7
 [5.0.0-alpha.6]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.6
 [5.0.0-alpha.5]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.5
 [5.0.0-alpha.4]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.4
