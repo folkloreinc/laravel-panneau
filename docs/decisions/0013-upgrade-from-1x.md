@@ -1,6 +1,6 @@
 # 0013: The upgrade from 1.x reads the project without running it, and never loses a file
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-29
 - Issues: [#114](https://github.com/folkloreinc/laravel-panneau/issues/114), [#115](https://github.com/folkloreinc/laravel-panneau/issues/115)
 
