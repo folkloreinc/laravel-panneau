@@ -101,6 +101,7 @@ final class Audit
         }
         $this->auditPackages();
         $this->auditConfig();
+        $this->readRegisteredResources();
         $this->auditResources();
         $this->auditResourceTypes();
         $this->auditFields();
@@ -355,6 +356,28 @@ final class Audit
 
     // Resources
 
+    /**
+     * The resources that the project's providers register with `Panneau::resources([...])`, as
+     * the 5.x provider does once the config is converted.
+     */
+    private function readRegisteredResources(): void
+    {
+        foreach ($this->code->subclassesOf(self::SERVICE_PROVIDERS) as $provider) {
+            foreach ($provider->find(Expr\StaticCall::class) as $call) {
+                if (! $call->class instanceof Node\Name || ! in_array($call->class->toString(), self::PANNEAU_FACADES, true)
+                    || $this->callName($call) !== 'resources') {
+                    continue;
+                }
+                foreach (Php::items($call->getArgs()[0]->value ?? null) as $resource) {
+                    $class = Php::className($resource);
+                    if ($class !== null && ! in_array($class, $this->resources, true)) {
+                        $this->resources[] = $class;
+                    }
+                }
+            }
+        }
+    }
+
     private function auditResources(): void
     {
         $section = $this->sections['resources'];
@@ -368,7 +391,7 @@ final class Audit
         foreach ($classes as $name) {
             $class = $this->code->class($name);
             if ($class === null) {
-                $section->add($name, 'manual: listed in the config, but its class isn\'t in the project', self::CONFIG);
+                $section->add($name, 'manual: registered, but its class isn\'t in the project', self::CONFIG);
 
                 continue;
             }
@@ -376,7 +399,7 @@ final class Audit
             $id5 = Str::kebab(Str::endsWith($class->shortName(), 'Resource') ? Str::beforeLast($class->shortName(), 'Resource') : $class->shortName());
             $finding = $section->add(
                 $class->shortName().' ('.$id1.')',
-                in_array($name, $this->resources, true) ? 'a 5.x Resource' : 'a 5.x Resource (not in the config: unused?)',
+                in_array($name, $this->resources, true) ? 'a 5.x Resource' : 'a 5.x Resource (not registered: unused?)',
                 $class->location(),
             );
             if ($id1 !== $id5) {
@@ -527,8 +550,9 @@ final class Audit
     {
         $section = $this->sections['types'];
         $usedBy = [];
-        foreach ($this->code->subclassesOf([V1::RESOURCE]) as $resource) {
-            foreach (Php::items($resource->staticProperty('types')) as $type) {
+        // The 1.x $types, or types() once the Rector rules converted it
+        foreach ($this->code->subclassesOf([V1::RESOURCE, 'Panneau\\Resources\\Resource']) as $resource) {
+            foreach (Php::items($resource->staticProperty('types') ?? $resource->returned('types')) as $type) {
                 $type = Php::className($type);
                 if ($type !== null) {
                     $usedBy[$type][] = $resource->shortName();
@@ -898,7 +922,8 @@ final class Audit
                 $location = $class->file.':'.$call->getStartLine();
                 if (isset(V1::RESOLVERS[$key])) {
                     $findings[] = [class_basename($name).'::'.$method.'()', V1::RESOLVERS[$key], $location];
-                } elseif (in_array($name, self::PANNEAU_FACADES, true) && in_array($method, ['serving', 'router', 'resource', 'resources'], true)) {
+                } elseif (in_array($name, self::PANNEAU_FACADES, true) && in_array($method, ['serving', 'router', 'resource'], true)) {
+                    // resources() and routes() are 5.x's too: a 5.x provider calls them
                     $findings[] = ["Panneau::{$method}()", $method === 'serving' ? "nothing: 5.x has no serving event; Panneau's routes are named panneau.*" : 'manual: Panneau::resources() and Panneau::routes()', $location];
                 } elseif ($method === 'policy' && in_array($name, ['Gate', 'Illuminate\\Support\\Facades\\Gate'], true)
                     && Php::className($call->getArgs()[0]->value ?? null) === 'Panneau\\Panneau') {

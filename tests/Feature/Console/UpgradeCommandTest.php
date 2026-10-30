@@ -429,6 +429,19 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('isPanneauIndex()', $output);
     }
 
+    public function test_the_check_reads_the_provider_that_the_upgrade_writes(): void
+    {
+        $this->project('v1.4');
+        $this->panneau(['--upgrade' => true]);
+
+        // The 5.x provider registers the resources: nothing in it is 1.x
+        foreach ($this->audit()->section('providers')->findings as $finding) {
+            $this->assertStringStartsNotWith('app/Providers/PanneauServiceProvider.php', (string) $finding->location, $finding->subject.': '.$finding->target);
+        }
+        $this->assertSame('a 5.x Resource', $this->finding('resources', 'Pages (pages)')->target);
+        $this->assertSame('a 5.x Resource', $this->finding('resources', 'Blocks (blocks)')->target);
+    }
+
     public function test_the_upgrade_filters_the_middleware_of_the_1x_config(): void
     {
         $this->project('v1.4');
