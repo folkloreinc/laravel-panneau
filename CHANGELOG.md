@@ -8,9 +8,9 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Fixed
 
-- `panneau:install --upgrade --check` lists the references to 1.x contracts that 5.x doesn't have (`Panneau\Contracts\ResourceItem`, `Repository`…) anywhere in the project, with their file and line: an entity contract that extends `ResourceItem` breaks the site, not only the admin, once 5.x is installed (#122).
-- `panneau:install --upgrade` writes the JS entry in the project's JS directory, `resources/assets/js/panneau.tsx` when the project's JS is there, with the same path in the Vite config and `app.entry` (#123).
-- `--check` no longer reports a workflow branch named after Panneau (`branches:` and `tags:` of the triggers), and the Rector rules remove `translationsNamespace()` from resources, which 5.x never calls, or leave a TODO when the resource calls it (#124).
+- `panneau:install --upgrade --check` lists the references to 1.x contracts that 5.x doesn't have (`Panneau\Contracts\ResourceItem`, `Repository`…) anywhere in the project, with their file and line: an entity contract that extends `ResourceItem` breaks the site, not only the admin, once 5.x is installed. Files that another section lists (resource types, controllers, files to delete) are left out, and the other uses are counted by file (#122).
+- `panneau:install --upgrade` writes the JS entry in the project's JS directory, `resources/assets/js/panneau.tsx` when the project's JS is there, with the same path in the Vite config and `app.entry`. The directory is the one with the entry of an earlier run, the most `@panneau/*` imports, or the one `package.json` or `tsconfig.json` names (#123).
+- `--check` no longer reports a workflow branch named after Panneau (`branches:` and `tags:` under `on:`), and the Rector rules replace `translationsNamespace()`, which 5.x never calls, with a TODO that names its keys for `pluralLabel()` and `singularLabel()`, or keep it with the TODO when the resource calls it (#124).
 
 ## [5.0.0-alpha.6] - 2026-10-30
 

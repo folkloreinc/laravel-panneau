@@ -58,20 +58,29 @@ final class ResourcePropertiesRector extends AbstractRector
             $changed = true;
         }
 
-        // 5.x never calls translationsNamespace(): labels are set on fields and resources. It
-        // stays, with a TODO, when another method of the class calls it.
+        // 5.x never calls translationsNamespace(): in 1.x, it named the keys of the resource's
+        // labels ({namespace}.name, .plural, .singular). A TODO names it where it was, and it
+        // stays when another method of the class calls it.
         $namespace = $node->getMethod('translationsNamespace');
-        $others = array_values(array_filter($node->stmts, fn (Stmt $stmt): bool => $stmt !== $namespace));
-        if ($namespace !== null && $this->callsOwnMethod($others, 'translationsNamespace')) {
-            $changed = Todo::add($namespace, ['5.x never calls translationsNamespace(): set the labels with __() on the fields and the resource, then delete it']) || $changed;
-            $namespace = null;
+        $namespaceTodo = null;
+        if ($namespace !== null) {
+            $return = (new NodeFinder)->findFirstInstanceOf($namespace->stmts ?? [], Stmt\Return_::class);
+            $namespaceTodo = sprintf(
+                '5.x never calls translationsNamespace() (%s): its name, plural and singular keys go to pluralLabel() and singularLabel(), with __()',
+                Php::describe($return?->expr),
+            );
+            $others = array_values(array_filter($node->stmts, fn (Stmt $stmt): bool => $stmt !== $namespace));
+            if ($this->callsOwnMethod($others, 'translationsNamespace')) {
+                $changed = Todo::add($namespace, [$namespaceTodo.'; other methods call it: move their labels too, then delete it']) || $changed;
+                $namespace = null;
+            }
         }
 
         $reads = $this->staticReads($node);
         $stmts = [];
         foreach ($node->stmts as $stmt) {
             if ($stmt === $namespace) {
-                $stmts[] = new Stmt\Nop;
+                $stmts[] = $this->todo((string) $namespaceTodo);
                 $changed = true;
 
                 continue;

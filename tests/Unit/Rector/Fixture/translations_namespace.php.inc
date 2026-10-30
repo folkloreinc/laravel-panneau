@@ -38,7 +38,7 @@ class Authors extends Resource
         return \App\Repositories\Authors::class;
     }
 
-    // TODO(panneau-5): 5.x never calls translationsNamespace(): set the labels with __() on the fields and the resource, then delete it
+    // TODO(panneau-5): 5.x never calls translationsNamespace() ('panneau.authors'): its name, plural and singular keys go to pluralLabel() and singularLabel(), with __(); other methods call it: move their labels too, then delete it
     public function translationsNamespace(): ?string
     {
         return 'panneau.authors';

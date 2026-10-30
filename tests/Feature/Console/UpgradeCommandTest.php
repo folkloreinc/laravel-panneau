@@ -287,6 +287,84 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('app/Contracts/Entities/Order.php:8', $output);
     }
 
+    public function test_the_check_lists_the_resource_type_helpers_that_no_resource_uses(): void
+    {
+        $this->project('v1.3');
+        file_put_contents($this->project.'/app/Panneau/Resources/BlockWithBlocks.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Contracts\ResourceType;
+
+            abstract class BlockWithBlocks implements ResourceType
+            {
+            }
+            PHP);
+
+        // The types section leaves out abstract classes and helpers: the contracts section lists them
+        foreach ($this->audit()->section('types')->findings as $finding) {
+            $this->assertStringStartsNotWith('BlockWithBlocks', $finding->subject);
+        }
+        $this->assertSame('app/Panneau/Resources/BlockWithBlocks.php:7', $this->finding('contracts', 'BlockWithBlocks implements ResourceType')->location);
+    }
+
+    public function test_the_check_lists_the_uses_of_1x_contracts_once_by_file(): void
+    {
+        $this->project('v1.3');
+        file_put_contents($this->project.'/app/Panneau/Http/Controllers/TagsController.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Http\Controllers;
+
+            use Illuminate\Http\Request;
+            use Panneau\Contracts\Resource;
+            use Panneau\Http\Controllers\ResourceController;
+
+            class TagsController extends ResourceController
+            {
+                protected function getIndexQueryFromRequest(Request $request, Resource $resource)
+                {
+                    return [];
+                }
+            }
+            PHP);
+        file_put_contents($this->project.'/app/Http/Resources/StoreResource.php', <<<'PHP'
+            <?php
+
+            namespace App\Http\Resources;
+
+            use Panneau\Contracts\ResourceItem;
+
+            class StoreResource
+            {
+                public function __construct(private ResourceItem $store) {}
+
+                public function id(ResourceItem $item): string
+                {
+                    return $item->id();
+                }
+            }
+            PHP);
+        $contracts = $this->audit()->section('contracts');
+
+        // Resource controllers are listed with their section
+        $this->assertNotNull($this->audit()->section('controllers')->find('TagsController'));
+        foreach ($contracts->findings as $finding) {
+            $this->assertStringStartsNotWith('app/Panneau/Http/Controllers/', (string) $finding->location);
+        }
+        $this->assertSame('app/Http/Resources/StoreResource.php:9', $this->finding('contracts', 'Panneau\\Contracts\\ResourceItem ×2')->location);
+    }
+
+    public function test_the_check_leaves_the_files_to_delete_out_of_the_contracts(): void
+    {
+        $this->project('v1.4');
+
+        // PanneauDefinition implements the 1.x Definition, and is listed with the files to delete
+        $this->assertContains('app/Panneau/PanneauDefinition.php', $this->audit()->generatedFiles());
+        $this->assertSame([], $this->audit()->section('contracts')->findings);
+    }
+
     public function test_the_check_skips_the_branches_of_the_workflows(): void
     {
         $this->project('v1.3');
@@ -295,6 +373,27 @@ class UpgradeCommandTest extends TestCase
         $this->assertNull($this->audit()->section('deployment')->find('- feature/13-panneau-5'));
         $this->assertNull($this->audit()->section('deployment')->find('branches: [develop, feature/13-panneau-5]'));
         $this->assertSame('.github/workflows/checks.yml:16', $this->finding('deployment', '- run: php artisan panneau:assets')->location);
+    }
+
+    public function test_the_check_skips_only_the_branches_of_the_triggers(): void
+    {
+        $this->project('v1.3');
+        file_put_contents($this->project.'/.github/workflows/deploy-admin.yml', <<<'YAML'
+            "on": { push: { branches: [panneau-5] } }
+
+            jobs:
+                deploy:
+                    runs-on: ubuntu-24.04
+                    steps:
+                        - uses: example/deploy@v1
+                          with:
+                              branches: panneau-admin
+            YAML);
+        $deployment = $this->audit()->section('deployment');
+
+        $this->assertNull($deployment->find('"on": { push: { branches: [panneau-5] } }'));
+        // A branches: key of a step isn't a trigger
+        $this->assertSame('.github/workflows/deploy-admin.yml:9', $this->finding('deployment', 'branches: panneau-admin')->location);
     }
 
     public function test_the_check_lists_what_the_rector_rules_left(): void
@@ -579,6 +678,69 @@ class UpgradeCommandTest extends TestCase
         $after = $this->snapshot();
         $this->panneau(['--upgrade' => true]);
         $this->assertSame($after, $this->snapshot());
+    }
+
+    public function test_the_entry_of_an_earlier_upgrade_keeps_its_directory(): void
+    {
+        $this->project('v1.3');
+        // Written by 5.0.0-alpha.6, which always used resources/js
+        mkdir($this->project.'/resources/js');
+        copy(dirname(__DIR__, 3).'/src/stubs/entry.stub', $this->project.'/resources/js/panneau.tsx');
+
+        $this->assertSame('resources/js/panneau.tsx', $this->audit()->entry());
+        $this->assertNull($this->audit()->section('packages')->find('resources/js/panneau.tsx imports @panneau/app'));
+    }
+
+    public function test_a_1x_file_named_like_the_entry_is_not_the_entry(): void
+    {
+        $this->project('v1.3');
+        // A 1.x container at the root of resources/js: on macOS, Panneau.tsx is also panneau.tsx
+        mkdir($this->project.'/resources/js');
+        file_put_contents($this->project.'/resources/js/Panneau.tsx', "import { PanneauContainer } from '@panneau/app';\n");
+
+        $this->assertSame('resources/assets/js/panneau.tsx', $this->audit()->entry());
+        $this->assertNotNull($this->audit()->section('packages')->find('resources/js/Panneau.tsx imports @panneau/app'));
+    }
+
+    public function test_the_js_directory_is_the_one_package_json_or_tsconfig_names(): void
+    {
+        $this->project('v1.3');
+        (new Filesystem)->deleteDirectory($this->project.'/resources/assets/js/components');
+        mkdir($this->project.'/resources/js');
+        // package.json names ./resources/assets/js/index.js
+        $this->assertSame('resources/assets/js/panneau.tsx', $this->audit()->entry());
+
+        // The name alone, without a trailing slash
+        file_put_contents($this->project.'/package.json', '{"scripts": {"build": "flklr build"}}');
+        file_put_contents($this->project.'/tsconfig.json', '{"include": ["resources/assets/js"]}');
+        $this->assertSame('resources/assets/js/panneau.tsx', $this->audit()->entry());
+
+        // Neither named nor imported, both there: resources/js
+        unlink($this->project.'/tsconfig.json');
+        $this->assertSame('resources/js/panneau.tsx', $this->audit()->entry());
+    }
+
+    public function test_the_js_directory_is_the_only_one_there_is(): void
+    {
+        $this->project('v1.3');
+        (new Filesystem)->deleteDirectory($this->project.'/resources/assets/js/components');
+        file_put_contents($this->project.'/package.json', '{"scripts": {"build": "flklr build"}}');
+
+        $this->assertSame('resources/assets/js/panneau.tsx', $this->audit()->entry());
+    }
+
+    public function test_the_js_directory_with_the_most_panneau_imports_wins(): void
+    {
+        $this->project('v1.3');
+        file_put_contents($this->project.'/package.json', '{"scripts": {"build": "flklr build ./resources/js/index.js"}}');
+        mkdir($this->project.'/resources/js');
+        file_put_contents($this->project.'/resources/js/admin.js', "import '@panneau/themes';\n");
+
+        // One file each: package.json breaks the tie
+        $this->assertSame('resources/js/panneau.tsx', $this->audit()->entry());
+
+        file_put_contents($this->project.'/resources/assets/js/components/Fields.tsx', "import { Field } from '@panneau/fields';\n");
+        $this->assertSame('resources/assets/js/panneau.tsx', $this->audit()->entry());
     }
 
     public function test_the_upgrade_writes_the_entry_in_resources_js_by_default(): void

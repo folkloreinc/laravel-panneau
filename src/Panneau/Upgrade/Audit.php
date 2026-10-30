@@ -87,6 +87,14 @@ final class Audit
      */
     private ?array $sourceFiles = null;
 
+    /**
+     * Files of the classes that the types and controllers sections list: their uses of 1.x
+     * contracts go with them.
+     *
+     * @var list<string>
+     */
+    private array $listedFiles = [];
+
     public function __construct(private readonly Codebase $code)
     {
         foreach ([
@@ -250,7 +258,7 @@ final class Audit
             $section->add('folklore/laravel-folklore '.$folklore, 'folklore/laravel-folklore ^2.0@alpha: its Panneau adapter maps resources to Folklore repositories', 'composer.json');
         }
 
-        foreach ($this->panneauImports($this->entry()) as $file => $packages) {
+        foreach ($this->panneauImports($this->isEntry($this->entry()) ? $this->entry() : null) as $file => $packages) {
             $section->add(
                 $file.' imports '.implode(', ', $packages),
                 'manual: the JS codemods of @panneau/* 5; until then the build of the site breaks once @panneau/app is 5',
@@ -299,34 +307,58 @@ final class Audit
     }
 
     /**
-     * The project's JS directory: the one with the entry of an earlier upgrade, or the files
-     * that import `@panneau/*`, or the one that package.json or tsconfig.json names, or the only
-     * one there is. `resources/js` otherwise.
+     * The project's JS directory:
+     *
+     * 1. the one with the 5.x entry of an earlier upgrade;
+     * 2. the one with the most files that import `@panneau/*` (the 1.x container);
+     * 3. the one that package.json or tsconfig.json names;
+     * 4. the only one there is;
+     * 5. `resources/js`.
+     *
+     * Ties go to the next step, then to the order of JS_DIRECTORIES.
      */
     private function readJsDirectory(): string
     {
-        $entry = basename(JsInstaller::ENTRY);
         foreach (self::JS_DIRECTORIES as $directory) {
-            if ($this->code->exists($directory.'/'.$entry)) {
+            if ($this->isEntry($directory.'/'.basename(JsInstaller::ENTRY))) {
                 return $directory;
             }
         }
+        $imports = array_fill_keys(self::JS_DIRECTORIES, 0);
         foreach (array_keys($this->panneauImports()) as $file) {
             foreach (self::JS_DIRECTORIES as $directory) {
                 if (str_starts_with($file, $directory.'/')) {
-                    return $directory;
+                    $imports[$directory]++;
                 }
             }
         }
         $config = ($this->code->read('package.json') ?? '').($this->code->read('tsconfig.json') ?? '');
-        foreach (self::JS_DIRECTORIES as $directory) {
-            if (str_contains($config, $directory.'/')) {
-                return $directory;
+        $named = array_filter(self::JS_DIRECTORIES, fn (string $directory): bool => preg_match('#(?<![\w-])'.preg_quote($directory, '#').'(?![\w-])#', $config) === 1);
+        $existing = array_filter(self::JS_DIRECTORIES, fn (string $directory): bool => $this->code->exists($directory));
+        $candidates = self::JS_DIRECTORIES;
+        if (max($imports) > 0) {
+            $candidates = array_keys($imports, max($imports), true);
+        }
+        foreach ([$named, count($existing) === 1 ? $existing : []] as $preferred) {
+            $narrowed = array_intersect($candidates, $preferred);
+            if ($narrowed !== []) {
+                $candidates = $narrowed;
             }
         }
-        $existing = array_values(array_filter(self::JS_DIRECTORIES, fn (string $directory): bool => $this->code->exists($directory)));
 
-        return count($existing) === 1 ? $existing[0] : self::JS_DIRECTORIES[0];
+        return array_values($candidates)[0];
+    }
+
+    /**
+     * Whether a file is the 5.x entry: named exactly so (file systems may ignore case, and a 1.x
+     * container can be `Panneau.tsx`), and mounting the 5.x app.
+     */
+    private function isEntry(string $file): bool
+    {
+        $code = $this->code->read($file);
+
+        return $code !== null && in_array(basename($file), scandir($this->code->path(dirname($file))) ?: [], true)
+            && str_contains($code, '@panneau/app') && str_contains($code, 'createPanneauApp');
     }
 
     private function isMajor(string $constraint, int $major): bool
@@ -524,7 +556,7 @@ final class Audit
             'index' => 'list()',
             'name' => 'pluralLabel() and singularLabel()',
             'id' => 'id()',
-            'translationsNamespace' => 'nothing: labels are set on fields and resources (the Rector rules remove it)',
+            'translationsNamespace' => 'pluralLabel() and singularLabel(), with __(): the Rector rules remove it, with a TODO that names its keys',
             'authorize' => 'manual: a policy for the item class',
             'types', 'settings', 'attributes', 'components', 'forms', 'makeRepository', 'makeJsonResource', 'makeJsonCollection', 'onlyDeclaredFields', 'indexIsPaginated' => 'manual: no 5.x equivalent',
             '__construct' => 'manual: resources are resolved from the container',
@@ -635,6 +667,7 @@ final class Audit
                 && (in_array($class->name, $bases, true) || ! $this->code->isA($class->name, [V1::RESOURCE_TYPE])))) {
                 continue;
             }
+            $this->listedFiles[] = $class->file;
             $id = Php::value($class->returned('id'));
             $resources = $usedBy[$class->name] ?? [];
             $isBlock = str_contains($class->name, 'Block');
@@ -793,6 +826,7 @@ final class Audit
             }
         }
         foreach ($this->code->subclassesOf([V1::RESOURCE_CONTROLLER]) as $class) {
+            $this->listedFiles[] = $class->file;
             $resources = $usedBy[$class->name] ?? [];
             $finding = $section->add(
                 $class->shortName().($resources !== [] ? ' of '.implode(', ', $resources) : ''),
@@ -1158,13 +1192,15 @@ final class Audit
     /**
      * References to the 1.x contracts that 5.x doesn't have, anywhere in the project: entity
      * contracts that extend `ResourceItem`, types, `instanceof`. A class that extends or
-     * implements one can't be loaded once 5.x is installed.
+     * implements one can't be loaded once 5.x is installed. Files that another section lists
+     * (resource types, controllers, files to delete) are left out, and the other uses are
+     * counted by file.
      */
     private function auditContracts(): void
     {
         $section = $this->sections['contracts'];
         $entity = 'Folklore\\Contracts\\Entities\\Entity';
-        foreach ($this->sourceFiles() as $file) {
+        foreach (array_diff($this->sourceFiles(), $this->listedFiles, $this->generatedFiles) as $file) {
             $declared = [];
             foreach ($this->code->find($file, Stmt\ClassLike::class) as $class) {
                 [$extends, $implements] = match (true) {
@@ -1177,8 +1213,7 @@ final class Audit
                 foreach ([...$extends, ...$implements] as $name) {
                     $contract = $name->toString();
                     $declared[spl_object_id($name)] = true;
-                    // Resource types are listed with the types
-                    if (! isset(V1::CONTRACTS[$contract]) || ($contract === V1::RESOURCE_TYPE_CONTRACT && $class instanceof Stmt\Class_)) {
+                    if (! isset(V1::CONTRACTS[$contract])) {
                         continue;
                     }
                     $section->add(
@@ -1190,12 +1225,16 @@ final class Audit
                     );
                 }
             }
-            // Types, instanceof, ::class: names in use statements aren't resolved
+            // Types, instanceof, ::class, once by contract: names in use statements aren't resolved
+            $uses = [];
             foreach ($this->code->find($file, Node\Name\FullyQualified::class) as $name) {
                 $contract = $name->toString();
                 if (isset(V1::CONTRACTS[$contract]) && ! isset($declared[spl_object_id($name)])) {
-                    $section->add($contract, 'manual: '.V1::CONTRACTS[$contract], $file.':'.$name->getStartLine());
+                    $uses[$contract][] = $name->getStartLine();
                 }
+            }
+            foreach ($uses as $contract => $lines) {
+                $section->add($contract.(count($lines) > 1 ? ' ×'.count($lines) : ''), 'manual: '.V1::CONTRACTS[$contract], $file.':'.min($lines));
             }
         }
     }
@@ -1275,16 +1314,33 @@ final class Audit
 
     /**
      * The lines of a workflow that name the branches or tags of its triggers (`branches:`,
-     * `tags:` and their lists): a branch named after Panneau depends on nothing.
+     * `tags:` and their lists, under `on:`): a branch named after Panneau depends on nothing.
      *
      * @return list<int>
      */
     private function workflowBranchLines(string $workflow): array
     {
         $lines = [];
+        $on = null;
         $indent = null;
         foreach (explode("\n", $workflow) as $index => $text) {
             $depth = strlen($text) - strlen(ltrim($text));
+            $blank = trim($text) === '' || str_starts_with(ltrim($text), '#');
+            if (! $blank && $on !== null && $depth <= $on) {
+                $on = null;
+            }
+            if (preg_match('/^(\s*)[\'"]?on[\'"]?:(.*)$/', $text, $matches) === 1) {
+                $on = strlen($matches[1]);
+                // on: { push: { branches: [...] } }
+                if (preg_match('/\b(branches|branches-ignore|tags|tags-ignore)\s*:/', $matches[2]) === 1) {
+                    $lines[] = $index + 1;
+                }
+
+                continue;
+            }
+            if ($on === null) {
+                continue;
+            }
             if (preg_match('/^(\s*)(branches|branches-ignore|tags|tags-ignore):(.*)$/', $text, $matches) === 1) {
                 $lines[] = $index + 1;
                 $indent = trim($matches[3]) === '' ? strlen($matches[1]) : null;
@@ -1292,7 +1348,7 @@ final class Audit
                 continue;
             }
             // The items of the list: deeper, or at the same depth with a dash
-            if ($indent !== null && (trim($text) === '' || $depth > $indent || ($depth === $indent && str_starts_with(ltrim($text), '-')))) {
+            if ($indent !== null && ($blank || $depth > $indent || ($depth === $indent && str_starts_with(ltrim($text), '-')))) {
                 $lines[] = $index + 1;
 
                 continue;
