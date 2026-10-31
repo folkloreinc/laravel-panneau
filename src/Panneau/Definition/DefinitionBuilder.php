@@ -176,7 +176,10 @@ final class DefinitionBuilder
             $definition['form'] = ['layout' => array_map(fn (Node $node): array => $node->toDefinition(), $layout)];
         }
 
-        $list = $this->resources->list($resource)->toDefinition($this->resources->searchable($resource));
+        $list = $this->resources->list($resource)->toDefinition(
+            $this->resources->searchable($resource),
+            $this->resources->cursorPaginated($resource),
+        );
         $list['columns'] ??= $this->defaultColumns($resource);
         if (isset($list['filters']) && is_array($list['filters'])) {
             $list['filters'] = array_map(fn (array $filter): array => $this->resolveResource($filter), $list['filters']);

@@ -115,7 +115,8 @@ final class Form
             $fields,
             fn (Field $field): bool => $field->isEditable($context->mode)
                 && $field->isVisible($values)
-                && (! $context->partial || array_key_exists($field->name(), $values)),
+                && (! $context->partial || (array_key_exists($field->name(), $values)
+                    && ! $field->keepsStoredValue($values[$field->name()]))),
         ));
     }
 }

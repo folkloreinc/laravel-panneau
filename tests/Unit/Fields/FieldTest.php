@@ -27,6 +27,7 @@ use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
 use Panneau\Fields\Time;
 use Panneau\Forms\Condition;
+use Panneau\Lists\Filters\SelectFilter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use TestApp\Models\PostStatus;
@@ -101,6 +102,47 @@ class FieldTest extends TestCase
             Select::make('choice')->options([1 => 'One', ['value' => 'b', 'label' => 'B', 'disabled' => true]])->toDefinition()['options'],
         );
         $this->assertSame([['value' => 'draft', 'label' => 'Draft']], array_slice(Select::make('status')->options(PostStatus::class)->toDefinition()['options'], 0, 1));
+    }
+
+    public function test_a_secret_text(): void
+    {
+        $this->assertSame(
+            ['name' => 'key', 'type' => 'text', 'settings' => ['secret' => true]],
+            Text::make('key')->secret()->toDefinition(),
+        );
+        $this->assertSame('x', Text::make('key')->secret()->resolve((object) ['key' => 'x']));
+    }
+
+    public function test_a_write_only_text(): void
+    {
+        $field = Text::make('key')->secret()->writeOnly();
+
+        $this->assertNull($field->resolve((object) ['key' => 'x']));
+        $this->assertTrue($field->keepsStoredValue(null));
+        $this->assertTrue($field->keepsStoredValue(''));
+        $this->assertFalse($field->keepsStoredValue('y'));
+        $this->assertFalse(Text::make('key')->keepsStoredValue(null));
+        $this->assertSame('x', $field->writeOnly(false)->resolve((object) ['key' => 'x']));
+    }
+
+    public function test_options_have_tones(): void
+    {
+        $tones = [
+            ['value' => 'draft', 'label' => 'Draft'],
+            ['value' => 'published', 'label' => 'Published', 'tone' => 'success'],
+            ['value' => 'archived', 'label' => 'Archived', 'tone' => 'warning'],
+        ];
+
+        $this->assertSame($tones, Select::make('status')->options(PostStatus::class)->toDefinition()['options']);
+        $this->assertSame($tones, Tags::make('status')->options(PostStatus::class)->toDefinition()['options']);
+        $this->assertSame($tones, SelectFilter::make('status')->options(PostStatus::class)->toDefinition()['options']);
+        $this->assertSame(
+            [['value' => 'failed', 'label' => 'Failed', 'tone' => 'danger'], ['value' => 'late', 'label' => 'Late', 'tone' => 'brand-2']],
+            Select::make('status')->options([
+                ['value' => 'failed', 'label' => 'Failed', 'tone' => 'danger'],
+                ['value' => 'late', 'label' => 'Late', 'tone' => 'brand-2'],
+            ])->toDefinition()['options'],
+        );
     }
 
     public function test_settings_of_the_new_types(): void

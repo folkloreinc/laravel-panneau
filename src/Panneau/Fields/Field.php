@@ -374,6 +374,15 @@ abstract class Field
     }
 
     /**
+     * Whether a value sent in an update is left out, so that the stored value stays: an empty
+     * value of a write-only text field (`Text::writeOnly()`), whose form starts without it.
+     */
+    public function keepsStoredValue(mixed $value): bool
+    {
+        return false;
+    }
+
+    /**
      * The field in the protocol's definition.
      *
      * @return array<string, mixed>

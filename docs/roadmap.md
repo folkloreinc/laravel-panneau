@@ -47,6 +47,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 
 - [ ] Pages and menus in the definition, for the app shell ([#33](https://github.com/folkloreinc/laravel-panneau/issues/33))
 - [x] The login page of the app in the `panneau` auth mode, with a login by email and password and a logout, and `auth.logoutUrl` in the `external` mode ([#132](https://github.com/folkloreinc/laravel-panneau/issues/132), panneau-js decision 0037) — unreleased
+- [x] What Eclair asked of the protocol: secret text fields, tones of options, lists paged with cursors, and the CSP nonce of Vite in the page of the app (folkloreinc/panneau-js#143, #144, #150, #152, panneau-js decision 0039) — unreleased
 - [ ] Auth: password, reset, 2FA, passkeys, email verification (Fortify), OAuth providers (Socialite, [#34](https://github.com/folkloreinc/laravel-panneau/issues/34)), with a separate guard or the site's existing auth ([decisions/0005](decisions/0005-auth.md))
 - [ ] Optional roles module, and permissions in the UI
 - [ ] Actions: queued runs with progress; built-in duplicate, restore, export and import

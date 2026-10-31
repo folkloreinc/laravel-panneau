@@ -4,6 +4,8 @@ namespace Panneau\Tests\Feature\Repositories;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\Cursor;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Panneau\Contracts\Repositories\Restorable;
 use Panneau\Query\ResourceQuery;
@@ -68,6 +70,64 @@ class EloquentRepositoryTest extends TestCase
         $this->assertSame(3, $page->lastPage());
         $this->assertSame(2, $page->currentPage());
         $this->assertSame(['Post 3', 'Post 4'], collect($page->items())->pluck('title')->all());
+    }
+
+    public function test_cursor_query_follows_the_cursors(): void
+    {
+        foreach (range(1, 5) as $day) {
+            $this->createPost(['title' => 'Day '.$day, 'published_at' => '2026-10-0'.$day.' 10:00:00']);
+        }
+        $this->createPost(['title' => 'Elsewhere', 'team_id' => 2, 'published_at' => '2026-10-09 10:00:00']);
+        $query = new ResourceQuery(perPage: 2, sorts: [new Sort('published_at', SortDirection::Descending)], scope: ['team_id' => 1]);
+        $titles = fn ($page): array => array_map(fn (Post $post): string => $post->title, $page->items);
+
+        $first = $this->posts->cursorQuery($query);
+        $this->assertSame(['Day 5', 'Day 4'], $titles($first));
+        $this->assertNull($first->previousCursor);
+        $this->assertNull($first->total);
+
+        $second = $this->posts->cursorQuery($query->withCursor($first->nextCursor));
+        $this->assertSame(['Day 3', 'Day 2'], $titles($second));
+        $this->assertNull($second->previousCursor);
+
+        $third = $this->posts->cursorQuery($query->withCursor($second->nextCursor));
+        $this->assertSame(['Day 1'], $titles($third));
+        $this->assertNull($third->nextCursor);
+        $this->assertIsString($third->previousCursor);
+
+        $back = $this->posts->cursorQuery($query->withCursor($third->previousCursor));
+        $this->assertSame(['Day 3', 'Day 2'], $titles($back));
+        $this->assertNull($back->previousCursor);
+        $this->assertSame(['perPage' => 2, 'nextCursor' => $back->nextCursor, 'previousCursor' => null], $back->meta());
+    }
+
+    public function test_cursor_query_refuses_an_unreadable_cursor(): void
+    {
+        $this->createPost();
+        $query = new ResourceQuery(perPage: 2, sorts: [new Sort('title')]);
+        $cursor = fn (array $parameters, bool $next = true): string => (new Cursor($parameters, $next))->encode();
+
+        foreach ([
+            'not a cursor',
+            base64_encode('{"title":"B"}'),
+            base64_encode('["B"]'),
+            base64_encode('"B"'),
+            // Without the number of its page
+            $cursor(['title' => 'B', 'posts.id' => 2]),
+            $cursor(['title' => 'B', 'posts.id' => 2, '_page' => 1]),
+            $cursor(['title' => ['B'], 'posts.id' => 2, '_page' => 2]),
+            base64_encode('{"title":"B","posts.id":2,"_page":2,"_pointsToNextItems":"yes"}'),
+            // From another sort
+            $cursor(['published_at' => '2026-10-30', '_page' => 2]),
+            str_repeat('a', 5000),
+        ] as $invalid) {
+            try {
+                $this->posts->cursorQuery($query->withCursor($invalid));
+                $this->fail('The cursor '.$invalid.' was read.');
+            } catch (ValidationException $exception) {
+                $this->assertSame(['cursor'], array_keys($exception->errors()));
+            }
+        }
     }
 
     public function test_query_applies_the_scope(): void

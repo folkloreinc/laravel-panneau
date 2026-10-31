@@ -154,7 +154,10 @@ interface ResourceRepository
 }
 ```
 
-- **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, `ChecksSlugs` (for unique slugs on repositories that aren't Eloquent, see [Slug](#slug)), and `ChunkedQuery` (for queued actions). Actions and features that need one are only offered when the repository has it.
+- **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, `ChecksSlugs` (for unique slugs on repositories that aren't Eloquent, see [Slug](#slug)), `ChunkedQuery` (for queued actions), and `CursorPaginated` (for lists paged with cursors). Actions and features that need one are only offered when the repository has it.
+- **Cursor pagination** ([panneau-js decision 0039](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0039-cursor-pagination.md)). A list too large to count, or too live for page numbers, asks for cursors: `$list->cursorPagination()`, sent as `"pagination": "cursor"` when the repository is `CursorPaginated` (numbered pages otherwise). The index then reads `cursor` instead of `page`, calls `cursorQuery()`, which returns a `CursorPage`, and answers `meta: { perPage, nextCursor, previousCursor }`, without a total unless the repository counts. `previousCursor` is null when the previous page is the first, which has no cursor. A cursor the repository can't read is a `422` problem with `errors.cursor`.
+  - `EloquentRepository` uses `cursorPaginate()` on the columns of the sorts, then the key: the sorted columns must never be null. Its cursors also hold the number of their page, for `previousCursor`, and a cursor from another sort is refused.
+  - A Scout search has no cursors: it pages by number (`simplePaginate()`) behind its cursors, still without a total.
 - **Search.** A `Searchable` repository applies `$query->search` to `$query->searchFields`, within the scope. The fields can be empty for a resource in the global search through its `features()` alone: the repository searches its own fields then (a search index), or finds nothing, but never ignores the search. See [Search and dashboard](#search-and-dashboard).
 - **Adapters:**
   - `EloquentRepository` (package) implements the contract for a model.
@@ -187,6 +190,8 @@ interface ResourceRepository
   - `label()`, `help()`, `default()`;
   - `localized()`, `readOnly()`, `visibleWhen()`;
   - `createOnly()`, `updateOnly()`.
+- **Secrets.** `Text::secret()` writes `"settings": { "secret": true }`: clients type the value in a password input that a button reveals, keep the browser from filling it in, and show it as dots in lists and details. The backend still decides whether it sends the value back. A secret the project keeps encrypted (an access key) is usually write-only, `->secret()->writeOnly()`: items have `null` for it, and an update that leaves it out, or sends it empty, keeps the stored value, since the form starts without it. Only for fields at the top of a resource; a resource with its own `toItem()` leaves the value out there.
+- **Options** of `Select`, `Tags` and `SelectFilter` are a backed enum class, a list of options (`['value' => …, 'label' => …, 'description' => …, 'disabled' => …, 'tone' => …]`), or labels keyed by value. `tone` colors the option where it shows as a badge, in lists and details: `neutral` (the default), `accent`, `success`, `warning`, `danger`, `info`, or a tone of the theme (`panneau.theme.tones`). An enum case gives its label with a `label()` method, and its tone with a `tone()` method (null for the default).
 - **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`, `crop()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
 - **Validation.** Rules are built for the submitted values, so they follow the form:
   - fields hidden by `visibleWhen`, read-only fields, and `createOnly`/`updateOnly` fields outside their mode are neither validated nor saved;
@@ -424,6 +429,7 @@ final class PublishPages extends Action
     ```
 - **The page of the app** follows the entry contract of `@panneau/app` ([panneau-js decision 0019](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0019-app-entry.md)):
   - a Blade view (`panneau::app`, or `panneau.app.view`) with the project's Vite entry (`panneau.app.entry`) and an empty `<div id="panneau">`;
+  - `<meta property="csp-nonce">` with the CSP nonce of Vite, when the request has one (`Vite::useCspNonce()`, which also puts it on the scripts of the entry), for `@panneau/app` and React Aria. The view gets it as `$nonce`;
   - the boot config in `<script type="application/json" id="panneau-boot">`: `apiBaseUrl`, `basePath`, `locale`, `auth` (the `auth` of the definition, for the login page of the app), `loginUrl`, and the definition for the user unless `panneau.app.inline_definition` is off, so the app renders without fetching it. `Panneau::bootConfig()` builds it for projects that render the app in their own page. The tests check it against the protocol's `boot.schema.json`;
   - in the `external` auth mode, guests are redirected to `panneau.auth.login_url`, with the intended URL kept in the session. In the `panneau` mode, they get the page without the definition, and the app shows its login page at the URL they asked for ([panneau-js decision 0037](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0037-login-page-token-and-logout.md)). The API answers them with a `401` in both modes.
 - **Generic controllers implement the protocol:**
@@ -713,7 +719,8 @@ See [decisions/0010](decisions/0010-global-search.md) and the [shared decision](
   - the engine searches the model's searchable data (`toSearchableArray()`), not the list's search fields;
   - the rest of the query is Scout's `query()` callback: the scope, ids, exclusions, filters and sorts, applied by the database as without Scout;
   - the `database` and `collection` engines run that callback before paginating, so pages and totals are exact. Engines with their own index (Meilisearch, Algolia, Typesense) run it only on the items of the page they found. The scope is also given to the engine as `where` clauses (`whereIn` for a list), so **the scope's columns must be filterable attributes of the index**. The callback still keeps the items outside the scope out. Filters, ids and exclusions can make such pages shorter, and the order is the engine's;
-  - override `scoutSearch()` to give the engine more of the query, and `searchesWithScout()` to keep `LIKE` queries for a searchable model.
+  - override `scoutSearch()` to give the engine more of the query, and `searchesWithScout()` to keep `LIKE` queries for a searchable model;
+  - in a list paged with cursors, Scout pages by number behind the cursors, since it has none.
 - **Dashboard widgets** (**not built yet**, 5.x) are classes that declare their type and options, and return their data. They are registered per role in the service provider.
 
 ## laravel-folklore
