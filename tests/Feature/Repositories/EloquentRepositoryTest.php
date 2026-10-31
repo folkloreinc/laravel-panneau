@@ -110,6 +110,8 @@ class EloquentRepositoryTest extends TestCase
         foreach ([
             'not a cursor',
             base64_encode('{"title":"B"}'),
+            base64_encode('["B"]'),
+            base64_encode('"B"'),
             // Without the number of its page
             $cursor(['title' => 'B', 'posts.id' => 2]),
             $cursor(['title' => 'B', 'posts.id' => 2, '_page' => 1]),

@@ -259,15 +259,22 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
      */
     protected function decodeCursor(string $encoded): Cursor
     {
-        $cursor = strlen($encoded) <= 4096 ? Cursor::fromEncoded($encoded) : null;
-        $parameters = $cursor?->toArray() ?? [];
+        // Decoded here rather than with Cursor::fromEncoded(), which doesn't check the shape
+        // of the cursor in every version of Laravel
+        $decoded = strlen($encoded) <= 4096 ? base64_decode(strtr($encoded, '-_', '+/'), true) : false;
+        $parameters = is_string($decoded) ? json_decode($decoded, true) : null;
+        if (! is_array($parameters) || array_is_list($parameters)) {
+            throw $this->invalidCursor();
+        }
+        $next = $parameters['_pointsToNextItems'] ?? null;
         $page = $parameters[self::CURSOR_PAGE] ?? null;
-        if ($cursor === null || ! is_bool($parameters['_pointsToNextItems'] ?? null) || ! is_int($page) || $page < 2
+        unset($parameters['_pointsToNextItems']);
+        if (! is_bool($next) || ! is_int($page) || $page < 2
             || count(array_filter($parameters, fn (mixed $value): bool => $value !== null && ! is_scalar($value))) > 0) {
             throw $this->invalidCursor();
         }
 
-        return $cursor;
+        return new Cursor($parameters, $next);
     }
 
     /**
