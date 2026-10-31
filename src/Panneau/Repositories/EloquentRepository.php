@@ -10,16 +10,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Pagination\Cursor;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Scout\Builder as ScoutBuilder;
 use Panneau\Contracts\Repositories\ChunkedQuery;
+use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\ResourceRepository;
+use Panneau\Query\CursorPage;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
 use ReflectionMethod;
 use ReflectionNamedType;
+use UnexpectedValueException;
 
 /**
  * A repository for an Eloquent model. The only part of Panneau that knows Eloquent.
@@ -34,6 +39,9 @@ use ReflectionNamedType;
  * - Search is a `LIKE` on the search fields. A search with no search fields matches nothing.
  *   Models that use `Laravel\Scout\Searchable` are searched through Scout instead, within the
  *   same scope, ids, exclusions and filters (see `scoutSearch()`).
+ * - Lists paged with cursors use `cursorPaginate()`, on the columns of the sorts and the key:
+ *   sort them on columns that are never null. A Scout search pages by number behind its
+ *   cursors, since Scout has no cursors (see `cursorQuery()`).
  * - The version is a hash of the model's attributes.
  * - A unique slug (`Slug::unique()`) is looked up in the column of its field, or the locale's
  *   key of a JSON column for a localized slug, deleted items included (see `slugQuery()`).
@@ -44,8 +52,13 @@ use ReflectionNamedType;
  *
  * @template TModel of Model
  */
-class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository, Searchable
+class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, ResourceRepository, Searchable
 {
+    /**
+     * The parameter of a cursor with the number of its page, which no column can be named.
+     */
+    private const CURSOR_PAGE = '_page';
+
     /**
      * @param  class-string<TModel>  $model
      */
@@ -87,6 +100,47 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
         }
 
         return $this->newQuery($query)->paginate($query->perPage, ['*'], 'page', $query->page);
+    }
+
+    /**
+     * The page at the query's cursor, with `cursorPaginate()` of Eloquent: the cursor holds the
+     * sorted values of the last item of the page before (or the first of the page after), so
+     * the sort columns must never be null. A Scout search pages by number behind its cursors.
+     *
+     * A cursor also holds the number of its page, so that the `previousCursor` of the second
+     * page is null: clients go back to the first page without a cursor, as the protocol asks.
+     */
+    public function cursorQuery(ResourceQuery $query): CursorPage
+    {
+        $cursor = $query->cursor !== null ? $this->decodeCursor($query->cursor) : null;
+        $page = $cursor !== null ? (int) $cursor->toArray()[self::CURSOR_PAGE] : 1;
+
+        if ($query->search !== null && $this->searchesWithScout()) {
+            $results = $this->scoutSearch($query)->simplePaginate($query->perPage, 'page', $page);
+
+            return new CursorPage(
+                items: array_values($results->items()),
+                perPage: $query->perPage,
+                nextCursor: $results->hasMorePages() ? $this->encodeCursor(new Cursor([]), $page + 1) : null,
+                previousCursor: $page > 2 ? $this->encodeCursor(new Cursor([], false), $page - 1) : null,
+            );
+        }
+
+        try {
+            $results = $this->newQuery($query)->cursorPaginate($query->perPage, ['*'], 'cursor', $cursor);
+        } catch (UnexpectedValueException) {
+            // The cursor lacks a sorted column: it comes from another sort
+            throw $this->invalidCursor();
+        }
+        $previous = $results->previousCursor();
+        $next = $results->nextCursor();
+
+        return new CursorPage(
+            items: array_values($results->items()),
+            perPage: $query->perPage,
+            nextCursor: $next !== null ? $this->encodeCursor($next, $page + 1) : null,
+            previousCursor: $previous !== null && $page > 2 ? $this->encodeCursor($previous, $page - 1) : null,
+        );
     }
 
     public function find(string $id, array $scope): ?object
@@ -196,6 +250,40 @@ class EloquentRepository implements ChunkedQuery, Duplicable, ResourceRepository
         }
 
         return $builder;
+    }
+
+    /**
+     * Reads a cursor that `cursorQuery()` made: an Eloquent cursor, with the number of its page.
+     *
+     * @throws ValidationException
+     */
+    protected function decodeCursor(string $encoded): Cursor
+    {
+        $cursor = strlen($encoded) <= 4096 ? Cursor::fromEncoded($encoded) : null;
+        $parameters = $cursor?->toArray() ?? [];
+        $page = $parameters[self::CURSOR_PAGE] ?? null;
+        if ($cursor === null || ! is_bool($parameters['_pointsToNextItems'] ?? null) || ! is_int($page) || $page < 2
+            || count(array_filter($parameters, fn (mixed $value): bool => $value !== null && ! is_scalar($value))) > 0) {
+            throw $this->invalidCursor();
+        }
+
+        return $cursor;
+    }
+
+    /**
+     * Encodes a cursor of Eloquent with the number of its page.
+     */
+    protected function encodeCursor(Cursor $cursor, int $page): string
+    {
+        $parameters = $cursor->toArray();
+        unset($parameters['_pointsToNextItems']);
+
+        return (new Cursor([...$parameters, self::CURSOR_PAGE => $page], $cursor->pointsToNextItems()))->encode();
+    }
+
+    protected function invalidCursor(): ValidationException
+    {
+        return ValidationException::withMessages(['cursor' => __('The cursor is invalid.')]);
     }
 
     /**

@@ -258,6 +258,15 @@ class AppPageTest extends HttpTestCase
         }
     }
 
+    public function test_the_page_has_the_csp_nonce_of_vite(): void
+    {
+        $this->get('/panneau')->assertOk()->assertDontSee('csp-nonce', false);
+
+        Vite::useCspNonce('a1b2c3');
+
+        $this->get('/panneau')->assertOk()->assertSee('<meta property="csp-nonce" content="a1b2c3">', false);
+    }
+
     public function test_the_view_can_be_replaced(): void
     {
         $views = sys_get_temp_dir().'/panneau-views-'.bin2hex(random_bytes(4));

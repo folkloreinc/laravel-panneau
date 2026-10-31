@@ -691,6 +691,10 @@
                 },
                 "disabled": {
                     "type": "boolean"
+                },
+                "tone": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9-]+$"
                 }
             },
             "required": [
@@ -829,6 +833,13 @@
                         "exclusiveMinimum": 0,
                         "maximum": 9007199254740991
                     }
+                },
+                "pagination": {
+                    "type": "string",
+                    "enum": [
+                        "pages",
+                        "cursor"
+                    ]
                 },
                 "inlineEdit": {
                     "type": "array",
@@ -1104,6 +1115,13 @@
                         "type": "string"
                     },
                     "additionalProperties": {}
+                },
+                "params": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    }
                 }
             },
             "required": [

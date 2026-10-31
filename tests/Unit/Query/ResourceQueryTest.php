@@ -56,6 +56,23 @@ class ResourceQueryTest extends TestCase
         $this->assertSame(10, $query->perPage);
     }
 
+    public function test_a_cursor_replaces_the_page_in_a_list_paged_with_cursors(): void
+    {
+        $options = new QueryOptions(cursorPagination: true);
+
+        $query = ResourceQuery::fromParameters(['cursor' => 'abc', 'page' => '3'], $options);
+        $this->assertSame('abc', $query->cursor);
+        $this->assertSame(1, $query->page);
+        $this->assertSame('abc', $query->withScope(['team_id' => 1])->cursor);
+        $this->assertSame('def', $query->withCursor('def')->cursor);
+        $this->assertNull(ResourceQuery::fromParameters(['cursor' => ''], $options)->cursor);
+        $this->assertNull(ResourceQuery::fromParameters(['cursor' => ['abc']], $options)->cursor);
+        // Lists with numbered pages ignore cursors
+        $query = ResourceQuery::fromParameters(['cursor' => 'abc', 'page' => '3'], $this->options());
+        $this->assertNull($query->cursor);
+        $this->assertSame(3, $query->page);
+    }
+
     public function test_per_page_is_capped(): void
     {
         $query = ResourceQuery::fromParameters(['perPage' => '1000'], $this->options());

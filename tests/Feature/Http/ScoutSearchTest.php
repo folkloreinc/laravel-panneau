@@ -9,6 +9,7 @@ use Panneau\Repositories\EloquentRepository;
 use Panneau\Support\Facade as Panneau;
 use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Models\Note;
+use TestApp\Panneau\Resources\NotesFeedResource;
 use TestApp\Panneau\Resources\NotesResource;
 
 /**
@@ -86,6 +87,34 @@ class ScoutSearchTest extends HttpTestCase
         $this->getJson(self::API.'/resources/notes?q=summer&perPage=1&page=2')
             ->assertJsonPath('meta.total', 2)
             ->assertJsonCount(1, 'data');
+    }
+
+    #[DataProvider('engines')]
+    public function test_a_list_paged_with_cursors_pages_a_scout_search_by_number(string $engine): void
+    {
+        $this->app['config']->set('scout.driver', $engine);
+        Panneau::resources([NotesFeedResource::class]);
+        foreach (['Summer 1', 'Summer 2', 'Summer 3', 'Summer 4', 'Summer 5', 'Winter'] as $title) {
+            $this->createNote(['title' => $title]);
+        }
+
+        $titles = [];
+        $previous = [];
+        $cursor = null;
+        do {
+            $response = $this->getJson(self::API.'/resources/notes-feed?'.http_build_query(['q' => 'summer', 'cursor' => $cursor]))->assertOk();
+            array_push($titles, ...array_column($response->json('data'), 'title'));
+            $previous[] = $response->json('meta.previousCursor');
+            $this->assertArrayNotHasKey('total', $response->json('meta'));
+            $cursor = $response->json('meta.nextCursor');
+        } while ($cursor !== null);
+
+        sort($titles);
+        $this->assertSame(['Summer 1', 'Summer 2', 'Summer 3', 'Summer 4', 'Summer 5'], $titles);
+        // Pages 1 and 2 go back to the first page, without a cursor
+        $this->assertNull($previous[0]);
+        $this->assertNull($previous[1]);
+        $this->assertCount(2, $this->getJson(self::API.'/resources/notes-feed?'.http_build_query(['q' => 'summer', 'cursor' => $previous[2]]))->json('data'));
     }
 
     #[DataProvider('engines')]

@@ -26,6 +26,8 @@ final readonly class QueryOptions
      * @param  list<Sort>  $defaultSort  Sorts used when the query asks for none.
      * @param  list<string>  $searchFields  Fields searched by `q`. Empty: no search.
      * @param  list<string>|null  $fields  Fields that `fields` can ask for. Null: any.
+     * @param  bool  $cursorPagination  The list is paged with cursors: the query string has a
+     *                                  `cursor` instead of a `page`.
      */
     public function __construct(
         array $filters = [],
@@ -35,6 +37,7 @@ final readonly class QueryOptions
         public ?array $fields = null,
         public int $perPage = 20,
         public int $maxPerPage = 100,
+        public bool $cursorPagination = false,
     ) {
         $normalized = [];
         foreach ($filters as $key => $value) {

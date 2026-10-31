@@ -12,4 +12,16 @@ enum PostStatus: string
     {
         return ucfirst($this->value);
     }
+
+    /**
+     * Drafts have the default tone.
+     */
+    public function tone(): ?string
+    {
+        return match ($this) {
+            self::Draft => null,
+            self::Published => 'success',
+            self::Archived => 'warning',
+        };
+    }
 }

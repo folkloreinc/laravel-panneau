@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use LogicException;
 use Panneau\Fields\Text;
+use Panneau\Lists\ResourceList;
 use Panneau\Repositories\EloquentRepository;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
@@ -93,6 +94,8 @@ class ResourcesTest extends TestCase
 
         $this->assertInstanceOf(ArrayRepository::class, $registry->repository($registry->find('blog-posts')));
         $this->assertFalse($registry->searchable($registry->find('blog-posts')));
+        // Its list asks for cursors, but the repository can't
+        $this->assertFalse($registry->cursorPaginated($registry->find('blog-posts')));
     }
 
     public function test_a_resource_needs_a_repository_or_a_model(): void
@@ -197,6 +200,11 @@ class BlogPosts extends Resource
     public function fields(): array
     {
         return [Text::make('title')];
+    }
+
+    public function list(ResourceList $list): ResourceList
+    {
+        return $list->cursorPagination();
     }
 
     public function toItem(object $item): array
