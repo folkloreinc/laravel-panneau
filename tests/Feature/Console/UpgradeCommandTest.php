@@ -426,6 +426,35 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('hashed(false)', $secret->target);
     }
 
+    public function test_the_check_lists_passwords_that_dont_say_who_hashes(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Http/Fields.php', <<<'PHP'
+            <?php
+
+            namespace App\Http;
+
+            use Panneau\Fields\Password;
+
+            class Fields
+            {
+                public function all(): array
+                {
+                    return [
+                        Password::make('password')->label('Password'),
+                        Password::make('pin')->label('PIN')->hashed(false),
+                    ];
+                }
+            }
+            PHP);
+
+        // Outside the Rector rules' folder: 5.x would hash what the repository hashes again
+        $password = $this->finding('field-uses', "Password::make('password') without hashed()");
+        $this->assertSame('app/Http/Fields.php:12', $password->location);
+        $this->assertStringStartsWith('->hashed(false) when the repository hashes', $password->target);
+        $this->assertNull($this->audit()->section('field-uses')->find("Password::make('pin') without hashed()"));
+    }
+
     public function test_the_check_lists_a_concrete_1x_base_of_types(): void
     {
         $this->project('v1.4');

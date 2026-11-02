@@ -17,7 +17,7 @@ const report = await runConformance({
     init: { headers: { Authorization: 'Bearer conformance' } },
     resource: 'posts',
     writes: {
-        create: { title: 'Conformance', subtitle: { fr: 'Conformité', en: 'Conformance' }, status: 'draft' },
+        create: { title: 'Conformance', subtitle: { fr: 'Conformité', en: 'Conformance' }, status: 'draft', preview_password: 'conformance-preview' },
         update: { title: 'Conformance 2' },
     },
 });

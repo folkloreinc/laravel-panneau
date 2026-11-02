@@ -8,3 +8,6 @@ parameters:
     paths:
         - src
     tmpDir: build/phpstan
+    # Corrected types of the vendors
+    stubFiles:
+        - tests/phpstan/HashManager.stub

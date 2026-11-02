@@ -3,6 +3,7 @@
 namespace Panneau\Tests\Feature\Http;
 
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Panneau\Http\Problem;
 use Panneau\Support\Facade as Panneau;
@@ -53,10 +54,13 @@ class ResourceItemTest extends HttpTestCase
             'team_id' => 3,
             'secret' => 'injected',
             'id' => 999,
+            'preview_password' => 'preview-123',
         ])->assertCreated();
 
         $post = Post::query()->findOrFail($response->json('data.id'));
         $this->assertSame('New', $post->title);
+        $this->assertTrue(Hash::check('preview-123', (string) $post->preview_password));
+        $response->assertJsonPath('data.preview_password', null);
         $this->assertSame(1, $post->team_id);
         $this->assertNull($post->secret);
         $this->assertNotSame(999, $post->id);
@@ -89,7 +93,8 @@ class ResourceItemTest extends HttpTestCase
             ->assertJsonPath('type', Problem::VALIDATION)
             ->assertJsonPath('status', 422);
         $this->assertEqualsCanonicalizing(
-            ['title', 'subtitle.fr', 'status', 'author', 'blocks.1.image'],
+            // preview_password is required to create a post
+            ['title', 'subtitle.fr', 'status', 'author', 'blocks.1.image', 'preview_password'],
             array_keys($response->json('errors')),
         );
     }
@@ -128,7 +133,7 @@ class ResourceItemTest extends HttpTestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['secret']);
 
-        $created = $this->postJson(self::API.'/resources/posts-with-secret', ['title' => 'Created', 'status' => 'draft', 'secret' => 'new'])
+        $created = $this->postJson(self::API.'/resources/posts-with-secret', ['title' => 'Created', 'status' => 'draft', 'secret' => 'new', 'preview_password' => 'preview-123'])
             ->assertCreated()
             ->assertJsonPath('data.secret', null);
         $this->assertSame('new', Post::query()->findOrFail($created->json('data.id'))->secret);

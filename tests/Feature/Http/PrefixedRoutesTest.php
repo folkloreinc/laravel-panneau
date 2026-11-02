@@ -73,7 +73,7 @@ class PrefixedRoutesTest extends HttpTestCase
 
         $this->getJson($url)->assertOk()->assertJsonPath('data.0.id', (string) $post->id);
         $this->getJson($url.'/'.$post->id)->assertOk()->assertJsonPath('data.title', 'First');
-        $id = $this->postJson($url, ['title' => 'Second', 'status' => 'draft'])->assertCreated()->json('data.id');
+        $id = $this->postJson($url, ['title' => 'Second', 'status' => 'draft', 'preview_password' => 'preview-123'])->assertCreated()->json('data.id');
         $this->patchJson($url.'/'.$post->id, ['title' => 'Renamed'])->assertOk()->assertJsonPath('data.title', 'Renamed');
         $this->postJson($url.'/actions/publish-posts', ['selection' => ['ids' => [(string) $post->id]]])
             ->assertOk()

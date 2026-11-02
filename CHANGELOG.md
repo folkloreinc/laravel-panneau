@@ -6,7 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+Needs `@panneau/*` 5.0.0-alpha.10 or later, for the rules limited to a mode: an older admin applies them in both modes, and requires the password of a user on update.
+
 ### Added
+
+- Portable rules limited to a mode of the form: `required()`, `min()`, `max()`, `pattern()`, `in()`, `before()` and `after()` take a `mode` (`required(mode: FormMode::Create)`), sent as `{ "rule": "required", "mode": "create" }`, and the server applies them only in that mode; in the other, the field accepts no value. `isRequired()` takes a mode (folkloreinc/panneau-js#165, #140).
+- `--check` lists the `Password::make()` calls without `hashed()`, in every source folder: 5.x hashes in the field, and 1.x left it to the repository, which would hash twice (#141).
 
 - In the `panneau` auth mode, guests get the page of the app, without the definition, instead of a redirect: the app shows its login page when the API answers `401` (panneau-js decision 0037). `POST /auth/login` logs in with an email and a password on the guard of `panneau.auth.guard` (a session guard), throttled, and only for users the `viewPanneau` gate allows in; `POST /auth/logout` logs out. Password reset, two-factor and OAuth providers come later (#132).
 - The boot config has `auth`, the `auth` of the definition, so the login page knows which logins to offer before the definition is loaded (#132).
@@ -18,7 +23,13 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - Lists paged with cursors: `$list->cursorPagination()`, sent as `list.pagination: "cursor"` when the repository is `CursorPaginated`, as `EloquentRepository` is (`cursorPaginate()`). The list then reads `cursor` instead of `page` (`ResourceQuery::$cursor`), calls `cursorQuery()`, and answers `meta: { perPage, nextCursor, previousCursor }` without a total; an unreadable cursor is a `422` with `errors.cursor`. A Scout search pages by number behind its cursors. Numbered pages stay the default (panneau-js decision 0039, folkloreinc/panneau-js#150).
 - The page of the app writes `<meta property="csp-nonce">` when the request has a CSP nonce of Vite (`Vite::useCspNonce()`), so that `@panneau/app` and React Aria use it; views get it as `$nonce` (folkloreinc/panneau-js#152).
 
+### Changed
+
+- `Password` sends `{ "rule": "required", "mode": "create" }`, so the admin marks it required on create only, instead of a server-only rule; `required(mode: FormMode::Update)` makes it required on update too (#140).
+
 ### Fixed
+
+- `Password` keeps a hash that the app's hasher accepts (`Hash::verifyConfiguration()`), as Eloquent's `hashed` cast: a bcrypt hash of a lower cost was hashed again (#141).
 
 - `Panneau::routes()` moves the routes of the site registered before it, outside Panneau's path, after its own: a page route of the site such as `/{page}`, loaded first by a `RouteServiceProvider` listed before the provider that loads `routes/panneau.php`, caught `/panneau`. The site's routes under Panneau's path keep their precedence (#131).
 - The definition's `user` has the name and email of users that expose them as methods (`name()`, `email()`), as the entities of laravel-folklore, instead of an empty name (#135).

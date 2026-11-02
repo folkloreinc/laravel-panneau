@@ -286,6 +286,7 @@ class FieldCheckTest extends HttpTestCase
         $response = $this->postJson(self::API.'/resources/posts', [
             'title' => 'New',
             'status' => 'draft',
+            'preview_password' => 'preview-123',
             'slug' => ['fr' => 'ete', 'en' => 'ete'],
         ])->assertStatus(422);
         $this->assertSame(['slug.fr'], array_keys($response->json('errors')));
@@ -293,6 +294,7 @@ class FieldCheckTest extends HttpTestCase
         $this->postJson(self::API.'/resources/posts', [
             'title' => 'New',
             'status' => 'draft',
+            'preview_password' => 'preview-123',
             'slug' => ['fr' => 'summer', 'en' => 'ete'],
         ])->assertCreated();
     }

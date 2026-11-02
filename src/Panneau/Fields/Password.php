@@ -6,7 +6,6 @@ use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Panneau\Forms\FormMode;
-use Panneau\Forms\RuleSet;
 use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
 
@@ -16,8 +15,10 @@ use Panneau\Forms\ValidationContext;
  *
  * - **Write-only.** Its value is never sent: items give `null`, and the form starts empty.
  * - **Required to create the item,** optional to update it: an empty value keeps the current
- *   password, and the repository receives no value for it. `optional()` makes it optional to
- *   create too; `required()` is the default, and never applies to an update.
+ *   password, and the repository receives no value for it. The definition sends
+ *   `{ "rule": "required", "mode": "create" }`, so the admin marks it required on create only.
+ *   `optional()` makes it optional to create too; `required()` is the default, and applies to
+ *   an update only with `mode: FormMode::Update`.
  * - **Laravel's password rules,** `Password::defaults()`: 8 characters, unless the app sets
  *   others. `rules()` adds more.
  * - **Hashed once,** with `Hash::make()`: the repository receives the hash, never the
@@ -28,9 +29,11 @@ class Password extends Text
 {
     private bool $hashed = true;
 
-    private bool $requiredToCreate = true;
-
-    private ?string $requiredMessage = null;
+    public function __construct(string $name)
+    {
+        parent::__construct($name);
+        $this->required();
+    }
 
     /**
      * Whether the field hashes the password, or the repository does.
@@ -47,21 +50,16 @@ class Password extends Text
      */
     public function optional(): static
     {
-        $this->requiredToCreate = false;
-
-        return $this;
+        return $this->removeRule('required');
     }
 
     /**
-     * Required to create the item, the default: a password is never required to update it,
-     * since an empty value keeps the current one.
+     * Required to create the item, the default: an empty value keeps the current password on an
+     * update.
      */
-    public function required(?string $message = null): static
+    public function required(?string $message = null, ?FormMode $mode = null): static
     {
-        $this->requiredToCreate = true;
-        $this->requiredMessage = $message;
-
-        return $this;
+        return parent::required($message, $mode ?? FormMode::Create);
     }
 
     public function resolve(object $item): mixed
@@ -72,17 +70,6 @@ class Password extends Text
     public function omits(mixed $value, ValidationContext $context): bool
     {
         return $value === null || $value === '';
-    }
-
-    public function collectRules(RuleSet $rules, string $path, mixed $value, array $siblings, string $prefix, ValidationContext $context): void
-    {
-        parent::collectRules($rules, $path, $value, $siblings, $prefix, $context);
-        if ($this->requiredToCreate && $context->mode === FormMode::Create) {
-            $rules->add($path, ['required']);
-            if ($this->requiredMessage !== null) {
-                $rules->message($path, 'required', $this->requiredMessage);
-            }
-        }
     }
 
     protected function valueRules(ValidationContext $context): array
@@ -117,8 +104,9 @@ class Password extends Text
 
     protected function prepareValue(mixed $value, string $path, SaveContext $context): mixed
     {
-        // A hash of the app's hasher is kept as is: it would be hashed twice
-        $isHash = is_string($value) && Hash::isHashed($value) && ! Hash::needsRehash($value);
+        // A hash the app's hasher accepts is kept as is, as Eloquent's `hashed` cast does: it would
+        // be hashed twice. A bcrypt hash of a lower cost is one.
+        $isHash = is_string($value) && Hash::isHashed($value) && Hash::verifyConfiguration($value);
 
         return $this->hashed && is_string($value) && ! $isHash ? Hash::make($value) : $value;
     }

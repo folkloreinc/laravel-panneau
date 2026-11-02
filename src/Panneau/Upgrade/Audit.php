@@ -855,6 +855,39 @@ final class Audit
         foreach ($counts as $class => $count) {
             $uses->add(class_basename($class).' ×'.$count.' ('.V1::FIELDS[$class][0].')', V1::FIELDS[$class][1]);
         }
+        $this->auditPasswords($uses);
+    }
+
+    /**
+     * The `Password::make()` chains without `hashed()`: 5.x hashes the password in the field,
+     * and 1.x left it to the repository, which would hash it twice. Rector only converts
+     * `app/Panneau`.
+     */
+    private function auditPasswords(Section $uses): void
+    {
+        foreach ($this->sourceFiles() as $file) {
+            $hashed = [];
+            foreach ($this->code->find($file, Expr\MethodCall::class) as $call) {
+                if ($call->name instanceof Node\Identifier && $call->name->toString() === 'hashed') {
+                    $root = $call->var;
+                    while ($root instanceof Expr\MethodCall) {
+                        $root = $root->var;
+                    }
+                    $hashed[spl_object_id($root)] = true;
+                }
+            }
+            foreach ($this->code->find($file, Expr\StaticCall::class) as $call) {
+                if ($call->class instanceof Node\Name && $call->class->toString() === 'Panneau\\Fields\\Password'
+                    && $call->name instanceof Node\Identifier && $call->name->toString() === 'make'
+                    && ! isset($hashed[spl_object_id($call)])) {
+                    $uses->add(
+                        'Password::make('.Php::describe($call->getArgs()[0]->value ?? null, 30).') without hashed()',
+                        '->hashed(false) when the repository hashes the password, as in 1.x; nothing when it doesn\'t',
+                        $file.':'.$call->getStartLine(),
+                    );
+                }
+            }
+        }
     }
 
     /**

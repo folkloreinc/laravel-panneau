@@ -152,14 +152,14 @@ class Media extends Field
         $attribute = $this->label ?? str_replace('_', ' ', $this->name);
         $rules->attribute($path, $attribute);
         $server = $this->serverRules instanceof Closure ? ($this->serverRules)($context) : $this->serverRules;
-        $rules->add($path, [$this->isRequired() ? 'required' : 'nullable', 'array', ...$server]);
+        $rules->add($path, [$this->isRequired($context->mode) ? 'required' : 'nullable', 'array', ...$server]);
         foreach ($context->locales as $locale) {
             $localePath = $path.'.'.$locale;
             $rules->attribute($localePath, $attribute.' ('.$locale.')');
             $rules->add($localePath, [
-                $this->isRequired() ? 'required' : 'nullable',
+                $this->isRequired($context->mode) ? 'required' : 'nullable',
                 ...$this->valueRules($context),
-                ...$this->portableLaravelRules($rules, $localePath, $prefix),
+                ...$this->portableLaravelRules($rules, $localePath, $prefix, $context->mode),
             ]);
             $this->collectNestedRules($rules, $localePath, is_array($value) ? ($value[$locale] ?? null) : null, $context);
         }
