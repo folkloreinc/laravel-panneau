@@ -80,6 +80,8 @@ class Panneau implements PanneauContract
         ]);
 
         $before = $router->getRoutes()->getRoutes();
+        // The prefix of the caller's group, such as `tenants/{tenant}`
+        $outerPrefix = trim($router->getLastGroupPrefix(), '/');
 
         $search = (bool) $config->get('panneau.search.enabled', true);
         $embeds = (bool) $config->get('panneau.embeds.enabled', true);
@@ -121,21 +123,23 @@ class Panneau implements PanneauContract
             });
         }
 
-        $this->moveSiteRoutesAfter($router, $before, $group['prefix'] ?? '');
+        $this->moveSiteRoutesAfter($router, $before, trim($outerPrefix.'/'.($group['prefix'] ?? ''), '/'));
     }
 
     /**
      * Moves the routes of the site registered before Panneau's, outside Panneau's path, after
      * them: a page route of the site such as `/{page}` would catch `/panneau`, when the site
      * registers its routes first (a `RouteServiceProvider` listed before the provider that
-     * loads Panneau's). Routes of the site under Panneau's path keep their precedence.
+     * loads Panneau's). Routes of the site under Panneau's path, with the prefix of the
+     * caller's group, keep their precedence. A collection of another class (cached routes, a
+     * router's own) is left as it is.
      *
      * @param  list<Route>  $before
      */
     private function moveSiteRoutesAfter(Router $router, array $before, string $prefix): void
     {
         $routes = $router->getRoutes();
-        if ($prefix === '' || $before === [] || ! $routes instanceof RouteCollection) {
+        if ($prefix === '' || $before === [] || get_class($routes) !== RouteCollection::class) {
             return;
         }
         $outside = array_filter($before, function (Route $route) use ($prefix): bool {
@@ -146,10 +150,10 @@ class Panneau implements PanneauContract
         if ($outside === []) {
             return;
         }
-        $moved = array_map(spl_object_id(...), $outside);
+        $moved = array_flip(array_map(spl_object_id(...), $outside));
         $collection = new RouteCollection;
         foreach ($routes->getRoutes() as $route) {
-            if (! in_array(spl_object_id($route), $moved, true)) {
+            if (! isset($moved[spl_object_id($route)])) {
                 $collection->add($route);
             }
         }
