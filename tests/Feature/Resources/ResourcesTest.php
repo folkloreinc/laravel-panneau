@@ -5,6 +5,11 @@ namespace Panneau\Tests\Feature\Resources;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use LogicException;
+use Panneau\Actions\ClientAction;
+use Panneau\Actions\DeleteAction;
+use Panneau\Actions\EditAction;
+use Panneau\Actions\LinkAction;
+use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Text;
 use Panneau\Lists\ResourceList;
 use Panneau\Repositories\EloquentRepository;
@@ -17,6 +22,7 @@ use TestApp\Models\Post;
 use TestApp\Models\Tag;
 use TestApp\Panneau\Actions\PublishPosts;
 use TestApp\Panneau\Resources\AuthorsResource;
+use TestApp\Panneau\Resources\MediaLibraryResource;
 use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Panneau\Resources\TagsResource;
 use TestApp\Repositories\Adapters\ArrayRepository;
@@ -124,6 +130,76 @@ class ResourcesTest extends TestCase
         $this->assertNull($registry->action($posts, 'missing'));
     }
 
+    public function test_resources_have_the_actions_they_list(): void
+    {
+        $registry = $this->registry();
+        $ids = fn (string $resource): array => array_map(fn (ActionDeclaration $action): string => $action->id(), $registry->actions($registry->find($resource)));
+
+        $this->assertSame([], $ids('tags'));
+        $this->assertSame(['publish-posts', 'archive-posts', 'preview', 'copy-link'], $ids('posts'));
+    }
+
+    public function test_every_resource_has_the_built_in_delete(): void
+    {
+        $registry = $this->registry();
+
+        $this->assertInstanceOf(DeleteAction::class, $registry->action($registry->find('tags'), 'delete'));
+        $this->assertNull($registry->action($registry->find('tags'), 'edit'));
+        // A declared one replaces it
+        $this->app->forgetInstance(ResourceRegistry::class);
+        $registry = $this->app->make(ResourceRegistry::class);
+        $delete = new class extends DeleteAction
+        {
+            public function label(): string
+            {
+                return 'Remove';
+            }
+        };
+        $registry->register([new BlogPostsWithActions([$delete, EditAction::make()->url('/blog/{id}')])]);
+        $this->assertSame($delete, $registry->action($registry->all()[0], 'delete'));
+    }
+
+    public function test_the_ids_of_the_built_in_links_are_reserved_for_links(): void
+    {
+        $actions = [
+            new class extends DeleteAction
+            {
+                public function id(): string
+                {
+                    return 'edit';
+                }
+            },
+            ClientAction::make('show')->component('show-modal'),
+        ];
+        foreach ($actions as $action) {
+            $this->app->forgetInstance(ResourceRegistry::class);
+            $registry = $this->app->make(ResourceRegistry::class);
+            $registry->register([new BlogPostsWithActions([$action])]);
+            try {
+                $registry->actions($registry->all()[0]);
+                $this->fail('A '.$action->toDefinition()['kind'].' action took the id '.$action->id());
+            } catch (LogicException $exception) {
+                $this->assertStringContainsString('reserved for the built-in link', $exception->getMessage());
+            }
+        }
+
+        // A link of the project can replace them
+        $this->app->forgetInstance(ResourceRegistry::class);
+        $registry = $this->app->make(ResourceRegistry::class);
+        $registry->register([new BlogPostsWithActions([LinkAction::make('edit')->url('/blog/{id}/edit')])]);
+        $this->assertSame('/blog/{id}/edit', $registry->action($registry->all()[0], 'edit')?->toDefinition()['url']);
+    }
+
+    public function test_items_can_be_duplicated_with_a_duplicable_repository_outside_media_libraries(): void
+    {
+        $registry = $this->app->make(ResourceRegistry::class);
+        $registry->register([PostsResource::class, new BlogPosts, MediaLibraryResource::class]);
+
+        $this->assertTrue($registry->duplicable($registry->find('posts')));
+        $this->assertFalse($registry->duplicable($registry->find('blog-posts')));
+        $this->assertFalse($registry->duplicable($registry->resolve(MediaLibraryResource::class)));
+    }
+
     public function test_query_options_come_from_the_list(): void
     {
         $registry = $this->registry();
@@ -210,5 +286,18 @@ class BlogPosts extends Resource
     public function toItem(object $item): array
     {
         return ['id' => 'ignored', 'title' => $item->title.'!'];
+    }
+}
+
+class BlogPostsWithActions extends BlogPosts
+{
+    /**
+     * @param  list<ActionDeclaration>  $actions
+     */
+    public function __construct(private readonly array $actions) {}
+
+    public function actions(): array
+    {
+        return $this->actions;
     }
 }

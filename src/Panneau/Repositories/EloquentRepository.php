@@ -2,11 +2,13 @@
 
 namespace Panneau\Repositories;
 
+use Closure;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -14,6 +16,7 @@ use Illuminate\Pagination\Cursor;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Scout\Builder as ScoutBuilder;
+use LogicException;
 use Panneau\Contracts\Repositories\ChunkedQuery;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
@@ -22,6 +25,7 @@ use Panneau\Contracts\ResourceRepository;
 use Panneau\Query\CursorPage;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
+use Panneau\Resources\Duplication;
 use ReflectionMethod;
 use ReflectionNamedType;
 use UnexpectedValueException;
@@ -194,17 +198,36 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
         )));
     }
 
-    public function duplicate(object $item, array $scope): object
+    /**
+     * Copies the model with `replicate()`, and the relations of the duplication, in one
+     * transaction. Other relations aren't copied: a `BelongsTo` keeps its parent, since it is an
+     * attribute.
+     */
+    public function duplicate(object $item, array $scope, Duplication $duplication, array $values = [], ?Closure $before = null, ?Closure $after = null): object
     {
-        $copy = $this->ensureModel($item)->replicate();
-        foreach ($scope as $column => $value) {
-            if (! self::isConstraint($value)) {
-                $copy->setAttribute($column, $value);
-            }
-        }
-        $copy->save();
+        $source = $this->ensureModel($item);
 
-        return $copy->refresh();
+        return $source->getConnection()->transaction(function () use ($source, $scope, $duplication, $values, $before, $after): Model {
+            $copy = $source->replicate();
+            $this->fill($copy, $values);
+            foreach ($scope as $column => $value) {
+                if (! self::isConstraint($value)) {
+                    $copy->setAttribute($column, $value);
+                }
+            }
+            if ($before !== null) {
+                $before($copy);
+            }
+            $copy->save();
+            $this->copyRelations($source, $copy, $duplication->relationsToCopy());
+            $this->syncRelations($copy, $values);
+            $copy->refresh();
+            if ($after !== null) {
+                $after($copy);
+            }
+
+            return $copy;
+        });
     }
 
     public function chunk(ResourceQuery $query, int $size, callable $callback): void
@@ -548,6 +571,55 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
                         ? $related->newQuery()->whereIn($related->getRouteKeyName(), $ids)->pluck($related->getKeyName())->all()
                         : [],
                 );
+            }
+        }
+    }
+
+    /**
+     * Copies relations of a model to its copy: the pivot rows of `BelongsToMany` (and
+     * `MorphToMany`), and the children of `HasOne`/`HasMany` (and their morph versions), with
+     * the relations of the children after a dot (`blocks.media`).
+     *
+     * @param  list<string>  $paths
+     */
+    protected function copyRelations(Model $source, Model $copy, array $paths): void
+    {
+        $nested = [];
+        foreach ($paths as $path) {
+            [$name, $rest] = array_pad(explode('.', $path, 2), 2, null);
+            $nested[$name] ??= [];
+            if ($rest !== null) {
+                $nested[$name][] = $rest;
+            }
+        }
+        foreach ($nested as $name => $children) {
+            $relation = $this->relation($source, $name);
+            if ($relation instanceof BelongsToMany) {
+                $foreignKey = $relation->getForeignPivotKeyName();
+                $rows = $relation->newPivotQuery()->get()->map(function (object $row) use ($foreignKey, $copy, $relation): array {
+                    $row = (array) $row;
+                    // An incrementing id of the pivot table is the copy's own
+                    unset($row['id']);
+                    $row[$foreignKey] = $copy->getAttribute($relation->getParentKeyName());
+
+                    return $row;
+                })->all();
+                if ($rows !== []) {
+                    $relation->newPivotStatement()->insert($rows);
+                }
+            } elseif ($relation instanceof HasOneOrMany) {
+                foreach ($relation->get() as $child) {
+                    $childCopy = $child->replicate();
+                    $childCopy->setAttribute($relation->getForeignKeyName(), $copy->getAttribute($relation->getLocalKeyName()));
+                    $childCopy->save();
+                    $this->copyRelations($child, $childCopy, $children);
+                }
+            } elseif (! $relation instanceof BelongsTo) {
+                throw new LogicException(sprintf(
+                    'The relation "%s" of %s can\'t be copied: only BelongsToMany, MorphToMany, HasOne, HasMany, MorphOne and MorphMany are.',
+                    $name,
+                    $source::class,
+                ));
             }
         }
     }

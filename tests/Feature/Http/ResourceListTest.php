@@ -4,6 +4,8 @@ namespace Panneau\Tests\Feature\Http;
 
 use Panneau\Http\Problem;
 use Panneau\Support\Facade;
+use TestApp\Models\Author;
+use TestApp\Models\Tag;
 use TestApp\Policies\PostPolicy;
 
 class ResourceListTest extends HttpTestCase
@@ -30,11 +32,44 @@ class ResourceListTest extends HttpTestCase
         $this->assertSame((string) $post->id, $item['id']);
         $this->assertIsString($item['version']);
         $this->assertSame(
-            ['view' => true, 'update' => false, 'delete' => false, 'publish-posts' => true, 'archive-posts' => false],
+            ['view' => true, 'update' => false, 'delete' => false, 'duplicate' => true, 'publish-posts' => true, 'archive-posts' => false],
             $item['abilities'],
         );
         $this->assertArrayNotHasKey('secret', $item);
         $this->assertArrayNotHasKey('team_id', $item);
+    }
+
+    public function test_items_have_the_abilities_of_the_built_in_actions(): void
+    {
+        // The app shows show, edit, delete and duplicate on an item by its abilities
+        Facade::allowWithoutPolicies();
+        $this->createPost();
+        Author::query()->create(['name' => 'Ada']);
+        Tag::query()->create(['name' => 'News', 'slug' => 'news']);
+
+        foreach (['posts', 'authors', 'tags'] as $resource) {
+            $items = $this->getJson(self::API.'/resources/'.$resource)->assertOk()->json('data');
+            $this->assertNotEmpty($items, $resource);
+            foreach ($items as $item) {
+                foreach (['view', 'update', 'delete', 'duplicate'] as $ability) {
+                    $this->assertIsBool($item['abilities'][$ability] ?? null, $resource.': '.$ability);
+                }
+                // Links don't run: they aren't abilities of their own
+                $this->assertArrayNotHasKey('edit', $item['abilities'], $resource);
+                $this->assertArrayNotHasKey('show', $item['abilities'], $resource);
+            }
+        }
+    }
+
+    public function test_items_say_whether_they_can_be_duplicated(): void
+    {
+        Author::query()->create(['name' => 'Ada']);
+        Author::query()->create(['name' => 'Unique']);
+
+        // The duplicate method of the policy, when it has one
+        $abilities = array_column($this->getJson(self::API.'/resources/authors')->assertOk()->json('data'), 'abilities', 'name');
+        $this->assertTrue($abilities['Ada']['duplicate']);
+        $this->assertFalse($abilities['Unique']['duplicate']);
     }
 
     public function test_an_empty_list(): void

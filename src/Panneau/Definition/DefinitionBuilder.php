@@ -192,6 +192,13 @@ final class DefinitionBuilder
                 $definition[$key] = $value;
             }
         }
+        // Left out when they are the defaults, so that definitions stay as they were
+        if ($resource->open() !== 'panel') {
+            $definition['open'] = $resource->open();
+        }
+        if ($resource->itemActions() !== null) {
+            $definition['itemActions'] = $resource->itemActions();
+        }
         $definition['fields'] = array_map(fn (Field $field): array => $this->field($field), $fields);
 
         $layout = $resource->layout();

@@ -72,12 +72,12 @@ namespace App\Panneau\Resources;
 use Panneau\Resources\Resource;
 use App\Panneau\Resources\Pages\Page;
 use Panneau\Lists\ResourceList;
-use Panneau\Actions\DeleteAction;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Text;
 use App\Http\Resources\PageResource;
 use App\Panneau\Fields\Sites;
 
+// TODO(panneau-5): the 1.x list had a duplicate button: opt in with duplication(), and list what a copy includes (Duplication::make()->relations([...]), duplicating())
 class Pages extends Resource
 {
     public function repository(): ?string
@@ -112,7 +112,7 @@ class Pages extends Resource
         return trans('panneau.pages.name');
     }
 
-    // TODO(panneau-5): the rest of the 1.x index, then delete it: the column parent, the duplicate action, the search: $list->search([...]) with the fields to search, the filter site_id (select)
+    // TODO(panneau-5): the rest of the 1.x index, then delete it: the column parent, the search: $list->search([...]) with the fields to search, the filter site_id (select)
     public function index(): ?array
     {
         return [
@@ -132,10 +132,6 @@ class Pages extends Resource
     public function list(ResourceList $list): ResourceList
     {
         return $list->columns(['title', 'published'])->sorts(['title']);
-    }
-    public function actions(): array
-    {
-        return [DeleteAction::class];
     }
 
     public function fields(): array

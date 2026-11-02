@@ -16,4 +16,9 @@ class AuthorPolicy
     {
         return true;
     }
+
+    public function duplicate(Authenticatable $user, Author $author): bool
+    {
+        return $author->name !== 'Unique';
+    }
 }

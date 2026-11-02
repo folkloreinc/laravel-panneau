@@ -5,9 +5,11 @@ namespace Panneau\Resources;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 use LogicException;
-use Panneau\Actions\Action;
+use Panneau\Actions\BuiltInLink;
+use Panneau\Actions\DeleteAction;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Contracts\Repositories\CursorPaginated;
+use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\ResourceRepository;
 use Panneau\Lists\ResourceList;
@@ -174,6 +176,18 @@ final class ResourceRegistry
     }
 
     /**
+     * Whether the items of a resource can be duplicated: the resource opts in with
+     * `duplication()`, and its repository is `Duplicable`. Media libraries can't, since a copy
+     * would share the file of its media.
+     */
+    public function duplicable(Resource $resource): bool
+    {
+        return ! $resource instanceof MediaResource
+            && $resource->duplication() !== null
+            && $this->repository($resource) instanceof Duplicable;
+    }
+
+    /**
      * Whether a resource is in the global search, whoever the user: `search` of its
      * `features()` when set, or else whether its list has a search. A repository that isn't
      * `Searchable` can't search, whatever its features say.
@@ -203,25 +217,36 @@ final class ResourceRegistry
     }
 
     /**
-     * The actions of a resource, resolved.
+     * The actions of a resource, resolved. The ids `show` and `edit` are reserved for links
+     * (`ShowAction`, `EditAction`, or a `LinkAction` with its own target).
      *
      * @return list<ActionDeclaration>
      */
     public function actions(Resource $resource): array
     {
-        return array_map(function (string|ActionDeclaration $action): ActionDeclaration {
-            if ($action instanceof ActionDeclaration) {
-                return $action;
-            }
-            $instance = $this->container->make($action);
-            if (! $instance instanceof Action) {
+        return array_map(function (string|ActionDeclaration $action) use ($resource): ActionDeclaration {
+            $instance = $action instanceof ActionDeclaration ? $action : $this->container->make($action);
+            if (! $instance instanceof ActionDeclaration) {
                 throw new InvalidArgumentException(sprintf('%s is not an action.', $action));
+            }
+            if (in_array($instance->id(), BuiltInLink::IDS, true)
+                && ! $instance instanceof BuiltInLink && ($instance->toDefinition()['kind'] ?? null) !== 'link') {
+                throw new LogicException(sprintf(
+                    'The action %s of the resource "%s" has the id "%s", which is reserved for the built-in link.',
+                    $instance::class,
+                    $resource->id(),
+                    $instance->id(),
+                ));
             }
 
             return $instance;
         }, $resource->actions());
     }
 
+    /**
+     * An action of a resource: one it declares, or the built-in `delete`, which every resource
+     * has (the app shows it by the `delete` ability of each item).
+     */
     public function action(Resource $resource, string $id): ?ActionDeclaration
     {
         foreach ($this->actions($resource) as $action) {
@@ -230,7 +255,7 @@ final class ResourceRegistry
             }
         }
 
-        return null;
+        return $id === 'delete' ? $this->container->make(DeleteAction::class) : null;
     }
 
     private function makeRepository(Resource $resource): ResourceRepository

@@ -6,8 +6,10 @@ use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
+use Panneau\Actions\DeleteAction;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use WeakMap;
 
 /**
  * Authorizes every operation through Policies: the policy of the item, or of the resource's
@@ -22,6 +24,13 @@ final class Authorizer
     public const ITEM_ABILITIES = ['view', 'update', 'delete'];
 
     private bool $allowWithoutPolicies = false;
+
+    /**
+     * The `create` ability of each resource, by user.
+     *
+     * @var WeakMap<Authenticatable, array<string, bool>>|null
+     */
+    private ?WeakMap $creates = null;
 
     public function __construct(
         private readonly Gate $gate,
@@ -71,6 +80,10 @@ final class Authorizer
         if ($allowed !== null) {
             return $allowed;
         }
+        if ($action instanceof DeleteAction) {
+            // The ability the app shows the built-in delete by
+            return $this->allowsItem($user, $resource, 'delete', $item);
+        }
         if (! $this->hasPolicy($resource, $item)) {
             return $this->allowWithoutPolicies;
         }
@@ -81,6 +94,44 @@ final class Authorizer
             is_object($policy) && method_exists($policy, $method) ? $method : 'update',
             $item,
         );
+    }
+
+    /**
+     * Whether the user can duplicate an item: never when the repository can't, nor when the
+     * user can't view the item, since the copy is answered in full. Then the policy's
+     * `duplicate` method, or else `create` on the resource.
+     */
+    public function allowsDuplicate(?Authenticatable $user, Resource $resource, object $item): bool
+    {
+        if (! $this->resources->duplicable($resource) || ! $this->allowsItem($user, $resource, 'view', $item)) {
+            return false;
+        }
+        if (! $this->hasPolicy($resource, $item)) {
+            return $this->allowWithoutPolicies;
+        }
+        $policy = $this->gate->getPolicyFor($item) ?? $this->gate->getPolicyFor((string) $resource->itemClass());
+
+        return is_object($policy) && method_exists($policy, 'duplicate')
+            ? $this->gate->forUser($user)->allows('duplicate', $item)
+            : $this->allowsCreate($user, $resource);
+    }
+
+    /**
+     * `create` on the resource, once per user: the fallback of `duplicate` on each item.
+     */
+    private function allowsCreate(?Authenticatable $user, Resource $resource): bool
+    {
+        if ($user === null) {
+            return $this->allowsResource($user, $resource, 'create');
+        }
+        $this->creates ??= new WeakMap;
+        $allowed = $this->creates[$user] ?? [];
+        if (! isset($allowed[$resource->id()])) {
+            $allowed[$resource->id()] = $this->allowsResource($user, $resource, 'create');
+            $this->creates[$user] = $allowed;
+        }
+
+        return $allowed[$resource->id()];
     }
 
     /**
@@ -118,8 +169,9 @@ final class Authorizer
     }
 
     /**
-     * The abilities of an item: `view`, `update`, `delete`, and the ids of the server actions
-     * on items or selections that the user can run on it.
+     * The abilities of an item: `view`, `update`, `delete`, `duplicate`, and the ids of the
+     * server actions on items or selections that the user can run on it. The app shows the
+     * built-in actions of an item by its abilities.
      *
      * @return array<string, bool>
      */
@@ -129,6 +181,7 @@ final class Authorizer
         foreach (self::ITEM_ABILITIES as $ability) {
             $abilities[$ability] = $this->allowsItem($user, $resource, $ability, $item);
         }
+        $abilities['duplicate'] = $this->allowsDuplicate($user, $resource, $item);
         foreach ($this->resources->actions($resource) as $action) {
             if ($action instanceof Action && $action->appliesToItems()) {
                 $abilities[$action->id()] = $this->allowsActionOnResource($user, $action)

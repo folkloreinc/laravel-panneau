@@ -7,12 +7,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use LogicException;
 use Panneau\Contracts\Repositories\Restorable;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
 use Panneau\Query\SortDirection;
 use Panneau\Repositories\EloquentRepository;
 use Panneau\Repositories\SoftDeletingEloquentRepository;
+use Panneau\Resources\Duplication;
 use Panneau\Tests\TestCase;
 use TestApp\Models\Author;
 use TestApp\Models\Document;
@@ -306,11 +308,26 @@ class EloquentRepositoryTest extends TestCase
     {
         $post = $this->createPost(['title' => 'Original', 'team_id' => 1]);
 
-        $copy = $this->posts->duplicate($post, ['team_id' => 1]);
+        $copy = $this->posts->duplicate($post, ['team_id' => 1], Duplication::make());
 
         $this->assertNotSame($post->id, $copy->id);
         $this->assertSame('Original', $copy->title);
         $this->assertSame(2, Post::query()->count());
+    }
+
+    public function test_duplicate_refuses_what_it_cant_copy(): void
+    {
+        $post = $this->createPost(['title' => 'Original', 'team_id' => 1]);
+
+        try {
+            // Not a relation of the model
+            $this->posts->duplicate($post, ['team_id' => 1], Duplication::make()->relations(['title']));
+            $this->fail('A field that is not a relation was copied.');
+        } catch (LogicException $exception) {
+            $this->assertStringContainsString('"title"', $exception->getMessage());
+        }
+        // Nothing is saved: the copy runs in a transaction
+        $this->assertSame(1, Post::query()->count());
     }
 
     public function test_chunk_walks_every_matching_item(): void

@@ -495,6 +495,92 @@
                 }
             }
         },
+        "/resources/{resource}/{id}/duplicate": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "Item id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "duplicateItem",
+                "description": "Copies an item, for the built-in `duplicate` (decision 0040). Allowed on the items whose `abilities.duplicate` is `true`.",
+                "responses": {
+                    "201": {
+                        "description": "The copy, a new item.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemResponse"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "ETag": {
+                                "description": "The version of the item.",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "The copy conflicts with another item, such as a unique value.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/resources/{resource}/{id}/preview": {
             "parameters": [
                 {
@@ -2704,6 +2790,7 @@
                         "minLength": 1
                     },
                     "label": {
+                        "description": "Required, except for the built-in item actions (`show`, `edit`, `duplicate`, `delete`), which the client labels in its locale.",
                         "type": "string"
                     },
                     "icon": {
@@ -2778,11 +2865,111 @@
                 },
                 "required": [
                     "id",
-                    "label",
                     "scope"
                 ],
                 "additionalProperties": {},
-                "description": "An operation on one item, a selection, or the whole resource."
+                "description": "An operation on one item, a selection, or the whole resource.",
+                "allOf": [
+                    {
+                        "if": {
+                            "properties": {
+                                "id": {
+                                    "enum": [
+                                        "show",
+                                        "edit",
+                                        "duplicate",
+                                        "delete"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id"
+                            ]
+                        },
+                        "else": {
+                            "required": [
+                                "label"
+                            ]
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "id": {
+                                    "enum": [
+                                        "show",
+                                        "edit"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "kind": {
+                                    "const": "link"
+                                }
+                            },
+                            "required": [
+                                "kind"
+                            ]
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "kind": {
+                                    "const": "link"
+                                },
+                                "id": {
+                                    "not": {
+                                        "enum": [
+                                            "show",
+                                            "edit"
+                                        ]
+                                    }
+                                }
+                            },
+                            "required": [
+                                "kind",
+                                "id"
+                            ]
+                        },
+                        "then": {
+                            "anyOf": [
+                                {
+                                    "required": [
+                                        "url"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "route"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "kind": {
+                                    "const": "client"
+                                }
+                            },
+                            "required": [
+                                "kind"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "component"
+                            ]
+                        }
+                    }
+                ]
             },
             "ResourceFeatures": {
                 "type": "object",
@@ -2872,6 +3059,30 @@
                     "itemImage": {
                         "description": "The field that holds the image of an item (a media or a URL), in search results, cards and pickers.",
                         "type": "string"
+                    },
+                    "open": {
+                        "description": "Where an item's title goes, in its list and wherever the app links to the item (decision 0040). `panel`, the default: the show route, with the item's details in a panel next to the list. `edit`: its edit form, and the show route redirects there. Clients treat a value they don't know as `panel`.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "panel",
+                                    "edit"
+                                ]
+                            },
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            }
+                        ]
+                    },
+                    "itemActions": {
+                        "description": "The built-in item actions the resource shows, in their order (decision 0040): some of `show`, `edit`, `duplicate` and `delete`. Defaults to all four. Each one is shown on the items whose abilities allow it (`view`, `update`, `duplicate`, `delete`). `[]` shows none. Clients ignore ids they don't know.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
                     },
                     "fields": {
                         "type": "array",

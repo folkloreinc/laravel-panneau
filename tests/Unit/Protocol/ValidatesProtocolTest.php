@@ -4,6 +4,7 @@ namespace Panneau\Tests\Unit\Protocol;
 
 use Panneau\Tests\Concerns\ValidatesProtocol;
 use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -60,6 +61,42 @@ class ValidatesProtocolTest extends TestCase
     {
         $definition = $this->definition();
         $definition['resources'][0]['form']['layout'][0]['name'] = 'body';
+
+        $this->expectException(AssertionFailedError::class);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_the_built_in_links_need_no_label_nor_target(): void
+    {
+        $definition = $this->definition();
+        $definition['resources'][0]['open'] = 'edit';
+        $definition['resources'][0]['actions'] = [
+            ['id' => 'show', 'kind' => 'link', 'scope' => ['item']],
+            ['id' => 'edit', 'kind' => 'link', 'scope' => ['item']],
+        ];
+
+        $this->assertValidDefinition($definition);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function invalidActions(): iterable
+    {
+        yield 'an action without a label' => [['id' => 'publish', 'kind' => 'server', 'scope' => ['item']]];
+        yield 'a server action with the id edit' => [['id' => 'edit', 'kind' => 'server', 'scope' => ['item']]];
+        yield 'an action with the id show and no kind' => [['id' => 'show', 'label' => 'Show', 'scope' => ['item']]];
+        yield 'a link without a target' => [['id' => 'preview', 'label' => 'Preview', 'kind' => 'link', 'scope' => ['item']]];
+    }
+
+    /**
+     * @param  array<string, mixed>  $action
+     */
+    #[DataProvider('invalidActions')]
+    public function test_invalid_actions_fail(array $action): void
+    {
+        $definition = $this->definition();
+        $definition['resources'][0]['actions'] = [$action];
 
         $this->expectException(AssertionFailedError::class);
         $this->assertValidDefinition($definition);

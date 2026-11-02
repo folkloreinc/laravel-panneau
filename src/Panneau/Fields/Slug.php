@@ -3,6 +3,7 @@
 namespace Panneau\Fields;
 
 use Closure;
+use Illuminate\Support\Str;
 use Panneau\Forms\FieldCheck;
 use Panneau\Forms\RuleSet;
 use Panneau\Forms\ValidationContext;
@@ -163,6 +164,45 @@ class Slug extends Text
         }
 
         return null;
+    }
+
+    /**
+     * The value of the copy of an item, for a unique slug: the item's with `-copy`, or `-copy-2`,
+     * `-copy-3`…, the first free one, in each locale. Other slugs keep the value.
+     *
+     * @param  Closure(string, ?string): bool  $taken  Whether a value is taken, in a locale.
+     */
+    public function copyValue(mixed $value, Closure $taken): mixed
+    {
+        if (! $this->unique) {
+            return $value;
+        }
+        if ($this->localized && is_array($value)) {
+            foreach ($value as $locale => $localeValue) {
+                $value[$locale] = is_string($localeValue) && $localeValue !== '' ? $this->freeCopy($localeValue, (string) $locale, $taken) : $localeValue;
+            }
+
+            return $value;
+        }
+
+        return is_string($value) && $value !== '' ? $this->freeCopy($value, null, $taken) : $value;
+    }
+
+    /**
+     * @param  Closure(string, ?string): bool  $taken
+     */
+    private function freeCopy(string $value, ?string $locale, Closure $taken): string
+    {
+        $base = rtrim($value, '-').'-copy';
+        for ($number = 1; $number <= static::SUGGESTIONS; $number++) {
+            $candidate = $number === 1 ? $base : $base.'-'.$number;
+            if (! $taken($candidate, $locale)) {
+                return $candidate;
+            }
+        }
+
+        // Saving answers a conflict if this one is taken too
+        return $base.'-'.Str::lower(Str::random(6));
     }
 
     public function collectRules(RuleSet $rules, string $path, mixed $value, array $siblings, string $prefix, ValidationContext $context): void

@@ -5,6 +5,7 @@ namespace Panneau\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
+use Panneau\Actions\BuiltInLink;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Text;
@@ -134,13 +135,42 @@ abstract class Resource
     }
 
     /**
-     * The actions: `Action` classes, or declarations such as `LinkAction::make()`.
+     * The actions: `Action` classes, or declarations such as `LinkAction::make()`. The built-in
+     * item actions (`show`, `edit`, `duplicate`, `delete`) need no declaration: an action with
+     * their id replaces them, such as `EditAction::make()->url(...)` or a `DeleteAction` with its
+     * own confirmation.
      *
-     * @return list<class-string<Action>|ActionDeclaration>
+     * @return list<class-string<Action>|class-string<BuiltInLink>|ActionDeclaration>
      */
     public function actions(): array
     {
         return [];
+    }
+
+    /**
+     * The built-in item actions the app shows, in their order: `show`, `edit`, `duplicate` and
+     * `delete`, each on the items whose ability allows it (`view`, `update`, `duplicate`,
+     * `delete`). Null, the default, shows all four; `[]` none. It only changes what the app
+     * shows: the policy decides what the API allows.
+     *
+     * @return list<'show'|'edit'|'duplicate'|'delete'>|null
+     */
+    public function itemActions(): ?array
+    {
+        return null;
+    }
+
+    /**
+     * What an item's title opens, in its list and wherever the app links to the item: `panel`,
+     * its details in a panel next to the list, or `edit`, its form. With `edit`, the item's show
+     * route redirects to its form, and the app leaves out `show`. Use it when the panel
+     * adds nothing to the form.
+     *
+     * @return 'panel'|'edit'
+     */
+    public function open(): string
+    {
+        return 'panel';
     }
 
     /**
@@ -285,4 +315,27 @@ abstract class Resource
     public function deleting(object $item): void {}
 
     public function deleted(object $item): void {}
+
+    /**
+     * Whether items can be duplicated, and what a copy includes: `Duplication::make()`, with
+     * the relations to copy. Null, the default: the built-in `duplicate` is off, since only the
+     * resource knows what a copy needs (its blocks, its media, its children). The repository
+     * also has to be `Duplicable`.
+     */
+    public function duplication(): ?Duplication
+    {
+        return null;
+    }
+
+    /**
+     * Called before the copy of an item is saved, with the copy: change its values there (a
+     * title, a status). Unique slugs are already free (`-copy`, `-copy-2`…).
+     */
+    public function duplicating(object $item, object $copy): void {}
+
+    /**
+     * Called once the copy of an item is saved, in the same transaction: copy relations there,
+     * which the repository doesn't copy.
+     */
+    public function duplicated(object $item, object $copy): void {}
 }

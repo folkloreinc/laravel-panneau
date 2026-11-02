@@ -23,6 +23,11 @@ use PhpParser\NodeFinder;
  */
 final class Audit
 {
+    /**
+     * The built-in item actions of 5.x, in the order the app shows them by default.
+     */
+    private const ITEM_ACTIONS = ['show', 'edit', 'duplicate', 'delete'];
+
     public const CONFIG = 'config/panneau.php';
 
     public const ROUTES = 'routes/panneau.php';
@@ -671,15 +676,55 @@ final class Audit
         foreach (Php::items($index) as $key => $value) {
             match ($key) {
                 'columns' => $this->auditColumns($finding, $value),
+                'withoutActionsColumn' => $finding->add('withoutActionsColumn', 'itemActions(): [] when it is true'),
                 'filters' => $this->auditFilters($finding, $value),
                 'actions' => $finding->add('actions: '.count(Php::items($value)).' buttons', 'actions(): LinkAction, or actions of the resource'),
                 'batchActions' => $finding->add('batchActions: '.count(Php::items($value)), 'actions() with ActionScope::Selection'),
                 'actionsProps' => $finding->add('actionsProps: '.$this->describe($value), str_contains($this->describe($value), 'Duplicate')
-                    ? 'DuplicateAction (not built yet)' : 'manual: actions()'),
+                    ? 'manual: duplication() on the resource, with what a copy includes' : 'manual: actions()'),
                 'withFadedId' => $finding->add('withFadedId', 'nothing'),
                 default => $finding->add("{$key}: {$this->describe($value)}", 'manual: list() or a JS plugin'),
             };
         }
+    }
+
+    /**
+     * What the buttons of a 1.x `actions` column become: `itemActions()` with its built-in
+     * buttons, which the Rector rules write, or nothing for the four of the 5.x default.
+     *
+     * @param  list<string>  $buttons
+     */
+    private function buttonsTarget(array $buttons): string
+    {
+        $builtIn = [];
+        $manual = [];
+        foreach ($buttons as $button) {
+            if (in_array($button, self::ITEM_ACTIONS, true)) {
+                $builtIn[] = $button;
+            } elseif ($button !== 'create') {
+                // create has none: the list has its own button
+                $manual[] = "{$button}, a LinkAction or an Action";
+            }
+        }
+        $others = [];
+        $builtIn = array_values(array_unique($builtIn));
+        $target = $builtIn === self::ITEM_ACTIONS
+            ? 'nothing: the four built-in item actions, by the abilities of the policy'
+            : "itemActions(): ['".implode("', '", $builtIn)."'], by the abilities of the policy";
+        if ($builtIn === []) {
+            $target = 'itemActions(): []';
+        }
+        if ($builtIn !== [] && ! in_array('show', $builtIn, true)) {
+            $others[] = "no show: open() can return 'edit'";
+        }
+        if (in_array('duplicate', $builtIn, true)) {
+            // Shown only once the resource says what a copy includes
+            $manual[] = 'duplicate, with duplication() on the resource and what a copy includes';
+        }
+
+        $manual = $manual !== [] ? ['manual: '.implode('; ', $manual)] : [];
+
+        return implode('; ', [...$manual, $target, ...$others]);
     }
 
     private function auditColumns(Finding $finding, Expr $columns): void
@@ -698,10 +743,13 @@ final class Audit
             $id = is_string($id) ? $id : '?';
             if ($id === 'actions' || isset($items['actions'])) {
                 $actions = Php::value($items['actions'] ?? null);
-                $names = is_array($actions) ? implode(', ', array_filter($actions, 'is_string')) : '?';
-                $finding->add("column actions: {$names}", 'actions(): show and edit are built in, DeleteAction, DuplicateAction (not built yet)');
-
-                continue;
+                $names = is_array($actions) ? array_values(array_filter($actions, 'is_string')) : null;
+                $finding->add('column actions: '.($names !== null ? implode(', ', $names) : '?'), $names !== null
+                    ? $this->buttonsTarget($names)
+                    : 'manual: itemActions() with its buttons (show, edit, duplicate, delete), by the abilities of the policy');
+                if ($id === 'actions') {
+                    continue;
+                }
             }
             $ids[] = $id;
             if (Php::value($items['sortable'] ?? null) === true) {

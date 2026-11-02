@@ -5,7 +5,6 @@ namespace TestApp\Panneau\Resources;
 use Illuminate\Http\Request;
 use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ClientAction;
-use Panneau\Actions\DeleteAction;
 use Panneau\Actions\LinkAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
@@ -38,6 +37,7 @@ use Panneau\Lists\Filters\RelationFilter;
 use Panneau\Lists\Filters\SelectFilter;
 use Panneau\Lists\Filters\ToggleFilter;
 use Panneau\Lists\ResourceList;
+use Panneau\Resources\Duplication;
 use Panneau\Resources\Resource;
 use TestApp\Models\Post;
 use TestApp\Models\PostStatus;
@@ -123,10 +123,22 @@ class PostsResource extends Resource
         return [
             PublishPosts::class,
             ArchivePosts::class,
-            DeleteAction::class,
             LinkAction::make('preview')->url('/posts/{id}/preview')->placement([ActionPlacement::Form]),
             ClientAction::make('copy-link')->component('copy-link'),
         ];
+    }
+
+    public function duplication(): Duplication
+    {
+        return Duplication::make()->relations(['tags']);
+    }
+
+    public function duplicating(object $item, object $copy): void
+    {
+        if ($item instanceof Post && $copy instanceof Post) {
+            $copy->title = $item->title.' (copy)';
+            $copy->status = 'draft';
+        }
     }
 
     public function scope(Request $request): array

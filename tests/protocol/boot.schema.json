@@ -209,6 +209,28 @@
                 "itemImage": {
                     "type": "string"
                 },
+                "open": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "panel",
+                                "edit"
+                            ]
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
+                },
+                "itemActions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
                 "fields": {
                     "type": "array",
                     "items": {
@@ -1069,10 +1091,110 @@
             },
             "required": [
                 "id",
-                "label",
                 "scope"
             ],
-            "additionalProperties": {}
+            "additionalProperties": {},
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "id": {
+                                "enum": [
+                                    "show",
+                                    "edit",
+                                    "duplicate",
+                                    "delete"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ]
+                    },
+                    "else": {
+                        "required": [
+                            "label"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "id": {
+                                "enum": [
+                                    "show",
+                                    "edit"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "kind": {
+                                "const": "link"
+                            }
+                        },
+                        "required": [
+                            "kind"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "kind": {
+                                "const": "link"
+                            },
+                            "id": {
+                                "not": {
+                                    "enum": [
+                                        "show",
+                                        "edit"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "kind",
+                            "id"
+                        ]
+                    },
+                    "then": {
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "url"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "route"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "kind": {
+                                "const": "client"
+                            }
+                        },
+                        "required": [
+                            "kind"
+                        ]
+                    },
+                    "then": {
+                        "required": [
+                            "component"
+                        ]
+                    }
+                }
+            ]
         },
         "ActionScope": {
             "type": "string",

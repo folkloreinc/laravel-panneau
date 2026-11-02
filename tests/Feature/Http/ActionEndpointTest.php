@@ -139,6 +139,9 @@ class ActionEndpointTest extends HttpTestCase
         $this->runAction('unknown', ['selection' => ['ids' => ['1']]])->assertNotFound();
         $this->runAction('preview', ['selection' => ['ids' => ['1']]])->assertNotFound();
         $this->runAction('copy-link', ['selection' => ['ids' => ['1']]])->assertNotFound();
+        // The built-in links don't run
+        $this->runAction('edit', ['selection' => ['ids' => ['1']]])->assertNotFound();
+        $this->runAction('show', ['selection' => ['ids' => ['1']]])->assertNotFound();
     }
 
     public function test_view_any_is_required(): void
@@ -249,21 +252,22 @@ class ActionEndpointTest extends HttpTestCase
         $this->assertSame('published', $post->refresh()->status);
     }
 
-    public function test_the_delete_action_is_declared_in_the_definition(): void
+    public function test_the_built_in_delete_asks_the_delete_ability(): void
+    {
+        $post = $this->createPost();
+        PostPolicy::$denied = ['delete'];
+
+        // Not update, as other actions without a method of their own
+        $this->runAction('delete', ['selection' => ['ids' => [(string) $post->id]]])->assertForbidden();
+        $this->assertSame(1, Post::query()->count());
+    }
+
+    public function test_the_built_in_delete_needs_no_declaration(): void
     {
         $actions = array_column($this->getJson(self::API.'/definition')->json('resources.0.actions'), null, 'id');
 
-        $this->assertSame([
-            'id' => 'delete',
-            'label' => 'Delete',
-            'icon' => 'trash',
-            'kind' => 'server',
-            'scope' => ['item', 'selection'],
-            'destructive' => true,
-            'confirm' => true,
-            'dryRun' => true,
-            'abilities' => ['run' => true],
-        ], $actions['delete']);
+        // The app shows it by the delete ability of each item; test_the_delete_action runs it
+        $this->assertArrayNotHasKey('delete', $actions);
         $this->assertTrue($actions['archive-posts']['dryRun']);
         $this->assertArrayNotHasKey('dryRun', $actions['publish-posts']);
     }

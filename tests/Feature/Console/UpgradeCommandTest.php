@@ -144,7 +144,19 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('$list->columns([...]) of the fields', $index->detail('columns: title, type, sites, published')?->target);
         $this->assertSame('$list->sorts([...])', $index->detail('sortable: title')?->target);
         $this->assertSame('RelationFilter on a resource', $index->detail('filter site_id: select')?->target);
-        $this->assertSame('DuplicateAction (not built yet)', $index->detail("actionsProps: ['hasDuplicateRoute' => true]")?->target);
+        // Only the resource knows what a copy includes
+        $this->assertSame('manual: duplication() on the resource, with what a copy includes', $index->detail("actionsProps: ['hasDuplicateRoute' => true]")?->target);
+        // The buttons of each row become actions of the resource
+        $this->assertSame(
+            // The four of the 5.x default, once the resource says what a copy includes
+            'manual: duplicate, with duplication() on the resource and what a copy includes; nothing: the four built-in item actions, by the abilities of the policy',
+            $index->detail('column actions: show, edit, duplicate, delete')?->target,
+        );
+        $this->assertTrue((bool) $index->detail('column actions: show, edit, duplicate, delete')?->isManual());
+        $this->assertSame(
+            "itemActions(): ['show', 'edit', 'delete'], by the abilities of the policy",
+            $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail('column actions: show, edit, delete')?->target,
+        );
         $this->assertTrue((bool) $index->detail('column sites: component site-badges')?->isManual());
 
         // 1.x ids are camel case, 5.x ids kebab case
@@ -254,6 +266,7 @@ class UpgradeCommandTest extends TestCase
         $orders = $this->finding('resources', 'Orders (orders)');
         $this->assertTrue((bool) $orders->detail('settings()')?->isManual());
         $this->assertSame('actions(): LinkAction, or actions of the resource', $orders->detail('index()')?->detail('actions: 1 buttons')?->target);
+        $this->assertSame("itemActions(): ['show', 'edit'], by the abilities of the policy", $orders->detail('index()')?->detail('column actions: show, edit')?->target);
         $this->assertTrue((bool) $this->finding('resources', 'Pages (pages)')->detail('index()')?->detail('the index is built at runtime')?->isManual());
         $this->assertTrue((bool) $this->finding('resources', 'Users (users)')->detail("\$roles = ['admin', 'editor']")?->isManual());
 
@@ -813,6 +826,74 @@ class UpgradeCommandTest extends TestCase
         $projects = $this->finding('resources', 'Projects (projects)');
         $this->assertSame([], $projects->details);
         $this->assertSame(0, $projects->manualCount());
+    }
+
+    public function test_the_check_says_what_the_buttons_of_the_rows_become(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Resources/Projects.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Fields\Text;
+            use Panneau\Support\Resource;
+
+            class Projects extends Resource
+            {
+                public function index(): ?array
+                {
+                    return [
+                        'columns' => [
+                            ['id' => 'title', 'path' => 'title', 'actions' => ['create', 'edit', 'delete']],
+                            ['id' => 'actions', 'actions' => ['print']],
+                        ],
+                    ];
+                }
+
+                public function fields(): array
+                {
+                    return [Text::make('title')];
+                }
+            }
+            PHP);
+
+        $index = $this->finding('resources', 'Projects (projects)')->detail('index()');
+        $this->assertNotNull($index);
+        // Without show, the resource may open its items in their form
+        $this->assertSame(
+            "itemActions(): ['edit', 'delete'], by the abilities of the policy; no show: open() can return 'edit'",
+            $index->detail('column actions: create, edit, delete')?->target,
+        );
+        // The buttons on the column of a field leave the column
+        $this->assertSame('$list->columns([...]) of the fields', $index->detail('columns: title')?->target);
+        $this->assertTrue((bool) $index->detail('column actions: print')?->isManual());
+
+        // Buttons that aren't a literal list are unknown
+        file_put_contents($this->project.'/app/Panneau/Resources/Projects.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Fields\Text;
+            use Panneau\Support\Resource;
+
+            class Projects extends Resource
+            {
+                private const BUTTONS = ['edit'];
+
+                public function index(): ?array
+                {
+                    return ['columns' => ['title', ['id' => 'actions', 'actions' => self::BUTTONS]]];
+                }
+
+                public function fields(): array
+                {
+                    return [Text::make('title')];
+                }
+            }
+            PHP);
+        $this->assertTrue((bool) $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail('column actions: ?')?->isManual());
     }
 
     public function test_the_check_leaves_out_the_js_of_panneau_5(): void

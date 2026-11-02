@@ -14,7 +14,10 @@ use Rector\Rector\AbstractRector;
 
 /**
  * Converts the `index()` of a 1.x resource to `list()`: its columns that are fields, and its
- * sortable columns. A `delete` action becomes `DeleteAction` in `actions()`. What's left
+ * sortable columns. The built-in buttons of its `actions` column (`show`, `edit`, `duplicate`,
+ * `delete`) become `itemActions()`, in their order, so that the list shows what it showed in
+ * 1.x. Nothing is written when they are the four of the 5.x default, nor without an `actions`
+ * column: the four are shown by abilities. What's left
  * (filters, other actions, columns that aren't fields) is listed in a
  * `// TODO(panneau-5)` comment on `index()`, which is kept until it's moved; without anything
  * left, `index()` is removed.
@@ -24,6 +27,12 @@ use Rector\Rector\AbstractRector;
 final class ResourceIndexRector extends AbstractRector
 {
     private const LIST = 'Panneau\\Lists\\ResourceList';
+
+    /**
+     * The built-in item actions of 5.x, in the order the app shows them when the resource
+     * doesn't say (`itemActions()` returns null). `create` has none: the list has its own button.
+     */
+    private const ITEM_ACTIONS = ['show', 'edit', 'duplicate', 'delete'];
 
     public function __construct(private readonly ProjectClasses $classes) {}
 
@@ -53,7 +62,10 @@ final class ResourceIndexRector extends AbstractRector
         $fields = $this->fieldNames($node);
         $columns = [];
         $sorts = [];
-        $delete = false;
+        $buttons = [];
+        $actionsColumn = false;
+        $unresolved = false;
+        $withoutButtons = false;
         $left = [];
         foreach (Php::items($return->expr) as $key => $value) {
             if ($key === 'columns') {
@@ -62,16 +74,24 @@ final class ResourceIndexRector extends AbstractRector
                     $id = Php::value($column) ?? null;
                     $id = is_string($id) ? $id : Php::value($items['id'] ?? $items['name'] ?? $items['path'] ?? null);
                     if (isset($items['actions']) || $id === 'actions') {
+                        $actionsColumn = true;
                         $actions = Php::value($items['actions'] ?? null);
+                        if (! is_array($actions)) {
+                            // A constant or a call: the buttons are unknown
+                            $unresolved = true;
+                            $left[] = 'the buttons of the actions column, in itemActions()';
+                        }
                         foreach (is_array($actions) ? $actions : [] as $action) {
-                            if ($action === 'delete') {
-                                $delete = true;
-                            } elseif (! in_array($action, ['show', 'edit', 'create'], true)) {
+                            if (is_string($action) && in_array($action, self::ITEM_ACTIONS, true)) {
+                                $buttons[] = $action;
+                            } elseif ($action !== 'create') {
                                 $left[] = 'the '.(is_string($action) ? $action : 'custom').' action';
                             }
                         }
-
-                        continue;
+                        // The buttons can be on the column of a field, which stays a column
+                        if ($id === 'actions' || ! is_string($id) || ! in_array($id, $fields, true)) {
+                            continue;
+                        }
                     }
                     if (! is_string($id) || ! in_array($id, $fields, true)) {
                         $left[] = 'the column '.(is_string($id) ? $id : Php::describe($column, 40));
@@ -98,40 +118,61 @@ final class ResourceIndexRector extends AbstractRector
 
                 continue;
             }
+            if ($key === 'withoutActionsColumn') {
+                $withoutButtons = Php::value($value) === true;
+
+                continue;
+            }
             $left[] = match ($key) {
                 'withFadedId' => null,
-                'actionsProps' => str_contains(Php::describe($value), 'Duplicate') ? 'the duplicate action' : 'actionsProps',
+                // The duplicate route: the duplicate button of the column decides
+                'actionsProps' => str_contains(Php::describe($value), 'Duplicate') ? null : 'actionsProps',
                 'actions' => 'the buttons of actions',
                 'batchActions' => 'batchActions: actions on a selection',
                 default => is_string($key) ? $key : null,
             };
         }
         $left = array_values(array_unique(array_filter($left)));
-        if ($columns === [] && ! $delete) {
-            return Todo::add($index, ['the 1.x index: write list() and actions() from it, then delete it']) ? $node : null;
+        $buttons = array_values(array_unique($buttons));
+        $duplicates = in_array('duplicate', $buttons, true) || str_contains(Php::describe($return->expr), 'Duplicate');
+        // Without an actions column, or with the four of the default, the default is right
+        $writesButtons = $withoutButtons || ($actionsColumn && ! $unresolved && $buttons !== self::ITEM_ACTIONS);
+        if ($withoutButtons) {
+            $buttons = [];
+        }
+        if ($columns === [] && ! $writesButtons) {
+            return Todo::add($index, ['the 1.x index: write list() and itemActions() from it, then delete it']) ? $node : null;
         }
 
         $factory = new BuilderFactory;
-        $list = new Expr\Variable('list');
+        $methods = [];
         if ($columns !== []) {
-            $list = new Expr\MethodCall($list, 'columns', [new Node\Arg($this->nodeFactory->createArray($columns))]);
-        }
-        if ($sorts !== []) {
-            $list = new Expr\MethodCall($list, 'sorts', [new Node\Arg($this->nodeFactory->createArray($sorts))]);
-        }
-        $methods = [
-            $factory->method('list')->makePublic()
+            $list = new Expr\MethodCall(new Expr\Variable('list'), 'columns', [new Node\Arg($this->nodeFactory->createArray($columns))]);
+            if ($sorts !== []) {
+                $list = new Expr\MethodCall($list, 'sorts', [new Node\Arg($this->nodeFactory->createArray($sorts))]);
+            }
+            $methods[] = $factory->method('list')->makePublic()
                 ->addParam($factory->param('list')->setType(new FullyQualified(self::LIST)))
                 ->setReturnType(new FullyQualified(self::LIST))
                 ->addStmt(new Stmt\Return_($list))
-                ->getNode(),
-        ];
-        if ($delete && $node->getMethod('actions') === null) {
-            $methods[] = $factory->method('actions')->makePublic()->setReturnType('array')
-                ->addStmt(new Stmt\Return_(new Expr\Array_([
-                    new Node\ArrayItem(new Expr\ClassConstFetch(new FullyQualified('Panneau\\Actions\\DeleteAction'), 'class')),
-                ], ['kind' => Expr\Array_::KIND_SHORT])))
                 ->getNode();
+        }
+        $itemActions = $node->getMethod('itemActions');
+        if ($writesButtons && $itemActions === null) {
+            $itemActions = $factory->method('itemActions')->makePublic()->setReturnType('array')
+                ->addStmt(new Stmt\Return_($this->nodeFactory->createArray($buttons)))
+                ->getNode();
+            $methods[] = $itemActions;
+        } elseif ($writesButtons) {
+            Todo::add($itemActions, ['the 1.x list showed these buttons in its rows: '.($buttons === [] ? 'none' : implode(', ', $buttons))]);
+        }
+        if ($itemActions !== null && $buttons !== [] && ! in_array('show', $buttons, true)) {
+            Todo::add($itemActions, ["the 1.x list had no show button: if the panel of an item adds nothing to its form, open it in its form with open(): 'edit'"]);
+        }
+
+        if ($duplicates) {
+            // Only the resource knows what a copy includes
+            Todo::add($node, ['the 1.x list had a duplicate button: opt in with duplication(), and list what a copy includes (Duplication::make()->relations([...]), duplicating())']);
         }
 
         $stmts = [];
