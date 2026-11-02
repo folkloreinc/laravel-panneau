@@ -317,6 +317,17 @@ abstract class Resource
     public function deleted(object $item): void {}
 
     /**
+     * Whether items can be duplicated, and what a copy includes: `Duplication::make()`, with
+     * the relations to copy. Null, the default: the built-in `duplicate` is off, since only the
+     * resource knows what a copy needs (its blocks, its media, its children). The repository
+     * also has to be `Duplicable`.
+     */
+    public function duplication(): ?Duplication
+    {
+        return null;
+    }
+
+    /**
      * Called before the copy of an item is saved, with the copy: change its values there (a
      * title, a status). Unique slugs are already free (`-copy`, `-copy-2`…).
      */

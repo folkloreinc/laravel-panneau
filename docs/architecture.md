@@ -372,13 +372,29 @@ final class PublishPages extends Action
 - **Declaration.** `label()`, `icon()`, `scope()`, `placement()`, `destructive()`, `confirm()`, `fields()` and `layout()` are serialized into the definition. The action id is derived from the class name (`publish-pages`), or set with `id()`.
 - **Kinds.** Server actions extend `Action`. `LinkAction::make('preview')->url(...)` and `ClientAction::make('copy-link')->component('copy-link')` cover the two other kinds, with no PHP logic.
 - **Built-in item actions** ([panneau-js decision 0040](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0040-row-links-and-open-mode.md)). `show`, `edit`, `duplicate` and `delete` exist on every resource without being declared. The app shows each one on the items whose ability allows it: `view`, `update`, `duplicate`, `delete`; a missing or `false` ability hides it. It labels them and gives them their icons.
-  - **Abilities.** Every item has the four: `view`, `update` and `delete` from the policy; `duplicate` from the policy's `duplicate()`, or else `create` on the resource, and `false` when the repository isn't `Duplicable` (`ResourceRegistry::duplicable()`) or for a media library, whose copies would share the media's file.
+  - **Abilities.** Every item has the four: `view`, `update` and `delete` from the policy; `duplicate` from the policy's `duplicate()`, or else `create` on the resource, and `false` unless the resource opts in with `duplication()` (below), when the repository isn't `Duplicable`, or for a media library, whose copies would share the media's file (`ResourceRegistry::duplicable()`).
   - **`itemActions()`** says which ones the app shows, in which order: `['edit', 'delete']`, `[]` for none. Null, the default, shows the four, and is left out of the definition. It only changes what the app shows: the policy decides what the API allows.
   - **`delete`** is the action `delete`, which answers for every resource (`POST /resources/{resource}/actions/delete`, with selections and dry runs), authorized by the policy's `delete`. It isn't in the definition: declare a `DeleteAction` (or a subclass) to change its label or confirmation, and the declared one replaces it.
-  - **`duplicate`** is `POST /resources/{resource}/{id}/duplicate`, answered `201` with the copy and its `ETag`; `403` when the item's `duplicate` ability is false (it needs `view` on the item, since the copy is answered in full), `404` outside the scope.
-    - The repository's `duplicate()` copies the item within the resource's scope. `EloquentRepository` uses `replicate()`: it copies the attributes, not the relations (`BelongsToMany`, the pivots of media), and runs neither the `creating`/`created` hooks of the resource nor the preparation of the fields (`Form::prepare()`).
-    - Unique slugs (`Slug::unique()`) get a free value: the item's with `-copy`, then `-copy-2`, `-copy-3`…, in each locale. Another unique value of the table is a `409` problem, and nothing is saved.
-    - The resource's `duplicating($item, $copy)` changes the copy before it is saved (a title, a status), and `duplicated($item, $copy)` runs once it is (to copy relations). With Eloquent, both run in the transaction of the copy: an exception rolls it back.
+  - **`duplicate`** is off until the resource opts in: only it knows what a copy needs (its blocks, its media, its children), and a copy that leaves them out is worse than none. `duplication()` returns what a copy includes; the repository has to be `Duplicable` too (`EloquentRepository` is).
+
+    ```php
+    public function duplication(): ?Duplication
+    {
+        return Duplication::make()->relations(['tags', 'sections', 'sections.media']);
+    }
+
+    public function duplicating(object $page, object $copy): void
+    {
+        $copy->title = $page->title.' (copy)'; // before the copy is saved
+        $copy->published_at = null;
+    }
+    ```
+
+    - `POST /resources/{resource}/{id}/duplicate` answers `201` with the copy and its `ETag`; `403` when the item's `duplicate` ability is false (it needs `view` on the item, since the copy is answered in full), `404` outside the scope, and `409` when the copy still hits a unique value of the table (nothing is saved).
+    - **What is copied.** `EloquentRepository` copies the attributes with `replicate()` (so a `BelongsTo` keeps its parent), and the relations of `relations()`: `BelongsToMany` and `MorphToMany` attach the copy to the same items with the same pivot values (an order, a handle); `HasOne`, `HasMany`, `MorphOne` and `MorphMany` copy the children, and `sections.media` the relations of the copied children. Another kind of relation throws.
+    - **What is never copied by default:** relations that `relations()` doesn't list, the files of media (a copy points to the same media), and what isn't a relation of the model. The `creating`/`created`/`saved` hooks of the resource and the preparation of the fields (`Form::prepare()`) don't run.
+    - **Unique slugs** (`Slug::unique()`) get a free value: the item's with `-copy`, then `-copy-2`, `-copy-3`…, in each locale.
+    - **Hooks.** `duplicating($item, $copy)` changes the copy before it is saved, and `duplicated($item, $copy)` runs once it is saved with its relations. With Eloquent, all of it runs in one transaction: an exception rolls the copy back.
   - **`show` and `edit`** are links the app resolves to its routes. `EditAction` and `ShowAction` replace them: `EditAction::make()->url('/editor/{id}')`, `->route(...)`, `->label(...)`, `->placement(...)`, sent as `{ "id": "edit", "kind": "link", "scope": ["item"], … }`. They don't run: `POST /resources/{resource}/actions/edit` is a `404`. The ids `show` and `edit` are reserved for links: a server or client action that has one throws when the actions are resolved.
 - **What opens an item.** `Resource::open()` returns `'panel'` (the default, left out of the definition): the title of an item opens its panel, next to the list. With `'edit'` (sent as `"open": "edit"`), it opens its form, the show route redirects there, and the app leaves out `show`. An item that can't be updated still opens in its panel. Use it when the panel adds nothing to the form (orders, users).
 - **Selection:**
@@ -404,7 +420,7 @@ final class PublishPages extends Action
   - Items are processed in chunks (`chunkSize()`), through a job batch. This needs a repository with the `ChunkedQuery` capability.
   - Progress and results are stored in a `panneau_action_runs` table, and `ActionRunFinished` is dispatched at the end.
   - An action that can't be queued refuses selections above the limit with a `422`.
-- **Built-in actions:** the item actions above (`delete`, which answers dry runs, and `duplicate`, for repositories that are `Duplicable`); the others are **not built yet**.
+- **Built-in actions:** the item actions above (`delete`, which answers dry runs, and `duplicate`, for the resources that opt in); the others are **not built yet**.
   - `RestoreAction`: for repositories that are `Restorable`.
   - `ExportAction`: CSV, or XLSX with an optional dependency; queued.
   - `ImportAction`: file field and column mapping; validates each row with the resource's rules; queued.

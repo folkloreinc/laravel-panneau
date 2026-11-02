@@ -134,6 +134,7 @@ final class ResourceIndexRector extends AbstractRector
         }
         $left = array_values(array_unique(array_filter($left)));
         $buttons = array_values(array_unique($buttons));
+        $duplicates = in_array('duplicate', $buttons, true) || str_contains(Php::describe($return->expr), 'Duplicate');
         // Without an actions column, or with the four of the default, the default is right
         $writesButtons = $withoutButtons || ($actionsColumn && ! $unresolved && $buttons !== self::ITEM_ACTIONS);
         if ($withoutButtons) {
@@ -167,6 +168,11 @@ final class ResourceIndexRector extends AbstractRector
         }
         if ($itemActions !== null && $buttons !== [] && ! in_array('show', $buttons, true)) {
             Todo::add($itemActions, ["the 1.x list had no show button: if the panel of an item adds nothing to its form, open it in its form with open(): 'edit'"]);
+        }
+
+        if ($duplicates) {
+            // Only the resource knows what a copy includes
+            Todo::add($node, ['the 1.x list had a duplicate button: opt in with duplication(), and list what a copy includes (Duplication::make()->relations([...]), duplicating())']);
         }
 
         $stmts = [];

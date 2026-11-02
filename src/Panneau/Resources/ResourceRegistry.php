@@ -176,12 +176,15 @@ final class ResourceRegistry
     }
 
     /**
-     * Whether the items of a resource can be duplicated: its repository is `Duplicable`. Media
-     * libraries can't, since a copy would share the file of its media.
+     * Whether the items of a resource can be duplicated: the resource opts in with
+     * `duplication()`, and its repository is `Duplicable`. Media libraries can't, since a copy
+     * would share the file of its media.
      */
     public function duplicable(Resource $resource): bool
     {
-        return ! $resource instanceof MediaResource && $this->repository($resource) instanceof Duplicable;
+        return ! $resource instanceof MediaResource
+            && $resource->duplication() !== null
+            && $this->repository($resource) instanceof Duplicable;
     }
 
     /**

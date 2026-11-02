@@ -37,6 +37,7 @@ use Panneau\Lists\Filters\RelationFilter;
 use Panneau\Lists\Filters\SelectFilter;
 use Panneau\Lists\Filters\ToggleFilter;
 use Panneau\Lists\ResourceList;
+use Panneau\Resources\Duplication;
 use Panneau\Resources\Resource;
 use TestApp\Models\Post;
 use TestApp\Models\PostStatus;
@@ -125,6 +126,11 @@ class PostsResource extends Resource
             LinkAction::make('preview')->url('/posts/{id}/preview')->placement([ActionPlacement::Form]),
             ClientAction::make('copy-link')->component('copy-link'),
         ];
+    }
+
+    public function duplication(): Duplication
+    {
+        return Duplication::make()->relations(['tags']);
     }
 
     public function duplicating(object $item, object $copy): void

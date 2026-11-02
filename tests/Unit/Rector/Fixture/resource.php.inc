@@ -77,6 +77,7 @@ use Panneau\Fields\Text;
 use App\Http\Resources\PageResource;
 use App\Panneau\Fields\Sites;
 
+// TODO(panneau-5): the 1.x list had a duplicate button: opt in with duplication(), and list what a copy includes (Duplication::make()->relations([...]), duplicating())
 class Pages extends Resource
 {
     public function repository(): ?string

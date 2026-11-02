@@ -191,7 +191,8 @@ final class ResourceController
         $repository = $this->resources->repository($resource);
         // The copy is answered in full: never for an item the user can't view
         $this->authorizeItem($request, $resource, 'view', $item);
-        if (! $repository instanceof Duplicable || ! $this->authorizer->allowsDuplicate($request->user(), $resource, $item)) {
+        $duplication = $resource->duplication();
+        if ($duplication === null || ! $repository instanceof Duplicable || ! $this->authorizer->allowsDuplicate($request->user(), $resource, $item)) {
             throw new AuthorizationException;
         }
 
@@ -199,6 +200,7 @@ final class ResourceController
             $copy = $repository->duplicate(
                 $item,
                 $resource->repositoryScope($request),
+                $duplication,
                 $this->copyValues($request, $resource, $item),
                 fn (object $copy) => $resource->duplicating($item, $copy),
                 fn (object $copy) => $resource->duplicated($item, $copy),

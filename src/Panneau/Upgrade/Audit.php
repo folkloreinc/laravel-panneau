@@ -681,7 +681,7 @@ final class Audit
                 'actions' => $finding->add('actions: '.count(Php::items($value)).' buttons', 'actions(): LinkAction, or actions of the resource'),
                 'batchActions' => $finding->add('batchActions: '.count(Php::items($value)), 'actions() with ActionScope::Selection'),
                 'actionsProps' => $finding->add('actionsProps: '.$this->describe($value), str_contains($this->describe($value), 'Duplicate')
-                    ? 'nothing: duplicate is a built-in item action (itemActions())' : 'manual: actions()'),
+                    ? 'manual: duplication() on the resource, with what a copy includes' : 'manual: actions()'),
                 'withFadedId' => $finding->add('withFadedId', 'nothing'),
                 default => $finding->add("{$key}: {$this->describe($value)}", 'manual: list() or a JS plugin'),
             };
@@ -703,7 +703,7 @@ final class Audit
                 $builtIn[] = $button;
             } elseif ($button !== 'create') {
                 // create has none: the list has its own button
-                $manual[] = $button;
+                $manual[] = "{$button}, a LinkAction or an Action";
             }
         }
         $others = [];
@@ -717,8 +717,12 @@ final class Audit
         if ($builtIn !== [] && ! in_array('show', $builtIn, true)) {
             $others[] = "no show: open() can return 'edit'";
         }
+        if (in_array('duplicate', $builtIn, true)) {
+            // Shown only once the resource says what a copy includes
+            $manual[] = 'duplicate, with duplication() on the resource and what a copy includes';
+        }
 
-        $manual = $manual !== [] ? ['manual: '.implode(', ', $manual).', a LinkAction or an Action'] : [];
+        $manual = $manual !== [] ? ['manual: '.implode('; ', $manual)] : [];
 
         return implode('; ', [...$manual, $target, ...$others]);
     }
