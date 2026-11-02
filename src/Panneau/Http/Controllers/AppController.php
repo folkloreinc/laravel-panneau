@@ -4,6 +4,7 @@ namespace Panneau\Http\Controllers;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\View\Factory as View;
+use Illuminate\Foundation\Vite;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Panneau\Contracts\Panneau;
@@ -14,6 +15,9 @@ use Panneau\Definition\DefinitionBuilder;
  * `@panneau/app`. Served for every path of the app, since the app routes on the client. Guests
  * get it in the `panneau` auth mode, without the definition: the app shows its login page.
  *
+ * The view gets the CSP nonce of Vite (`Vite::useCspNonce()`), if the request has one, which the
+ * default view writes in `<meta property="csp-nonce">` for `@panneau/app`.
+ *
  * @internal
  */
 final class AppController
@@ -23,6 +27,7 @@ final class AppController
         private readonly DefinitionBuilder $definition,
         private readonly Config $config,
         private readonly View $view,
+        private readonly Vite $vite,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -38,6 +43,7 @@ final class AppController
             'title' => $this->definition->name(),
             'entry' => is_string($entry) || is_array($entry) ? $entry : 'resources/js/panneau.tsx',
             'buildDirectory' => is_string($buildDirectory) ? $buildDirectory : null,
+            'nonce' => $this->vite->cspNonce(),
         ])->render();
 
         return new Response($html, 200, ['Cache-Control' => 'no-store, private']);

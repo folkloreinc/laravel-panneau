@@ -7,6 +7,7 @@ use InvalidArgumentException;
 use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Contracts\ActionDeclaration;
+use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\ResourceRepository;
 use Panneau\Lists\ResourceList;
@@ -163,6 +164,16 @@ final class ResourceRegistry
     }
 
     /**
+     * Whether the list of a resource is paged with cursors: the list asks for it, and its
+     * repository is `CursorPaginated`.
+     */
+    public function cursorPaginated(Resource $resource): bool
+    {
+        return $this->repository($resource) instanceof CursorPaginated
+            && $this->list($resource)->paginatesWithCursors();
+    }
+
+    /**
      * Whether a resource is in the global search, whoever the user: `search` of its
      * `features()` when set, or else whether its list has a search. A repository that isn't
      * `Searchable` can't search, whatever its features say.
@@ -187,6 +198,7 @@ final class ResourceRegistry
             array_map(fn ($field): string => $field->name(), $resource->allFields()),
             $perPage,
             $maxPerPage,
+            $this->cursorPaginated($resource),
         );
     }
 

@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Panneau\Auth\Authorizer;
+use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\VersionConflictException;
 use Panneau\Forms\Form;
@@ -57,8 +58,21 @@ final class ResourceController
             ),
             $resource->repositoryScope($request),
         );
-        $page = $this->resources->repository($resource)->query($query);
-        $items = array_values($page->items());
+        $repository = $this->resources->repository($resource);
+        if ($repository instanceof CursorPaginated && $this->resources->cursorPaginated($resource)) {
+            $page = $repository->cursorQuery($query);
+            $items = $page->items;
+            $meta = $page->meta();
+        } else {
+            $page = $repository->query($query);
+            $items = array_values($page->items());
+            $meta = [
+                'page' => $page->currentPage(),
+                'perPage' => $page->perPage(),
+                'total' => $page->total(),
+                'lastPage' => max(1, $page->lastPage()),
+            ];
+        }
         $references = $this->mediaReferences($request);
         $references->preload($resource, $items);
 
@@ -67,12 +81,7 @@ final class ResourceController
                 fn (object $item): array => $this->item($request, $resource, $item, $query->fields, $references),
                 $items,
             ),
-            'meta' => [
-                'page' => $page->currentPage(),
-                'perPage' => $page->perPage(),
-                'total' => $page->total(),
-                'lastPage' => max(1, $page->lastPage()),
-            ],
+            'meta' => $meta,
         ]);
     }
 

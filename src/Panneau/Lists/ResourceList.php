@@ -53,6 +53,8 @@ final class ResourceList
 
     private ?bool $selectable = null;
 
+    private bool $cursorPagination = false;
+
     /**
      * @param  list<string|Column>  $columns  Field names, or columns.
      */
@@ -191,12 +193,32 @@ final class ResourceList
     }
 
     /**
+     * Pages the list with cursors rather than page numbers (`pagination: "cursor"`), for lists
+     * too large to count or too live for page numbers: thousands of jobs a day, newest first.
+     * Its pages have no number and no total. Only when the repository is `CursorPaginated`:
+     * without it, the list keeps numbered pages.
+     */
+    public function cursorPagination(bool $cursorPagination = true): self
+    {
+        $this->cursorPagination = $cursorPagination;
+
+        return $this;
+    }
+
+    public function paginatesWithCursors(): bool
+    {
+        return $this->cursorPagination;
+    }
+
+    /**
      * What the query string can ask for.
      *
      * @param  bool  $searchable  Whether the repository supports search.
      * @param  list<string>|null  $fields  Fields that `fields` can ask for.
+     * @param  bool  $cursors  Whether the list is paged with cursors: it asks for it, and the
+     *                         repository can.
      */
-    public function queryOptions(bool $searchable, ?array $fields, int $perPage, int $maxPerPage): QueryOptions
+    public function queryOptions(bool $searchable, ?array $fields, int $perPage, int $maxPerPage, bool $cursors = false): QueryOptions
     {
         $filters = [];
         foreach ($this->filters as $filter) {
@@ -211,6 +233,7 @@ final class ResourceList
             fields: $fields,
             perPage: min($this->perPage ?? $perPage, $maxPerPage),
             maxPerPage: $maxPerPage,
+            cursorPagination: $cursors,
         );
     }
 
@@ -218,9 +241,11 @@ final class ResourceList
      * The list in the protocol's definition.
      *
      * @param  bool  $searchable  Whether the repository supports search.
+     * @param  bool  $cursors  Whether the list is paged with cursors: it asks for it, and the
+     *                         repository can.
      * @return array<string, mixed>
      */
-    public function toDefinition(bool $searchable): array
+    public function toDefinition(bool $searchable, bool $cursors = false): array
     {
         return array_filter([
             'columns' => $this->columns !== null
@@ -235,6 +260,7 @@ final class ResourceList
             'layouts' => $this->layouts,
             'perPage' => $this->perPage,
             'perPageOptions' => $this->perPageOptions,
+            'pagination' => $cursors ? 'cursor' : null,
             'inlineEdit' => count($this->inlineEdit) > 0 ? $this->inlineEdit : null,
             'selectable' => $this->selectable,
         ], fn (mixed $value): bool => $value !== null);

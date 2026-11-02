@@ -25,6 +25,8 @@ final readonly class ResourceQuery
      * @param  array<string, mixed>  $scope  The resource's scope, applied to every query.
      * @param  list<string>|null  $ids  Only these items. Null: no restriction.
      * @param  list<string>  $except  Never these items.
+     * @param  string|null  $cursor  In a list paged with cursors, the cursor of the page, as the
+     *                               repository made it. Null: the first page.
      */
     public function __construct(
         public int $page = 1,
@@ -37,12 +39,14 @@ final readonly class ResourceQuery
         public array $scope = [],
         public ?array $ids = null,
         public array $except = [],
+        public ?string $cursor = null,
     ) {}
 
     /**
      * Parses the protocol's list query string (`page`, `perPage`, `sort`, `filter[...]`, `q`,
-     * `fields`). Filters, sorts and fields that the options don't declare are ignored, and so
-     * are invalid values.
+     * `fields`, and `cursor` instead of `page` in a list paged with cursors). Filters, sorts and
+     * fields that the options don't declare are ignored, and so are invalid values. A cursor is
+     * read by the repository.
      *
      * @param  array<array-key, mixed>  $parameters  The query string, as parsed by PHP.
      * @param  array<string, mixed>  $scope
@@ -53,9 +57,10 @@ final readonly class ResourceQuery
         array $scope = [],
     ): self {
         $perPage = self::positiveInteger($parameters['perPage'] ?? null) ?? $options->perPage;
+        $cursor = $options->cursorPagination ? ($parameters['cursor'] ?? null) : null;
 
         return new self(
-            page: self::positiveInteger($parameters['page'] ?? null) ?? 1,
+            page: $options->cursorPagination ? 1 : self::positiveInteger($parameters['page'] ?? null) ?? 1,
             perPage: max(1, min($perPage, $options->maxPerPage)),
             sorts: self::parseSorts($parameters['sort'] ?? null, $options),
             filters: self::parseFilters($parameters['filter'] ?? null, $options),
@@ -63,6 +68,7 @@ final readonly class ResourceQuery
             searchFields: $options->searchFields,
             fields: self::parseFields($parameters['fields'] ?? null, $options),
             scope: $scope,
+            cursor: is_string($cursor) && $cursor !== '' ? $cursor : null,
         );
     }
 
@@ -93,6 +99,14 @@ final readonly class ResourceQuery
     public function withPage(int $page, ?int $perPage = null): self
     {
         return $this->with(['page' => max(1, $page), 'perPage' => max(1, $perPage ?? $this->perPage)]);
+    }
+
+    /**
+     * The page at a cursor, in a list paged with cursors. Null: the first page.
+     */
+    public function withCursor(?string $cursor): self
+    {
+        return $this->with(['cursor' => $cursor]);
     }
 
     /**
@@ -135,6 +149,7 @@ final readonly class ResourceQuery
             'scope' => $this->scope,
             'ids' => $this->ids,
             'except' => $this->except,
+            'cursor' => $this->cursor,
         ], $changes));
     }
 

@@ -60,6 +60,20 @@ class ResourceListTest extends TestCase
         $this->assertSame(['title'], $definition['inlineEdit']);
         $this->assertTrue($definition['selectable']);
         $this->assertFalse($this->list()->toDefinition(searchable: false)['search']);
+        $this->assertArrayNotHasKey('pagination', $definition);
+    }
+
+    public function test_cursor_pagination(): void
+    {
+        $list = $this->list()->cursorPagination();
+
+        $this->assertTrue($list->paginatesWithCursors());
+        $this->assertSame('cursor', $list->toDefinition(searchable: true, cursors: true)['pagination']);
+        // Only when the repository can: numbered pages otherwise
+        $this->assertArrayNotHasKey('pagination', $list->toDefinition(searchable: true));
+        $this->assertTrue($list->queryOptions(true, null, 20, 100, cursors: true)->cursorPagination);
+        $this->assertFalse($list->queryOptions(true, null, 20, 100)->cursorPagination);
+        $this->assertFalse($list->cursorPagination(false)->paginatesWithCursors());
     }
 
     public function test_query_options(): void

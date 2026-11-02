@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{{ $title }}</title>
+@isset($nonce)
+    <meta property="csp-nonce" content="{{ $nonce }}">
+@endisset
     @viteReactRefresh
     @vite($entry, $buildDirectory)
 </head>

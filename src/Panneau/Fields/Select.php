@@ -28,7 +28,11 @@ class Select extends Field
     /**
      * The choices: a backed enum class, a list of options (`['value' => …, 'label' => …]`), or
      * labels keyed by value. An enum case's label comes from its `label()` method, if it has
-     * one.
+     * one, and its tone from its `tone()` method.
+     *
+     * An option can have a `description`, `disabled`, and a `tone`, which colors it where it
+     * shows as a badge, in lists and details: `neutral` (the default), `accent`, `success`,
+     * `warning`, `danger`, `info`, or a tone of the theme (`panneau.theme.tones`).
      *
      * @param  class-string<BackedEnum>|array<array-key, mixed>  $options
      */
@@ -68,10 +72,18 @@ class Select extends Field
                 throw new InvalidArgumentException(sprintf('%s is not a backed enum.', $options));
             }
 
-            return array_map(fn (BackedEnum $case): array => [
-                'value' => $case->value,
-                'label' => method_exists($case, 'label') ? (string) $case->label() : $case->name,
-            ], $options::cases());
+            return array_map(function (BackedEnum $case): array {
+                $option = [
+                    'value' => $case->value,
+                    'label' => method_exists($case, 'label') ? (string) $case->label() : $case->name,
+                ];
+                $tone = method_exists($case, 'tone') ? $case->tone() : null;
+                if ($tone !== null) {
+                    $option['tone'] = (string) $tone;
+                }
+
+                return $option;
+            }, $options::cases());
         }
 
         $normalized = [];

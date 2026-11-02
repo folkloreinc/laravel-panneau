@@ -80,6 +80,15 @@
                         }
                     },
                     {
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "description": "Lists whose `pagination` is `cursor`: the `nextCursor` (or `previousCursor`) of a page, instead of `page`.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "sort",
                         "in": "query",
                         "required": false,
@@ -1809,6 +1818,11 @@
                     },
                     "disabled": {
                         "type": "boolean"
+                    },
+                    "tone": {
+                        "description": "The tone of the option where it shows as a badge, in lists and details: `neutral` (the default), `accent`, `success`, `warning`, `danger`, `info`, or a tone of the theme.",
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
                     }
                 },
                 "required": [
@@ -2527,6 +2541,14 @@
                             "maximum": 9007199254740991
                         }
                     },
+                    "pagination": {
+                        "description": "`pages` (the default): numbered pages, with a total. `cursor`: the list follows `nextCursor` of each page with the `cursor` parameter, without page numbers, for large lists that the backend can't count (decision 0039).",
+                        "type": "string",
+                        "enum": [
+                            "pages",
+                            "cursor"
+                        ]
+                    },
                     "inlineEdit": {
                         "description": "Fields editable in the list.",
                         "type": "array",
@@ -3001,6 +3023,14 @@
                             "type": "string"
                         },
                         "additionalProperties": {}
+                    },
+                    "params": {
+                        "description": "Names of the path segments after the page: `[\"id\"]` makes `{basePath}/pages/{page}/{id}`. The component gets them as `params`, and route references (`{ \"route\": \"<page>\", \"params\": { \"id\": … } }`) can link to the page. A page with `params` is not in menus.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                        }
                     }
                 },
                 "required": [
@@ -3674,6 +3704,59 @@
                 ],
                 "additionalProperties": {}
             },
+            "CursorPagination": {
+                "type": "object",
+                "properties": {
+                    "perPage": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "nextCursor": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "description": "The `cursor` of the next page, or `null` on the last page."
+                    },
+                    "previousCursor": {
+                        "description": "The `cursor` of the previous page, or `null` when it is the first page, which has none (and on the first page). Without it, clients go back through the cursors they followed.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "total": {
+                        "description": "How many items match, when the backend counts them.",
+                        "anyOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "perPage",
+                    "nextCursor"
+                ],
+                "additionalProperties": {},
+                "description": "The meta of a page of a list whose `pagination` is `cursor`: no page numbers, and no total unless the backend has one."
+            },
             "ItemResponse": {
                 "type": "object",
                 "properties": {
@@ -3696,7 +3779,14 @@
                         }
                     },
                     "meta": {
-                        "$ref": "#/components/schemas/Pagination"
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Pagination"
+                            },
+                            {
+                                "$ref": "#/components/schemas/CursorPagination"
+                            }
+                        ]
                     }
                 },
                 "required": [

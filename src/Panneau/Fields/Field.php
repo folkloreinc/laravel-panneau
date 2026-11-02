@@ -559,7 +559,7 @@ abstract class Field
 
     /**
      * Whether a validated value is left out of the values saved, so that the repository keeps
-     * the current one: a password left empty.
+     * the current one: a password left empty, or the empty value of a write-only text.
      */
     public function omits(mixed $value, ValidationContext $context): bool
     {

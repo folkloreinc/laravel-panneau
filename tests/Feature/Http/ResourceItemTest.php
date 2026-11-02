@@ -5,8 +5,10 @@ namespace Panneau\Tests\Feature\Http;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Panneau\Http\Problem;
+use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
+use TestApp\Panneau\Resources\PostsWithSecretResource;
 use TestApp\Policies\PostPolicy;
 
 class ResourceItemTest extends HttpTestCase
@@ -101,6 +103,35 @@ class ResourceItemTest extends HttpTestCase
             ->assertJsonPath('data.title', 'New')
             ->assertJsonPath('data.body', 'Body');
         $this->assertNull($post->refresh()->secret);
+    }
+
+    public function test_a_write_only_secret_is_never_sent_back(): void
+    {
+        Panneau::resources([PostsWithSecretResource::class]);
+        $post = $this->createPost(['title' => 'Old', 'secret' => 'stored']);
+
+        $this->getJson(self::API.'/resources/posts-with-secret/'.$post->id)->assertOk()->assertJsonPath('data.secret', null);
+        $this->getJson(self::API.'/resources/posts-with-secret')->assertOk()->assertJsonPath('data.0.secret', null);
+
+        // Left out or empty, the stored value stays
+        $this->patchJson(self::API.'/resources/posts-with-secret/'.$post->id, ['title' => 'New'])->assertOk();
+        $this->patchJson(self::API.'/resources/posts-with-secret/'.$post->id, ['secret' => ''])->assertOk();
+        $this->patchJson(self::API.'/resources/posts-with-secret/'.$post->id, ['secret' => null])->assertOk();
+        $this->assertSame('stored', $post->refresh()->secret);
+
+        $this->patchJson(self::API.'/resources/posts-with-secret/'.$post->id, ['secret' => 'changed'])
+            ->assertOk()
+            ->assertJsonPath('data.secret', null);
+        $this->assertSame('changed', $post->refresh()->secret);
+
+        $this->patchJson(self::API.'/resources/posts-with-secret/'.$post->id, ['secret' => ['not', 'text']])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['secret']);
+
+        $created = $this->postJson(self::API.'/resources/posts-with-secret', ['title' => 'Created', 'status' => 'draft', 'secret' => 'new'])
+            ->assertCreated()
+            ->assertJsonPath('data.secret', null);
+        $this->assertSame('new', Post::query()->findOrFail($created->json('data.id'))->secret);
     }
 
     public function test_values_of_the_types_of_decision_0033(): void
