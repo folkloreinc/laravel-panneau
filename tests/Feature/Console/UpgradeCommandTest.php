@@ -396,6 +396,36 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('.github/workflows/deploy-admin.yml:9', $this->finding('deployment', 'branches: panneau-admin')->location);
     }
 
+    public function test_an_on_key_of_a_step_is_not_a_trigger(): void
+    {
+        $this->project('v1.3');
+        file_put_contents($this->project.'/.github/workflows/deploy-admin.yml', <<<'YAML'
+            on: workflow_dispatch
+
+            jobs:
+                deploy:
+                    runs-on: ubuntu-24.04
+                    steps:
+                        - uses: example/deploy@v1
+                          with:
+                              on:
+                                  branches: panneau-admin
+            YAML);
+
+        $this->assertSame('.github/workflows/deploy-admin.yml:10', $this->finding('deployment', 'branches: panneau-admin')->location);
+    }
+
+    public function test_the_check_lists_a_concrete_1x_base_of_types(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Resources/Blocks/Block.php', str_replace('abstract class', 'class', $this->read('app/Panneau/Resources/Blocks/Block.php')));
+
+        $finding = $this->finding('types', 'Block (base of 1 type)');
+        $this->assertTrue($finding->isManual());
+        $this->assertSame('app/Panneau/Resources/Blocks/Block.php:7', $finding->location);
+        $this->assertNotNull($this->audit()->section('types')->find('TextBlock (text) of Blocks'));
+    }
+
     public function test_the_check_lists_what_the_rector_rules_left(): void
     {
         $this->project('v1.4');

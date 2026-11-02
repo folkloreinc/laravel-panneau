@@ -751,7 +751,21 @@ final class Audit
         $types = $this->code->subclassesOf([V1::RESOURCE_TYPE, V1::RESOURCE_TYPE_CONTRACT, 'Folklore\\Panneau\\Resources\\BlockWithBlocks']);
         $bases = array_filter(array_map(fn (PhpClass $type): ?string => $type->parent, $types));
         foreach ($types as $class) {
-            // Bases of other types, and helpers that implement the contract, aren't types
+            // A concrete base of other types (shared fields, a placements resolver): it extends
+            // a 1.x class, so it moves by hand with the types that extend it
+            if (! $class->isAbstract() && ! isset($usedBy[$class->name]) && in_array($class->name, $bases, true)
+                && $this->code->isA($class->name, [V1::RESOURCE_TYPE])) {
+                $this->listedFiles[] = $class->file;
+                $count = count(array_keys($bases, $class->name, true));
+                $section->add(
+                    $class->shortName()." (base of {$count} ".Str::plural('type', $count).')',
+                    'manual: a 1.x base class: its shared fields go to the types that extend it',
+                    $class->location(),
+                );
+
+                continue;
+            }
+            // Other bases of types, and helpers that implement the contract, aren't types
             if ($class->isAbstract() || (! isset($usedBy[$class->name])
                 && (in_array($class->name, $bases, true) || ! $this->code->isA($class->name, [V1::RESOURCE_TYPE])))) {
                 continue;
@@ -1418,7 +1432,8 @@ final class Audit
             if (! $blank && $on !== null && $depth <= $on) {
                 $on = null;
             }
-            if (preg_match('/^(\s*)[\'"]?on[\'"]?:(.*)$/', $text, $matches) === 1) {
+            // The triggers are a top-level key: an `on:` of a step's `with:` isn't
+            if (preg_match('/^()[\'"]?on[\'"]?:(.*)$/', $text, $matches) === 1) {
                 $on = strlen($matches[1]);
                 // on: { push: { branches: [...] } }
                 if (preg_match('/\b(branches|branches-ignore|tags|tags-ignore)\s*:/', $matches[2]) === 1) {
