@@ -12,6 +12,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - The boot config has `auth`, the `auth` of the definition, so the login page knows which logins to offer before the definition is loaded (#132).
 - `panneau.auth.logout_url`, sent as `auth.logoutUrl` in the `external` mode: where the browser goes to log out, the site's own logout, which has to accept a `GET`. The app shows a "Log out" button only when it is set (#132).
 - The `file` field of a `MediathequeResource` gets the mediatheque's size limit as its `maxSize`: the largest `max_size` of the library's types (or `ingest.max_size`), none when one has no limit. An explicit `maxSize()` in `file()` wins. `MediaResource::maxFileSize()` gives the default of other libraries, none by default (#136).
+- A `Password` field, for users resources: a `text` field with `settings.secret` in the definition (no JS plugin needed with `@panneau/*` 5.0.0-alpha.9), never sent, required to create the item and optional to update it (an empty value keeps the current password), checked with `Password::defaults()`, and hashed once (`hashed(false)` leaves it to the repository). `Field::omits()` lets a field leave a value out of the values saved. The upgrade no longer reports the 1.x `Password` as manual (#128).
 
 ### Fixed
 
@@ -20,6 +21,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - `panneau:install --upgrade --check` lists only what is left of 1.x on a resource that already extends a 5.x resource, instead of every method as `manual`; and once `package.json` has only `@panneau/*` 5, it no longer lists the files that import 5.x modules (#129).
 - Each run of the Rector rules gets a cache of its own: Rector's shared cache skipped the files it had seen unchanged, after a fix by hand of a parent class or with a newer release of the rules (#130).
 - `--check` lists a concrete 1.x base of resource types that no resource lists, and an indented `on:` key of a workflow (a step's `with:`) no longer hides the `branches:` under it (#126).
+||||||| parent of 57c092b8 (Add a Password field for users resources)
 
 ## [5.0.0-alpha.7] - 2026-10-30
 

@@ -106,6 +106,7 @@ The field rules apply to chains that make a 1.x field, or a field of the project
 - **Custom controllers** become hooks and `Action` classes: exports and imports `ExportAction` and `ImportAction`, other operations on items custom actions.
 - **Custom routes** of `routes/panneau.php` (kept in its backup) become actions or plugin pages.
 - **The gate.** Port the `view()` of the 1.x `PanneauPolicy` to the `viewPanneau` gate of the new provider.
+- **Passwords.** The 1.x `Password` field keeps its name: `Panneau\Fields\Password` is a 5.x field, write-only, required to create the user only, and hashed once (see [Passwords](architecture.md#passwords)). A project's own password field and its JS plugin entry can go.
 - **The login page.** 1.x served its own (`Panneau::router()->auth()`, at `{prefix}/login`). 5.x's own login is the `panneau` auth mode, with an email and a password for now (no reset, two-factor or OAuth providers yet): the app shows its login page to guests. Or keep the site's login with the `external` mode and `auth.login_url`, and `auth.logout_url` for the "Log out" button.
 - **Locales.** A `setLocalesResolver()` becomes `locales` in `config/panneau.php`.
 - **Request macros and route names:** `$request->routeIs('panneau.*')`, and the 5.x route names.

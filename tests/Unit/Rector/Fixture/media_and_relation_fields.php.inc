@@ -106,7 +106,6 @@ class Venues extends Resource
             Select::make('size')->options(['s', 'm', 'l']),
             // TODO(panneau-5): 'phone' was only for some types (onlyForTypes()): resource types are not built yet in 5.x
             Tel::make('phone'),
-            // TODO(panneau-5): 'code' is Password: 5.x has no password field
             Password::make('code'),
             // TODO(panneau-5): 'notes' had attributes for the JS (withAttributes()): settings(), or a JS plugin
             Text::make('notes'),

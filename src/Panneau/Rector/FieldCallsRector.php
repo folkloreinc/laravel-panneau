@@ -40,7 +40,7 @@ final class FieldCallsRector extends AbstractRector
         self::FIELDS.'Url' => [self::FIELDS.'Url', []],
         self::FIELDS.'UrlLocalized' => [self::FIELDS.'Url', ['localized']],
         self::FIELDS.'Telephone' => [self::FIELDS.'Tel', []],
-        self::FIELDS.'Password' => [self::FIELDS.'Password', [], 'Password: 5.x has no password field'],
+        self::FIELDS.'Password' => [self::FIELDS.'Password', []],
         self::FIELDS.'Number' => [self::FIELDS.'Number', []],
         self::FIELDS.'Color' => [self::FIELDS.'Color', []],
         self::FIELDS.'Date' => [self::FIELDS.'Date', []],

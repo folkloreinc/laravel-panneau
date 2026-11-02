@@ -248,7 +248,8 @@ class UpgradeCommandTest extends TestCase
         // Fields that extend the project's own classes are grouped by the 1.x class at the end
         $this->assertTrue($this->finding('fields', 'Customer extends ResourceItem → Field (item)')->isManual());
         $this->assertTrue($this->finding('fields', 'ImageField extends ImageUpload (custom_upload)')->isManual());
-        $this->assertTrue($this->finding('field-uses', 'Password ×1 (password)')->isManual());
+        // 5.x has a Password field too: it isn't counted
+        $this->assertNull($this->audit()->section('field-uses')->find('Password ×1 (password)'));
 
         $orders = $this->finding('resources', 'Orders (orders)');
         $this->assertTrue((bool) $orders->detail('settings()')?->isManual());
