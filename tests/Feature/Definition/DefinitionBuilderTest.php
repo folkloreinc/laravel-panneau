@@ -5,6 +5,8 @@ namespace Panneau\Tests\Feature\Definition;
 use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Foundation\Auth\User;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Support\Facade;
@@ -286,6 +288,22 @@ class DefinitionBuilderTest extends TestCase
 
         $this->assertSame(['id' => '9', 'name' => 'Grace', 'email' => 'grace@example.com', 'abilities' => ['panneau.view' => true]], $definition['user']);
         $this->assertValidDefinition($definition);
+    }
+
+    public function test_an_eloquent_accessor_named_like_the_name_is_read_as_an_attribute(): void
+    {
+        $user = new class extends User
+        {
+            protected $table = 'users';
+
+            protected function name(): Attribute
+            {
+                return Attribute::get(fn (?string $value): string => strtoupper((string) $value));
+            }
+        };
+        $user->forceFill(['id' => 4, 'name' => 'Ada', 'email' => 'ada@example.com']);
+
+        $this->assertSame(['id' => '4', 'name' => 'ADA', 'email' => 'ada@example.com', 'abilities' => ['panneau.view' => true]], $this->app->make(DefinitionBuilder::class)->user($user));
     }
 
     public function test_the_logout_url_of_the_external_mode(): void

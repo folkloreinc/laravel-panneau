@@ -586,6 +586,12 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('\\App\\Panneau\\Resources\\Pages::class', $provider);
     }
 
+    /**
+     * A regression test of Rector's file cache (#130). Where Rector keeps its cache in memory
+     * (in CI, for some releases), the second run never sees the first one's cache, and this
+     * test passes without the fix: it guards the regression where the file cache is used, as on
+     * a developer's machine.
+     */
     public function test_the_rector_rules_convert_again_what_another_run_left(): void
     {
         $this->project('v1.4');

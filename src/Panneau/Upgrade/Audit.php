@@ -36,7 +36,8 @@ final class Audit
     public const JS_DIRECTORIES = ['resources/js', 'resources/assets/js'];
 
     /**
-     * The packages of `@panneau/*` 5, and those of them with subpaths (`@panneau/fields/text`).
+     * The packages of `@panneau/*` 5, and those of them with subpaths (`@panneau/fields/text`):
+     * the others export only their root, so `@panneau/app/…` doesn't resolve with 5.
      */
     private const PANNEAU_5_PACKAGES = ['actions', 'app', 'codemods', 'core', 'data', 'editor', 'fields', 'forms', 'intl', 'lists', 'media', 'protocol', 'ui'];
 

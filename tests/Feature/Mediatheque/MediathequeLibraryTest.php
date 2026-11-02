@@ -152,6 +152,33 @@ class MediathequeLibraryTest extends HttpTestCase
         $this->assertSame(['rule' => 'maxSize', 'value' => 1024], collect($file('limited')->toDefinition()['rules'])->firstWhere('rule', 'maxSize'));
     }
 
+    public function test_no_size_limit_when_the_mediatheque_has_none(): void
+    {
+        $maxSize = fn (MediaLibraryResource $library): ?array => collect($library->fileField()->toDefinition()['rules'])->firstWhere('rule', 'maxSize');
+        $library = fn (array $types): MediaLibraryResource => new class($types) extends MediaLibraryResource
+        {
+            /**
+             * @param  list<string>  $types
+             */
+            public function __construct(private readonly array $types) {}
+
+            public function mediaTypes(): array
+            {
+                return $this->types;
+            }
+        };
+
+        // Every type of the mediatheque, without mediaTypes(): the largest, 10G for videos
+        $this->assertSame(['rule' => 'maxSize', 'value' => 10 * 1024 ** 3], $maxSize($library([])));
+        // A type the mediatheque doesn't have
+        $this->assertNull($maxSize($library(['image', 'sticker'])));
+        // A type without a limit, nor a default one
+        config()->set('mediatheque.ingest.max_size', null);
+        config()->set('mediatheque.types.document.max_size', null);
+        $this->assertNull($maxSize($library(['image', 'document'])));
+        $this->assertSame(['rule' => 'maxSize', 'value' => 50 * 1024 * 1024], $maxSize($library(['image'])));
+    }
+
     public function test_a_media_is_ingested_from_an_upload(): void
     {
         $upload = $this->upload('portrait.png', self::png(), 'image/png');
