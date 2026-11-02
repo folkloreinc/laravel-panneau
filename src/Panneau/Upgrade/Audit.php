@@ -585,7 +585,7 @@ final class Audit
      * The 5.x resource class that a resource of the project extends, once it is moved: by
      * hand, or by the Rector rules.
      *
-     * @return class-string<Resource>|null
+     * @return class-string|null
      */
     private function resourceBase5(string $name): ?string
     {
