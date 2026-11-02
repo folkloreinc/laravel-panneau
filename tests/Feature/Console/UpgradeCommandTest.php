@@ -625,6 +625,96 @@ class UpgradeCommandTest extends TestCase
         $this->assertNull($this->audit()->section('route-names')->find("to_route('home')"));
     }
 
+    public function test_the_check_lists_only_what_is_left_of_1x_on_resources_moved_to_5x(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Resources/Pages.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Resources\Resource;
+
+            class Pages extends Resource
+            {
+                public function repository(): ?string
+                {
+                    return \App\Contracts\Repositories\Pages::class;
+                }
+
+                public function itemClass(): ?string
+                {
+                    return null;
+                }
+
+                public function pluralLabel(): string
+                {
+                    return 'Pages';
+                }
+
+                public function fields(): array
+                {
+                    return [];
+                }
+
+                public function toItem(object $item): array
+                {
+                    return [];
+                }
+
+                private function statusOptions(): array
+                {
+                    return [];
+                }
+
+                public function index(): array
+                {
+                    return [];
+                }
+            }
+            PHP);
+        file_put_contents($this->project.'/app/Panneau/Resources/Projects.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Mediatheque\MediathequeResource;
+
+            class Projects extends MediathequeResource
+            {
+                public function mediaTypes(): array
+                {
+                    return ['image'];
+                }
+            }
+            PHP);
+
+        $pages = $this->finding('resources', 'Pages (pages)');
+        $this->assertSame(['index()'], array_column($pages->details, 'subject'));
+        $this->assertTrue($pages->detail('index()')->isManual());
+        $projects = $this->finding('resources', 'Projects (projects)');
+        $this->assertSame([], $projects->details);
+        $this->assertSame(0, $projects->manualCount());
+    }
+
+    public function test_the_check_leaves_out_the_js_of_panneau_5(): void
+    {
+        $this->project('v1.4');
+        $plugin = "import { definePlugin } from '@panneau/core';\nimport TextField from '@panneau/fields/text';\n";
+        file_put_contents($this->project.'/resources/js/plugin.ts', $plugin);
+        $packages = fn (): array => array_column($this->audit()->section('packages')->findings, 'subject');
+
+        // While package.json has @panneau/* 4, every file that imports @panneau/* is listed
+        $this->assertContains('resources/js/plugin.ts imports @panneau/core, @panneau/fields', $packages());
+
+        file_put_contents($this->project.'/package.json', json_encode(['dependencies' => ['@panneau/app' => '5.0.0-alpha.7', '@panneau/core' => '5.0.0-alpha.7', '@panneau/fields' => '5.0.0-alpha.7']]));
+        $this->assertNotContains('resources/js/plugin.ts imports @panneau/core, @panneau/fields', $packages());
+        // Modules of 4.x are still listed
+        $this->assertContains('resources/js/components/Panneau.jsx imports @panneau/core, @panneau/field-localized', $packages());
+        file_put_contents($this->project.'/resources/js/plugin.ts', $plugin."import { useResource } from '@panneau/core/contexts';\n");
+        $this->assertContains('resources/js/plugin.ts imports @panneau/core', $packages());
+    }
+
     public function test_the_upgrade_keeps_files_it_does_not_recognize(): void
     {
         $this->project('v1.4');
