@@ -15,7 +15,7 @@ use Panneau\Media\MediaTypes;
  *
  * - **Its `file` field** holds the original, one file. Panneau adds it before the fields of
  *   `fields()`, which must not declare it: configure it with `file()`. Its `accept` defaults to
- *   the MIME types of `mediaTypes()`.
+ *   the MIME types of `mediaTypes()`, and its `maxSize` to `maxFileSize()`.
  * - **Its items** have a read-only `media`, from `media()`: type, MIME type, size, URLs,
  *   dimensions, status, and the media's own transform, from `mediaTransform()`: the value of
  *   its `transform` field when it declares one.
@@ -90,6 +90,12 @@ abstract class MediaResource extends Resource
             $accept = MediaTypes::accept($this->mediaTypes(), $this->mimePatterns(...));
             if ($accept !== null) {
                 $field->accept($accept);
+            }
+        }
+        if (! $field->hasMaxSize()) {
+            $maxSize = $this->maxFileSize();
+            if ($maxSize !== null) {
+                $field->maxSize($maxSize);
             }
         }
 
@@ -244,5 +250,14 @@ abstract class MediaResource extends Resource
     protected function mimePatterns(string $type): ?array
     {
         return MediaTypes::mimePatterns($type);
+    }
+
+    /**
+     * The largest file the library takes, in bytes, for the default `maxSize` of the file. Null
+     * for no limit in the admin: the backend still refuses the files it doesn't take.
+     */
+    protected function maxFileSize(): ?int
+    {
+        return null;
     }
 }

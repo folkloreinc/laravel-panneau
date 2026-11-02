@@ -4,6 +4,9 @@ namespace Panneau\Upgrade;
 
 use Illuminate\Support\Str;
 use Panneau\Console\JsInstaller;
+use Panneau\Mediatheque\MediathequeResource;
+use Panneau\Resources\MediaResource;
+use Panneau\Resources\Resource;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
@@ -31,6 +34,25 @@ final class Audit
      * `resources/assets/js`.
      */
     public const JS_DIRECTORIES = ['resources/js', 'resources/assets/js'];
+
+    /**
+     * The packages of `@panneau/*` 5, and those of them with subpaths (`@panneau/fields/text`):
+     * the others export only their root, so `@panneau/app/…` doesn't resolve with 5.
+     */
+    private const PANNEAU_5_PACKAGES = ['actions', 'app', 'codemods', 'core', 'data', 'editor', 'fields', 'forms', 'intl', 'lists', 'media', 'protocol', 'ui'];
+
+    private const PANNEAU_5_PACKAGES_WITH_SUBPATHS = ['data', 'fields', 'forms', 'media', 'protocol', 'ui'];
+
+    /**
+     * The resource classes of 5.x that a project's resources extend.
+     */
+    private const RESOURCES_5 = [Resource::class, MediaResource::class, MediathequeResource::class];
+
+    /**
+     * Methods of 1.x resources that 5.x resources don't have: left on a 5.x resource, they are
+     * never called.
+     */
+    private const RESOURCE_1X_METHODS = ['index', 'name', 'translationsNamespace', 'authorize', 'attributes', 'components', 'forms', 'makeRepository', 'makeJsonResource', 'makeJsonCollection', 'onlyDeclaredFields', 'indexIsPaginated'];
 
     private const ROUTE_VERBS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'any', 'match'];
 
@@ -258,7 +280,18 @@ final class Audit
             $section->add('folklore/laravel-folklore '.$folklore, 'folklore/laravel-folklore ^2.0@alpha: its Panneau adapter maps resources to Folklore repositories', 'composer.json');
         }
 
-        foreach ($this->panneauImports($this->isEntry($this->entry()) ? $this->entry() : null) as $file => $packages) {
+        $package = json_decode($this->code->read('package.json') ?? '', true);
+        $package = is_array($package) ? $package : null;
+        // Once package.json has only @panneau/* 5, a file that imports 5.x modules is done
+        $panneau4 = $package === null || $this->panneauPackages($package, fn (string $version): bool => ! $this->isMajor($version, 5)) !== [];
+        foreach ($this->panneauImports($this->isEntry($this->entry()) ? $this->entry() : null) as $file => $modules) {
+            $packages = array_values(array_unique(array_map(
+                fn (string $module): string => implode('/', array_slice(explode('/', $module), 0, 2)),
+                $panneau4 ? $modules : array_values(array_filter($modules, fn (string $module): bool => ! self::isPanneau5Module($module))),
+            )));
+            if ($packages === []) {
+                continue;
+            }
             $section->add(
                 $file.' imports '.implode(', ', $packages),
                 'manual: the JS codemods of @panneau/* 5; until then the build of the site breaks once @panneau/app is 5',
@@ -269,24 +302,54 @@ final class Audit
             $section->add("the project's JS is in {$this->jsDirectory}", "--upgrade writes the entry there: {$this->entry()}, in the Vite config and 'app.entry'");
         }
 
-        $package = json_decode($this->code->read('package.json') ?? '', true);
-        if (! is_array($package)) {
+        if ($package === null) {
             return;
         }
-        foreach (['dependencies', 'devDependencies'] as $dependencies) {
-            foreach ((array) ($package[$dependencies] ?? []) as $name => $version) {
-                if (! is_string($name) || ! str_starts_with($name, '@panneau/') || ! is_string($version) || $this->isMajor($version, 5)) {
-                    continue;
-                }
-                $section->add($name.' '.$version, $name === '@panneau/app'
-                    ? '@panneau/app ^5.0.0-alpha.0 (--upgrade replaces it)'
-                    : 'removed: 5.x has about a dozen packages, which @panneau/app brings (the JS codemods move the imports)', 'package.json');
-            }
+        foreach ($this->panneauPackages($package, fn (string $version): bool => ! $this->isMajor($version, 5)) as $name => $version) {
+            $section->add($name.' '.$version, $name === '@panneau/app'
+                ? '@panneau/app ^5.0.0-alpha.0 (--upgrade replaces it)'
+                : 'removed: 5.x has about a dozen packages, which @panneau/app brings (the JS codemods move the imports)', 'package.json');
         }
     }
 
     /**
-     * The files of the project's JS that import `@panneau/*` packages, other than the 5.x entry.
+     * The `@panneau/*` dependencies of package.json whose version passes the filter.
+     *
+     * @param  array<array-key, mixed>  $package
+     * @param  callable(string): bool  $filter
+     * @return array<string, string>
+     */
+    private function panneauPackages(array $package, callable $filter): array
+    {
+        $packages = [];
+        foreach (['dependencies', 'devDependencies'] as $dependencies) {
+            foreach ((array) ($package[$dependencies] ?? []) as $name => $version) {
+                if (is_string($name) && str_starts_with($name, '@panneau/') && is_string($version) && $filter($version)) {
+                    $packages[$name] = $version;
+                }
+            }
+        }
+
+        return $packages;
+    }
+
+    /**
+     * Whether a module is one of `@panneau/*` 5: a 5.x package, or a subpath of the packages
+     * that have some (`@panneau/fields/text`). `@panneau/core/contexts`, `@panneau/element-*`
+     * and the other 4.x packages aren't.
+     */
+    private static function isPanneau5Module(string $module): bool
+    {
+        $parts = explode('/', $module);
+        $package = $parts[1] ?? '';
+
+        return in_array($package, self::PANNEAU_5_PACKAGES, true)
+            && (count($parts) === 2 || in_array($package, self::PANNEAU_5_PACKAGES_WITH_SUBPATHS, true));
+    }
+
+    /**
+     * The files of the project's JS that import `@panneau/*` modules, other than the 5.x entry,
+     * with the modules they import (`@panneau/core`, `@panneau/fields/text`).
      *
      * @return array<string, list<string>>
      */
@@ -297,7 +360,7 @@ final class Audit
             if ($file === $entry) {
                 continue;
             }
-            preg_match_all('/(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s+)[\'"](@panneau\/[^\'"\/]+)/', $this->code->read($file) ?? '', $matches);
+            preg_match_all('/(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s+)[\'"](@panneau\/[^\'"]+)/', $this->code->read($file) ?? '', $matches);
             if ($matches[1] !== []) {
                 $imports[$file] = array_values(array_unique($matches[1]));
             }
@@ -495,6 +558,7 @@ final class Audit
 
                 continue;
             }
+            $base5 = $this->resourceBase5($name);
             $id1 = $this->resourceId($class);
             $id5 = Str::kebab(Str::endsWith($class->shortName(), 'Resource') ? Str::beforeLast($class->shortName(), 'Resource') : $class->shortName());
             $finding = $section->add(
@@ -502,16 +566,37 @@ final class Audit
                 in_array($name, $this->resources, true) ? 'a 5.x Resource' : 'a 5.x Resource (not registered: unused?)',
                 $class->location(),
             );
-            if ($id1 !== $id5) {
+            if ($id1 !== $id5 && ($base5 === null || $class->method('id') === null)) {
                 $finding->add("id {$id1}", "{$id5} in 5.x: return '{$id1}' from id() to keep its URLs and the fields that name it");
             }
             foreach ($class->staticProperties() as $property) {
                 $this->auditResourceProperty($finding, $class, $property);
             }
             foreach ($class->methods() as $method) {
-                $this->auditResourceMethod($finding, $class, $method);
+                // A resource moved to 5.x: only what is left of 1.x
+                if ($base5 !== null && (method_exists($base5, $method) || ! in_array($method, self::RESOURCE_1X_METHODS, true))) {
+                    continue;
+                }
+                $this->auditResourceMethod($finding, $class, $method, $base5 !== null);
             }
         }
+    }
+
+    /**
+     * The 5.x resource class that a resource of the project extends, once it is moved: by
+     * hand, or by the Rector rules.
+     *
+     * @return class-string|null
+     */
+    private function resourceBase5(string $name): ?string
+    {
+        foreach ($this->code->ancestors($name) as $ancestor) {
+            if (in_array($ancestor, self::RESOURCES_5, true)) {
+                return $ancestor;
+            }
+        }
+
+        return null;
     }
 
     private function resourceId(PhpClass $class): string
@@ -549,8 +634,13 @@ final class Audit
         $finding->add("\${$property} = {$this->describe($value)}", $target);
     }
 
-    private function auditResourceMethod(Finding $finding, PhpClass $class, string $method): void
+    private function auditResourceMethod(Finding $finding, PhpClass $class, string $method, bool $on5 = false): void
     {
+        if ($on5) {
+            $finding->add($method.'()', 'manual: left of 1.x, 5.x never calls it'.($method === 'index' ? ': list() and actions()' : ''), $class->file.':'.$class->method($method)?->getStartLine());
+
+            return;
+        }
         $target = match ($method) {
             'fields' => 'fields() (the Rector rules convert the fields)',
             'index' => 'list()',
@@ -662,7 +752,21 @@ final class Audit
         $types = $this->code->subclassesOf([V1::RESOURCE_TYPE, V1::RESOURCE_TYPE_CONTRACT, 'Folklore\\Panneau\\Resources\\BlockWithBlocks']);
         $bases = array_filter(array_map(fn (PhpClass $type): ?string => $type->parent, $types));
         foreach ($types as $class) {
-            // Bases of other types, and helpers that implement the contract, aren't types
+            // A concrete base of other types (shared fields, a placements resolver): it extends
+            // a 1.x class, so it moves by hand with the types that extend it
+            if (! $class->isAbstract() && ! isset($usedBy[$class->name]) && in_array($class->name, $bases, true)
+                && $this->code->isA($class->name, [V1::RESOURCE_TYPE])) {
+                $this->listedFiles[] = $class->file;
+                $count = count(array_keys($bases, $class->name, true));
+                $section->add(
+                    $class->shortName()." (base of {$count} ".Str::plural('type', $count).')',
+                    'manual: a 1.x base class: its shared fields go to the types that extend it',
+                    $class->location(),
+                );
+
+                continue;
+            }
+            // Other bases of types, and helpers that implement the contract, aren't types
             if ($class->isAbstract() || (! isset($usedBy[$class->name])
                 && (in_array($class->name, $bases, true) || ! $this->code->isA($class->name, [V1::RESOURCE_TYPE])))) {
                 continue;
@@ -1329,7 +1433,8 @@ final class Audit
             if (! $blank && $on !== null && $depth <= $on) {
                 $on = null;
             }
-            if (preg_match('/^(\s*)[\'"]?on[\'"]?:(.*)$/', $text, $matches) === 1) {
+            // The triggers are a top-level key: an `on:` of a step's `with:` isn't
+            if (preg_match('/^()[\'"]?on[\'"]?:(.*)$/', $text, $matches) === 1) {
                 $on = strlen($matches[1]);
                 // on: { push: { branches: [...] } }
                 if (preg_match('/\b(branches|branches-ignore|tags|tags-ignore)\s*:/', $matches[2]) === 1) {

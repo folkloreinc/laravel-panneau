@@ -396,6 +396,36 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('.github/workflows/deploy-admin.yml:9', $this->finding('deployment', 'branches: panneau-admin')->location);
     }
 
+    public function test_an_on_key_of_a_step_is_not_a_trigger(): void
+    {
+        $this->project('v1.3');
+        file_put_contents($this->project.'/.github/workflows/deploy-admin.yml', <<<'YAML'
+            on: workflow_dispatch
+
+            jobs:
+                deploy:
+                    runs-on: ubuntu-24.04
+                    steps:
+                        - uses: example/deploy@v1
+                          with:
+                              on:
+                                  branches: panneau-admin
+            YAML);
+
+        $this->assertSame('.github/workflows/deploy-admin.yml:10', $this->finding('deployment', 'branches: panneau-admin')->location);
+    }
+
+    public function test_the_check_lists_a_concrete_1x_base_of_types(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Resources/Blocks/Block.php', str_replace('abstract class', 'class', $this->read('app/Panneau/Resources/Blocks/Block.php')));
+
+        $finding = $this->finding('types', 'Block (base of 1 type)');
+        $this->assertTrue($finding->isManual());
+        $this->assertSame('app/Panneau/Resources/Blocks/Block.php:7', $finding->location);
+        $this->assertNotNull($this->audit()->section('types')->find('TextBlock (text) of Blocks'));
+    }
+
     public function test_the_check_lists_what_the_rector_rules_left(): void
     {
         $this->project('v1.4');
@@ -416,12 +446,12 @@ class UpgradeCommandTest extends TestCase
         $this->assertTrue($finding->isManual());
     }
 
-    public function test_the_check_after_the_upgrade_and_the_rector_rules(): void
+    /**
+     * Runs the Rector rules on the project's app/Panneau.
+     */
+    private function rector(): void
     {
-        $this->project('v1.4');
-        $this->panneau(['--upgrade' => true]);
         $root = dirname(__DIR__, 3);
-
         exec(sprintf(
             'cd %s && %s %s process app/Panneau --config %s --no-progress-bar --no-diffs 2>&1',
             escapeshellarg($this->project),
@@ -430,6 +460,14 @@ class UpgradeCommandTest extends TestCase
             escapeshellarg($root.'/rector.php'),
         ), $rector, $status);
         $this->assertSame(0, $status, implode("\n", $rector));
+    }
+
+    public function test_the_check_after_the_upgrade_and_the_rector_rules(): void
+    {
+        $this->project('v1.4');
+        $this->panneau(['--upgrade' => true]);
+
+        $this->rector();
         $this->assertStringContainsString('Text::make(\'title\')->localized()', $this->read('app/Panneau/Resources/Projects.php'));
 
         $output = $this->panneau(['--upgrade' => true, '--check' => true]);
@@ -548,6 +586,41 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('\\App\\Panneau\\Resources\\Pages::class', $provider);
     }
 
+    /**
+     * A regression test of Rector's file cache (#130). Where Rector keeps its cache in memory
+     * (in CI, for some releases), the second run never sees the first one's cache, and this
+     * test passes without the fix: it guards the regression where the file cache is used, as on
+     * a developer's machine.
+     */
+    public function test_the_rector_rules_convert_again_what_another_run_left(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Fields/Title.php', "<?php\n\nnamespace App\\Panneau\\Fields;\n\nuse App\\Support\\Field;\n\nclass Title extends Field\n{\n}\n");
+        file_put_contents($this->project.'/app/Panneau/Notes.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau;
+
+            use App\Panneau\Fields\Title;
+
+            class Notes
+            {
+                public function fields(): array
+                {
+                    return [Title::make('title')->withLabel('Title')];
+                }
+            }
+            PHP);
+        $this->rector();
+        $this->assertStringContainsString('->withLabel(', $this->read('app/Panneau/Notes.php'));
+
+        // The field now extends a 1.x field: the rules convert its calls, in a file they left unchanged
+        file_put_contents($this->project.'/app/Panneau/Fields/Title.php', str_replace('use App\\Support\\Field;', 'use Panneau\\Fields\\Text as Field;', $this->read('app/Panneau/Fields/Title.php')));
+        $this->rector();
+
+        $this->assertStringContainsString("Title::make('title')->label('Title')", $this->read('app/Panneau/Notes.php'));
+    }
+
     public function test_the_check_still_reports_after_the_upgrade(): void
     {
         $this->project('v1.4');
@@ -623,6 +696,96 @@ class UpgradeCommandTest extends TestCase
         $this->assertTrue($this->finding('packages', 'resources/js/components/Panneau.jsx imports @panneau/core, @panneau/field-localized, @panneau/app')->isManual());
         $this->assertTrue($this->finding('route-names', "route('panneau.home')")->isManual());
         $this->assertNull($this->audit()->section('route-names')->find("to_route('home')"));
+    }
+
+    public function test_the_check_lists_only_what_is_left_of_1x_on_resources_moved_to_5x(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Resources/Pages.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Resources\Resource;
+
+            class Pages extends Resource
+            {
+                public function repository(): ?string
+                {
+                    return \App\Contracts\Repositories\Pages::class;
+                }
+
+                public function itemClass(): ?string
+                {
+                    return null;
+                }
+
+                public function pluralLabel(): string
+                {
+                    return 'Pages';
+                }
+
+                public function fields(): array
+                {
+                    return [];
+                }
+
+                public function toItem(object $item): array
+                {
+                    return [];
+                }
+
+                private function statusOptions(): array
+                {
+                    return [];
+                }
+
+                public function index(): array
+                {
+                    return [];
+                }
+            }
+            PHP);
+        file_put_contents($this->project.'/app/Panneau/Resources/Projects.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Mediatheque\MediathequeResource;
+
+            class Projects extends MediathequeResource
+            {
+                public function mediaTypes(): array
+                {
+                    return ['image'];
+                }
+            }
+            PHP);
+
+        $pages = $this->finding('resources', 'Pages (pages)');
+        $this->assertSame(['index()'], array_column($pages->details, 'subject'));
+        $this->assertTrue($pages->detail('index()')->isManual());
+        $projects = $this->finding('resources', 'Projects (projects)');
+        $this->assertSame([], $projects->details);
+        $this->assertSame(0, $projects->manualCount());
+    }
+
+    public function test_the_check_leaves_out_the_js_of_panneau_5(): void
+    {
+        $this->project('v1.4');
+        $plugin = "import { definePlugin } from '@panneau/core';\nimport TextField from '@panneau/fields/text';\n";
+        file_put_contents($this->project.'/resources/js/plugin.ts', $plugin);
+        $packages = fn (): array => array_column($this->audit()->section('packages')->findings, 'subject');
+
+        // While package.json has @panneau/* 4, every file that imports @panneau/* is listed
+        $this->assertContains('resources/js/plugin.ts imports @panneau/core, @panneau/fields', $packages());
+
+        file_put_contents($this->project.'/package.json', json_encode(['dependencies' => ['@panneau/app' => '5.0.0-alpha.7', '@panneau/core' => '5.0.0-alpha.7', '@panneau/fields' => '5.0.0-alpha.7']]));
+        $this->assertNotContains('resources/js/plugin.ts imports @panneau/core, @panneau/fields', $packages());
+        // Modules of 4.x are still listed
+        $this->assertContains('resources/js/components/Panneau.jsx imports @panneau/core, @panneau/field-localized', $packages());
+        file_put_contents($this->project.'/resources/js/plugin.ts', $plugin."import { useResource } from '@panneau/core/contexts';\n");
+        $this->assertContains('resources/js/plugin.ts imports @panneau/core', $packages());
     }
 
     public function test_the_upgrade_keeps_files_it_does_not_recognize(): void

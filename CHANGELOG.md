@@ -11,6 +11,15 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - In the `panneau` auth mode, guests get the page of the app, without the definition, instead of a redirect: the app shows its login page when the API answers `401` (panneau-js decision 0037). `POST /auth/login` logs in with an email and a password on the guard of `panneau.auth.guard` (a session guard), throttled, and only for users the `viewPanneau` gate allows in; `POST /auth/logout` logs out. Password reset, two-factor and OAuth providers come later (#132).
 - The boot config has `auth`, the `auth` of the definition, so the login page knows which logins to offer before the definition is loaded (#132).
 - `panneau.auth.logout_url`, sent as `auth.logoutUrl` in the `external` mode: where the browser goes to log out, the site's own logout, which has to accept a `GET`. The app shows a "Log out" button only when it is set (#132).
+- The `file` field of a `MediathequeResource` gets the mediatheque's size limit as its `maxSize`: the largest `max_size` of the library's types (or `ingest.max_size`), none when one has no limit. An explicit `maxSize()` in `file()` wins. `MediaResource::maxFileSize()` gives the default of other libraries, none by default (#136).
+
+### Fixed
+
+- `Panneau::routes()` moves the routes of the site registered before it, outside Panneau's path, after its own: a page route of the site such as `/{page}`, loaded first by a `RouteServiceProvider` listed before the provider that loads `routes/panneau.php`, caught `/panneau`. The site's routes under Panneau's path keep their precedence (#131).
+- The definition's `user` has the name and email of users that expose them as methods (`name()`, `email()`), as the entities of laravel-folklore, instead of an empty name (#135).
+- `panneau:install --upgrade --check` lists only what is left of 1.x on a resource that already extends a 5.x resource, instead of every method as `manual`; and once `package.json` has only `@panneau/*` 5, it no longer lists the files that import 5.x modules (#129).
+- Each run of the Rector rules gets a cache of its own: Rector's shared cache skipped the files it had seen unchanged, after a fix by hand of a parent class or with a newer release of the rules (#130).
+- `--check` lists a concrete 1.x base of resource types that no resource lists, and an indented `on:` key of a workflow (a step's `with:`) no longer hides the `branches:` under it (#126).
 
 ## [5.0.0-alpha.7] - 2026-10-30
 

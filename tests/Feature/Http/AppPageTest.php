@@ -94,6 +94,23 @@ class AppPageTest extends HttpTestCase
         $this->get('/panneau/custom')->assertOk()->assertContent('custom');
     }
 
+    public function test_a_page_route_of_the_site_registered_before_does_not_catch_the_app(): void
+    {
+        $this->app['router']->setRoutes(new RouteCollection);
+        Route::middleware('web')->get('/{page}', fn (string $page): string => 'page '.$page)->name('page');
+        Route::middleware('web')->get('/{any}', fn (): string => 'any')->where('any', '.*');
+        Panneau::routes();
+        $this->app['router']->getRoutes()->refreshNameLookups();
+
+        $this->get('/panneau')->assertOk()->assertSee('id="panneau-boot"', false);
+        $this->get('/panneau/resources/posts')->assertOk()->assertSee('id="panneau-boot"', false);
+        $this->getJson('/panneau/api/definition')->assertOk();
+        // The site's routes still answer for the rest
+        $this->get('/about')->assertOk()->assertContent('page about');
+        $this->get('/about/team')->assertOk()->assertContent('any');
+        $this->assertSame(url('/about'), route('page', ['page' => 'about']));
+    }
+
     public function test_the_definition_can_be_left_out_of_the_page(): void
     {
         $this->app['config']->set('panneau.app.inline_definition', false);
