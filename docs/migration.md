@@ -87,6 +87,7 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | | `Html`, `Toggle`, `Telephone`, `Radios` | `RichText`, `Boolean`, `Tel`, `Select` |
 | | `Upload`, `Media`, `Image`, `ImageUpload`, `Video`, `Audio`, `Document` and their plurals | `Media` or `Image`, with `accept(['video/*'])`, `accept(['audio/*'])` or `multiple()`; documents get a TODO to name their library |
 | | `Items`, `Fields`, `Item`, `ResourceItem`, `ResourceItems` | `Repeater`, `Group`, `Relation`, `Relation->multiple()` |
+| | `Password` | `Password->hashed(false)`, with a TODO: 1.x never hashed, the repository did |
 | | `PageSlugLocalized` of `laravel-folklore` 1.1 | `PageSlug`, localized by default |
 | | `make('name', 'Label')`, `new Text('name')` | `Text::make('name')->label('Label')` |
 | | `withTransLabel()`, `withLabel()`, `withTransHelpText()`, `withHelpText()` | `label(__())`, `label()`, `help(__())`, `help()` |
@@ -106,7 +107,7 @@ The field rules apply to chains that make a 1.x field, or a field of the project
 - **Custom controllers** become hooks and `Action` classes: exports and imports `ExportAction` and `ImportAction`, other operations on items custom actions.
 - **Custom routes** of `routes/panneau.php` (kept in its backup) become actions or plugin pages.
 - **The gate.** Port the `view()` of the 1.x `PanneauPolicy` to the `viewPanneau` gate of the new provider.
-- **Passwords.** The 1.x `Password` field keeps its name: `Panneau\Fields\Password` is a 5.x field, write-only, required to create the user only, and hashed once (see [Passwords](architecture.md#passwords)). A project's own password field and its JS plugin entry can go.
+- **Passwords.** The 1.x `Password` field keeps its name: `Panneau\Fields\Password` is a 5.x field, write-only, and required to create the user only (`required()` never applies to an update). 1.x never hashed the password, the repository did, so the Rector rules write `hashed(false)`: remove it once neither the repository nor the model hashes, and the field hashes once. The 1.x confirmation (`password_confirmation` and `confirmed`) is gone. It needs `@panneau/*` 5.0.0-alpha.9 or later, which renders `settings.secret`: an older admin shows the password in clear. Then a project's own password field and its JS plugin entry can go (see [Passwords](architecture.md#passwords)).
 - **The login page.** 1.x served its own (`Panneau::router()->auth()`, at `{prefix}/login`). 5.x's own login is the `panneau` auth mode, with an email and a password for now (no reset, two-factor or OAuth providers yet): the app shows its login page to guests. Or keep the site's login with the `external` mode and `auth.login_url`, and `auth.logout_url` for the "Log out" button.
 - **Locales.** A `setLocalesResolver()` becomes `locales` in `config/panneau.php`.
 - **Request macros and route names:** `$request->routeIs('panneau.*')`, and the 5.x route names.

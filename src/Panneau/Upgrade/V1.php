@@ -55,7 +55,7 @@ final class V1
         'Panneau\\Fields\\Email' => ['email', 'Email', self::GROUP_BUILT_IN],
         'Panneau\\Fields\\Url' => ['url', 'Url', self::GROUP_BUILT_IN],
         'Panneau\\Fields\\Telephone' => ['telephone', 'Tel', self::GROUP_BUILT_IN],
-        'Panneau\\Fields\\Password' => ['password', 'Password', self::GROUP_BUILT_IN],
+        'Panneau\\Fields\\Password' => ['password', 'Password->hashed(false) when the repository hashes, as in 1.x (the Rector rules write it)', self::GROUP_BUILT_IN],
         'Panneau\\Fields\\Number' => ['number', 'Number', self::GROUP_BUILT_IN],
         'Panneau\\Fields\\Color' => ['color', 'Color', self::GROUP_BUILT_IN],
         'Panneau\\Fields\\Date' => ['date', 'Date', self::GROUP_BUILT_IN],

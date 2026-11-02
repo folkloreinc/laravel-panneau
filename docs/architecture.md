@@ -225,12 +225,13 @@ RichText::make('body')
 Password::make('password')->label(__('Password')),
 Password::make('password')->hashed(false), // for a repository that hashes what it receives
 Password::make('password')->optional(),    // optional to create the user too
+Password::make('password')->required(),    // the default: required to create, never to update
 ```
 
 - **Write-only.** Items always give `null`, so the form starts empty, and lists and details never show it.
 - **Required to create the item, optional to update it.** On an update, an empty value (`null` or `""`) keeps the current password: the field omits it from the values (`Field::omits()`), so the repository receives no `password`.
 - **Rules.** `Password::defaults()` on the server, with `rules()` for more. The definition has its `min`, for the app's own check. The required mark on create only waits for rules limited to a mode in the protocol (`{ "rule": "required", "mode": "create" }`, folkloreinc/panneau-js#164): until then, the field sends no `required`, and a create without a password gets its `422` after Save. When it comes, the field will send it only for an admin that knows `mode`: an older one would require the password on update too, and block editing a user. On the server, `required` on create is checked with the mode of the `ValidationContext`, not as a portable rule.
-- **Hashed once.** `prepare()` hashes the password with `Hash::make()`, unless it is already a hash (`Hash::isHashed()`), so the repository receives the hash. Eloquent's `hashed` cast keeps a hash as is, and so does laravel-folklore's `Users` repository once folkloreinc/laravel-folklore#144 is released; before that, use `hashed(false)` with it, which leaves the hashing to the repository.
+- **Hashed once.** `prepare()` hashes the password with `Hash::make()`, unless it is already a hash of the app's hasher (`Hash::isHashed()`, and not `Hash::needsRehash()`), so the repository receives the hash. Projects migrated from 1.x hash in their repository: the Rector rules write `hashed(false)` there. Eloquent's `hashed` cast keeps a hash as is, and so does laravel-folklore's `Users` repository once folkloreinc/laravel-folklore#144 is released; before that, use `hashed(false)` with it, which leaves the hashing to the repository.
 
 ### More field types
 

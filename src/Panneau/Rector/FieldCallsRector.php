@@ -40,7 +40,7 @@ final class FieldCallsRector extends AbstractRector
         self::FIELDS.'Url' => [self::FIELDS.'Url', []],
         self::FIELDS.'UrlLocalized' => [self::FIELDS.'Url', ['localized']],
         self::FIELDS.'Telephone' => [self::FIELDS.'Tel', []],
-        self::FIELDS.'Password' => [self::FIELDS.'Password', []],
+        self::FIELDS.'Password' => [self::FIELDS.'Password', ['hashed:false'], 'a Password: write-only and required to create only in 5.x. hashed(false) leaves the hashing to the repository, as in 1.x: remove it if neither the repository nor the model hashes. Not a password? Use Text'],
         self::FIELDS.'Number' => [self::FIELDS.'Number', []],
         self::FIELDS.'Color' => [self::FIELDS.'Color', []],
         self::FIELDS.'Date' => [self::FIELDS.'Date', []],
@@ -193,6 +193,9 @@ final class FieldCallsRector extends AbstractRector
         $name = $this->fieldName($root);
         $isOwnClass = ! isset(self::CLASSES[$class]) && ! str_starts_with($class, self::FOLKLORE);
         [$target, $extras] = self::CLASSES[$class] ?? [$class, []];
+        // The calls the chain already has, on a second run of a class that keeps its name
+        $existing = array_map(fn (Expr\MethodCall $call): ?string => $this->getName($call->name), $calls);
+        $extras = array_values(array_filter($extras, fn (string $extra): bool => ! in_array(explode(':', $extra)[0], $existing, true)));
         if (isset(self::CLASSES[$class][2])) {
             $todos[] = $name.' is '.self::CLASSES[$class][2];
         }
@@ -265,9 +268,11 @@ final class FieldCallsRector extends AbstractRector
             $field = new Expr\StaticCall(new FullyQualified($target), 'make', array_slice($args, 0, 1));
         }
         foreach ($extras as $extra) {
-            $field = str_starts_with($extra, 'accept:')
-                ? new Expr\MethodCall($field, 'accept', [new Arg($this->nodeFactory->createArray([substr($extra, 7)]))])
-                : new Expr\MethodCall($field, $extra);
+            $field = match (true) {
+                str_starts_with($extra, 'accept:') => new Expr\MethodCall($field, 'accept', [new Arg($this->nodeFactory->createArray([substr($extra, 7)]))]),
+                $extra === 'hashed:false' => new Expr\MethodCall($field, 'hashed', [new Arg($this->nodeFactory->createFalse())]),
+                default => new Expr\MethodCall($field, $extra),
+            };
         }
         if ($label !== null) {
             $field = new Expr\MethodCall($field, 'label', [$label]);

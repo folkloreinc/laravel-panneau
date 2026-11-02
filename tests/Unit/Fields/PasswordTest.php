@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Unit\Fields;
 
+use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
@@ -92,6 +93,45 @@ class PasswordTest extends TestCase
         $this->assertSame(['name' => 'Ada'], $this->save($fields, ['name' => 'Ada', 'password' => null], FormMode::Update));
         $this->assertSame(['name' => 'Ada'], $this->save($fields, ['name' => 'Ada', 'password' => ''], FormMode::Update));
         $this->assertArrayHasKey('password', $this->errors($fields, ['password' => 'short'], FormMode::Update));
+    }
+
+    public function test_required_never_applies_to_an_update(): void
+    {
+        $field = Password::make('password')->required('A password, please.');
+
+        // Not a portable rule: the admin would require it on update too
+        $this->assertSame([['rule' => 'min', 'value' => 8]], $field->toDefinition()['rules']);
+        $this->assertSame(['password' => ['A password, please.']], $this->errors([$field], []));
+        $this->assertSame([], $this->save([$field], ['password' => null], FormMode::Update));
+    }
+
+    public function test_default_rules_of_another_class(): void
+    {
+        PasswordRule::defaults(fn (): PasswordRule => PasswordRule::min(10));
+        $this->assertSame([['rule' => 'min', 'value' => 10]], Password::make('password')->toDefinition()['rules']);
+
+        // Password::defaults() can return any rule
+        PasswordRule::$defaultCallback = fn (): Rule => new class implements Rule
+        {
+            public function passes($attribute, $value): bool
+            {
+                return $value === 'open sesame';
+            }
+
+            public function message(): string
+            {
+                return 'Not the password.';
+            }
+        };
+        $this->assertArrayNotHasKey('rules', Password::make('password')->toDefinition());
+        $this->assertSame(['password' => ['Not the password.']], $this->errors([Password::make('password')], ['password' => 'secret123']));
+    }
+
+    public function test_a_hash_of_the_app_is_not_hashed_again(): void
+    {
+        $hash = Hash::make('secret123');
+
+        $this->assertSame($hash, $this->save([Password::make('password')], ['password' => $hash])['password']);
     }
 
     public function test_the_repository_receives_the_hash(): void
