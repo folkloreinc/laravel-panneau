@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Feature\Http;
 
+use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Panneau\Contracts\UploadStorage;
@@ -47,6 +48,22 @@ class PrefixedRoutesTest extends HttpTestCase
         $this->app->instance(UploadStorage::class, $this->storage);
         $this->app->forgetInstance(Uploads::class);
         Gate::define('uploadPanneauFiles', fn ($user): bool => true);
+    }
+
+    public function test_routes_of_the_project_under_the_prefixed_path_keep_their_precedence(): void
+    {
+        $this->withoutVite();
+        $this->app['router']->setRoutes(new RouteCollection);
+        Route::middleware('web')->get('/{page}', fn (string $page): string => 'page '.$page);
+        Route::prefix('tenants/{tenant}')->group(function (): void {
+            Route::middleware('web')->get('panneau/custom', fn (): string => 'custom');
+            Panneau::routes();
+        });
+        $this->app['router']->getRoutes()->refreshNameLookups();
+
+        $this->get('/tenants/acme/panneau/custom')->assertOk()->assertContent('custom');
+        $this->get('/tenants/acme/panneau')->assertOk()->assertSee('id="panneau-boot"', false);
+        $this->get('/about')->assertOk()->assertContent('page about');
     }
 
     public function test_the_resource_routes(): void

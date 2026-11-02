@@ -27,6 +27,7 @@ use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
 use Panneau\Fields\Time;
 use Panneau\Forms\Condition;
+use Panneau\Forms\ValidationContext;
 use Panneau\Lists\Filters\SelectFilter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -118,10 +119,11 @@ class FieldTest extends TestCase
         $field = Text::make('key')->secret()->writeOnly();
 
         $this->assertNull($field->resolve((object) ['key' => 'x']));
-        $this->assertTrue($field->keepsStoredValue(null));
-        $this->assertTrue($field->keepsStoredValue(''));
-        $this->assertFalse($field->keepsStoredValue('y'));
-        $this->assertFalse(Text::make('key')->keepsStoredValue(null));
+        $context = new ValidationContext;
+        $this->assertTrue($field->omits(null, $context));
+        $this->assertTrue($field->omits('', $context));
+        $this->assertFalse($field->omits('y', $context));
+        $this->assertFalse(Text::make('key')->omits(null, $context));
         $this->assertSame('x', $field->writeOnly(false)->resolve((object) ['key' => 'x']));
     }
 

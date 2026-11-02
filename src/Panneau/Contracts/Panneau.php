@@ -40,8 +40,10 @@ interface Panneau
     /**
      * Registers the routes of the admin, with the middleware of `panneau.middleware`: the API
      * under `{path}/api`, and the app's page for every other path under `{path}`. Routes of
-     * the project under `{path}` must be registered before. In the `panneau` auth mode, the API
-     * also has `POST auth/login` and `POST auth/logout`.
+     * the project under `{path}` must be registered before. Routes of the project registered
+     * before outside `{path}` are moved after Panneau's, so that a page route such as `/{page}`
+     * doesn't catch `{path}`. In the `panneau` auth mode, the API also has `POST auth/login`
+     * and `POST auth/logout`.
      *
      * @param  bool  $app  Whether to register the app's page. Without it, only the API.
      */

@@ -17,7 +17,7 @@ final class Form
 {
     /**
      * Validates the input and returns the declared values only: hidden, read-only and unknown
-     * values are dropped.
+     * values are dropped, and those a field omits (an empty password).
      *
      * @param  list<Field>  $fields
      * @param  array<array-key, mixed>  $input
@@ -69,7 +69,7 @@ final class Form
     {
         $extracted = [];
         foreach (self::applicable($fields, $values, $context) as $field) {
-            if (array_key_exists($field->name(), $values)) {
+            if (array_key_exists($field->name(), $values) && ! $field->omits($values[$field->name()], $context)) {
                 $extracted[$field->name()] = $field->extract($values[$field->name()], $context);
             }
         }
@@ -115,8 +115,7 @@ final class Form
             $fields,
             fn (Field $field): bool => $field->isEditable($context->mode)
                 && $field->isVisible($values)
-                && (! $context->partial || (array_key_exists($field->name(), $values)
-                    && ! $field->keepsStoredValue($values[$field->name()]))),
+                && (! $context->partial || array_key_exists($field->name(), $values)),
         ));
     }
 }

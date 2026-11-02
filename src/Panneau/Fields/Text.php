@@ -44,7 +44,7 @@ class Text extends Field
         return $this->writeOnly ? null : parent::resolve($item);
     }
 
-    public function keepsStoredValue(mixed $value): bool
+    public function omits(mixed $value, ValidationContext $context): bool
     {
         return $this->writeOnly && ($value === null || $value === '' || $value === []);
     }

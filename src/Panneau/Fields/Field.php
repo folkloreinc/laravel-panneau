@@ -374,15 +374,6 @@ abstract class Field
     }
 
     /**
-     * Whether a value sent in an update is left out, so that the stored value stays: an empty
-     * value of a write-only text field (`Text::writeOnly()`), whose form starts without it.
-     */
-    public function keepsStoredValue(mixed $value): bool
-    {
-        return false;
-    }
-
-    /**
      * The field in the protocol's definition.
      *
      * @return array<string, mixed>
@@ -564,6 +555,15 @@ abstract class Field
         $modifiers = implode('', array_intersect(str_split($flags), ['i', 'm', 's']));
 
         return '/'.$escaped.'/u'.$modifiers;
+    }
+
+    /**
+     * Whether a validated value is left out of the values saved, so that the repository keeps
+     * the current one: a password left empty, or the empty value of a write-only text.
+     */
+    public function omits(mixed $value, ValidationContext $context): bool
+    {
+        return false;
     }
 
     /**

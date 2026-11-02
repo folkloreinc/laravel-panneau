@@ -15,6 +15,7 @@ use Panneau\Fields\Repeater;
 use Panneau\Layout\Node;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use ReflectionMethod;
 
 /**
  * Builds the protocol's definition from the registered resources and the config.
@@ -111,8 +112,8 @@ final class DefinitionBuilder
      */
     public function user(Authenticatable $user): array
     {
-        $name = data_get($user, 'name');
-        $email = data_get($user, 'email');
+        $name = $this->userProperty($user, 'name');
+        $email = $this->userProperty($user, 'email');
 
         return array_filter([
             'id' => (string) $user->getAuthIdentifier(),
@@ -120,6 +121,28 @@ final class DefinitionBuilder
             'email' => is_string($email) ? $email : null,
             'abilities' => ['panneau.view' => true],
         ], fn (mixed $value): bool => $value !== null);
+    }
+
+    /**
+     * A property of the user: its attribute (an Eloquent model, `GenericUser`), or
+     * its public method without parameters, for users that are entities with
+     * methods (`name()`, `email()`), as the users of laravel-folklore.
+     */
+    private function userProperty(Authenticatable $user, string $property): ?string
+    {
+        $value = data_get($user, $property);
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (method_exists($user, $property)) {
+            $method = new ReflectionMethod($user, $property);
+            if ($method->isPublic() && ! $method->isStatic() && $method->getNumberOfRequiredParameters() === 0) {
+                $value = $method->invoke($user);
+            }
+        }
+
+        return is_string($value) ? $value : null;
     }
 
     public function name(): string

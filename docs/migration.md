@@ -26,10 +26,10 @@ It writes nothing, and works at every step of the migration. It lists what the p
 
 | Section | What it reads |
 |---|---|
-| Packages | `folklore/laravel-panneau` and `laravel-folklore` in `composer.json`; the `@panneau/*` 4 packages in `package.json`, which `@panneau/app` 5 replaces, and the files of `resources/js` or `resources/assets/js` that import them: the site's bundle stops building once `@panneau/app` is 5, until the JS codemods move them. The project's JS directory, when it is `resources/assets/js` |
+| Packages | `folklore/laravel-panneau` and `laravel-folklore` in `composer.json`; the `@panneau/*` 4 packages in `package.json`, which `@panneau/app` 5 replaces, and the files of `resources/js` or `resources/assets/js` that import them: the site's bundle stops building once `@panneau/app` is 5, until the JS codemods move them. Once `package.json` has only `@panneau/*` 5, only the files that still import 4.x modules (`@panneau/core/contexts`, `@panneau/element-*`…) are listed. The project's JS directory, when it is `resources/assets/js` |
 | Config | Each key of `config/panneau.php`: `name`, `intl.locales` → `locales`, `routes.prefix` → `path`, `routes.middleware` → `middleware`; keys 5.x drops (`intl.translations`, `routes.map`, `only_declared_fields`…); keys that aren't 1.x keys, kept |
-| Resources | Those of the config, and other subclasses of `Panneau\Support\Resource`: their static properties (`$repository` → `repository()`, `$jsonResource` → `toItem()`, which resolves it (`jsonResource()` is not built yet), `$types`, `$settings`…), their methods, and their `index()`: columns, sorts, filters and actions → `list()` and `actions()`. The 1.x id is camel case (`jobListings`), the 5.x id kebab case (`job-listings`): keep the 1.x one with `id()` if URLs or fields name it |
-| Resource types | Subclasses of `Panneau\Support\ResourceType`, with the resources that list them: block types become `BlockType`s of a `Repeater`; other types wait for `types()` |
+| Resources | Those of the config, and other subclasses of `Panneau\Support\Resource`: their static properties (`$repository` → `repository()`, `$jsonResource` → `toItem()`, which resolves it (`jsonResource()` is not built yet), `$types`, `$settings`…), their methods, and their `index()`: columns, sorts, filters and actions → `list()` and `actions()`. The 1.x id is camel case (`jobListings`), the 5.x id kebab case (`job-listings`): keep the 1.x one with `id()` if URLs or fields name it. On a resource that already extends a 5.x resource (by hand or by the Rector rules), only what is left of 1.x is listed: its static properties, and the 1.x methods that 5.x never calls (`index()`, `makeRepository()`…) |
+| Resource types | Subclasses of `Panneau\Support\ResourceType`, with the resources that list them: block types become `BlockType`s of a `Repeater`; other types wait for `types()`. A concrete base of other types (shared fields, a placements resolver) is listed as a 1.x base class |
 | Field classes | The project's fields, grouped by the 1.x class they extend, with the component they send to the JS: `Items` → `Repeater`, `Fields` → `Group`, `ResourceItem(s)` → `Relation`, `*Localized` → `->localized()`, built-in fields, the fields of `laravel-folklore` 1.1. A direct subclass of `Field`, or a component that only the project's JS knows, is `manual`: a built-in type, or a field type with a JS plugin |
 | Fields used | How many times each 1.x field class is used, and what it becomes. Classes that 5.x has under the same name (`Text`, `Select`, `Image`…) are left out |
 | Resource controllers | Subclasses of `ResourceController`, the resources that use them, and their methods: `getIndexQueryFromRequest()` → `scope()` or list filters, `getStoreDataFromRequest()` → `creating()`, other public methods → actions or plugin pages |
@@ -67,7 +67,7 @@ vendor/bin/rector process app/Panneau --config vendor/folklore/laravel-panneau/r
 vendor/bin/pint app/Panneau
 ```
 
-Run them on the directories that hold the resources and fields (`app/Panneau` usually), and review the diff: they import the class names they write and remove unused imports in every file they process, so other directories would change too. Like the audit, they read the project's parents from its files: run them from the project's root. They change nothing on a second run.
+Run them on the directories that hold the resources and fields (`app/Panneau` usually), and review the diff: they import the class names they write and remove unused imports in every file they process, so other directories would change too. Like the audit, they read the project's parents from its files: run them from the project's root. They change nothing on a second run. Each run gets a cache of its own, so a run after a fix by hand, or with a newer release of the rules, processes every file again (with 5.0.0-alpha.7 and earlier, add `--clear-cache`).
 
 | Rule | 1.x | 5.x |
 |---|---|---|
@@ -87,6 +87,7 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | | `Html`, `Toggle`, `Telephone`, `Radios` | `RichText`, `Boolean`, `Tel`, `Select` |
 | | `Upload`, `Media`, `Image`, `ImageUpload`, `Video`, `Audio`, `Document` and their plurals | `Media` or `Image`, with `accept(['video/*'])`, `accept(['audio/*'])` or `multiple()`; documents get a TODO to name their library |
 | | `Items`, `Fields`, `Item`, `ResourceItem`, `ResourceItems` | `Repeater`, `Group`, `Relation`, `Relation->multiple()` |
+| | `Password` | `Password->hashed(false)`, with a TODO: 1.x never hashed, the repository did |
 | | `PageSlugLocalized` of `laravel-folklore` 1.1 | `PageSlug`, localized by default |
 | | `make('name', 'Label')`, `new Text('name')` | `Text::make('name')->label('Label')` |
 | | `withTransLabel()`, `withLabel()`, `withTransHelpText()`, `withHelpText()` | `label(__())`, `label()`, `help(__())`, `help()` |
@@ -106,6 +107,7 @@ The field rules apply to chains that make a 1.x field, or a field of the project
 - **Custom controllers** become hooks and `Action` classes: exports and imports `ExportAction` and `ImportAction`, other operations on items custom actions.
 - **Custom routes** of `routes/panneau.php` (kept in its backup) become actions or plugin pages.
 - **The gate.** Port the `view()` of the 1.x `PanneauPolicy` to the `viewPanneau` gate of the new provider.
+- **Passwords.** The 1.x `Password` field keeps its name: `Panneau\Fields\Password` is a 5.x field, write-only, and required to create the user only (`required()` never applies to an update). 1.x never hashed the password, the repository did, so the Rector rules write `hashed(false)`: remove it once neither the repository nor the model hashes, and the field hashes once. The 1.x confirmation (`password_confirmation` and `confirmed`) is gone. It needs `@panneau/*` 5.0.0-alpha.9 or later, which renders `settings.secret`: an older admin shows the password in clear. Then a project's own password field and its JS plugin entry can go (see [Passwords](architecture.md#passwords)).
 - **The login page.** 1.x served its own (`Panneau::router()->auth()`, at `{prefix}/login`). 5.x's own login is the `panneau` auth mode, with an email and a password for now (no reset, two-factor or OAuth providers yet): the app shows its login page to guests. Or keep the site's login with the `external` mode and `auth.login_url`, and `auth.logout_url` for the "Log out" button.
 - **Locales.** A `setLocalesResolver()` becomes `locales` in `config/panneau.php`.
 - **Request macros and route names:** `$request->routeIs('panneau.*')`, and the 5.x route names.

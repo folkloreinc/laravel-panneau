@@ -185,7 +185,8 @@ interface ResourceRepository
   - `Date`, `DateTime`, `Time`;
   - `Select`, `Email`, `Url`, `Color`;
   - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
-  - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types)).
+  - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types));
+  - `Password`, a `text` field with `settings.secret` (see [Passwords](#passwords)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
   - `localized()`, `readOnly()`, `visibleWhen()`;
@@ -220,6 +221,22 @@ RichText::make('body')
 - The settings only limit what users add: the HTML a field already holds, from CKEditor in 1.x, saves unchanged until it is edited, and keeps what the toolbar doesn't offer once it is.
 - Settings the protocol refuses (a level outside 1 to 6, a style on another element) throw an `InvalidArgumentException`.
 - The value is a string, saved as it is sent.
+
+### Passwords
+
+`Password` is the password of a users resource. It sends no protocol type of its own: in the definition, it is a `text` field with `settings.secret`, which `@panneau/fields` (5.0.0-alpha.9 or later) renders as a password input with `autocomplete="new-password"` and a button that shows it, so no JS plugin is needed. It needs `@panneau/*` 5.0.0-alpha.9 or later: an older admin ignores `settings.secret` and shows a plain text input.
+
+```php
+Password::make('password')->label(__('Password')),
+Password::make('password')->hashed(false), // for a repository that hashes what it receives
+Password::make('password')->optional(),    // optional to create the user too
+Password::make('password')->required(),    // the default: required to create, never to update
+```
+
+- **Write-only.** Items always give `null`, so the form starts empty, and lists and details never show it.
+- **Required to create the item, optional to update it.** On an update, an empty value (`null` or `""`) keeps the current password: the field omits it from the values (`Field::omits()`), so the repository receives no `password`.
+- **Rules.** `Password::defaults()` on the server, with `rules()` for more. The definition has its `min`, for the app's own check. The required mark on create only waits for rules limited to a mode in the protocol (`{ "rule": "required", "mode": "create" }`, folkloreinc/panneau-js#164): until then, the field sends no `required`, and a create without a password gets its `422` after Save. When it comes, the field will send it only for an admin that knows `mode`: an older one would require the password on update too, and block editing a user. On the server, `required` on create is checked with the mode of the `ValidationContext`, not as a portable rule.
+- **Hashed once.** `prepare()` hashes the password with `Hash::make()`, unless it is already a hash of the app's hasher (`Hash::isHashed()`, and not `Hash::needsRehash()`), so the repository receives the hash. Projects migrated from 1.x hash in their repository: the Rector rules write `hashed(false)` there. Eloquent's `hashed` cast keeps a hash as is, and so does laravel-folklore's `Users` repository once folkloreinc/laravel-folklore#144 is released; before that, use `hashed(false)` with it, which leaves the hashing to the repository.
 
 ### More field types
 
@@ -416,7 +433,7 @@ final class PublishPages extends Action
   - The API is under `{panneau.path}/api` (`/panneau/api` by default), with routes named `panneau.api.*`.
   - The routes can be mounted under a prefix with its own parameter, such as `tenants/{tenant}`: the controllers read their parameters by name.
   - `panneau.auth` requires a user on the guard of `panneau.auth.guard`, and the `viewPanneau` gate. Without that gate, nobody gets in.
-  - Every other path under `{panneau.path}` serves the page of the app (route `panneau.app`), since the app routes on the client. The route is registered last: the project's own routes under that path go before `Panneau::routes()`. `Panneau::routes(app: false)` registers only the API.
+  - Every other path under `{panneau.path}` serves the page of the app (route `panneau.app`), since the app routes on the client. The route is registered last: the project's own routes under that path go before `Panneau::routes()`. The project's routes registered before outside that path (with the prefix of the group that calls `Panneau::routes()`, such as `tenants/{tenant}`) are moved after Panneau's, so that a page route of the site, such as `/{page}`, doesn't catch `/panneau` when the site's routes are loaded first (a `RouteServiceProvider` listed before the provider that loads `routes/panneau.php`). Routes loaded after Panneau's never shadow them. `Panneau::routes(app: false)` registers only the API.
   - **Parts of the API.** A project with its own admin front can mount only what it uses, under its own group: `Panneau::uploadRoutes()` (nothing when uploads are not enabled) and `Panneau::resourceRoutes($resources, only: [...])`, where `$resources` are ids (null for all) and `only` picks among `index`, `store`, `show`, `update`, `destroy`, `actions` and `check` (the field check endpoint). The routes keep their `panneau.api.*` names, after the group's name, and render their errors as problems. They don't get `panneau.middleware`: the group authenticates. Add `RenderProblems` first to the group's middleware so that its errors are problems too.
 
     ```php
@@ -461,6 +478,7 @@ See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://g
 - **`external` mode.** The site keeps its own login. Panneau only checks the session on the site's guard and the `viewPanneau` gate.
   - Guests are sent to `panneau.auth.login_url`.
   - `panneau.auth.logout_url` is where the browser goes to log out (`auth.logoutUrl`), the site's own logout. It has to accept a `GET` navigation: Laravel's default logout route is a `POST`, so the site needs a route that logs out and redirects. Without it, the app has no "Log out" button.
+- **The user of the definition.** `user` has the id of `getAuthIdentifier()`, and the `name` and `email` of the user: its attributes (an Eloquent model, `GenericUser`), or else its public methods `name()` and `email()`, for users that are entities (laravel-folklore's `Folklore\Entities\User`). Without a name, the email is the name.
 - **Isolation.** Panneau never changes the site's Fortify configuration, views or guards.
 - **Roles module (optional, not built yet).** Roles and permissions are defined in config, with a `panneau_roles` pivot, an assignment UI, invitations, and a policy base class that checks permissions such as `pages.update`.
 
@@ -533,7 +551,7 @@ final class ImagesResource extends MediathequeResource
 ```
 
 - **Making a media** is `POST /resources/{library}` with `{ "file": { "upload": "upl_…" } }`, or the file in `multipart/form-data`. Replacing its file is a `PATCH` with a new `file` (Eloquent libraries only, see below). `media` is computed by the backend: what the client sends there is ignored.
-- **Media types.** `mediaTypes()` lists the types of the library: `image`, `video`, `audio`, `document`, `font`, `other`, or a type of the mediatheque. Empty, the default: every type. They are part of the scope (under the `type` key), so lists, items and `media` fields only reach media of those types, and a file of another type is refused with a `422` on `file`. They also give the file's default `accept`; an explicit `accept()` replaces it, and should stay within the types.
+- **Media types.** `mediaTypes()` lists the types of the library: `image`, `video`, `audio`, `document`, `font`, `other`, or a type of the mediatheque. Empty, the default: every type. They are part of the scope (under the `type` key), so lists, items and `media` fields only reach media of those types, and a file of another type is refused with a `422` on `file`. They also give the file's default `accept`; an explicit `accept()` replaces it, and should stay within the types. The file's default `maxSize` is `maxFileSize()`: none on a `MediaResource`, the mediatheque's limit on a `MediathequeResource`; an explicit `maxSize()` replaces it.
 - **The `type` filter** (`filter[type]=image`, or a list) is added before the filters of `list()`, unless it declares one. Its options are the library's types. A type the library doesn't hold gives no media.
 - **Scope.** `scope()` works as for any resource, and its values are set on the media the library makes: a tenant column, or a column that splits a table into several libraries.
 - **Labels.** In `media` values, a media's `label` is its `itemTitle` (the first text field by default), in the current locale for a localized field, or else the name of its file.
@@ -544,6 +562,7 @@ final class ImagesResource extends MediathequeResource
 `MediathequeResource` is a library on [`folklore/laravel-mediatheque`](https://github.com/folkloreinc/laravel-mediatheque) 2 (`^2.0@alpha`, 2.0.0-alpha.8 or later, suggested, not required). Its repository, `MediathequeRepository`, works with the model of `mediatheque.models.media`.
 
 - **Ingest.** A direct upload is ingested with `Mediatheque::ingest(Source::disk($upload->disk, $upload->path, $name), name: …, attributes: $scope)`: the mediatheque copies it on the storage, detects its type from its content, and processes it in its queue. A file of the request is ingested the same way. A file the mediatheque refuses, or of a type outside the library, is a `422` on `file`, and leaves neither a row nor a file.
+- **Size limit.** The file's `maxSize` defaults to the largest file the mediatheque ingests for the library's types: the largest of their `max_size` (`mediatheque.types.{type}.max_size`, or `ingest.max_size`), and none when one of them has no limit. So the app refuses a file before sending it, instead of the mediatheque after. An explicit `maxSize()` in `file()` wins.
 - **Fields** are attributes of the media: `name`, and the columns the application adds to the media table. The values other than `file` and `name` are set after the ingest, like `EloquentRepository` does.
 - **`media`** comes from the mediatheque: `type`, `status` (`pending` until it is probed and processed), `error` for a failed media (`{ code, message }`, from its latest failed run or the rendition of it that failed), the original's MIME type and size, `url` (the main rendition, or the original; temporary for a private media), `thumbnailUrl`, `variants` (the main renditions, such as `h264`), `width`, `height`, `duration`, `metadata`, and `transform`, the media's own transform (`$media->transform()`, `laravel-mediatheque` 2.0.0-alpha.8 or later).
 - **Thumbnails.** With [`folklore/laravel-image`](https://github.com/folkloreinc/laravel-image) 2, the thumbnail of an image, or of a video's poster, is an image URL of its `media` resolver: a signed URL 480 pixels wide, or the preset of `thumbnailPreset()`. Without it, or before the mediatheque knows the image's checksum, it is the URL of the original image, or of the poster or first thumbnail of other types.
