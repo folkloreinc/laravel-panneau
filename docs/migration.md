@@ -67,7 +67,7 @@ vendor/bin/rector process app/Panneau --config vendor/folklore/laravel-panneau/r
 vendor/bin/pint app/Panneau
 ```
 
-Run them on the directories that hold the resources and fields (`app/Panneau` usually), and review the diff: they import the class names they write and remove unused imports in every file they process, so other directories would change too. Like the audit, they read the project's parents from its files: run them from the project's root. They change nothing on a second run.
+Run them on the directories that hold the resources and fields (`app/Panneau` usually), and review the diff: they import the class names they write and remove unused imports in every file they process, so other directories would change too. Like the audit, they read the project's parents from its files: run them from the project's root. They change nothing on a second run. Each run gets a cache of its own, so a run after a fix by hand, or with a newer release of the rules, processes every file again (with 5.0.0-alpha.7 and earlier, add `--clear-cache`).
 
 | Rule | 1.x | 5.x |
 |---|---|---|

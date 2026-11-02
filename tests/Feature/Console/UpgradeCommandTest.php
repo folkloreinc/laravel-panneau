@@ -416,12 +416,12 @@ class UpgradeCommandTest extends TestCase
         $this->assertTrue($finding->isManual());
     }
 
-    public function test_the_check_after_the_upgrade_and_the_rector_rules(): void
+    /**
+     * Runs the Rector rules on the project's app/Panneau.
+     */
+    private function rector(): void
     {
-        $this->project('v1.4');
-        $this->panneau(['--upgrade' => true]);
         $root = dirname(__DIR__, 3);
-
         exec(sprintf(
             'cd %s && %s %s process app/Panneau --config %s --no-progress-bar --no-diffs 2>&1',
             escapeshellarg($this->project),
@@ -430,6 +430,14 @@ class UpgradeCommandTest extends TestCase
             escapeshellarg($root.'/rector.php'),
         ), $rector, $status);
         $this->assertSame(0, $status, implode("\n", $rector));
+    }
+
+    public function test_the_check_after_the_upgrade_and_the_rector_rules(): void
+    {
+        $this->project('v1.4');
+        $this->panneau(['--upgrade' => true]);
+
+        $this->rector();
         $this->assertStringContainsString('Text::make(\'title\')->localized()', $this->read('app/Panneau/Resources/Projects.php'));
 
         $output = $this->panneau(['--upgrade' => true, '--check' => true]);
@@ -546,6 +554,35 @@ class UpgradeCommandTest extends TestCase
         // The config is 5.x: the provider, which has the resources, isn't written again
         $this->assertSame($provider, $this->read('app/Providers/PanneauServiceProvider.php'));
         $this->assertStringContainsString('\\App\\Panneau\\Resources\\Pages::class', $provider);
+    }
+
+    public function test_the_rector_rules_convert_again_what_another_run_left(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Fields/Title.php', "<?php\n\nnamespace App\\Panneau\\Fields;\n\nuse App\\Support\\Field;\n\nclass Title extends Field\n{\n}\n");
+        file_put_contents($this->project.'/app/Panneau/Notes.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau;
+
+            use App\Panneau\Fields\Title;
+
+            class Notes
+            {
+                public function fields(): array
+                {
+                    return [Title::make('title')->withLabel('Title')];
+                }
+            }
+            PHP);
+        $this->rector();
+        $this->assertStringContainsString('->withLabel(', $this->read('app/Panneau/Notes.php'));
+
+        // The field now extends a 1.x field: the rules convert its calls, in a file they left unchanged
+        file_put_contents($this->project.'/app/Panneau/Fields/Title.php', str_replace('use App\\Support\\Field;', 'use Panneau\\Fields\\Text as Field;', $this->read('app/Panneau/Fields/Title.php')));
+        $this->rector();
+
+        $this->assertStringContainsString("Title::make('title')->label('Title')", $this->read('app/Panneau/Notes.php'));
     }
 
     public function test_the_check_still_reports_after_the_upgrade(): void
