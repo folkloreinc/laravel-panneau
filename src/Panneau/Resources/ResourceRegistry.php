@@ -5,7 +5,7 @@ namespace Panneau\Resources;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 use LogicException;
-use Panneau\Actions\Action;
+use Panneau\Actions\BuiltInLink;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Searchable;
@@ -203,19 +203,26 @@ final class ResourceRegistry
     }
 
     /**
-     * The actions of a resource, resolved.
+     * The actions of a resource, resolved. The ids `show` and `edit` are reserved for links
+     * (`ShowAction`, `EditAction`, or a `LinkAction` with its own target).
      *
      * @return list<ActionDeclaration>
      */
     public function actions(Resource $resource): array
     {
-        return array_map(function (string|ActionDeclaration $action): ActionDeclaration {
-            if ($action instanceof ActionDeclaration) {
-                return $action;
-            }
-            $instance = $this->container->make($action);
-            if (! $instance instanceof Action) {
+        return array_map(function (string|ActionDeclaration $action) use ($resource): ActionDeclaration {
+            $instance = $action instanceof ActionDeclaration ? $action : $this->container->make($action);
+            if (! $instance instanceof ActionDeclaration) {
                 throw new InvalidArgumentException(sprintf('%s is not an action.', $action));
+            }
+            if (in_array($instance->id(), BuiltInLink::IDS, true)
+                && ! $instance instanceof BuiltInLink && ($instance->toDefinition()['kind'] ?? null) !== 'link') {
+                throw new LogicException(sprintf(
+                    'The action %s of the resource "%s" has the id "%s", which is reserved for the built-in link.',
+                    $instance::class,
+                    $resource->id(),
+                    $instance->id(),
+                ));
             }
 
             return $instance;

@@ -682,6 +682,35 @@ final class Audit
         }
     }
 
+    /**
+     * What the buttons of a 1.x `actions` column become: `ShowAction`, `EditAction` and
+     * `DeleteAction` in `actions()`, which the Rector rules write.
+     *
+     * @param  list<string>  $buttons
+     */
+    private function buttonsTarget(array $buttons): string
+    {
+        $classes = ['show' => 'ShowAction', 'edit' => 'EditAction', 'delete' => 'DeleteAction'];
+        $actions = [];
+        $others = [];
+        foreach ($buttons as $button) {
+            if (isset($classes[$button])) {
+                $actions[] = $classes[$button];
+            } elseif ($button === 'duplicate') {
+                $others[] = 'duplicate: DuplicateAction (not built yet)';
+            } elseif ($button !== 'create') {
+                // create has none: the list has its own button
+                $others[] = "{$button}: a LinkAction or an Action";
+            }
+        }
+        $target = $actions !== [] ? 'actions(): '.implode(', ', array_unique($actions)) : 'manual: actions()';
+        if (! in_array('show', $buttons, true)) {
+            $others[] = "no show: open() can return 'edit'";
+        }
+
+        return implode('; ', [$target, ...$others]);
+    }
+
     private function auditColumns(Finding $finding, Expr $columns): void
     {
         $ids = [];
@@ -698,10 +727,11 @@ final class Audit
             $id = is_string($id) ? $id : '?';
             if ($id === 'actions' || isset($items['actions'])) {
                 $actions = Php::value($items['actions'] ?? null);
-                $names = is_array($actions) ? implode(', ', array_filter($actions, 'is_string')) : '?';
-                $finding->add("column actions: {$names}", 'actions(): show and edit are built in, DeleteAction, DuplicateAction (not built yet)');
-
-                continue;
+                $names = is_array($actions) ? array_values(array_filter($actions, 'is_string')) : [];
+                $finding->add('column actions: '.($names !== [] ? implode(', ', $names) : '?'), $this->buttonsTarget($names));
+                if ($id === 'actions') {
+                    continue;
+                }
             }
             $ids[] = $id;
             if (Php::value($items['sortable'] ?? null) === true) {

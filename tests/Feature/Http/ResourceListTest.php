@@ -4,6 +4,8 @@ namespace Panneau\Tests\Feature\Http;
 
 use Panneau\Http\Problem;
 use Panneau\Support\Facade;
+use TestApp\Models\Author;
+use TestApp\Models\Tag;
 use TestApp\Policies\PostPolicy;
 
 class ResourceListTest extends HttpTestCase
@@ -35,6 +37,29 @@ class ResourceListTest extends HttpTestCase
         );
         $this->assertArrayNotHasKey('secret', $item);
         $this->assertArrayNotHasKey('team_id', $item);
+    }
+
+    public function test_items_say_whether_they_can_be_updated_and_viewed_for_the_built_in_links(): void
+    {
+        // The app hides `edit` on items with `update: false`, and `show` on items with `view: false`
+        Facade::allowWithoutPolicies();
+        $this->createPost();
+        Author::query()->create(['name' => 'Ada']);
+        Tag::query()->create(['name' => 'News', 'slug' => 'news']);
+
+        foreach (['posts', 'authors', 'tags'] as $resource) {
+            $definition = collect($this->getJson(self::API.'/definition')->json('resources'))->firstWhere('id', $resource);
+            $this->assertContains('edit', array_column($definition['actions'], 'id'), $resource);
+            $items = $this->getJson(self::API.'/resources/'.$resource)->assertOk()->json('data');
+            $this->assertNotEmpty($items, $resource);
+            foreach ($items as $item) {
+                $this->assertIsBool($item['abilities']['update'] ?? null, $resource);
+                $this->assertIsBool($item['abilities']['view'] ?? null, $resource);
+                // Links don't run: they aren't abilities of their own
+                $this->assertArrayNotHasKey('edit', $item['abilities'], $resource);
+                $this->assertArrayNotHasKey('show', $item['abilities'], $resource);
+            }
+        }
     }
 
     public function test_an_empty_list(): void

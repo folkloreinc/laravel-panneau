@@ -96,7 +96,7 @@ final class PagesResource extends Resource
 
     public function actions(): array
     {
-        return [PublishPages::class, DeleteAction::class];
+        return [...parent::actions(), PublishPages::class, DeleteAction::class]; // EditAction, then these
     }
 
     public function scope(Request $request): array
@@ -371,6 +371,13 @@ final class PublishPages extends Action
 
 - **Declaration.** `label()`, `icon()`, `scope()`, `placement()`, `destructive()`, `confirm()`, `fields()` and `layout()` are serialized into the definition. The action id is derived from the class name (`publish-pages`), or set with `id()`.
 - **Kinds.** Server actions extend `Action`. `LinkAction::make('preview')->url(...)` and `ClientAction::make('copy-link')->component('copy-link')` cover the two other kinds, with no PHP logic.
+- **Built-in links** ([panneau-js decision 0040](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0040-row-links-and-open-mode.md)). `EditAction` and `ShowAction` are `link` actions with the reserved ids `edit` and `show`, on items, declared with their id only: `{ "id": "edit", "kind": "link", "scope": ["item"] }`.
+  - The app resolves them to its own routes (`edit` the item's form, `show` its panel), labels them in the user's locale, gives them their icons, and shows them in the rows. `label()`, `icon()`, `placement()`, `url()` and `route()` (`EditAction::make()->route('...')`) are sent only when the project sets them.
+  - The app hides `edit` on items whose `abilities.update` is false, and `show` on those whose `abilities.view` is false. Every item has both: those of the policy, `view` and `update`.
+  - They don't run: `POST /resources/{resource}/actions/edit` is a `404`.
+  - **Defaults.** `Resource::actions()` returns `[EditAction::class]`, so that the rows of a resource that lists no action open the item's form. A resource that overrides `actions()` gets exactly what it lists: `[...parent::actions(), DeleteAction::class]` keeps the link, `[DeleteAction::class]` leaves it out. The app adds no action by itself.
+  - The ids `show` and `edit` are reserved: a server or client action that has one throws when the actions are resolved. A `LinkAction::make('edit')->url(...)` with its own target replaces the built-in one.
+- **What opens an item.** `Resource::open()` returns `'panel'` (the default, left out of the definition): the title of an item opens its panel, next to the list. With `'edit'` (sent as `"open": "edit"`), it opens its form, the show route redirects there, and the app leaves out `ShowAction`. Use it when the panel adds nothing to the form (orders, users).
 - **Selection:**
   - The controller resolves the selection through the resource's repository and `scope()`: it applies the ids, or the list filters and search of a query selection, then the exclusions.
   - A selection never reaches items outside the resource's scope.
@@ -394,7 +401,7 @@ final class PublishPages extends Action
   - Items are processed in chunks (`chunkSize()`), through a job batch. This needs a repository with the `ChunkedQuery` capability.
   - Progress and results are stored in a `panneau_action_runs` table, and `ActionRunFinished` is dispatched at the end.
   - An action that can't be queued refuses selections above the limit with a `422`.
-- **Built-in actions:** `DeleteAction` exists; the others are **not built yet**.
+- **Built-in actions:** `DeleteAction` exists, with the built-in links `EditAction` and `ShowAction` (above); the others are **not built yet**.
   - `DuplicateAction`: for repositories that are `Duplicable` (`replicate()` with Eloquent), plus the resource's `duplicating` hook.
   - `DeleteAction`, which answers dry runs.
   - `RestoreAction`: for repositories that are `Restorable`.

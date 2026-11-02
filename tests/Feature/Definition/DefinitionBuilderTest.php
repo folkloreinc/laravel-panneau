@@ -195,6 +195,11 @@ class DefinitionBuilderTest extends TestCase
     {
         $actions = array_column($this->resource('posts')['actions'], null, 'id');
 
+        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'preview', 'copy-link'], array_keys($actions));
+        // The built-in links: the app resolves them to its routes and labels them
+        $this->assertSame(['id' => 'show', 'kind' => 'link', 'scope' => ['item']], $actions['show']);
+        $this->assertSame(['id' => 'edit', 'kind' => 'link', 'scope' => ['item']], $actions['edit']);
+
         $this->assertSame([
             'id' => 'publish-posts',
             'label' => 'Publish posts',
@@ -224,6 +229,18 @@ class DefinitionBuilderTest extends TestCase
             'scope' => ['item'],
             'component' => 'copy-link',
         ], $actions['copy-link']);
+    }
+
+    public function test_resources_declare_the_edit_link_by_default(): void
+    {
+        $this->assertSame([['id' => 'edit', 'kind' => 'link', 'scope' => ['item']]], $this->resource('tags')['actions']);
+    }
+
+    public function test_what_opens_an_item(): void
+    {
+        $this->assertSame('edit', $this->resource('authors')['open']);
+        // The default, `panel`, is left out
+        $this->assertArrayNotHasKey('open', $this->resource('tags'));
     }
 
     public function test_without_policies_everything_is_denied(): void

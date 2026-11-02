@@ -5,12 +5,15 @@ namespace Panneau\Tests\Unit\Actions;
 use Illuminate\Support\Collection;
 use LogicException;
 use Panneau\Actions\Action;
+use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ActionRefresh;
 use Panneau\Actions\ActionResult;
 use Panneau\Actions\ActionScope;
 use Panneau\Actions\ActionValues;
 use Panneau\Actions\ClientAction;
+use Panneau\Actions\EditAction;
 use Panneau\Actions\LinkAction;
+use Panneau\Actions\ShowAction;
 use Panneau\Uploads\Upload;
 use PHPUnit\Framework\TestCase;
 use TestApp\Panneau\Actions\PublishPosts;
@@ -56,6 +59,33 @@ class ActionTest extends TestCase
             ['id' => 'site', 'label' => 'Site', 'kind' => 'link', 'scope' => ['resource'], 'destructive' => true, 'confirm' => true, 'route' => 'site'],
             LinkAction::make('site')->route('site')->scope([ActionScope::Resource])->destructive()->confirm()->toDefinition(),
         );
+    }
+
+    public function test_the_built_in_links_need_no_target_nor_label(): void
+    {
+        // The app resolves them to its routes, and labels them in the user's locale
+        $this->assertSame(['id' => 'edit', 'kind' => 'link', 'scope' => ['item']], EditAction::make()->toDefinition());
+        $this->assertSame(['id' => 'show', 'kind' => 'link', 'scope' => ['item']], (new ShowAction)->toDefinition());
+    }
+
+    public function test_the_built_in_links_send_what_the_project_sets(): void
+    {
+        $this->assertSame(
+            ['id' => 'edit', 'label' => 'Open', 'icon' => 'pencil', 'kind' => 'link', 'scope' => ['item'], 'placement' => ['row', 'menu'], 'route' => 'orders.edit'],
+            EditAction::make()->label('Open')->icon('pencil')->placement([ActionPlacement::Row, ActionPlacement::Menu])->route('orders.edit')->toDefinition(),
+        );
+        $this->assertSame(
+            ['id' => 'show', 'kind' => 'link', 'scope' => ['item'], 'url' => '/orders/{id}'],
+            ShowAction::make()->url('/orders/{id}')->toDefinition(),
+        );
+    }
+
+    public function test_a_link_action_without_a_target_named_edit_points_to_edit_action(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(EditAction::class);
+
+        LinkAction::make('edit')->toDefinition();
     }
 
     public function test_results(): void

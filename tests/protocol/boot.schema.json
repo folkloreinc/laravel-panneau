@@ -209,6 +209,21 @@
                 "itemImage": {
                     "type": "string"
                 },
+                "open": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "panel",
+                                "edit"
+                            ]
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
+                },
                 "fields": {
                     "type": "array",
                     "items": {
@@ -1069,7 +1084,6 @@
             },
             "required": [
                 "id",
-                "label",
                 "scope"
             ],
             "additionalProperties": {}

@@ -13,6 +13,11 @@ class AuthorsResource extends Resource
         return Author::class;
     }
 
+    public function open(): string
+    {
+        return 'edit';
+    }
+
     public function fields(): array
     {
         return [Text::make('name')->required()];

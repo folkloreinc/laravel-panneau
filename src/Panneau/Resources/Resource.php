@@ -5,6 +5,8 @@ namespace Panneau\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
+use Panneau\Actions\BuiltInLink;
+use Panneau\Actions\EditAction;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Text;
@@ -134,13 +136,29 @@ abstract class Resource
     }
 
     /**
-     * The actions: `Action` classes, or declarations such as `LinkAction::make()`.
+     * The actions: `Action` classes, the built-in links (`EditAction`, `ShowAction`), or
+     * declarations such as `LinkAction::make()`. By default, `EditAction`: a link to the form of
+     * each item, in its row. A resource that overrides it gets exactly what it lists: keep the
+     * link with `[...parent::actions(), DeleteAction::class]`, or leave it out.
      *
-     * @return list<class-string<Action>|ActionDeclaration>
+     * @return list<class-string<Action>|class-string<BuiltInLink>|ActionDeclaration>
      */
     public function actions(): array
     {
-        return [];
+        return [EditAction::class];
+    }
+
+    /**
+     * What an item's title opens, in its list and wherever the app links to the item: `panel`,
+     * its details in a panel next to the list, or `edit`, its form. With `edit`, the item's show
+     * route redirects to its form, and the app leaves out `ShowAction`. Use it when the panel
+     * adds nothing to the form.
+     *
+     * @return 'panel'|'edit'
+     */
+    public function open(): string
+    {
+        return 'panel';
     }
 
     /**

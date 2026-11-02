@@ -7,6 +7,7 @@ use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ClientAction;
 use Panneau\Actions\DeleteAction;
 use Panneau\Actions\LinkAction;
+use Panneau\Actions\ShowAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\DateTime;
@@ -121,6 +122,8 @@ class PostsResource extends Resource
     public function actions(): array
     {
         return [
+            ShowAction::class,
+            ...parent::actions(),
             PublishPosts::class,
             ArchivePosts::class,
             DeleteAction::class,

@@ -72,6 +72,8 @@ namespace App\Panneau\Resources;
 use Panneau\Resources\Resource;
 use App\Panneau\Resources\Pages\Page;
 use Panneau\Lists\ResourceList;
+use Panneau\Actions\ShowAction;
+use Panneau\Actions\EditAction;
 use Panneau\Actions\DeleteAction;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Text;
@@ -135,7 +137,7 @@ class Pages extends Resource
     }
     public function actions(): array
     {
-        return [DeleteAction::class];
+        return [ShowAction::class, EditAction::class, DeleteAction::class];
     }
 
     public function fields(): array

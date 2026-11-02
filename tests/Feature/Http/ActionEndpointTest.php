@@ -139,6 +139,9 @@ class ActionEndpointTest extends HttpTestCase
         $this->runAction('unknown', ['selection' => ['ids' => ['1']]])->assertNotFound();
         $this->runAction('preview', ['selection' => ['ids' => ['1']]])->assertNotFound();
         $this->runAction('copy-link', ['selection' => ['ids' => ['1']]])->assertNotFound();
+        // The built-in links don't run
+        $this->runAction('edit', ['selection' => ['ids' => ['1']]])->assertNotFound();
+        $this->runAction('show', ['selection' => ['ids' => ['1']]])->assertNotFound();
     }
 
     public function test_view_any_is_required(): void

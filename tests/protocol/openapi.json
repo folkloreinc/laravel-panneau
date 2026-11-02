@@ -2704,6 +2704,7 @@
                         "minLength": 1
                     },
                     "label": {
+                        "description": "Required, except for the built-in links `show` and `edit`, which the client labels in its locale.",
                         "type": "string"
                     },
                     "icon": {
@@ -2778,7 +2779,6 @@
                 },
                 "required": [
                     "id",
-                    "label",
                     "scope"
                 ],
                 "additionalProperties": {},
@@ -2872,6 +2872,22 @@
                     "itemImage": {
                         "description": "The field that holds the image of an item (a media or a URL), in search results, cards and pickers.",
                         "type": "string"
+                    },
+                    "open": {
+                        "description": "Where an item's title goes, in its list and wherever the app links to the item (decision 0040). `panel`, the default: the show route, with the item's details in a panel next to the list. `edit`: its edit form, and the show route redirects there. Clients treat a value they don't know as `panel`.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "panel",
+                                    "edit"
+                                ]
+                            },
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            }
+                        ]
                     },
                     "fields": {
                         "type": "array",

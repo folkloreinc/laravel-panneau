@@ -58,6 +58,8 @@ namespace App\Panneau\Resources;
 use Panneau\Resources\Resource;
 use App\Http\Resources\InvoiceResource;
 use Panneau\Lists\ResourceList;
+use Panneau\Actions\ShowAction;
+use Panneau\Actions\EditAction;
 use App\Panneau\Fields\Customer;
 use App\Panneau\Fields\Fields;
 use Panneau\Fields\Email;
@@ -70,23 +72,22 @@ class Invoices extends Resource
     {
         return \App\Repositories\Invoices::class;
     }
-
     public function toItem(object $item): array
     {
         return InvoiceResource::make($item)->resolve();
     }
-
     // TODO(panneau-5): canCreate is false: the create() of the policy denies it
 
-
     // TODO(panneau-5): 5.x never calls translationsNamespace() ('panneau.' . $this->id()): its name, plural and singular keys go to pluralLabel() and singularLabel(), with __()
-
 
     public function list(ResourceList $list): ResourceList
     {
         return $list->columns(['number', 'email']);
     }
-
+    public function actions(): array
+    {
+        return [ShowAction::class, EditAction::class];
+    }
     public function fields(): array
     {
         return [

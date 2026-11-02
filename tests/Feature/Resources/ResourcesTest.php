@@ -5,6 +5,11 @@ namespace Panneau\Tests\Feature\Resources;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use LogicException;
+use Panneau\Actions\ClientAction;
+use Panneau\Actions\DeleteAction;
+use Panneau\Actions\EditAction;
+use Panneau\Actions\LinkAction;
+use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Text;
 use Panneau\Lists\ResourceList;
 use Panneau\Repositories\EloquentRepository;
@@ -124,6 +129,62 @@ class ResourcesTest extends TestCase
         $this->assertNull($registry->action($posts, 'missing'));
     }
 
+    public function test_resources_have_the_edit_link_by_default(): void
+    {
+        $registry = $this->registry();
+        $ids = fn (string $resource): array => array_map(fn (ActionDeclaration $action): string => $action->id(), $registry->actions($registry->find($resource)));
+
+        $this->assertSame(['edit'], $ids('tags'));
+        // An override gets what it lists: posts keeps the default after its show link
+        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'preview', 'copy-link'], $ids('posts'));
+        $this->assertInstanceOf(EditAction::class, $registry->action($registry->find('tags'), 'edit'));
+    }
+
+    public function test_a_resource_can_leave_out_the_edit_link(): void
+    {
+        $registry = $this->app->make(ResourceRegistry::class);
+        $registry->register([new class extends BlogPosts
+        {
+            public function actions(): array
+            {
+                return [DeleteAction::class];
+            }
+        }]);
+
+        $this->assertNull($registry->action($registry->all()[0], 'edit'));
+    }
+
+    public function test_the_ids_of_the_built_in_links_are_reserved_for_links(): void
+    {
+        $actions = [
+            new class extends DeleteAction
+            {
+                public function id(): string
+                {
+                    return 'edit';
+                }
+            },
+            ClientAction::make('show')->component('show-modal'),
+        ];
+        foreach ($actions as $action) {
+            $this->app->forgetInstance(ResourceRegistry::class);
+            $registry = $this->app->make(ResourceRegistry::class);
+            $registry->register([new BlogPostsWithActions([$action])]);
+            try {
+                $registry->actions($registry->all()[0]);
+                $this->fail('A '.$action->toDefinition()['kind'].' action took the id '.$action->id());
+            } catch (LogicException $exception) {
+                $this->assertStringContainsString('reserved for the built-in link', $exception->getMessage());
+            }
+        }
+
+        // A link of the project can replace them
+        $this->app->forgetInstance(ResourceRegistry::class);
+        $registry = $this->app->make(ResourceRegistry::class);
+        $registry->register([new BlogPostsWithActions([LinkAction::make('edit')->url('/blog/{id}/edit')])]);
+        $this->assertSame('/blog/{id}/edit', $registry->action($registry->all()[0], 'edit')?->toDefinition()['url']);
+    }
+
     public function test_query_options_come_from_the_list(): void
     {
         $registry = $this->registry();
@@ -210,5 +271,18 @@ class BlogPosts extends Resource
     public function toItem(object $item): array
     {
         return ['id' => 'ignored', 'title' => $item->title.'!'];
+    }
+}
+
+class BlogPostsWithActions extends BlogPosts
+{
+    /**
+     * @param  list<ActionDeclaration>  $actions
+     */
+    public function __construct(private readonly array $actions) {}
+
+    public function actions(): array
+    {
+        return $this->actions;
     }
 }
