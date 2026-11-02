@@ -2782,7 +2782,91 @@
                     "scope"
                 ],
                 "additionalProperties": {},
-                "description": "An operation on one item, a selection, or the whole resource."
+                "description": "An operation on one item, a selection, or the whole resource.",
+                "allOf": [
+                    {
+                        "if": {
+                            "properties": {
+                                "id": {
+                                    "enum": [
+                                        "show",
+                                        "edit"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "kind": {
+                                    "const": "link"
+                                }
+                            },
+                            "required": [
+                                "kind"
+                            ]
+                        },
+                        "else": {
+                            "required": [
+                                "label"
+                            ]
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "kind": {
+                                    "const": "link"
+                                },
+                                "id": {
+                                    "not": {
+                                        "enum": [
+                                            "show",
+                                            "edit"
+                                        ]
+                                    }
+                                }
+                            },
+                            "required": [
+                                "kind",
+                                "id"
+                            ]
+                        },
+                        "then": {
+                            "anyOf": [
+                                {
+                                    "required": [
+                                        "url"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "route"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "kind": {
+                                    "const": "client"
+                                }
+                            },
+                            "required": [
+                                "kind"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "component"
+                            ]
+                        }
+                    }
+                ]
             },
             "ResourceFeatures": {
                 "type": "object",

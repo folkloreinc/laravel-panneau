@@ -60,7 +60,6 @@ trait ValidatesProtocol
     protected function assertValidDefinition(array $definition): void
     {
         $this->assertMatchesSchema($definition, 'https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/definition.schema.json');
-        $this->assertSame([], self::actionIssues($definition), 'The definition has invalid actions.');
         $this->assertSame([], self::lintDefinition($definition), 'The definition has invalid references.');
     }
 
@@ -84,37 +83,6 @@ trait ValidatesProtocol
     protected function assertMatchesComponent(mixed $data, string $component): void
     {
         $this->assertMatchesSchema($data, 'https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/'.$component, $component);
-    }
-
-    /**
-     * A port of the refinements of the protocol's `Action` schema, which the JSON Schema doesn't
-     * have: `label` is required except for the built-in links `show` and `edit`, these ids are
-     * only for `link` actions, and other links need a `url` or a `route`.
-     *
-     * @param  array<string, mixed>  $definition
-     * @return list<string>
-     */
-    private static function actionIssues(array $definition): array
-    {
-        $issues = [];
-        foreach ($definition['resources'] as $index => $resource) {
-            foreach ($resource['actions'] ?? [] as $actionIndex => $action) {
-                $path = 'resources.'.$index.'.actions.'.$actionIndex;
-                $builtInLink = in_array($action['id'] ?? null, ['show', 'edit'], true);
-                $kind = $action['kind'] ?? 'server';
-                if ($builtInLink && $kind !== 'link') {
-                    $issues[] = $path.'.kind: the id '.$action['id'].' is reserved for the built-in link.';
-                }
-                if (! isset($action['label']) && ! $builtInLink) {
-                    $issues[] = $path.'.label: an action needs a label.';
-                }
-                if ($kind === 'link' && ! isset($action['url']) && ! isset($action['route']) && ! $builtInLink) {
-                    $issues[] = $path.': a link action needs a url or a route.';
-                }
-            }
-        }
-
-        return $issues;
     }
 
     /**

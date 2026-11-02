@@ -1086,7 +1086,91 @@
                 "id",
                 "scope"
             ],
-            "additionalProperties": {}
+            "additionalProperties": {},
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "id": {
+                                "enum": [
+                                    "show",
+                                    "edit"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "kind": {
+                                "const": "link"
+                            }
+                        },
+                        "required": [
+                            "kind"
+                        ]
+                    },
+                    "else": {
+                        "required": [
+                            "label"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "kind": {
+                                "const": "link"
+                            },
+                            "id": {
+                                "not": {
+                                    "enum": [
+                                        "show",
+                                        "edit"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "kind",
+                            "id"
+                        ]
+                    },
+                    "then": {
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "url"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "route"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "kind": {
+                                "const": "client"
+                            }
+                        },
+                        "required": [
+                            "kind"
+                        ]
+                    },
+                    "then": {
+                        "required": [
+                            "component"
+                        ]
+                    }
+                }
+            ]
         },
         "ActionScope": {
             "type": "string",
