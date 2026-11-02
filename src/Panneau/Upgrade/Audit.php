@@ -572,6 +572,10 @@ final class Audit
             foreach ($class->staticProperties() as $property) {
                 $this->auditResourceProperty($finding, $class, $property);
             }
+            if ($base5 === null && ! $this->hasIndex($name)) {
+                // The default list of 1.x had these buttons in its rows; the Rector rules only see an index()
+                $finding->add('no index(): the buttons show, edit, delete', 'manual: actions(): ShowAction, EditAction, DeleteAction (5.x has EditAction by default)');
+            }
             foreach ($class->methods() as $method) {
                 // A resource moved to 5.x: only what is left of 1.x
                 if ($base5 !== null && (method_exists($base5, $method) || ! in_array($method, self::RESOURCE_1X_METHODS, true))) {
@@ -580,6 +584,22 @@ final class Audit
                 $this->auditResourceMethod($finding, $class, $method, $base5 !== null);
             }
         }
+    }
+
+    /**
+     * Whether a 1.x resource, or a class of the project it extends, declares its list: an
+     * `index()` or an `$index`.
+     */
+    private function hasIndex(string $name): bool
+    {
+        foreach ([$name, ...$this->code->ancestors($name)] as $ancestor) {
+            $class = $this->code->class($ancestor);
+            if ($class !== null && ($class->method('index') !== null || in_array('index', $class->staticProperties(), true))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -668,9 +688,21 @@ final class Audit
 
             return;
         }
-        foreach (Php::items($index) as $key => $value) {
+        $items = Php::items($index);
+        $columns = Php::items($items['columns'] ?? null);
+        $actionsColumn = array_filter($columns, function (Expr $column): bool {
+            $items = Php::items($column);
+
+            return isset($items['actions']) || Php::value($items['id'] ?? null) === 'actions';
+        });
+        if ($actionsColumn === [] && Php::value($items['withoutActionsColumn'] ?? null) !== true) {
+            // The rows of 1.x lists without an actions column had these buttons
+            $finding->add('no column actions: the buttons show, edit, delete', $this->buttonsTarget(['show', 'edit', 'delete']));
+        }
+        foreach ($items as $key => $value) {
             match ($key) {
                 'columns' => $this->auditColumns($finding, $value),
+                'withoutActionsColumn' => $finding->add('withoutActionsColumn', 'actions(): [] when it is true'),
                 'filters' => $this->auditFilters($finding, $value),
                 'actions' => $finding->add('actions: '.count(Php::items($value)).' buttons', 'actions(): LinkAction, or actions of the resource'),
                 'batchActions' => $finding->add('batchActions: '.count(Php::items($value)), 'actions() with ActionScope::Selection'),

@@ -866,6 +866,55 @@ class UpgradeCommandTest extends TestCase
         // The buttons on the column of a field leave the column
         $this->assertSame('$list->columns([...]) of the fields', $index->detail('columns: title')?->target);
         $this->assertTrue((bool) $index->detail('column actions: print')?->isManual());
+
+        $this->assertNull($index->detail('no column actions: the buttons show, edit, delete'));
+
+        // Without an actions column, the rows of 1.x lists had show, edit and delete
+        file_put_contents($this->project.'/app/Panneau/Resources/Projects.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Fields\Text;
+            use Panneau\Support\Resource;
+
+            class Projects extends Resource
+            {
+                public function index(): ?array
+                {
+                    return ['columns' => ['title']];
+                }
+
+                public function fields(): array
+                {
+                    return [Text::make('title')];
+                }
+            }
+            PHP);
+        $this->assertSame(
+            'actions(): ShowAction, EditAction, DeleteAction',
+            $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail('no column actions: the buttons show, edit, delete')?->target,
+        );
+
+        // Nor do the Rector rules see the buttons of a resource without index()
+        file_put_contents($this->project.'/app/Panneau/Resources/Projects.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Fields\Text;
+            use Panneau\Support\Resource;
+
+            class Projects extends Resource
+            {
+                public function fields(): array
+                {
+                    return [Text::make('title')];
+                }
+            }
+            PHP);
+        $this->assertTrue((bool) $this->finding('resources', 'Projects (projects)')->detail('no index(): the buttons show, edit, delete')?->isManual());
+        $this->assertNull($this->finding('resources', 'Pages (pages)')->detail('no index(): the buttons show, edit, delete'));
     }
 
     public function test_the_check_leaves_out_the_js_of_panneau_5(): void
