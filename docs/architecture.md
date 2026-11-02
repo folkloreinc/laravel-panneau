@@ -182,7 +182,8 @@ interface ResourceRepository
   - `Date`, `DateTime`, `Time`;
   - `Select`, `Email`, `Url`, `Color`;
   - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
-  - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types)).
+  - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types));
+  - `Password`, a `text` field with `settings.secret` (see [Passwords](#passwords)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
   - `localized()`, `readOnly()`, `visibleWhen()`;
@@ -215,6 +216,22 @@ RichText::make('body')
 - The settings only limit what users add: the HTML a field already holds, from CKEditor in 1.x, saves unchanged until it is edited, and keeps what the toolbar doesn't offer once it is.
 - Settings the protocol refuses (a level outside 1 to 6, a style on another element) throw an `InvalidArgumentException`.
 - The value is a string, saved as it is sent.
+
+### Passwords
+
+`Password` is the password of a users resource. It sends no protocol type of its own: in the definition, it is a `text` field with `settings.secret`, which `@panneau/fields` (5.0.0-alpha.9 or later) renders as a password input with `autocomplete="new-password"` and a button that shows it, so no JS plugin is needed. It needs `@panneau/*` 5.0.0-alpha.9 or later: an older admin ignores `settings.secret` and shows a plain text input.
+
+```php
+Password::make('password')->label(__('Password')),
+Password::make('password')->hashed(false), // for a repository that hashes what it receives
+Password::make('password')->optional(),    // optional to create the user too
+Password::make('password')->required(),    // the default: required to create, never to update
+```
+
+- **Write-only.** Items always give `null`, so the form starts empty, and lists and details never show it.
+- **Required to create the item, optional to update it.** On an update, an empty value (`null` or `""`) keeps the current password: the field omits it from the values (`Field::omits()`), so the repository receives no `password`.
+- **Rules.** `Password::defaults()` on the server, with `rules()` for more. The definition has its `min`, for the app's own check. The required mark on create only waits for rules limited to a mode in the protocol (`{ "rule": "required", "mode": "create" }`, folkloreinc/panneau-js#164): until then, the field sends no `required`, and a create without a password gets its `422` after Save. When it comes, the field will send it only for an admin that knows `mode`: an older one would require the password on update too, and block editing a user. On the server, `required` on create is checked with the mode of the `ValidationContext`, not as a portable rule.
+- **Hashed once.** `prepare()` hashes the password with `Hash::make()`, unless it is already a hash of the app's hasher (`Hash::isHashed()`, and not `Hash::needsRehash()`), so the repository receives the hash. Projects migrated from 1.x hash in their repository: the Rector rules write `hashed(false)` there. Eloquent's `hashed` cast keeps a hash as is, and so does laravel-folklore's `Users` repository once folkloreinc/laravel-folklore#144 is released; before that, use `hashed(false)` with it, which leaves the hashing to the repository.
 
 ### More field types
 

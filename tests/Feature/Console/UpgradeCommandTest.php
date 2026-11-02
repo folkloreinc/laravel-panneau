@@ -248,7 +248,8 @@ class UpgradeCommandTest extends TestCase
         // Fields that extend the project's own classes are grouped by the 1.x class at the end
         $this->assertTrue($this->finding('fields', 'Customer extends ResourceItem → Field (item)')->isManual());
         $this->assertTrue($this->finding('fields', 'ImageField extends ImageUpload (custom_upload)')->isManual());
-        $this->assertTrue($this->finding('field-uses', 'Password ×1 (password)')->isManual());
+        // 5.x has a Password field too: it isn't counted
+        $this->assertNull($this->audit()->section('field-uses')->find('Password ×1 (password)'));
 
         $orders = $this->finding('resources', 'Orders (orders)');
         $this->assertTrue((bool) $orders->detail('settings()')?->isManual());
@@ -413,6 +414,16 @@ class UpgradeCommandTest extends TestCase
             YAML);
 
         $this->assertSame('.github/workflows/deploy-admin.yml:10', $this->finding('deployment', 'branches: panneau-admin')->location);
+    }
+
+    public function test_the_check_keeps_the_hashing_of_1x_passwords_to_the_repository(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Panneau/Fields/Secret.php', "<?php\n\nnamespace App\\Panneau\\Fields;\n\nuse Panneau\\Fields\\Password;\n\nclass Secret extends Password\n{\n}\n");
+
+        $secret = collect($this->audit()->section('fields')->findings)->first(fn (Finding $finding): bool => str_starts_with($finding->subject, 'Secret'));
+        $this->assertNotNull($secret);
+        $this->assertStringContainsString('hashed(false)', $secret->target);
     }
 
     public function test_the_check_lists_a_concrete_1x_base_of_types(): void

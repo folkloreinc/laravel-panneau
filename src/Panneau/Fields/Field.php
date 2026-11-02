@@ -558,6 +558,15 @@ abstract class Field
     }
 
     /**
+     * Whether a validated value is left out of the values saved, so that the repository keeps
+     * the current one: a password left empty.
+     */
+    public function omits(mixed $value, ValidationContext $context): bool
+    {
+        return false;
+    }
+
+    /**
      * Keeps the declared part of a validated value: the configured locales of a localized
      * field, the declared fields of a group or a block.
      */
