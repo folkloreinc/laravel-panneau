@@ -202,7 +202,7 @@ class InstallCommandTest extends TestCase
                     "vite": "^7.0.7"
                 },
                 "dependencies": {
-                    "@panneau/app": "^5.0.0-alpha.0",
+                    "@panneau/app": "^5.0.0-alpha.10",
                     "@tanstack/react-query": "^5.0.0",
                     "react": "^19.2.0",
                     "react-dom": "^19.2.0"
@@ -236,10 +236,10 @@ class InstallCommandTest extends TestCase
             ->assertSuccessful();
 
         $json = $this->read('package.json');
-        $this->assertStringContainsString("\n  \"dependencies\": {\n    \"@panneau/app\": \"^5.0.0-alpha.0\",", $json);
+        $this->assertStringContainsString("\n  \"dependencies\": {\n    \"@panneau/app\": \"^5.0.0-alpha.10\",", $json);
         $this->assertStringContainsString('"scripts": {}', $json);
         $package = json_decode($json, true);
-        $this->assertSame(['@panneau/app' => '^5.0.0-alpha.0', 'axios' => '^1.0.0', 'react' => '^18.3.0', 'react-dom' => '^19.2.0'], $package['dependencies']);
+        $this->assertSame(['@panneau/app' => '^5.0.0-alpha.10', 'axios' => '^1.0.0', 'react' => '^18.3.0', 'react-dom' => '^19.2.0'], $package['dependencies']);
         $this->assertSame(['@tanstack/react-query' => '^5.50.0', '@vitejs/plugin-react' => '^5.2.0', 'vite' => '^7.0.0'], $package['devDependencies']);
     }
 
@@ -249,7 +249,7 @@ class InstallCommandTest extends TestCase
         file_put_contents($this->project.'/vite.config.ts', $vite);
 
         $this->artisan('panneau:install', self::OPTIONS)
-            ->expectsOutputToContain('No valid package.json: add @panneau/app@^5.0.0-alpha.0, @tanstack/react-query@^5.0.0, react@^19.2.0, react-dom@^19.2.0, @vitejs/plugin-react@^5.2.0.')
+            ->expectsOutputToContain('No valid package.json: add @panneau/app@^5.0.0-alpha.10, @tanstack/react-query@^5.0.0, react@^19.2.0, react-dom@^19.2.0, @vitejs/plugin-react@^5.2.0.')
             ->expectsOutputToContain("vite.config.ts could not be updated: add 'resources/js/panneau.tsx' to the input of laravel() and the react() plugin of @vitejs/plugin-react.")
             ->assertSuccessful();
 

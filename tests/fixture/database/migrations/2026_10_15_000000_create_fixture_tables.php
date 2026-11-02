@@ -35,6 +35,7 @@ return new class extends Migration
             $table->text('body')->nullable();
             $table->boolean('featured')->default(false);
             $table->string('secret')->nullable();
+            $table->string('preview_password')->nullable();
             $table->json('slug')->nullable();
             $table->timestamps();
         });

@@ -16,6 +16,7 @@ use Panneau\Fields\Group;
 use Panneau\Fields\Json;
 use Panneau\Fields\Location;
 use Panneau\Fields\Media;
+use Panneau\Fields\Password;
 use Panneau\Fields\Range;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
@@ -80,6 +81,8 @@ class PostsResource extends Resource
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),
                 BlockType::make('image', 'Image', [Media::make('image')->accept('image/*')->required()]),
             ]),
+            // Required to create a post only (conformance: update.create-rules)
+            Password::make('preview_password'),
         ];
     }
 

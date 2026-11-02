@@ -1,0 +1,14 @@
+<?php
+
+namespace Illuminate\Hashing;
+
+// Laravel's docblock asks for an array, but the method reads a hash: Eloquent's `hashed` cast
+// calls it with the string it casts.
+class HashManager
+{
+    /**
+     * @param  string  $value
+     * @return bool
+     */
+    public function verifyConfiguration($value) {}
+}

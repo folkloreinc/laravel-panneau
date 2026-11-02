@@ -168,6 +168,16 @@
                                 }
                             }
                         }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1843,6 +1853,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -1866,6 +1884,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -1890,6 +1916,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -1912,6 +1946,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -1939,6 +1981,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -1964,6 +2014,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -1987,6 +2045,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -2030,6 +2096,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -2067,6 +2141,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [
@@ -2084,6 +2166,14 @@
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
                                 "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
                             }
                         },
                         "required": [

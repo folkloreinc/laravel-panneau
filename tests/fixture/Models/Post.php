@@ -10,7 +10,7 @@ class Post extends Model
 {
     protected $guarded = [];
 
-    protected $hidden = ['secret'];
+    protected $hidden = ['secret', 'preview_password'];
 
     protected function casts(): array
     {

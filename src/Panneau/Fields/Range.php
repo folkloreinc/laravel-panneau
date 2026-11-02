@@ -47,8 +47,9 @@ class Range extends Number
     {
         return [
             ...parent::valueRules($context),
-            ...($this->hasRule('min') ? [] : ['min:'.self::DEFAULT_MIN]),
-            ...($this->hasRule('max') ? [] : ['max:'.self::DEFAULT_MAX]),
+            // The ends of the slider, in the modes where the field has no rule of its own
+            ...($this->hasRule('min', $context->mode) ? [] : ['min:'.self::DEFAULT_MIN]),
+            ...($this->hasRule('max', $context->mode) ? [] : ['max:'.self::DEFAULT_MAX]),
         ];
     }
 }

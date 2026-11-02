@@ -51,7 +51,7 @@ class PasswordFieldTest extends HttpTestCase
         $this->assertValidDefinition($response->json());
         $users = collect($response->json('resources'))->firstWhere('id', 'users');
         $this->assertSame(
-            ['name' => 'password', 'type' => 'text', 'settings' => ['secret' => true], 'rules' => [['rule' => 'min', 'value' => 8]]],
+            ['name' => 'password', 'type' => 'text', 'rules' => [['rule' => 'required', 'mode' => 'create'], ['rule' => 'min', 'value' => 8]], 'settings' => ['secret' => true]],
             $users['fields'][2],
         );
     }

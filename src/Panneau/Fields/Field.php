@@ -17,8 +17,9 @@ use Panneau\Forms\Values;
  * A field of a resource or of an action. Each subclass is a protocol field type.
  *
  * Portable rules (`required()`, `min()`, `max()`, `pattern()`…) go into the definition, so the
- * frontend checks them too, and become Laravel rules. Server-only rules are added with
- * `rules()`.
+ * frontend checks them too, and become Laravel rules. Each one can be limited to a mode of the
+ * form, `required(mode: FormMode::Create)`: the rule then applies only when the item is created
+ * (or updated), in the admin and on the server. Server-only rules are added with `rules()`.
  *
  * @phpstan-consistent-constructor
  */
@@ -208,62 +209,73 @@ abstract class Field
         return $this;
     }
 
-    public function required(?string $message = null): static
+    /**
+     * Required, in every mode, or only to create (or update) the item with `mode`. In the other
+     * mode, the field accepts no value.
+     */
+    public function required(?string $message = null, ?FormMode $mode = null): static
     {
-        return $this->rule('required', message: $message);
+        return $this->rule('required', message: $message, mode: $mode);
     }
 
-    public function isRequired(): bool
+    /**
+     * Whether the field is required in a mode. Without a mode: in every mode.
+     */
+    public function isRequired(?FormMode $mode = null): bool
     {
-        return $this->hasRule('required');
+        if ($mode !== null) {
+            return $this->hasRule('required', $mode);
+        }
+
+        return $this->hasRule('required', FormMode::Create) && $this->hasRule('required', FormMode::Update);
     }
 
     /**
      * Minimum: the value of a number, the length of a text or an array.
      */
-    public function min(int|float $value, ?string $message = null): static
+    public function min(int|float $value, ?string $message = null, ?FormMode $mode = null): static
     {
-        return $this->rule('min', $value, $message);
+        return $this->rule('min', $value, $message, mode: $mode);
     }
 
     /**
      * Maximum: the value of a number, the length of a text or an array.
      */
-    public function max(int|float $value, ?string $message = null): static
+    public function max(int|float $value, ?string $message = null, ?FormMode $mode = null): static
     {
-        return $this->rule('max', $value, $message);
+        return $this->rule('max', $value, $message, mode: $mode);
     }
 
     /**
      * A regular expression, in the JavaScript syntax without delimiters (`^[a-z]+$`).
      */
-    public function pattern(string $pattern, ?string $flags = null, ?string $message = null): static
+    public function pattern(string $pattern, ?string $flags = null, ?string $message = null, ?FormMode $mode = null): static
     {
-        return $this->rule('pattern', $pattern, $message, $flags !== null ? ['flags' => $flags] : []);
+        return $this->rule('pattern', $pattern, $message, $flags !== null ? ['flags' => $flags] : [], $mode);
     }
 
     /**
      * @param  array<array-key, string|int|float|bool>  $values
      */
-    public function in(array $values, ?string $message = null): static
+    public function in(array $values, ?string $message = null, ?FormMode $mode = null): static
     {
-        return $this->rule('in', array_values($values), $message);
+        return $this->rule('in', array_values($values), $message, mode: $mode);
     }
 
     /**
      * Before a date (ISO 8601), or before the value of another field: `before(field: 'end')`.
      */
-    public function before(?string $date = null, ?string $field = null, ?string $message = null): static
+    public function before(?string $date = null, ?string $field = null, ?string $message = null, ?FormMode $mode = null): static
     {
-        return $this->rule('before', $field !== null ? ['field' => $field] : $date, $message);
+        return $this->rule('before', $field !== null ? ['field' => $field] : $date, $message, mode: $mode);
     }
 
     /**
      * After a date (ISO 8601), or after the value of another field: `after(field: 'start')`.
      */
-    public function after(?string $date = null, ?string $field = null, ?string $message = null): static
+    public function after(?string $date = null, ?string $field = null, ?string $message = null, ?FormMode $mode = null): static
     {
-        return $this->rule('after', $field !== null ? ['field' => $field] : $date, $message);
+        return $this->rule('after', $field !== null ? ['field' => $field] : $date, $message, mode: $mode);
     }
 
     /**
@@ -280,21 +292,22 @@ abstract class Field
     }
 
     /**
-     * Adds a portable rule.
+     * Adds a portable rule, in every mode or in one. It replaces the rule of the same name that
+     * applies in the same modes.
      *
      * @param  array<string, mixed>  $extra
      */
-    protected function rule(string $rule, mixed $value = null, ?string $message = null, array $extra = []): static
+    protected function rule(string $rule, mixed $value = null, ?string $message = null, array $extra = [], ?FormMode $mode = null): static
     {
-        $this->portableRules = array_values(array_filter(
-            $this->portableRules,
-            fn (array $existing): bool => $existing['rule'] !== $rule,
-        ));
+        $this->removeRule($rule, $mode);
         $definition = ['rule' => $rule];
         if ($value !== null) {
             $definition['value'] = $value;
         }
         $definition = array_merge($definition, $extra);
+        if ($mode !== null) {
+            $definition['mode'] = $mode->value;
+        }
         if ($message !== null) {
             $definition['message'] = $message;
         }
@@ -303,15 +316,41 @@ abstract class Field
         return $this;
     }
 
-    protected function hasRule(string $rule): bool
+    /**
+     * Removes a portable rule: those that apply in a mode, or all of them without a mode.
+     */
+    protected function removeRule(string $rule, ?FormMode $mode = null): static
+    {
+        $this->portableRules = array_values(array_filter(
+            $this->portableRules,
+            fn (array $existing): bool => $existing['rule'] !== $rule || ($mode !== null && ! self::appliesIn($existing, $mode)),
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Whether the field has a portable rule: in a mode, or in any mode without one.
+     */
+    protected function hasRule(string $rule, ?FormMode $mode = null): bool
     {
         foreach ($this->portableRules as $existing) {
-            if ($existing['rule'] === $rule) {
+            if ($existing['rule'] === $rule && ($mode === null || self::appliesIn($existing, $mode))) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Whether a portable rule applies in a mode: it has no `mode`, or this one.
+     *
+     * @param  array<string, mixed>  $rule
+     */
+    protected static function appliesIn(array $rule, FormMode $mode): bool
+    {
+        return ! isset($rule['mode']) || $rule['mode'] === $mode->value;
     }
 
     /**
@@ -455,9 +494,9 @@ abstract class Field
 
         if (! $this->localized) {
             $rules->add($path, [
-                $this->isRequired() ? 'required' : 'nullable',
+                $this->isRequired($context->mode) ? 'required' : 'nullable',
                 ...$this->valueRules($context),
-                ...$this->portableLaravelRules($rules, $path, $prefix),
+                ...$this->portableLaravelRules($rules, $path, $prefix, $context->mode),
                 ...$server,
             ]);
             $this->collectNestedRules($rules, $path, $value, $context);
@@ -465,14 +504,14 @@ abstract class Field
             return;
         }
 
-        $rules->add($path, [$this->isRequired() ? 'required' : 'nullable', 'array', ...$server]);
+        $rules->add($path, [$this->isRequired($context->mode) ? 'required' : 'nullable', 'array', ...$server]);
         foreach ($context->locales as $locale) {
             $localePath = $path.'.'.$locale;
             $rules->attribute($localePath, ($this->label ?? str_replace('_', ' ', $this->name)).' ('.$locale.')');
             $rules->add($localePath, [
-                $this->isRequired() ? 'required' : 'nullable',
+                $this->isRequired($context->mode) ? 'required' : 'nullable',
                 ...$this->valueRules($context),
-                ...$this->portableLaravelRules($rules, $localePath, $prefix),
+                ...$this->portableLaravelRules($rules, $localePath, $prefix, $context->mode),
             ]);
         }
     }
@@ -493,14 +532,17 @@ abstract class Field
     protected function collectNestedRules(RuleSet $rules, string $path, mixed $value, ValidationContext $context): void {}
 
     /**
-     * The portable rules, as Laravel rules.
+     * The portable rules, as Laravel rules: those that apply in a mode, or all of them.
      *
      * @return list<mixed>
      */
-    protected function portableLaravelRules(RuleSet $rules, string $path, string $prefix): array
+    protected function portableLaravelRules(RuleSet $rules, string $path, string $prefix, ?FormMode $mode = null): array
     {
         $laravel = [];
         foreach ($this->portableRules as $rule) {
+            if ($mode !== null && ! self::appliesIn($rule, $mode)) {
+                continue;
+            }
             $converted = $this->toLaravelRule($rule, $prefix);
             if ($converted === null) {
                 continue;

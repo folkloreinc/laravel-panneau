@@ -62,8 +62,9 @@ class PasswordTest extends TestCase
             'name' => 'password',
             'type' => 'text',
             'label' => 'Password',
+            // Required on create only, in the admin too
+            'rules' => [['rule' => 'required', 'mode' => 'create'], ['rule' => 'min', 'value' => 8]],
             'settings' => ['secret' => true],
-            'rules' => [['rule' => 'min', 'value' => 8]],
         ], $definition);
     }
 
@@ -71,7 +72,7 @@ class PasswordTest extends TestCase
     {
         PasswordRule::defaults(fn (): PasswordRule => PasswordRule::min(12)->letters());
 
-        $this->assertSame([['rule' => 'min', 'value' => 12]], Password::make('password')->toDefinition()['rules']);
+        $this->assertSame([['rule' => 'required', 'mode' => 'create'], ['rule' => 'min', 'value' => 12]], Password::make('password')->toDefinition()['rules']);
         $this->assertArrayHasKey('password', $this->errors([Password::make('password')], ['password' => '123456789012']));
         $this->assertSame([], $this->errors([Password::make('password')], ['password' => 'abcdefghijkl']));
     }
@@ -95,20 +96,21 @@ class PasswordTest extends TestCase
         $this->assertArrayHasKey('password', $this->errors($fields, ['password' => 'short'], FormMode::Update));
     }
 
-    public function test_required_never_applies_to_an_update(): void
+    public function test_required_applies_to_the_creation_only(): void
     {
         $field = Password::make('password')->required('A password, please.');
 
-        // Not a portable rule: the admin would require it on update too
-        $this->assertSame([['rule' => 'min', 'value' => 8]], $field->toDefinition()['rules']);
+        $this->assertSame([['rule' => 'required', 'mode' => 'create', 'message' => 'A password, please.'], ['rule' => 'min', 'value' => 8]], $field->toDefinition()['rules']);
         $this->assertSame(['password' => ['A password, please.']], $this->errors([$field], []));
         $this->assertSame([], $this->save([$field], ['password' => null], FormMode::Update));
+        // Unless the project asks for it on updates too
+        $this->assertArrayHasKey('password', $this->errors([Password::make('password')->required(mode: FormMode::Update)], [], FormMode::Update));
     }
 
     public function test_default_rules_of_another_class(): void
     {
         PasswordRule::defaults(fn (): PasswordRule => PasswordRule::min(10));
-        $this->assertSame([['rule' => 'min', 'value' => 10]], Password::make('password')->toDefinition()['rules']);
+        $this->assertSame([['rule' => 'required', 'mode' => 'create'], ['rule' => 'min', 'value' => 10]], Password::make('password')->toDefinition()['rules']);
 
         // Password::defaults() can return any rule
         PasswordRule::$defaultCallback = fn (): Rule => new class implements Rule
@@ -123,7 +125,7 @@ class PasswordTest extends TestCase
                 return 'Not the password.';
             }
         };
-        $this->assertArrayNotHasKey('rules', Password::make('password')->toDefinition());
+        $this->assertSame([['rule' => 'required', 'mode' => 'create']], Password::make('password')->toDefinition()['rules']);
         $this->assertSame(['password' => ['Not the password.']], $this->errors([Password::make('password')], ['password' => 'secret123']));
     }
 
@@ -132,6 +134,9 @@ class PasswordTest extends TestCase
         $hash = Hash::make('secret123');
 
         $this->assertSame($hash, $this->save([Password::make('password')], ['password' => $hash])['password']);
+        // Of a lower cost too, as the hashed cast of Eloquent
+        $cheaper = Hash::make('secret123', ['rounds' => 4]);
+        $this->assertSame($cheaper, $this->save([Password::make('password')], ['password' => $cheaper])['password']);
     }
 
     public function test_the_repository_receives_the_hash(): void

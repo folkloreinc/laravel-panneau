@@ -27,7 +27,8 @@ final class JsInstaller
      */
     public const PACKAGES = [
         'dependencies' => [
-            '@panneau/app' => '^5.0.0-alpha.0',
+            // The rules limited to a mode (folkloreinc/panneau-js#165)
+            '@panneau/app' => '^5.0.0-alpha.10',
             '@tanstack/react-query' => '^5.0.0',
             'react' => '^19.2.0',
             'react-dom' => '^19.2.0',

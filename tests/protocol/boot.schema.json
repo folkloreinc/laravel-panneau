@@ -403,6 +403,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -425,6 +432,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -448,6 +462,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -469,6 +490,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -495,6 +523,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -519,6 +554,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -541,6 +583,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -581,6 +630,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -614,6 +670,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
@@ -630,6 +693,13 @@
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
                         }
                     },
                     "required": [
