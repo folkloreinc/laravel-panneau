@@ -10,7 +10,10 @@ use Folklore\Mediatheque\Contracts\Models\PipelineRun as PipelineRunContract;
 use Folklore\Mediatheque\Enums\JobStatus;
 use Folklore\Mediatheque\Enums\MediaStatus;
 use Folklore\Mediatheque\Enums\PipelineStatus;
+use Folklore\Mediatheque\Exceptions\InvalidConfig;
+use Folklore\Mediatheque\Support\MediathequeConfig;
 use Folklore\Mediatheque\Support\Models;
+use Folklore\Mediatheque\Support\TypeDefinition;
 use Folklore\Mediatheque\Transcoders\TranscoderError;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Model;
@@ -207,6 +210,30 @@ abstract class MediathequeResource extends MediaResource
         }
 
         return $variants;
+    }
+
+    /**
+     * The largest file the mediatheque ingests for the types of the library (all its types
+     * when `mediaTypes()` is empty): the largest of their `max_size`, or `ingest.max_size`.
+     * Null when one of them has no limit.
+     */
+    protected function maxFileSize(): ?int
+    {
+        if (! class_exists(MediathequeConfig::class)) {
+            return null;
+        }
+        $config = Container::getInstance()->make(MediathequeConfig::class);
+        try {
+            $types = $this->mediaTypes() !== []
+                ? array_map(fn (string $type): TypeDefinition => $config->type($type), $this->mediaTypes())
+                : array_values($config->types());
+            $sizes = array_map(fn (TypeDefinition $type): ?int => $config->maxSize($type), $types);
+        } catch (InvalidConfig) {
+            // A type the mediatheque doesn't have: it refuses its files anyway
+            return null;
+        }
+
+        return $sizes !== [] && ! in_array(null, $sizes, true) ? max($sizes) : null;
     }
 
     /**

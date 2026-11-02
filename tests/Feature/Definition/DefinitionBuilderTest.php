@@ -2,7 +2,9 @@
 
 namespace Panneau\Tests\Feature\Definition;
 
+use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 use Illuminate\Auth\GenericUser;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Support\Facade;
@@ -255,6 +257,34 @@ class DefinitionBuilderTest extends TestCase
 
         $this->assertSame(['mode' => 'external', 'loginUrl' => '/login', 'logoutUrl' => null], $definition['auth']);
         $this->assertSame(['id' => '7', 'name' => 'Ada', 'email' => 'ada@example.com', 'abilities' => ['panneau.view' => true]], $definition['user']);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_a_user_that_exposes_its_name_and_email_as_methods(): void
+    {
+        $user = new class implements Authenticatable
+        {
+            use AuthenticatableTrait;
+
+            public function name(): string
+            {
+                return 'Grace';
+            }
+
+            public function email(): string
+            {
+                return 'grace@example.com';
+            }
+
+            public function getAuthIdentifier(): mixed
+            {
+                return 9;
+            }
+        };
+
+        $definition = $this->app->make(DefinitionBuilder::class)->build($user);
+
+        $this->assertSame(['id' => '9', 'name' => 'Grace', 'email' => 'grace@example.com', 'abilities' => ['panneau.view' => true]], $definition['user']);
         $this->assertValidDefinition($definition);
     }
 

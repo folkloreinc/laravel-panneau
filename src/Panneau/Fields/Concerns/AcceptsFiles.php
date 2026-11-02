@@ -56,6 +56,14 @@ trait AcceptsFiles
     }
 
     /**
+     * Whether `maxSize()` limits the size.
+     */
+    public function hasMaxSize(): bool
+    {
+        return $this->hasRule('maxSize');
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function typeDefinition(): array
