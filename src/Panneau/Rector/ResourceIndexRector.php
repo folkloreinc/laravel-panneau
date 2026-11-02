@@ -54,7 +54,7 @@ final class ResourceIndexRector extends AbstractRector
         }
         $return = (new NodeFinder)->findFirstInstanceOf($index->stmts ?? [], Stmt\Return_::class);
         if (! $return?->expr instanceof Expr\Array_) {
-            Todo::add($index, ['the 1.x index is built at runtime: write list() and actions() from it, then delete it']);
+            Todo::add($index, ['the 1.x index is built at runtime: write list() from it, and itemActions() if its rows had other buttons than show, edit and delete, then delete it']);
 
             return $node;
         }
@@ -135,13 +135,13 @@ final class ResourceIndexRector extends AbstractRector
         $left = array_values(array_unique(array_filter($left)));
         $buttons = array_values(array_unique($buttons));
         $duplicates = in_array('duplicate', $buttons, true) || str_contains(Php::describe($return->expr), 'Duplicate');
-        // Without an actions column, or with the four of the default, the default is right
-        $writesButtons = $withoutButtons || ($actionsColumn && ! $unresolved && $buttons !== self::ITEM_ACTIONS);
+        // Without an actions column, or with what the default shows, the default is right: it has
+        // no duplicate until the resource opts in, so show, edit and delete are the default too
+        $shown = array_values(array_diff($buttons, ['duplicate']));
+        $writesButtons = $withoutButtons
+            || ($actionsColumn && ! $unresolved && $shown !== array_values(array_diff(self::ITEM_ACTIONS, ['duplicate'])));
         if ($withoutButtons) {
             $buttons = [];
-        }
-        if ($columns === [] && ! $writesButtons) {
-            return Todo::add($index, ['the 1.x index: write list() and itemActions() from it, then delete it']) ? $node : null;
         }
 
         $factory = new BuilderFactory;

@@ -144,17 +144,18 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('$list->columns([...]) of the fields', $index->detail('columns: title, type, sites, published')?->target);
         $this->assertSame('$list->sorts([...])', $index->detail('sortable: title')?->target);
         $this->assertSame('RelationFilter on a resource', $index->detail('filter site_id: select')?->target);
-        // Only the resource knows what a copy includes
-        $this->assertSame('manual: duplication() on the resource, with what a copy includes', $index->detail("actionsProps: ['hasDuplicateRoute' => true]")?->target);
+        // The duplicate is counted once, on the button of the column
+        $this->assertSame('nothing: the duplicate button of the actions column', $index->detail("actionsProps: ['hasDuplicateRoute' => true]")?->target);
         // The buttons of each row become actions of the resource
         $this->assertSame(
             // The four of the 5.x default, once the resource says what a copy includes
-            'manual: duplicate, with duplication() on the resource and what a copy includes; nothing: the four built-in item actions, by the abilities of the policy',
+            'manual: duplicate, with duplication() on the resource and what a copy includes; nothing: the built-in item actions of the default, by the abilities of the policy',
             $index->detail('column actions: show, edit, duplicate, delete')?->target,
         );
         $this->assertTrue((bool) $index->detail('column actions: show, edit, duplicate, delete')?->isManual());
         $this->assertSame(
-            "itemActions(): ['show', 'edit', 'delete'], by the abilities of the policy",
+            // Without duplicate, until the resource opts in, they are the default
+            'nothing: the built-in item actions of the default, by the abilities of the policy',
             $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail('column actions: show, edit, delete')?->target,
         );
         $this->assertTrue((bool) $index->detail('column sites: component site-badges')?->isManual());
@@ -894,6 +895,33 @@ class UpgradeCommandTest extends TestCase
             }
             PHP);
         $this->assertTrue((bool) $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail('column actions: ?')?->isManual());
+
+        // A duplicate route without a button is the one to opt in for
+        file_put_contents($this->project.'/app/Panneau/Resources/Projects.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Resources;
+
+            use Panneau\Fields\Text;
+            use Panneau\Support\Resource;
+
+            class Projects extends Resource
+            {
+                public function index(): ?array
+                {
+                    return ['columns' => ['title'], 'actionsProps' => ['hasDuplicateRoute' => true]];
+                }
+
+                public function fields(): array
+                {
+                    return [Text::make('title')];
+                }
+            }
+            PHP);
+        $this->assertSame(
+            'manual: duplication() on the resource, with what a copy includes',
+            $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail("actionsProps: ['hasDuplicateRoute' => true]")?->target,
+        );
     }
 
     public function test_the_check_leaves_out_the_js_of_panneau_5(): void

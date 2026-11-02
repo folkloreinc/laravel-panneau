@@ -584,16 +584,8 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
      */
     protected function copyRelations(Model $source, Model $copy, array $paths): void
     {
-        $nested = [];
-        foreach ($paths as $path) {
-            [$name, $rest] = array_pad(explode('.', $path, 2), 2, null);
-            $nested[$name] ??= [];
-            if ($rest !== null) {
-                $nested[$name][] = $rest;
-            }
-        }
-        foreach ($nested as $name => $children) {
-            $relation = $this->relation($source, $name);
+        foreach (self::relationPaths($paths) as $name => $children) {
+            $relation = $this->copiedRelation($source, $name, $children);
             if ($relation instanceof BelongsToMany) {
                 $foreignKey = $relation->getForeignPivotKeyName();
                 $rows = $relation->newPivotQuery()->get()->map(function (object $row) use ($foreignKey, $copy, $relation): array {
@@ -614,14 +606,89 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
                     $childCopy->save();
                     $this->copyRelations($child, $childCopy, $children);
                 }
-            } elseif (! $relation instanceof BelongsTo) {
-                throw new LogicException(sprintf(
-                    'The relation "%s" of %s can\'t be copied: only BelongsToMany, MorphToMany, HasOne, HasMany, MorphOne and MorphMany are.',
-                    $name,
-                    $source::class,
-                ));
             }
         }
+    }
+
+    /**
+     * Checks the relations of a duplication on the model, before any copy: each one is a
+     * relation the repository copies, and only copied children have relations after a dot.
+     */
+    public function checkDuplication(Duplication $duplication): void
+    {
+        $this->checkRelationPaths($this->newModel(), $duplication->relationsToCopy());
+    }
+
+    /**
+     * @param  list<string>  $paths
+     */
+    private function checkRelationPaths(Model $model, array $paths): void
+    {
+        foreach (self::relationPaths($paths) as $name => $children) {
+            $relation = $this->copiedRelation($model, $name, $children);
+            if ($relation instanceof HasOneOrMany) {
+                $this->checkRelationPaths($relation->getRelated(), $children);
+            }
+        }
+    }
+
+    /**
+     * A relation of a duplication, or why it can't be copied.
+     *
+     * @param  list<string>  $children
+     * @return Relation<Model, Model, mixed>
+     */
+    private function copiedRelation(Model $model, string $name, array $children): Relation
+    {
+        $relation = $this->relation($model, $name);
+        if ($relation === null) {
+            throw new LogicException(sprintf(
+                'The duplication lists "%s", which %s doesn\'t have as a relation: a public method without parameters, with a relation as its return type.',
+                $name,
+                $model::class,
+            ));
+        }
+        if (! $relation instanceof BelongsToMany && ! $relation instanceof HasOneOrMany && ! $relation instanceof BelongsTo) {
+            throw new LogicException(sprintf(
+                'The relation "%s" of %s is a %s, which a duplication doesn\'t copy: only BelongsToMany, MorphToMany, HasOne, HasMany, MorphOne and MorphMany are copied.',
+                $name,
+                $model::class,
+                class_basename($relation),
+            ));
+        }
+        if ($children !== [] && ! $relation instanceof HasOneOrMany) {
+            throw new LogicException(sprintf(
+                'The duplication lists "%s.%s": only the children of a HasOne or a HasMany relation are copied with their relations, and "%s" of %s is a %s.',
+                $name,
+                $children[0],
+                $name,
+                $model::class,
+                class_basename($relation),
+            ));
+        }
+
+        return $relation;
+    }
+
+    /**
+     * The relations of dot paths, with the paths after them: `['blocks', 'blocks.media']` gives
+     * `['blocks' => ['media']]`.
+     *
+     * @param  list<string>  $paths
+     * @return array<string, list<string>>
+     */
+    private static function relationPaths(array $paths): array
+    {
+        $nested = [];
+        foreach ($paths as $path) {
+            [$name, $rest] = array_pad(explode('.', $path, 2), 2, null);
+            $nested[$name] ??= [];
+            if ($rest !== null) {
+                $nested[$name][] = $rest;
+            }
+        }
+
+        return $nested;
     }
 
     /**

@@ -211,7 +211,7 @@ abstract class Field
 
     /**
      * Required, in every mode, or only to create (or update) the item with `mode`. In the other
-     * mode, the field accepts no value.
+     * mode, the field can be left empty.
      */
     public function required(?string $message = null, ?FormMode $mode = null): static
     {

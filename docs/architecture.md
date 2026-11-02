@@ -373,7 +373,21 @@ final class PublishPages extends Action
 - **Kinds.** Server actions extend `Action`. `LinkAction::make('preview')->url(...)` and `ClientAction::make('copy-link')->component('copy-link')` cover the two other kinds, with no PHP logic.
 - **Built-in item actions** ([panneau-js decision 0040](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0040-row-links-and-open-mode.md)). `show`, `edit`, `duplicate` and `delete` exist on every resource without being declared. The app shows each one on the items whose ability allows it: `view`, `update`, `duplicate`, `delete`; a missing or `false` ability hides it. It labels them and gives them their icons.
   - **Abilities.** Every item has the four: `view`, `update` and `delete` from the policy; `duplicate` from the policy's `duplicate()`, or else `create` on the resource, and `false` unless the resource opts in with `duplication()` (below), when the repository isn't `Duplicable`, or for a media library, whose copies would share the media's file (`ResourceRegistry::duplicable()`).
-  - **`itemActions()`** says which ones the app shows, in which order: `['edit', 'delete']`, `[]` for none. Null, the default, shows the four, and is left out of the definition. It only changes what the app shows: the policy decides what the API allows.
+  - **`itemActions()`** says which ones the app shows, in which order: `['edit', 'delete']`, `[]` for none. Null, the default, shows the four, and is left out of the definition. An unknown id throws. **It only hides buttons:** the API still answers what the policy allows. To forbid an action, the policy refuses it, which hides the button too:
+
+    ```php
+    public function itemActions(): array
+    {
+        return ['edit', 'delete']; // the list of orders shows no show or duplicate
+    }
+
+    // OrderPolicy: no order is deleted, from the list or through the API
+    public function delete(User $user, Order $order): bool
+    {
+        return false;
+    }
+    ```
+
   - **`delete`** is the action `delete`, which answers for every resource (`POST /resources/{resource}/actions/delete`, with selections and dry runs), authorized by the policy's `delete`. It isn't in the definition: declare a `DeleteAction` (or a subclass) to change its label or confirmation, and the declared one replaces it.
   - **`duplicate`** is off until the resource opts in: only it knows what a copy needs (its blocks, its media, its children), and a copy that leaves them out is worse than none. `duplication()` returns what a copy includes; the repository has to be `Duplicable` too (`EloquentRepository` is).
 
@@ -383,20 +397,23 @@ final class PublishPages extends Action
         return Duplication::make()->relations(['tags', 'sections', 'sections.media']);
     }
 
-    public function duplicating(object $page, object $copy): void
+    public function duplicating(object $page, object $copy, Request $request): void
     {
-        $copy->title = $page->title.' (copy)'; // before the copy is saved
+        // Before the copy is saved: a draft of the current user
+        $copy->title = $page->title.' (copy)';
+        $copy->published = false;
         $copy->published_at = null;
+        $copy->author_id = $request->user()->getAuthIdentifier();
     }
     ```
 
-    - `POST /resources/{resource}/{id}/duplicate` answers `201` with the copy and its `ETag`; `403` when the item's `duplicate` ability is false (it needs `view` on the item, since the copy is answered in full), `404` outside the scope, and `409` when the copy still hits a unique value of the table (nothing is saved).
-    - **What is copied.** `EloquentRepository` copies the attributes with `replicate()` (so a `BelongsTo` keeps its parent), and the relations of `relations()`: `BelongsToMany` and `MorphToMany` attach the copy to the same items with the same pivot values (an order, a handle); `HasOne`, `HasMany`, `MorphOne` and `MorphMany` copy the children, and `sections.media` the relations of the copied children. Another kind of relation throws.
+    - `POST /resources/{resource}/{id}/duplicate` answers `201` with the copy and its `ETag` (an app that mounts `resourceRoutes(only: [...])` without `duplicate` has no duplicate: the ability is false); `403` when the item's `duplicate` ability is false (it needs `view` on the item, since the copy is answered in full), `404` outside the scope, and `409` when the copy still hits a unique value of the table (nothing is saved).
+    - **What is copied.** `EloquentRepository` copies the attributes with `replicate()` (so a `BelongsTo` keeps its parent), and the relations of `relations()`, which it checks when the definition is built (a relation the model doesn't have, or without a return type, throws there): `BelongsToMany` and `MorphToMany` attach the copy to the same items with the same pivot values (an order, a handle); `HasOne`, `HasMany`, `MorphOne` and `MorphMany` copy the children, and `sections.media` the relations of the copied children. Another kind of relation throws.
     - **What is never copied by default:** relations that `relations()` doesn't list, the files of media (a copy points to the same media), and what isn't a relation of the model. The `creating`/`created`/`saved` hooks of the resource and the preparation of the fields (`Form::prepare()`) don't run.
     - **Unique slugs** (`Slug::unique()`) get a free value: the item's with `-copy`, then `-copy-2`, `-copy-3`…, in each locale.
-    - **Hooks.** `duplicating($item, $copy)` changes the copy before it is saved, and `duplicated($item, $copy)` runs once it is saved with its relations. With Eloquent, all of it runs in one transaction: an exception rolls the copy back.
-  - **`show` and `edit`** are links the app resolves to its routes. `EditAction` and `ShowAction` replace them: `EditAction::make()->url('/editor/{id}')`, `->route(...)`, `->label(...)`, `->placement(...)`, sent as `{ "id": "edit", "kind": "link", "scope": ["item"], … }`. They don't run: `POST /resources/{resource}/actions/edit` is a `404`. The ids `show` and `edit` are reserved for links: a server or client action that has one throws when the actions are resolved.
-- **What opens an item.** `Resource::open()` returns `'panel'` (the default, left out of the definition): the title of an item opens its panel, next to the list. With `'edit'` (sent as `"open": "edit"`), it opens its form, the show route redirects there, and the app leaves out `show`. An item that can't be updated still opens in its panel. Use it when the panel adds nothing to the form (orders, users).
+    - **Hooks.** `duplicating($item, $copy, $request)` changes the copy before it is saved (the invariants of `creating()`, such as the author, apply to copies there), and `duplicated($item, $copy, $request)` runs once it is saved with its relations. With Eloquent, all of it runs in one transaction: an exception rolls the copy back.
+  - **`show` and `edit`** are links the app resolves to its routes. `EditAction` and `ShowAction` replace them: `EditAction::make()->url('/editor/{id}')`, `->route(...)`, `->label(...)`, `->placement(...)`, sent as `{ "id": "edit", "kind": "link", "scope": ["item"], … }`. A `show` with a URL would replace the link to the panel, and disappear with `open('edit')`: link to the item on the site with a link of its own, `LinkAction::make('site')->url(...)`. They don't run: `POST /resources/{resource}/actions/edit` is a `404`. The ids `show` and `edit` are reserved for links: a server or client action that has one throws when the actions are resolved.
+- **What opens an item.** `Resource::open()` returns `'panel'` (the default, left out of the definition): the title of an item opens its panel, next to the list. With `'edit'` (sent as `"open": "edit"`), it opens its form, the show route redirects there, and the app leaves out `show`. An item that can't be updated still opens in its panel. Another value throws when the definition is built. Use it when the panel adds nothing to the form (orders, users).
 - **Selection:**
   - The controller resolves the selection through the resource's repository and `scope()`: it applies the ids, or the list filters and search of a query selection, then the exclusions.
   - A selection never reaches items outside the resource's scope.

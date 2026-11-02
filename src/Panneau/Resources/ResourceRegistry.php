@@ -17,6 +17,7 @@ use Panneau\Query\QueryOptions;
 use Panneau\Repositories\EloquentMediaRepository;
 use Panneau\Repositories\EloquentRepository;
 use Panneau\Repositories\RepositoryAdapters;
+use WeakMap;
 
 /**
  * The resources of the admin, and what they resolve to: their repository, list and actions.
@@ -43,10 +44,19 @@ final class ResourceRegistry
      */
     private array $lists = [];
 
+    /**
+     * The checked duplication of each resource, in a list (null is none).
+     *
+     * @var WeakMap<\Panneau\Resources\Resource, array{?Duplication}>
+     */
+    private WeakMap $duplications;
+
     public function __construct(
         private readonly Container $container,
         private readonly RepositoryAdapters $adapters,
-    ) {}
+    ) {
+        $this->duplications = new WeakMap;
+    }
 
     /**
      * @param  list<class-string<\Panneau\Resources\Resource>|\Panneau\Resources\Resource>  $resources
@@ -182,9 +192,30 @@ final class ResourceRegistry
      */
     public function duplicable(Resource $resource): bool
     {
-        return ! $resource instanceof MediaResource
-            && $resource->duplication() !== null
-            && $this->repository($resource) instanceof Duplicable;
+        return ! $resource instanceof MediaResource && $this->duplication($resource) !== null;
+    }
+
+    /**
+     * What the copy of an item of a resource includes, when it opts in with `duplication()`
+     * and its repository is `Duplicable`, checked once by the repository: a relation it can't
+     * copy throws.
+     */
+    public function duplication(Resource $resource): ?Duplication
+    {
+        if (isset($this->duplications[$resource])) {
+            return $this->duplications[$resource][0];
+        }
+        $duplication = $resource->duplication();
+        $repository = $this->repository($resource);
+        if ($duplication !== null && $repository instanceof Duplicable && ! $resource instanceof MediaResource) {
+            $repository->checkDuplication($duplication);
+        } else {
+            $duplication = null;
+        }
+
+        $this->duplications[$resource] = [$duplication];
+
+        return $duplication;
     }
 
     /**

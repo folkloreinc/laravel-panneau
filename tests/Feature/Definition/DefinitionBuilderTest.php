@@ -7,11 +7,15 @@ use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User;
+use LogicException;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Resources\Duplication;
+use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Support\Facade;
 use Panneau\Tests\Concerns\ValidatesProtocol;
 use Panneau\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Panneau\Resources\TagsResource;
@@ -242,6 +246,53 @@ class DefinitionBuilderTest extends TestCase
         // The defaults, `panel` and the four built-in actions, are left out
         $this->assertArrayNotHasKey('open', $this->resource('tags'));
         $this->assertArrayNotHasKey('itemActions', $this->resource('tags'));
+    }
+
+    /**
+     * @return iterable<string, array{resource, string}>
+     */
+    public static function invalidResources(): iterable
+    {
+        yield 'open' => [new class extends TagsResource
+        {
+            public function open(): string
+            {
+                return 'form';
+            }
+        }, 'opens its items with "form"'];
+        yield 'itemActions' => [new class extends TagsResource
+        {
+            public function itemActions(): array
+            {
+                return ['edit', 'remove'];
+            }
+        }, '["remove"] in itemActions()'];
+        yield 'a missing relation' => [new class extends TagsResource
+        {
+            public function duplication(): Duplication
+            {
+                return Duplication::make()->relations(['posts']);
+            }
+        }, '"posts", which TestApp\\Models\\Tag doesn\'t have as a relation'];
+        yield 'the relations of a BelongsToMany' => [new class extends PostsResource
+        {
+            public function duplication(): Duplication
+            {
+                return Duplication::make()->relations(['tags.posts']);
+            }
+        }, '"tags.posts": only the children of a HasOne or a HasMany'];
+    }
+
+    /**
+     * The definition refuses what the app would ignore or fail on, when the admin loads.
+     */
+    #[DataProvider('invalidResources')]
+    public function test_invalid_resources_throw(Resource $resource, string $message): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage($message);
+
+        $this->app->make(DefinitionBuilder::class)->resource($resource);
     }
 
     public function test_without_policies_everything_is_denied(): void

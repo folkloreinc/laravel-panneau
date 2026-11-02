@@ -43,14 +43,12 @@ class Pages extends Resource
     {
         return \App\Repositories\Pages::class;
     }
+
     public function list(ResourceList $list): ResourceList
     {
         return $list->columns(['title']);
     }
-    public function itemActions(): array
-    {
-        return ['show', 'edit', 'delete'];
-    }
+
     public function fields(): array
     {
         return [

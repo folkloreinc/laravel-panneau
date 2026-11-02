@@ -191,7 +191,7 @@ final class ResourceController
         $repository = $this->resources->repository($resource);
         // The copy is answered in full: never for an item the user can't view
         $this->authorizeItem($request, $resource, 'view', $item);
-        $duplication = $resource->duplication();
+        $duplication = $this->resources->duplication($resource);
         if ($duplication === null || ! $repository instanceof Duplicable || ! $this->authorizer->allowsDuplicate($request->user(), $resource, $item)) {
             throw new AuthorizationException;
         }
@@ -202,8 +202,8 @@ final class ResourceController
                 $resource->repositoryScope($request),
                 $duplication,
                 $this->copyValues($request, $resource, $item),
-                fn (object $copy) => $resource->duplicating($item, $copy),
-                fn (object $copy) => $resource->duplicated($item, $copy),
+                fn (object $copy) => $resource->duplicating($item, $copy, $request),
+                fn (object $copy) => $resource->duplicated($item, $copy, $request),
             );
         } catch (UniqueConstraintViolationException) {
             // A unique value that isn't a unique slug: nothing is saved

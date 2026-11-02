@@ -47,7 +47,7 @@ class Orders extends Resource
     }
     // TODO(panneau-5): the 1.x $index (['columns' => ['id']]): list()
 
-    // TODO(panneau-5): the 1.x index is built at runtime: write list() and actions() from it, then delete it
+    // TODO(panneau-5): the 1.x index is built at runtime: write list() from it, and itemActions() if its rows had other buttons than show, edit and delete, then delete it
     public function index(): ?array
     {
         return $this->buildIndex();

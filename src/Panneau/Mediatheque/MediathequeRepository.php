@@ -156,6 +156,11 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
         }
     }
 
+    public function checkDuplication(Duplication $duplication): void
+    {
+        throw new LogicException('A media of the mediatheque can\'t be duplicated.');
+    }
+
     public function duplicate(object $item, array $scope, Duplication $duplication, array $values = [], ?Closure $before = null, ?Closure $after = null): object
     {
         throw new LogicException('A media of the mediatheque can\'t be duplicated.');
