@@ -8,6 +8,8 @@ use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Route;
+use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
 use InvalidArgumentException;
 use Panneau\Auth\Authorizer;
@@ -77,6 +79,8 @@ class Panneau implements PanneauContract
             'as' => 'panneau.',
         ]);
 
+        $before = $router->getRoutes()->getRoutes();
+
         $search = (bool) $config->get('panneau.search.enabled', true);
         $embeds = (bool) $config->get('panneau.embeds.enabled', true);
         $auth = $this->container->make(DefinitionBuilder::class)->auth()['mode'] === 'panneau';
@@ -108,16 +112,51 @@ class Panneau implements PanneauContract
             });
         });
 
-        if (! $app) {
-            return;
+        if ($app) {
+            // The page of the app, for every path the app routes on the client. Registered last,
+            // without RenderProblems: guests are redirected (or get the login page of the app, in
+            // the `panneau` auth mode) and errors are the app's error pages.
+            $router->group([...$group, 'middleware' => $middleware], function (Router $router): void {
+                $router->get('{path?}', AppController::class)->where('path', '(?!api(?:/|$)).*')->name('app');
+            });
         }
 
-        // The page of the app, for every path the app routes on the client. Registered last,
-        // without RenderProblems: guests are redirected (or get the login page of the app, in
-        // the `panneau` auth mode) and errors are the app's error pages.
-        $router->group([...$group, 'middleware' => $middleware], function (Router $router): void {
-            $router->get('{path?}', AppController::class)->where('path', '(?!api(?:/|$)).*')->name('app');
+        $this->moveSiteRoutesAfter($router, $before, $group['prefix'] ?? '');
+    }
+
+    /**
+     * Moves the routes of the site registered before Panneau's, outside Panneau's path, after
+     * them: a page route of the site such as `/{page}` would catch `/panneau`, when the site
+     * registers its routes first (a `RouteServiceProvider` listed before the provider that
+     * loads Panneau's). Routes of the site under Panneau's path keep their precedence.
+     *
+     * @param  list<Route>  $before
+     */
+    private function moveSiteRoutesAfter(Router $router, array $before, string $prefix): void
+    {
+        $routes = $router->getRoutes();
+        if ($prefix === '' || $before === [] || ! $routes instanceof RouteCollection) {
+            return;
+        }
+        $outside = array_filter($before, function (Route $route) use ($prefix): bool {
+            $uri = trim($route->uri(), '/');
+
+            return $uri !== $prefix && ! str_starts_with($uri, $prefix.'/');
         });
+        if ($outside === []) {
+            return;
+        }
+        $moved = array_map(spl_object_id(...), $outside);
+        $collection = new RouteCollection;
+        foreach ($routes->getRoutes() as $route) {
+            if (! in_array(spl_object_id($route), $moved, true)) {
+                $collection->add($route);
+            }
+        }
+        foreach ($outside as $route) {
+            $collection->add($route);
+        }
+        $router->setRoutes($collection);
     }
 
     public function uploadRoutes(): void
