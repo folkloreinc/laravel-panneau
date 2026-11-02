@@ -22,6 +22,16 @@ use Panneau\Lists\ResourceList;
 abstract class Resource
 {
     /**
+     * The built-in item actions, in the order the app shows them by default.
+     */
+    public const ITEM_ACTIONS = ['show', 'edit', 'duplicate', 'delete'];
+
+    /**
+     * What an item's title can open: `open()`.
+     */
+    public const OPENS = ['panel', 'edit'];
+
+    /**
      * The fields of an item.
      *
      * @return list<Field>
@@ -150,8 +160,10 @@ abstract class Resource
     /**
      * The built-in item actions the app shows, in their order: `show`, `edit`, `duplicate` and
      * `delete`, each on the items whose ability allows it (`view`, `update`, `duplicate`,
-     * `delete`). Null, the default, shows all four; `[]` none. It only changes what the app
-     * shows: the policy decides what the API allows.
+     * `delete`). Null, the default, shows all four; `[]` none.
+     *
+     * It only hides buttons: the API still answers what the policy allows. To forbid deleting,
+     * return false from the policy's `delete()`, which also hides the button.
      *
      * @return list<'show'|'edit'|'duplicate'|'delete'>|null
      */
@@ -329,13 +341,14 @@ abstract class Resource
 
     /**
      * Called before the copy of an item is saved, with the copy: change its values there (a
-     * title, a status). Unique slugs are already free (`-copy`, `-copy-2`…).
+     * title, a status, `published` false), and apply the invariants of `creating()`, such as the
+     * author being the current user. Unique slugs are already free (`-copy`, `-copy-2`…).
      */
-    public function duplicating(object $item, object $copy): void {}
+    public function duplicating(object $item, object $copy, Request $request): void {}
 
     /**
      * Called once the copy of an item is saved, in the same transaction: copy relations there,
      * which the repository doesn't copy.
      */
-    public function duplicated(object $item, object $copy): void {}
+    public function duplicated(object $item, object $copy, Request $request): void {}
 }

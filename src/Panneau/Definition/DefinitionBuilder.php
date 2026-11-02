@@ -5,6 +5,7 @@ namespace Panneau\Definition;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Foundation\Application;
+use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\ActionDeclaration;
@@ -193,12 +194,17 @@ final class DefinitionBuilder
             }
         }
         // Left out when they are the defaults, so that definitions stay as they were
-        if ($resource->open() !== 'panel') {
-            $definition['open'] = $resource->open();
+        $open = self::checkedOpen($resource, $resource->open());
+        if ($open !== 'panel') {
+            $definition['open'] = $open;
         }
-        if ($resource->itemActions() !== null) {
-            $definition['itemActions'] = $resource->itemActions();
+        $itemActions = self::checkedItemActions($resource, $resource->itemActions());
+        if ($itemActions !== null) {
+            $definition['itemActions'] = $itemActions;
         }
+        // A duplication that lists a relation the repository can't copy throws here, when the
+        // admin loads, rather than on a click
+        $this->resources->duplication($resource);
         $definition['fields'] = array_map(fn (Field $field): array => $this->field($field), $fields);
 
         $layout = $resource->layout();
@@ -236,6 +242,36 @@ final class DefinitionBuilder
         }
 
         return $definition;
+    }
+
+    /**
+     * What `open()` returns, checked: a typo would leave the app on its default.
+     */
+    private static function checkedOpen(Resource $resource, mixed $open): string
+    {
+        if (! is_string($open) || ! in_array($open, Resource::OPENS, true)) {
+            throw new LogicException(sprintf('The resource "%s" opens its items with %s: open() returns "%s".', $resource->id(), json_encode($open), implode('" or "', Resource::OPENS)));
+        }
+
+        return $open;
+    }
+
+    /**
+     * What `itemActions()` returns, checked: the app would ignore an id it doesn't know.
+     *
+     * @return list<string>|null
+     */
+    private static function checkedItemActions(Resource $resource, mixed $actions): ?array
+    {
+        if ($actions === null) {
+            return null;
+        }
+        $unknown = is_array($actions) ? array_diff($actions, Resource::ITEM_ACTIONS) : [$actions];
+        if (! is_array($actions) || $unknown !== []) {
+            throw new LogicException(sprintf('The resource "%s" lists %s in itemActions(), which takes "%s".', $resource->id(), json_encode(array_values($unknown)), implode('", "', Resource::ITEM_ACTIONS)));
+        }
+
+        return array_values(array_map(strval(...), $actions));
     }
 
     /**

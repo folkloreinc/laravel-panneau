@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Feature\Http;
 
+use Illuminate\Http\Request;
 use Panneau\Http\Problem;
 use Panneau\Resources\Duplication;
 use Panneau\Resources\ResourceRegistry;
@@ -114,12 +115,13 @@ class DuplicateEndpointTest extends HttpTestCase
         $tag = Tag::query()->create(['name' => 'News', 'slug' => 'news']);
         $this->duplicableTags(new class extends DuplicableTags
         {
-            public function duplicating(object $item, object $copy): void
+            public function duplicating(object $item, object $copy, Request $request): void
             {
-                $copy->setAttribute('slug', 'news-2');
+                // With the request, as creating()
+                $copy->setAttribute('slug', 'news-'.$request->user()?->getAuthIdentifier());
             }
 
-            public function duplicated(object $item, object $copy): void
+            public function duplicated(object $item, object $copy, Request $request): void
             {
                 throw new RuntimeException('After the copy');
             }
@@ -132,7 +134,7 @@ class DuplicateEndpointTest extends HttpTestCase
         } catch (RuntimeException $exception) {
             $this->assertSame('After the copy', $exception->getMessage());
         }
-        // The copy is rolled back
+        // The copy, news-1, is rolled back
         $this->assertSame(['news'], Tag::query()->pluck('slug')->all());
     }
 

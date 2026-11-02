@@ -4,9 +4,11 @@ namespace Panneau\Auth;
 
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
 use Panneau\Actions\DeleteAction;
+use Panneau\Http\Controllers\ResourceController;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use WeakMap;
@@ -32,9 +34,17 @@ final class Authorizer
      */
     private ?WeakMap $creates = null;
 
+    /**
+     * Whether each resource has a duplicate route, with the number of routes it was found with.
+     *
+     * @var array<string, array{int, bool}>
+     */
+    private array $duplicateRoutes = [];
+
     public function __construct(
         private readonly Gate $gate,
         private readonly ResourceRegistry $resources,
+        private readonly ?Router $router = null,
     ) {}
 
     /**
@@ -103,7 +113,17 @@ final class Authorizer
      */
     public function allowsDuplicate(?Authenticatable $user, Resource $resource, object $item): bool
     {
-        if (! $this->resources->duplicable($resource) || ! $this->allowsItem($user, $resource, 'view', $item)) {
+        return $this->allowsDuplicateWhenViewed($user, $resource, $item, $this->allowsItem($user, $resource, 'view', $item));
+    }
+
+    /**
+     * `allowsDuplicate()`, with the `view` ability already checked. False when the app has no
+     * route to duplicate the resource's items (`resourceRoutes(only: [...])` without
+     * `duplicate`).
+     */
+    private function allowsDuplicateWhenViewed(?Authenticatable $user, Resource $resource, object $item, bool $canView): bool
+    {
+        if (! $canView || ! $this->resources->duplicable($resource) || ! $this->duplicateRouted($resource)) {
             return false;
         }
         if (! $this->hasPolicy($resource, $item)) {
@@ -181,7 +201,7 @@ final class Authorizer
         foreach (self::ITEM_ABILITIES as $ability) {
             $abilities[$ability] = $this->allowsItem($user, $resource, $ability, $item);
         }
-        $abilities['duplicate'] = $this->allowsDuplicate($user, $resource, $item);
+        $abilities['duplicate'] = $this->allowsDuplicateWhenViewed($user, $resource, $item, $abilities['view']);
         foreach ($this->resources->actions($resource) as $action) {
             if ($action instanceof Action && $action->appliesToItems()) {
                 $abilities[$action->id()] = $this->allowsActionOnResource($user, $action)
@@ -190,6 +210,35 @@ final class Authorizer
         }
 
         return $abilities;
+    }
+
+    /**
+     * Whether a route duplicates the items of the resource, once per state of the routes. Without
+     * a router (outside HTTP), it is assumed.
+     */
+    private function duplicateRouted(Resource $resource): bool
+    {
+        if ($this->router === null) {
+            return true;
+        }
+        $routes = $this->router->getRoutes()->getRoutes();
+        [$count, $routed] = $this->duplicateRoutes[$resource->id()] ?? [-1, false];
+        if ($count === count($routes)) {
+            return $routed;
+        }
+        $routed = false;
+        foreach ($routes as $route) {
+            $pattern = $route->wheres['resource'] ?? null;
+            if ($route->getActionName() === ResourceController::class.'@duplicate'
+                && ($pattern === null || preg_match('#^(?:'.$pattern.')$#', $resource->id()) === 1)) {
+                $routed = true;
+
+                break;
+            }
+        }
+        $this->duplicateRoutes[$resource->id()] = [count($routes), $routed];
+
+        return $routed;
     }
 
     private function hasPolicy(Resource $resource, object $item): bool

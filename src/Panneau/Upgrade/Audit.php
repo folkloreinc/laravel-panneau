@@ -673,6 +673,12 @@ final class Audit
 
             return;
         }
+        // The duplicate of the list is counted once: on its button, when the column has one
+        $duplicateButton = false;
+        foreach (Php::items(Php::items($index)['columns'] ?? null) as $column) {
+            $buttons = Php::value(Php::items($column)['actions'] ?? null);
+            $duplicateButton = $duplicateButton || (is_array($buttons) && in_array('duplicate', $buttons, true));
+        }
         foreach (Php::items($index) as $key => $value) {
             match ($key) {
                 'columns' => $this->auditColumns($finding, $value),
@@ -680,8 +686,11 @@ final class Audit
                 'filters' => $this->auditFilters($finding, $value),
                 'actions' => $finding->add('actions: '.count(Php::items($value)).' buttons', 'actions(): LinkAction, or actions of the resource'),
                 'batchActions' => $finding->add('batchActions: '.count(Php::items($value)), 'actions() with ActionScope::Selection'),
-                'actionsProps' => $finding->add('actionsProps: '.$this->describe($value), str_contains($this->describe($value), 'Duplicate')
-                    ? 'manual: duplication() on the resource, with what a copy includes' : 'manual: actions()'),
+                'actionsProps' => $finding->add('actionsProps: '.$this->describe($value), match (true) {
+                    ! str_contains($this->describe($value), 'Duplicate') => 'manual: actions()',
+                    $duplicateButton => 'nothing: the duplicate button of the actions column',
+                    default => 'manual: duplication() on the resource, with what a copy includes',
+                }),
                 'withFadedId' => $finding->add('withFadedId', 'nothing'),
                 default => $finding->add("{$key}: {$this->describe($value)}", 'manual: list() or a JS plugin'),
             };
@@ -708,8 +717,9 @@ final class Audit
         }
         $others = [];
         $builtIn = array_values(array_unique($builtIn));
-        $target = $builtIn === self::ITEM_ACTIONS
-            ? 'nothing: the four built-in item actions, by the abilities of the policy'
+        // The default has no duplicate until the resource opts in
+        $target = array_values(array_diff($builtIn, ['duplicate'])) === array_values(array_diff(self::ITEM_ACTIONS, ['duplicate']))
+            ? 'nothing: the built-in item actions of the default, by the abilities of the policy'
             : "itemActions(): ['".implode("', '", $builtIn)."'], by the abilities of the policy";
         if ($builtIn === []) {
             $target = 'itemActions(): []';

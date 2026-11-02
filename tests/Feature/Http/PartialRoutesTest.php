@@ -13,6 +13,7 @@ use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\TestCase;
 use Panneau\Uploads\S3UploadStorage;
 use Panneau\Uploads\Uploads;
+use TestApp\Models\Author;
 use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\TagsResource;
 
@@ -117,6 +118,20 @@ class PartialRoutesTest extends TestCase
             ->assertStatus(422)
             ->assertHeader('Content-Type', Problem::CONTENT_TYPE);
         $this->postJson('/workspaces/acme/resources/authors', ['name' => 'Ada'])->assertNotFound();
+    }
+
+    public function test_items_cant_be_duplicated_without_the_duplicate_route(): void
+    {
+        Author::query()->create(['name' => 'Ada']);
+        $duplicate = fn (): mixed => $this->getJson('/admin/resources/authors')->assertOk()->json('data.0.abilities.duplicate');
+
+        // Authors opt in, but the app mounts no route to duplicate them
+        Route::prefix('admin')->group(fn () => Panneau::resourceRoutes(only: ['index']));
+        Route::prefix('tags')->group(fn () => Panneau::resourceRoutes(['tags'], only: ['duplicate']));
+        $this->assertFalse($duplicate());
+
+        Route::prefix('authors')->group(fn () => Panneau::resourceRoutes(['authors'], only: ['duplicate']));
+        $this->assertTrue($duplicate());
     }
 
     public function test_every_route_of_every_resource(): void

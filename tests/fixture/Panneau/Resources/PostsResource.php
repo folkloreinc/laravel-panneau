@@ -133,7 +133,7 @@ class PostsResource extends Resource
         return Duplication::make()->relations(['tags']);
     }
 
-    public function duplicating(object $item, object $copy): void
+    public function duplicating(object $item, object $copy, Request $request): void
     {
         if ($item instanceof Post && $copy instanceof Post) {
             $copy->title = $item->title.' (copy)';

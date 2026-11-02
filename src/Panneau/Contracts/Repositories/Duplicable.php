@@ -23,4 +23,11 @@ interface Duplicable
      * @param  (Closure(object): void)|null  $after
      */
     public function duplicate(object $item, array $scope, Duplication $duplication, array $values = [], ?Closure $before = null, ?Closure $after = null): object;
+
+    /**
+     * Throws when the repository can't copy what a duplication includes (a relation it doesn't
+     * have): Panneau checks it when it reads the resource's `duplication()`, in the definition,
+     * so that a mistake shows when the admin loads, and in tests, rather than on a click.
+     */
+    public function checkDuplication(Duplication $duplication): void;
 }
