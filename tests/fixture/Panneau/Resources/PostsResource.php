@@ -127,10 +127,11 @@ class PostsResource extends Resource
         ];
     }
 
-    public function duplicated(object $item, object $copy): void
+    public function duplicating(object $item, object $copy): void
     {
         if ($item instanceof Post && $copy instanceof Post) {
-            $copy->update(['title' => $item->title.' (copy)', 'status' => 'draft']);
+            $copy->title = $item->title.' (copy)';
+            $copy->status = 'draft';
         }
     }
 

@@ -5,6 +5,7 @@ namespace Panneau\Http\Controllers;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -13,6 +14,7 @@ use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\VersionConflictException;
+use Panneau\Fields\Slug;
 use Panneau\Forms\Form;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\SaveContext;
@@ -24,6 +26,7 @@ use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Uploads\Uploads;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Throwable;
 
 /**
@@ -192,11 +195,41 @@ final class ResourceController
             throw new AuthorizationException;
         }
 
-        $resource->duplicating($item);
-        $copy = $repository->duplicate($item, $resource->repositoryScope($request));
-        $resource->duplicated($item, $copy);
+        try {
+            $copy = $repository->duplicate(
+                $item,
+                $resource->repositoryScope($request),
+                $this->copyValues($request, $resource, $item),
+                fn (object $copy) => $resource->duplicating($item, $copy),
+                fn (object $copy) => $resource->duplicated($item, $copy),
+            );
+        } catch (UniqueConstraintViolationException) {
+            // A unique value that isn't a unique slug: nothing is saved
+            throw new ConflictHttpException(__('The copy has a value that another item already has.'));
+        }
 
         return $this->itemResponse($request, $resource, $copy, 201);
+    }
+
+    /**
+     * The values of the copy of an item: a free value for each unique slug.
+     *
+     * @return array<string, mixed>
+     */
+    private function copyValues(Request $request, Resource $resource, object $item): array
+    {
+        $exists = $this->checks->lookup($resource, $request, $item, [], $this->mediaReferences($request));
+        $values = [];
+        foreach ($resource->allFields() as $field) {
+            if ($field instanceof Slug && $field->isUnique()) {
+                $values[$field->name()] = $field->copyValue(
+                    $field->resolve($item),
+                    fn (string $value, ?string $locale): bool => $exists($field->name(), $value, $locale, $field->uniqueScope()),
+                );
+            }
+        }
+
+        return $values;
     }
 
     public function destroy(Request $request): Response

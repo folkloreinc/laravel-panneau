@@ -577,10 +577,6 @@ final class Audit
             foreach ($class->staticProperties() as $property) {
                 $this->auditResourceProperty($finding, $class, $property);
             }
-            if ($base5 === null && ! $this->hasIndex($name)) {
-                // The default list of 1.x had these buttons in its rows; the Rector rules only see an index()
-                $finding->add('no index(): the buttons show, edit, delete', "manual: itemActions(): ['show', 'edit', 'delete'], or nothing for the four built-in actions of 5.x, duplicate included");
-            }
             foreach ($class->methods() as $method) {
                 // A resource moved to 5.x: only what is left of 1.x
                 if ($base5 !== null && (method_exists($base5, $method) || ! in_array($method, self::RESOURCE_1X_METHODS, true))) {
@@ -589,22 +585,6 @@ final class Audit
                 $this->auditResourceMethod($finding, $class, $method, $base5 !== null);
             }
         }
-    }
-
-    /**
-     * Whether a 1.x resource, or a class of the project it extends, declares its list: an
-     * `index()` or an `$index`.
-     */
-    private function hasIndex(string $name): bool
-    {
-        foreach ([$name, ...$this->code->ancestors($name)] as $ancestor) {
-            $class = $this->code->class($ancestor);
-            if ($class !== null && ($class->method('index') !== null || in_array('index', $class->staticProperties(), true))) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -693,18 +673,7 @@ final class Audit
 
             return;
         }
-        $items = Php::items($index);
-        $columns = Php::items($items['columns'] ?? null);
-        $actionsColumn = array_filter($columns, function (Expr $column): bool {
-            $items = Php::items($column);
-
-            return isset($items['actions']) || Php::value($items['id'] ?? null) === 'actions';
-        });
-        if ($actionsColumn === [] && Php::value($items['withoutActionsColumn'] ?? null) !== true) {
-            // The rows of 1.x lists without an actions column had these buttons
-            $finding->add('no column actions: the buttons show, edit, delete', $this->buttonsTarget(['show', 'edit', 'delete']));
-        }
-        foreach ($items as $key => $value) {
+        foreach (Php::items($index) as $key => $value) {
             match ($key) {
                 'columns' => $this->auditColumns($finding, $value),
                 'withoutActionsColumn' => $finding->add('withoutActionsColumn', 'itemActions(): [] when it is true'),
@@ -720,8 +689,8 @@ final class Audit
     }
 
     /**
-     * What the buttons of a 1.x `actions` column become: `ShowAction`, `EditAction` and
-     * `DeleteAction` in `actions()`, which the Rector rules write.
+     * What the buttons of a 1.x `actions` column become: `itemActions()` with its built-in
+     * buttons, which the Rector rules write, or nothing for the four of the 5.x default.
      *
      * @param  list<string>  $buttons
      */
@@ -770,8 +739,10 @@ final class Audit
             $id = is_string($id) ? $id : '?';
             if ($id === 'actions' || isset($items['actions'])) {
                 $actions = Php::value($items['actions'] ?? null);
-                $names = is_array($actions) ? array_values(array_filter($actions, 'is_string')) : [];
-                $finding->add('column actions: '.($names !== [] ? implode(', ', $names) : '?'), $this->buttonsTarget($names));
+                $names = is_array($actions) ? array_values(array_filter($actions, 'is_string')) : null;
+                $finding->add('column actions: '.($names !== null ? implode(', ', $names) : '?'), $names !== null
+                    ? $this->buttonsTarget($names)
+                    : 'manual: itemActions() with its buttons (show, edit, duplicate, delete), by the abilities of the policy');
                 if ($id === 'actions') {
                     continue;
                 }

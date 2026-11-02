@@ -43,14 +43,12 @@ class Users extends Resource
     {
         return \App\Repositories\Users::class;
     }
+
     public function list(ResourceList $list): ResourceList
     {
         return $list->columns(['name', 'email']);
     }
-    public function itemActions(): array
-    {
-        return ['show', 'edit', 'delete'];
-    }
+
     public function fields(): array
     {
         return [

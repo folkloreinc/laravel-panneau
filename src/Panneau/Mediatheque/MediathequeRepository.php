@@ -2,6 +2,7 @@
 
 namespace Panneau\Mediatheque;
 
+use Closure;
 use Folklore\Mediatheque\Contracts\Mediatheque;
 use Folklore\Mediatheque\Contracts\Models\Media as MediaContract;
 use Folklore\Mediatheque\Exceptions\FileRejected;
@@ -154,7 +155,7 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
         }
     }
 
-    public function duplicate(object $item, array $scope): object
+    public function duplicate(object $item, array $scope, array $values = [], ?Closure $before = null, ?Closure $after = null): object
     {
         throw new LogicException('A media of the mediatheque can\'t be duplicated.');
     }

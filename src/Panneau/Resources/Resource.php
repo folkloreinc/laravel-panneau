@@ -163,7 +163,7 @@ abstract class Resource
     /**
      * What an item's title opens, in its list and wherever the app links to the item: `panel`,
      * its details in a panel next to the list, or `edit`, its form. With `edit`, the item's show
-     * route redirects to its form, and the app leaves out `ShowAction`. Use it when the panel
+     * route redirects to its form, and the app leaves out `show`. Use it when the panel
      * adds nothing to the form.
      *
      * @return 'panel'|'edit'
@@ -317,12 +317,14 @@ abstract class Resource
     public function deleted(object $item): void {}
 
     /**
-     * Called before an item is duplicated.
+     * Called before the copy of an item is saved, with the copy: change its values there (a
+     * title, a status). Unique slugs are already free (`-copy`, `-copy-2`…).
      */
-    public function duplicating(object $item): void {}
+    public function duplicating(object $item, object $copy): void {}
 
     /**
-     * Called after an item is duplicated, with its copy.
+     * Called once the copy of an item is saved, in the same transaction: copy relations there,
+     * which the repository doesn't copy.
      */
     public function duplicated(object $item, object $copy): void {}
 }

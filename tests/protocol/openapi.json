@@ -567,6 +567,16 @@
                                 }
                             }
                         }
+                    },
+                    "409": {
+                        "description": "The copy conflicts with another item, such as a unique value.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -2,6 +2,7 @@
 
 namespace Panneau\Repositories;
 
+use Closure;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -194,17 +195,35 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
         )));
     }
 
-    public function duplicate(object $item, array $scope): object
+    /**
+     * Copies the model with `replicate()`, in a transaction: its attributes only. Relations
+     * (`BelongsToMany`, the pivots of media) aren't copied, unless `$values` or the resource's
+     * hooks set them.
+     */
+    public function duplicate(object $item, array $scope, array $values = [], ?Closure $before = null, ?Closure $after = null): object
     {
-        $copy = $this->ensureModel($item)->replicate();
-        foreach ($scope as $column => $value) {
-            if (! self::isConstraint($value)) {
-                $copy->setAttribute($column, $value);
-            }
-        }
-        $copy->save();
+        $source = $this->ensureModel($item);
 
-        return $copy->refresh();
+        return $source->getConnection()->transaction(function () use ($source, $scope, $values, $before, $after): Model {
+            $copy = $source->replicate();
+            $this->fill($copy, $values);
+            foreach ($scope as $column => $value) {
+                if (! self::isConstraint($value)) {
+                    $copy->setAttribute($column, $value);
+                }
+            }
+            if ($before !== null) {
+                $before($copy);
+            }
+            $copy->save();
+            $this->syncRelations($copy, $values);
+            $copy->refresh();
+            if ($after !== null) {
+                $after($copy);
+            }
+
+            return $copy;
+        });
     }
 
     public function chunk(ResourceQuery $query, int $size, callable $callback): void

@@ -16,8 +16,8 @@ use Rector\Rector\AbstractRector;
  * Converts the `index()` of a 1.x resource to `list()`: its columns that are fields, and its
  * sortable columns. The built-in buttons of its `actions` column (`show`, `edit`, `duplicate`,
  * `delete`) become `itemActions()`, in their order, so that the list shows what it showed in
- * 1.x; without an `actions` column, the three buttons that 1.x lists had by default. Nothing is
- * written when they are the four of the 5.x default. What's left
+ * 1.x. Nothing is written when they are the four of the 5.x default, nor without an `actions`
+ * column: the four are shown by abilities. What's left
  * (filters, other actions, columns that aren't fields) is listed in a
  * `// TODO(panneau-5)` comment on `index()`, which is kept until it's moved; without anything
  * left, `index()` is removed.
@@ -33,11 +33,6 @@ final class ResourceIndexRector extends AbstractRector
      * doesn't say (`itemActions()` returns null). `create` has none: the list has its own button.
      */
     private const ITEM_ACTIONS = ['show', 'edit', 'duplicate', 'delete'];
-
-    /**
-     * The buttons of the rows of 1.x lists without an `actions` column (`@panneau/list-table` 2).
-     */
-    private const DEFAULT_1X_BUTTONS = ['show', 'edit', 'delete'];
 
     public function __construct(private readonly ProjectClasses $classes) {}
 
@@ -69,6 +64,7 @@ final class ResourceIndexRector extends AbstractRector
         $sorts = [];
         $buttons = [];
         $actionsColumn = false;
+        $unresolved = false;
         $withoutButtons = false;
         $left = [];
         foreach (Php::items($return->expr) as $key => $value) {
@@ -80,6 +76,11 @@ final class ResourceIndexRector extends AbstractRector
                     if (isset($items['actions']) || $id === 'actions') {
                         $actionsColumn = true;
                         $actions = Php::value($items['actions'] ?? null);
+                        if (! is_array($actions)) {
+                            // A constant or a call: the buttons are unknown
+                            $unresolved = true;
+                            $left[] = 'the buttons of the actions column, in itemActions()';
+                        }
                         foreach (is_array($actions) ? $actions : [] as $action) {
                             if (is_string($action) && in_array($action, self::ITEM_ACTIONS, true)) {
                                 $buttons[] = $action;
@@ -132,10 +133,12 @@ final class ResourceIndexRector extends AbstractRector
             };
         }
         $left = array_values(array_unique(array_filter($left)));
-        // Without an `actions` column, the rows of 1.x lists had these three buttons
-        $buttons = $actionsColumn || $withoutButtons ? array_values(array_unique($buttons)) : self::DEFAULT_1X_BUTTONS;
-        // The four of the default need no itemActions()
-        $writesButtons = $buttons !== self::ITEM_ACTIONS;
+        $buttons = array_values(array_unique($buttons));
+        // Without an actions column, or with the four of the default, the default is right
+        $writesButtons = $withoutButtons || ($actionsColumn && ! $unresolved && $buttons !== self::ITEM_ACTIONS);
+        if ($withoutButtons) {
+            $buttons = [];
+        }
         if ($columns === [] && ! $writesButtons) {
             return Todo::add($index, ['the 1.x index: write list() and itemActions() from it, then delete it']) ? $node : null;
         }
