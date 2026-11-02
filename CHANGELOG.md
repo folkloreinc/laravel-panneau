@@ -6,6 +6,17 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.8] - 2026-11-02
+
+Goes with `@panneau/*` `5.0.0-alpha.10`, which it needs: earlier admins ignore the rules limited to a mode and would require a `Password` on every update.
+
+The built-in item actions of panneau-js decision 0040 (show, edit, delete and, for resources that opt in, duplicate, shown by each item's abilities), `Resource::open()`, rules limited to create or update with the `Password` field, and fixes to the upgrade from 1.3 and 1.4 found on a second project.
+
+### Breaking changes
+
+- Every resource now has the built-in `delete`, and lists show the built-in item actions by each item's abilities, from the resource's policy: a policy that allows `delete` now shows a Delete button where alpha.7 showed none. Restrict it in the policy, or hide it with `itemActions()`.
+- Requires `@panneau/*` `5.0.0-alpha.10` or later (see above).
+
 Needs `@panneau/*` 5.0.0-alpha.10 or later, for the rules limited to a mode: an older admin applies them in both modes, and requires the password of a user on update.
 
 ### Added
@@ -145,7 +156,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.7...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.8...v5.x
+[5.0.0-alpha.8]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.8
 [5.0.0-alpha.7]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.7
 [5.0.0-alpha.6]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.6
 [5.0.0-alpha.5]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.5
