@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ClientAction;
 use Panneau\Actions\DeleteAction;
+use Panneau\Actions\DuplicateAction;
+use Panneau\Actions\EditAction;
 use Panneau\Actions\LinkAction;
 use Panneau\Actions\ShowAction;
 use Panneau\Fields\BlockType;
@@ -123,13 +125,21 @@ class PostsResource extends Resource
     {
         return [
             ShowAction::class,
-            ...parent::actions(),
+            EditAction::class,
             PublishPosts::class,
             ArchivePosts::class,
             DeleteAction::class,
+            DuplicateAction::class,
             LinkAction::make('preview')->url('/posts/{id}/preview')->placement([ActionPlacement::Form]),
             ClientAction::make('copy-link')->component('copy-link'),
         ];
+    }
+
+    public function duplicated(object $item, object $copy): void
+    {
+        if ($item instanceof Post && $copy instanceof Post) {
+            $copy->update(['title' => $item->title.' (copy)', 'status' => 'draft']);
+        }
     }
 
     public function scope(Request $request): array

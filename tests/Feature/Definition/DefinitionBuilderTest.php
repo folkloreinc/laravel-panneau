@@ -195,7 +195,7 @@ class DefinitionBuilderTest extends TestCase
     {
         $actions = array_column($this->resource('posts')['actions'], null, 'id');
 
-        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'preview', 'copy-link'], array_keys($actions));
+        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'duplicate', 'preview', 'copy-link'], array_keys($actions));
         // The built-in links: the app resolves them to its routes and labels them
         $this->assertSame(['id' => 'show', 'kind' => 'link', 'scope' => ['item']], $actions['show']);
         $this->assertSame(['id' => 'edit', 'kind' => 'link', 'scope' => ['item']], $actions['edit']);
@@ -231,9 +231,10 @@ class DefinitionBuilderTest extends TestCase
         ], $actions['copy-link']);
     }
 
-    public function test_resources_declare_the_edit_link_by_default(): void
+    public function test_resources_declare_no_action_by_default(): void
     {
-        $this->assertSame([['id' => 'edit', 'kind' => 'link', 'scope' => ['item']]], $this->resource('tags')['actions']);
+        // The app shows the built-in actions of each item by its abilities
+        $this->assertArrayNotHasKey('actions', $this->resource('tags'));
     }
 
     public function test_what_opens_an_item(): void

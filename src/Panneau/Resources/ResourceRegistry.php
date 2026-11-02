@@ -8,6 +8,7 @@ use LogicException;
 use Panneau\Actions\BuiltInLink;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Contracts\Repositories\CursorPaginated;
+use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\ResourceRepository;
 use Panneau\Lists\ResourceList;
@@ -171,6 +172,15 @@ final class ResourceRegistry
     {
         return $this->repository($resource) instanceof CursorPaginated
             && $this->list($resource)->paginatesWithCursors();
+    }
+
+    /**
+     * Whether the items of a resource can be duplicated: its repository is `Duplicable`. Media
+     * libraries can't, since a copy would share the file of its media.
+     */
+    public function duplicable(Resource $resource): bool
+    {
+        return ! $resource instanceof MediaResource && $this->repository($resource) instanceof Duplicable;
     }
 
     /**

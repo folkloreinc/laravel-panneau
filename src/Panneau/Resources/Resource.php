@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
 use Panneau\Actions\BuiltInLink;
-use Panneau\Actions\EditAction;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Text;
@@ -136,16 +135,14 @@ abstract class Resource
     }
 
     /**
-     * The actions: `Action` classes, the built-in links (`EditAction`, `ShowAction`), or
-     * declarations such as `LinkAction::make()`. By default, `EditAction`: a link to the form of
-     * each item, in its row. A resource that overrides it gets exactly what it lists: keep the
-     * link with `[...parent::actions(), DeleteAction::class]`, or leave it out.
+     * The actions: `Action` classes, the built-in links (`EditAction`, `ShowAction`) to replace
+     * them, or declarations such as `LinkAction::make()`.
      *
      * @return list<class-string<Action>|class-string<BuiltInLink>|ActionDeclaration>
      */
     public function actions(): array
     {
-        return [EditAction::class];
+        return [];
     }
 
     /**
@@ -303,4 +300,14 @@ abstract class Resource
     public function deleting(object $item): void {}
 
     public function deleted(object $item): void {}
+
+    /**
+     * Called before an item is duplicated.
+     */
+    public function duplicating(object $item): void {}
+
+    /**
+     * Called after an item is duplicated, with its copy.
+     */
+    public function duplicated(object $item, object $copy): void {}
 }

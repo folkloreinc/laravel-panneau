@@ -151,6 +151,33 @@ class ActionEndpointTest extends HttpTestCase
         $this->runAction('publish-posts', ['selection' => ['query' => []]])->assertForbidden();
     }
 
+    public function test_the_duplicate_action(): void
+    {
+        $post = $this->createPost(['title' => 'Original', 'status' => 'published']);
+        $other = $this->createPost(['title' => 'Other team', 'team_id' => 2]);
+
+        $this->runAction('duplicate', ['selection' => ['ids' => [(string) $post->id, (string) $other->id]]])
+            ->assertOk()
+            ->assertJsonPath('summary', ['succeeded' => 1, 'failed' => 0, 'skipped' => 1])
+            ->assertJsonPath('refresh', 'list');
+
+        $copy = Post::query()->whereKeyNot([$post->id, $other->id])->sole();
+        // The resource's duplicated hook, and the scope of the resource
+        $this->assertSame('Original (copy)', $copy->title);
+        $this->assertSame('draft', $copy->status);
+        $this->assertSame(1, $copy->team_id);
+        $this->assertSame('Original', $post->refresh()->title);
+    }
+
+    public function test_the_duplicate_action_falls_back_to_the_create_ability(): void
+    {
+        $post = $this->createPost();
+        PostPolicy::$denied = ['create'];
+
+        $this->runAction('duplicate', ['selection' => ['ids' => [(string) $post->id]]])->assertForbidden();
+        $this->assertSame(false, $this->getJson(self::API.'/resources/posts')->json('data.0.abilities.duplicate'));
+    }
+
     public function test_the_delete_action(): void
     {
         $first = $this->createPost();

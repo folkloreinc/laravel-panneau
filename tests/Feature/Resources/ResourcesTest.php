@@ -22,6 +22,7 @@ use TestApp\Models\Post;
 use TestApp\Models\Tag;
 use TestApp\Panneau\Actions\PublishPosts;
 use TestApp\Panneau\Resources\AuthorsResource;
+use TestApp\Panneau\Resources\MediaLibraryResource;
 use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Panneau\Resources\TagsResource;
 use TestApp\Repositories\Adapters\ArrayRepository;
@@ -129,29 +130,14 @@ class ResourcesTest extends TestCase
         $this->assertNull($registry->action($posts, 'missing'));
     }
 
-    public function test_resources_have_the_edit_link_by_default(): void
+    public function test_resources_have_the_actions_they_list(): void
     {
         $registry = $this->registry();
         $ids = fn (string $resource): array => array_map(fn (ActionDeclaration $action): string => $action->id(), $registry->actions($registry->find($resource)));
 
-        $this->assertSame(['edit'], $ids('tags'));
-        // An override gets what it lists: posts keeps the default after its show link
-        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'preview', 'copy-link'], $ids('posts'));
-        $this->assertInstanceOf(EditAction::class, $registry->action($registry->find('tags'), 'edit'));
-    }
-
-    public function test_a_resource_can_leave_out_the_edit_link(): void
-    {
-        $registry = $this->app->make(ResourceRegistry::class);
-        $registry->register([new class extends BlogPosts
-        {
-            public function actions(): array
-            {
-                return [DeleteAction::class];
-            }
-        }]);
-
-        $this->assertNull($registry->action($registry->all()[0], 'edit'));
+        $this->assertSame([], $ids('tags'));
+        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'duplicate', 'preview', 'copy-link'], $ids('posts'));
+        $this->assertInstanceOf(EditAction::class, $registry->action($registry->find('posts'), 'edit'));
     }
 
     public function test_the_ids_of_the_built_in_links_are_reserved_for_links(): void
@@ -183,6 +169,16 @@ class ResourcesTest extends TestCase
         $registry = $this->app->make(ResourceRegistry::class);
         $registry->register([new BlogPostsWithActions([LinkAction::make('edit')->url('/blog/{id}/edit')])]);
         $this->assertSame('/blog/{id}/edit', $registry->action($registry->all()[0], 'edit')?->toDefinition()['url']);
+    }
+
+    public function test_items_can_be_duplicated_with_a_duplicable_repository_outside_media_libraries(): void
+    {
+        $registry = $this->app->make(ResourceRegistry::class);
+        $registry->register([PostsResource::class, new BlogPosts, MediaLibraryResource::class]);
+
+        $this->assertTrue($registry->duplicable($registry->find('posts')));
+        $this->assertFalse($registry->duplicable($registry->find('blog-posts')));
+        $this->assertFalse($registry->duplicable($registry->resolve(MediaLibraryResource::class)));
     }
 
     public function test_query_options_come_from_the_list(): void
