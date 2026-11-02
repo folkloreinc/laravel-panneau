@@ -186,6 +186,8 @@ final class ResourceController
         $resource = $this->findResource($this->routeParameter($request, 'resource'));
         $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
         $repository = $this->resources->repository($resource);
+        // The copy is answered in full: never for an item the user can't view
+        $this->authorizeItem($request, $resource, 'view', $item);
         if (! $repository instanceof Duplicable || ! $this->authorizer->allowsDuplicate($request->user(), $resource, $item)) {
             throw new AuthorizationException;
         }

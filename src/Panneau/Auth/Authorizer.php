@@ -9,6 +9,7 @@ use Panneau\Actions\Action;
 use Panneau\Actions\DeleteAction;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use WeakMap;
 
 /**
  * Authorizes every operation through Policies: the policy of the item, or of the resource's
@@ -23,6 +24,13 @@ final class Authorizer
     public const ITEM_ABILITIES = ['view', 'update', 'delete'];
 
     private bool $allowWithoutPolicies = false;
+
+    /**
+     * The `create` ability of each resource, by user.
+     *
+     * @var WeakMap<Authenticatable, array<string, bool>>|null
+     */
+    private ?WeakMap $creates = null;
 
     public function __construct(
         private readonly Gate $gate,
@@ -89,12 +97,13 @@ final class Authorizer
     }
 
     /**
-     * Whether the user can duplicate an item: never when the repository can't, then the
-     * policy's `duplicate` method, or else `create` on the resource.
+     * Whether the user can duplicate an item: never when the repository can't, nor when the
+     * user can't view the item, since the copy is answered in full. Then the policy's
+     * `duplicate` method, or else `create` on the resource.
      */
     public function allowsDuplicate(?Authenticatable $user, Resource $resource, object $item): bool
     {
-        if (! $this->resources->duplicable($resource)) {
+        if (! $this->resources->duplicable($resource) || ! $this->allowsItem($user, $resource, 'view', $item)) {
             return false;
         }
         if (! $this->hasPolicy($resource, $item)) {
@@ -104,7 +113,25 @@ final class Authorizer
 
         return is_object($policy) && method_exists($policy, 'duplicate')
             ? $this->gate->forUser($user)->allows('duplicate', $item)
-            : $this->allowsResource($user, $resource, 'create');
+            : $this->allowsCreate($user, $resource);
+    }
+
+    /**
+     * `create` on the resource, once per user: the fallback of `duplicate` on each item.
+     */
+    private function allowsCreate(?Authenticatable $user, Resource $resource): bool
+    {
+        if ($user === null) {
+            return $this->allowsResource($user, $resource, 'create');
+        }
+        $this->creates ??= new WeakMap;
+        $allowed = $this->creates[$user] ?? [];
+        if (! isset($allowed[$resource->id()])) {
+            $allowed[$resource->id()] = $this->allowsResource($user, $resource, 'create');
+            $this->creates[$user] = $allowed;
+        }
+
+        return $allowed[$resource->id()];
     }
 
     /**

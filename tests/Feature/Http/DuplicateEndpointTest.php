@@ -48,6 +48,19 @@ class DuplicateEndpointTest extends HttpTestCase
         $this->assertSame(1, Post::query()->count());
     }
 
+    public function test_an_item_that_cant_be_viewed_is_not_duplicated(): void
+    {
+        $post = $this->createPost(['title' => 'Hidden']);
+        PostPolicy::$denied = ['view', 'update'];
+
+        $this->getJson(self::API.'/resources/posts/'.$post->id)->assertForbidden();
+        $this->postJson(self::API.'/resources/posts/'.$post->id.'/duplicate')
+            ->assertForbidden()
+            ->assertJsonMissing(['title' => 'Hidden']);
+        $this->assertSame(1, Post::query()->count());
+        $this->assertSame(false, $this->getJson(self::API.'/resources/posts')->json('data.0.abilities.duplicate'));
+    }
+
     public function test_an_item_outside_the_scope_is_not_found(): void
     {
         $other = $this->createPost(['team_id' => 2]);
