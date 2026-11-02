@@ -95,8 +95,14 @@ class Password extends Text
         // The length of Password::defaults(), so the app checks it before saving
         $defaults = $this->defaultRule();
         $min = $defaults instanceof PasswordRule ? $defaults->appliedRules()['min'] ?? null : null;
-        if (is_int($min) && ! $this->hasRule('min')) {
-            $definition['rules'] = [...($definition['rules'] ?? []), ['rule' => 'min', 'value' => $min]];
+        // In the modes where the field has no min of its own
+        $modes = array_values(array_filter(FormMode::cases(), fn (FormMode $mode): bool => ! $this->hasRule('min', $mode)));
+        if (is_int($min) && $modes !== []) {
+            $rule = ['rule' => 'min', 'value' => $min];
+            if (count($modes) === 1) {
+                $rule['mode'] = $modes[0]->value;
+            }
+            $definition['rules'] = [...($definition['rules'] ?? []), $rule];
         }
 
         return $definition;

@@ -307,7 +307,7 @@ final class Audit
         }
         foreach ($this->panneauPackages($package, fn (string $version): bool => ! $this->isMajor($version, 5)) as $name => $version) {
             $section->add($name.' '.$version, $name === '@panneau/app'
-                ? '@panneau/app ^5.0.0-alpha.0 (--upgrade replaces it)'
+                ? '@panneau/app '.JsInstaller::PACKAGES['dependencies']['@panneau/app'].' (--upgrade replaces it)'
                 : 'removed: 5.x has about a dozen packages, which @panneau/app brings (the JS codemods move the imports)', 'package.json');
         }
     }
@@ -859,9 +859,10 @@ final class Audit
     }
 
     /**
-     * The `Password::make()` chains without `hashed()`: 5.x hashes the password in the field,
-     * and 1.x left it to the repository, which would hash it twice. Rector only converts
-     * `app/Panneau`.
+     * The `Password` fields (`Password::make()`, `new Password()`) without `hashed()`: 5.x hashes
+     * the password in the field, and 1.x left it to the repository, which would hash it twice.
+     * Saying `hashed()` or `hashed(false)` settles it, so a converted project isn't listed.
+     * Rector only converts `app/Panneau`.
      */
     private function auditPasswords(Section $uses): void
     {
@@ -876,16 +877,19 @@ final class Audit
                     $hashed[spl_object_id($root)] = true;
                 }
             }
-            foreach ($this->code->find($file, Expr\StaticCall::class) as $call) {
-                if ($call->class instanceof Node\Name && $call->class->toString() === 'Panneau\\Fields\\Password'
-                    && $call->name instanceof Node\Identifier && $call->name->toString() === 'make'
-                    && ! isset($hashed[spl_object_id($call)])) {
-                    $uses->add(
-                        'Password::make('.Php::describe($call->getArgs()[0]->value ?? null, 30).') without hashed()',
-                        '->hashed(false) when the repository hashes the password, as in 1.x; nothing when it doesn\'t',
-                        $file.':'.$call->getStartLine(),
-                    );
+            foreach ([...$this->code->find($file, Expr\StaticCall::class), ...$this->code->find($file, Expr\New_::class)] as $call) {
+                $make = $call instanceof Expr\StaticCall;
+                if (! $call->class instanceof Node\Name || $call->class->toString() !== 'Panneau\\Fields\\Password'
+                    || ($make && ! ($call->name instanceof Node\Identifier && $call->name->toString() === 'make'))
+                    || isset($hashed[spl_object_id($call)])) {
+                    continue;
                 }
+                $name = Php::describe($call->getArgs()[0]->value ?? null, 30);
+                $uses->add(
+                    ($make ? "Password::make({$name})" : "new Password({$name})").' without hashed()',
+                    '->hashed(false) when the repository hashes the password, as in 1.x; ->hashed() when the field does',
+                    $file.':'.$call->getStartLine(),
+                );
             }
         }
     }

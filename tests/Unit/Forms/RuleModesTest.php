@@ -4,7 +4,10 @@ namespace Panneau\Tests\Unit\Forms;
 
 use Illuminate\Validation\ValidationException;
 use Panneau\Fields\Field;
+use Panneau\Fields\Media;
 use Panneau\Fields\Number;
+use Panneau\Fields\Password;
+use Panneau\Fields\Range;
 use Panneau\Fields\Text;
 use Panneau\Forms\Form;
 use Panneau\Forms\FormMode;
@@ -57,6 +60,35 @@ class RuleModesTest extends TestCase
 
         $this->assertSame([], $this->errors($fields, ['count' => 20], FormMode::Create));
         $this->assertArrayHasKey('count', $this->errors($fields, ['count' => 20], FormMode::Update));
+    }
+
+    public function test_defaults_apply_in_the_modes_without_a_rule_of_their_own(): void
+    {
+        // The ends of a Range: its own min on create, the default one on update
+        $fields = [Range::make('rating')->min(10, mode: FormMode::Create)];
+        $this->assertArrayHasKey('rating', $this->errors($fields, ['rating' => 5], FormMode::Create));
+        $this->assertSame([], $this->errors($fields, ['rating' => 5], FormMode::Update));
+        $this->assertArrayHasKey('rating', $this->errors($fields, ['rating' => -50], FormMode::Update));
+
+        // The length of Password::defaults(), in the definition, for the other mode
+        $this->assertSame(
+            [['rule' => 'required', 'mode' => 'create'], ['rule' => 'min', 'value' => 12, 'mode' => 'update'], ['rule' => 'min', 'value' => 8, 'mode' => 'create']],
+            Password::make('password')->min(12, mode: FormMode::Update)->toDefinition()['rules'],
+        );
+        $this->assertSame(
+            [['rule' => 'required', 'mode' => 'create'], ['rule' => 'min', 'value' => 12]],
+            Password::make('password')->min(12)->toDefinition()['rules'],
+        );
+    }
+
+    public function test_localized_media_apply_the_mode_of_each_locale(): void
+    {
+        $fields = [Media::make('cover')->localized()->required(mode: FormMode::Update)];
+
+        $this->assertSame([], $this->errors($fields, [], FormMode::Create));
+        $this->assertSame([], $this->errors($fields, ['cover' => ['fr' => null]], FormMode::Create));
+        $this->assertArrayHasKey('cover', $this->errors($fields, [], FormMode::Update));
+        $this->assertArrayHasKey('cover.fr', $this->errors($fields, ['cover' => ['fr' => null]], FormMode::Update));
     }
 
     public function test_localized_fields_apply_the_mode_of_each_locale(): void

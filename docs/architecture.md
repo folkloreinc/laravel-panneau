@@ -29,7 +29,7 @@ It then writes, keeping existing files unless `--force`:
 It also edits two project files, keeping their formatting and what they already have:
 
 - **`vite.config.js`** (or `.ts`, `.mjs`, `.mts`): the entry is added to the `input` of `laravel()`, and the `react()` plugin of `@vitejs/plugin-react` to `plugins`. When the file doesn't have that shape, it says what to add instead.
-- **`package.json`:** `@panneau/app`, `react`, `react-dom` and `@tanstack/react-query` in `dependencies`, and `@vitejs/plugin-react` in `devDependencies`. Packages already there keep their version, except an older major of `@panneau/app`. Until 5.0.0, the range is explicit (`^5.0.0-alpha.0`): v5 is published on the `alpha` tag, and `latest` is v4.
+- **`package.json`:** `@panneau/app`, `react`, `react-dom` and `@tanstack/react-query` in `dependencies`, and `@vitejs/plugin-react` in `devDependencies`. Packages already there keep their version, except an older major of `@panneau/app`. Until 5.0.0, the range is explicit (`^5.0.0-alpha.10`, the first that applies rules limited to a mode): v5 is published on the `alpha` tag, and `latest` is v4.
 
 With `--upgrade`, it migrates a 1.3 or 1.4 project: it converts its config, writes the provider, routes and JS entry (Vite next to the site's bundler), moves a 1.x override of the page aside, keeps what it changes as `{file}.1x.bak`, and lists what to move by hand and the files the package now provides. `--upgrade --check` only reports, without writing. See the [migration guide](migration.md) and [decisions/0013](decisions/0013-upgrade-from-1x.md).
 
@@ -225,7 +225,7 @@ RichText::make('body')
 
 ### Passwords
 
-`Password` is the password of a users resource. It sends no protocol type of its own: in the definition, it is a `text` field with `settings.secret`, which `@panneau/fields` (5.0.0-alpha.9 or later) renders as a password input with `autocomplete="new-password"` and a button that shows it, so no JS plugin is needed. It needs `@panneau/*` 5.0.0-alpha.9 or later: an older admin ignores `settings.secret` and shows a plain text input.
+`Password` is the password of a users resource. It sends no protocol type of its own: in the definition, it is a `text` field with `settings.secret`, which `@panneau/fields` renders as a password input with `autocomplete="new-password"` and a button that shows it, so no JS plugin is needed. It needs `@panneau/*` 5.0.0-alpha.10 or later (see Rules below).
 
 ```php
 Password::make('password')->label(__('Password')),
@@ -237,7 +237,7 @@ Password::make('password')->required(),    // the default: required to create, n
 - **Write-only.** Items always give `null`, so the form starts empty, and lists and details never show it.
 - **Required to create the item, optional to update it.** On an update, an empty value (`null` or `""`) keeps the current password: the field omits it from the values (`Field::omits()`), so the repository receives no `password`.
 - **Rules.** `Password::defaults()` on the server, with `rules()` for more. The definition has its `min`, for the app's own check, and `{ "rule": "required", "mode": "create" }`, so the admin marks it required on create only. This needs `@panneau/*` 5.0.0-alpha.10 or later: an older admin ignores `mode`, and requires the password on update too, which blocks editing a user. `required(mode: FormMode::Update)` requires it on update as well; `rules(['required'])` too, since server-only rules apply in both modes.
-- **Hashed once.** `prepare()` hashes the password with `Hash::make()`, unless it is already a hash that the app's hasher accepts (`Hash::isHashed()` and `Hash::verifyConfiguration()`, as Eloquent's `hashed` cast: a bcrypt hash of a lower cost is one), so the repository receives the hash. Projects migrated from 1.x hash in their repository: the Rector rules write `hashed(false)` there. Eloquent's `hashed` cast keeps a hash as is, and so does laravel-folklore's `Users` repository once folkloreinc/laravel-folklore#144 is released; before that, use `hashed(false)` with it, which leaves the hashing to the repository.
+- **Hashed once.** `prepare()` hashes the password with `Hash::make()`, unless it is already a hash that the app's hasher accepts (`Hash::isHashed()` and `Hash::verifyConfiguration()`, as Eloquent's `hashed` cast: a bcrypt hash of a lower cost is one), so the repository receives the hash. Projects migrated from 1.x hash in their repository: the Rector rules write `hashed(false)` there. `--check` lists the `Password` fields that don't say who hashes: write `hashed()` when the field hashes, `hashed(false)` when the repository does. Eloquent's `hashed` cast keeps a hash as is, and so does laravel-folklore's `Users` repository once folkloreinc/laravel-folklore#144 is released; before that, use `hashed(false)` with it, which leaves the hashing to the repository.
 
 ### More field types
 

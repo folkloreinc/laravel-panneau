@@ -443,6 +443,8 @@ class UpgradeCommandTest extends TestCase
                     return [
                         Password::make('password')->label('Password'),
                         Password::make('pin')->label('PIN')->hashed(false),
+                        Password::make('code')->hashed(),
+                        new Password('secret'),
                     ];
                 }
             }
@@ -452,7 +454,10 @@ class UpgradeCommandTest extends TestCase
         $password = $this->finding('field-uses', "Password::make('password') without hashed()");
         $this->assertSame('app/Http/Fields.php:12', $password->location);
         $this->assertStringStartsWith('->hashed(false) when the repository hashes', $password->target);
+        // Saying who hashes settles it, either way
         $this->assertNull($this->audit()->section('field-uses')->find("Password::make('pin') without hashed()"));
+        $this->assertNull($this->audit()->section('field-uses')->find("Password::make('code') without hashed()"));
+        $this->assertSame('app/Http/Fields.php:15', $this->finding('field-uses', "new Password('secret') without hashed()")->location);
     }
 
     public function test_the_check_lists_a_concrete_1x_base_of_types(): void
@@ -560,7 +565,7 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('createPanneauApp', $this->read('resources/js/panneau.tsx'));
         $this->assertStringContainsString("input: ['resources/js/panneau.tsx']", $this->read('vite.config.mjs'));
         $package = json_decode($this->read('package.json'), true);
-        $this->assertSame('^5.0.0-alpha.0', $package['dependencies']['@panneau/app']);
+        $this->assertSame('^5.0.0-alpha.10', $package['dependencies']['@panneau/app']);
         $this->assertSame('^4.1.1', $package['dependencies']['@panneau/core']);
         $this->assertSame('^8.0.0', $package['devDependencies']['vite']);
         $this->assertSame('^3.0.0', $package['devDependencies']['laravel-vite-plugin']);
