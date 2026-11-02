@@ -144,15 +144,16 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('$list->columns([...]) of the fields', $index->detail('columns: title, type, sites, published')?->target);
         $this->assertSame('$list->sorts([...])', $index->detail('sortable: title')?->target);
         $this->assertSame('RelationFilter on a resource', $index->detail('filter site_id: select')?->target);
-        $this->assertSame('DuplicateAction (not built yet)', $index->detail("actionsProps: ['hasDuplicateRoute' => true]")?->target);
+        $this->assertSame('nothing: duplicate is a built-in item action (itemActions())', $index->detail("actionsProps: ['hasDuplicateRoute' => true]")?->target);
         // The buttons of each row become actions of the resource
         $this->assertSame(
-            'actions(): ShowAction, EditAction, DeleteAction; duplicate: DuplicateAction (not built yet)',
+            // The four of the 5.x default
+            'nothing: the four built-in item actions, by the abilities of the policy',
             $index->detail('column actions: show, edit, duplicate, delete')?->target,
         );
         $this->assertFalse((bool) $index->detail('column actions: show, edit, duplicate, delete')?->isManual());
         $this->assertSame(
-            'actions(): ShowAction, EditAction, DeleteAction',
+            "itemActions(): ['show', 'edit', 'delete'], by the abilities of the policy",
             $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail('column actions: show, edit, delete')?->target,
         );
         $this->assertTrue((bool) $index->detail('column sites: component site-badges')?->isManual());
@@ -264,7 +265,7 @@ class UpgradeCommandTest extends TestCase
         $orders = $this->finding('resources', 'Orders (orders)');
         $this->assertTrue((bool) $orders->detail('settings()')?->isManual());
         $this->assertSame('actions(): LinkAction, or actions of the resource', $orders->detail('index()')?->detail('actions: 1 buttons')?->target);
-        $this->assertSame('actions(): ShowAction, EditAction', $orders->detail('index()')?->detail('column actions: show, edit')?->target);
+        $this->assertSame("itemActions(): ['show', 'edit'], by the abilities of the policy", $orders->detail('index()')?->detail('column actions: show, edit')?->target);
         $this->assertTrue((bool) $this->finding('resources', 'Pages (pages)')->detail('index()')?->detail('the index is built at runtime')?->isManual());
         $this->assertTrue((bool) $this->finding('resources', 'Users (users)')->detail("\$roles = ['admin', 'editor']")?->isManual());
 
@@ -860,7 +861,7 @@ class UpgradeCommandTest extends TestCase
         $this->assertNotNull($index);
         // Without show, the resource may open its items in their form
         $this->assertSame(
-            "actions(): EditAction, DeleteAction; no show: open() can return 'edit'",
+            "itemActions(): ['edit', 'delete'], by the abilities of the policy; no show: open() can return 'edit'",
             $index->detail('column actions: create, edit, delete')?->target,
         );
         // The buttons on the column of a field leave the column
@@ -892,7 +893,7 @@ class UpgradeCommandTest extends TestCase
             }
             PHP);
         $this->assertSame(
-            'actions(): ShowAction, EditAction, DeleteAction',
+            "itemActions(): ['show', 'edit', 'delete'], by the abilities of the policy",
             $this->finding('resources', 'Projects (projects)')->detail('index()')?->detail('no column actions: the buttons show, edit, delete')?->target,
         );
 

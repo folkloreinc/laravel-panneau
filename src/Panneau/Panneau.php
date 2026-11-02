@@ -36,7 +36,7 @@ class Panneau implements PanneauContract
     /**
      * The resource routes that `resourceRoutes()` can register.
      */
-    private const RESOURCE_ROUTES = ['index', 'store', 'show', 'update', 'destroy', 'actions', 'check'];
+    private const RESOURCE_ROUTES = ['index', 'store', 'show', 'update', 'destroy', 'duplicate', 'actions', 'check'];
 
     public function __construct(private readonly Container $container) {}
 
@@ -214,6 +214,7 @@ class Panneau implements PanneauContract
             'show' => fn () => $router->get('resources/{resource}/{id}', [ResourceController::class, 'show'])->name('resources.show'),
             'update' => fn () => $router->patch('resources/{resource}/{id}', [ResourceController::class, 'update'])->name('resources.update'),
             'destroy' => fn () => $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy'),
+            'duplicate' => fn () => $router->post('resources/{resource}/{id}/duplicate', [ResourceController::class, 'duplicate'])->name('resources.duplicate'),
         ];
         foreach ($routes as $name => $register) {
             if (! in_array($name, $only, true)) {

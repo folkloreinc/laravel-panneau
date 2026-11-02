@@ -3,9 +3,8 @@
 namespace Panneau\Actions;
 
 /**
- * The built-in `show` link: opens the item's panel, next to its list. Hidden on items that
- * can't be viewed (`abilities.view`), and left out by the app when the resource opens its items
- * in their form (`Resource::open()`).
+ * Replaces the built-in `show` link, which opens the item's panel, next to its list: a
+ * `ShowAction::make()->url(...)` to the item on the site. Shown on the items that can be viewed.
  */
 class ShowAction extends BuiltInLink
 {

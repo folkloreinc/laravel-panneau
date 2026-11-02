@@ -495,6 +495,82 @@
                 }
             }
         },
+        "/resources/{resource}/{id}/duplicate": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "Item id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "operationId": "duplicateItem",
+                "description": "Copies an item, for the built-in `duplicate` (decision 0040). Allowed on the items whose `abilities.duplicate` is `true`.",
+                "responses": {
+                    "201": {
+                        "description": "The copy, a new item.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemResponse"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "ETag": {
+                                "description": "The version of the item.",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/resources/{resource}/{id}/preview": {
             "parameters": [
                 {
@@ -2704,7 +2780,7 @@
                         "minLength": 1
                     },
                     "label": {
-                        "description": "Required, except for the built-in links `show` and `edit`, which the client labels in its locale.",
+                        "description": "Required, except for the built-in item actions (`show`, `edit`, `duplicate`, `delete`), which the client labels in its locale.",
                         "type": "string"
                     },
                     "icon": {
@@ -2790,6 +2866,28 @@
                                 "id": {
                                     "enum": [
                                         "show",
+                                        "edit",
+                                        "duplicate",
+                                        "delete"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "id"
+                            ]
+                        },
+                        "else": {
+                            "required": [
+                                "label"
+                            ]
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "id": {
+                                    "enum": [
+                                        "show",
                                         "edit"
                                     ]
                                 }
@@ -2806,11 +2904,6 @@
                             },
                             "required": [
                                 "kind"
-                            ]
-                        },
-                        "else": {
-                            "required": [
-                                "label"
                             ]
                         }
                     },
@@ -2972,6 +3065,14 @@
                                 "minLength": 1
                             }
                         ]
+                    },
+                    "itemActions": {
+                        "description": "The built-in item actions the resource shows, in their order (decision 0040): some of `show`, `edit`, `duplicate` and `delete`. Defaults to all four. Each one is shown on the items whose abilities allow it (`view`, `update`, `duplicate`, `delete`). `[]` shows none. Clients ignore ids they don't know.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
                     },
                     "fields": {
                         "type": "array",

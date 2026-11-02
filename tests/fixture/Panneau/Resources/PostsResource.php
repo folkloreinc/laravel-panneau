@@ -5,11 +5,7 @@ namespace TestApp\Panneau\Resources;
 use Illuminate\Http\Request;
 use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ClientAction;
-use Panneau\Actions\DeleteAction;
-use Panneau\Actions\DuplicateAction;
-use Panneau\Actions\EditAction;
 use Panneau\Actions\LinkAction;
-use Panneau\Actions\ShowAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\DateTime;
@@ -124,12 +120,8 @@ class PostsResource extends Resource
     public function actions(): array
     {
         return [
-            ShowAction::class,
-            EditAction::class,
             PublishPosts::class,
             ArchivePosts::class,
-            DeleteAction::class,
-            DuplicateAction::class,
             LinkAction::make('preview')->url('/posts/{id}/preview')->placement([ActionPlacement::Form]),
             ClientAction::make('copy-link')->component('copy-link'),
         ];

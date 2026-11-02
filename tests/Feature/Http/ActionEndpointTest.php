@@ -151,33 +151,6 @@ class ActionEndpointTest extends HttpTestCase
         $this->runAction('publish-posts', ['selection' => ['query' => []]])->assertForbidden();
     }
 
-    public function test_the_duplicate_action(): void
-    {
-        $post = $this->createPost(['title' => 'Original', 'status' => 'published']);
-        $other = $this->createPost(['title' => 'Other team', 'team_id' => 2]);
-
-        $this->runAction('duplicate', ['selection' => ['ids' => [(string) $post->id, (string) $other->id]]])
-            ->assertOk()
-            ->assertJsonPath('summary', ['succeeded' => 1, 'failed' => 0, 'skipped' => 1])
-            ->assertJsonPath('refresh', 'list');
-
-        $copy = Post::query()->whereKeyNot([$post->id, $other->id])->sole();
-        // The resource's duplicated hook, and the scope of the resource
-        $this->assertSame('Original (copy)', $copy->title);
-        $this->assertSame('draft', $copy->status);
-        $this->assertSame(1, $copy->team_id);
-        $this->assertSame('Original', $post->refresh()->title);
-    }
-
-    public function test_the_duplicate_action_falls_back_to_the_create_ability(): void
-    {
-        $post = $this->createPost();
-        PostPolicy::$denied = ['create'];
-
-        $this->runAction('duplicate', ['selection' => ['ids' => [(string) $post->id]]])->assertForbidden();
-        $this->assertSame(false, $this->getJson(self::API.'/resources/posts')->json('data.0.abilities.duplicate'));
-    }
-
     public function test_the_delete_action(): void
     {
         $first = $this->createPost();
@@ -279,21 +252,22 @@ class ActionEndpointTest extends HttpTestCase
         $this->assertSame('published', $post->refresh()->status);
     }
 
-    public function test_the_delete_action_is_declared_in_the_definition(): void
+    public function test_the_built_in_delete_asks_the_delete_ability(): void
+    {
+        $post = $this->createPost();
+        PostPolicy::$denied = ['delete'];
+
+        // Not update, as other actions without a method of their own
+        $this->runAction('delete', ['selection' => ['ids' => [(string) $post->id]]])->assertForbidden();
+        $this->assertSame(1, Post::query()->count());
+    }
+
+    public function test_the_built_in_delete_needs_no_declaration(): void
     {
         $actions = array_column($this->getJson(self::API.'/definition')->json('resources.0.actions'), null, 'id');
 
-        $this->assertSame([
-            'id' => 'delete',
-            'label' => 'Delete',
-            'icon' => 'trash',
-            'kind' => 'server',
-            'scope' => ['item', 'selection'],
-            'destructive' => true,
-            'confirm' => true,
-            'dryRun' => true,
-            'abilities' => ['run' => true],
-        ], $actions['delete']);
+        // The app shows it by the delete ability of each item; test_the_delete_action runs it
+        $this->assertArrayNotHasKey('delete', $actions);
         $this->assertTrue($actions['archive-posts']['dryRun']);
         $this->assertArrayNotHasKey('dryRun', $actions['publish-posts']);
     }

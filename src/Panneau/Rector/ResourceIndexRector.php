@@ -14,9 +14,10 @@ use Rector\Rector\AbstractRector;
 
 /**
  * Converts the `index()` of a 1.x resource to `list()`: its columns that are fields, and its
- * sortable columns. The `show`, `edit` and `delete` buttons of its `actions` column become
- * `ShowAction`, `EditAction` and `DeleteAction` in `actions()`, in their order; without an
- * `actions` column, the three buttons that 1.x lists had by default. What's left
+ * sortable columns. The built-in buttons of its `actions` column (`show`, `edit`, `duplicate`,
+ * `delete`) become `itemActions()`, in their order, so that the list shows what it showed in
+ * 1.x; without an `actions` column, the three buttons that 1.x lists had by default. Nothing is
+ * written when they are the four of the 5.x default. What's left
  * (filters, other actions, columns that aren't fields) is listed in a
  * `// TODO(panneau-5)` comment on `index()`, which is kept until it's moved; without anything
  * left, `index()` is removed.
@@ -28,14 +29,15 @@ final class ResourceIndexRector extends AbstractRector
     private const LIST = 'Panneau\\Lists\\ResourceList';
 
     /**
-     * The buttons of the 1.x `actions` column, and their actions. `create` has none: the list
-     * has its own button.
+     * The built-in item actions of 5.x, in the order the app shows them when the resource
+     * doesn't say (`itemActions()` returns null). `create` has none: the list has its own button.
      */
-    private const BUTTONS = [
-        'show' => 'Panneau\\Actions\\ShowAction',
-        'edit' => 'Panneau\\Actions\\EditAction',
-        'delete' => 'Panneau\\Actions\\DeleteAction',
-    ];
+    private const ITEM_ACTIONS = ['show', 'edit', 'duplicate', 'delete'];
+
+    /**
+     * The buttons of the rows of 1.x lists without an `actions` column (`@panneau/list-table` 2).
+     */
+    private const DEFAULT_1X_BUTTONS = ['show', 'edit', 'delete'];
 
     public function __construct(private readonly ProjectClasses $classes) {}
 
@@ -79,8 +81,8 @@ final class ResourceIndexRector extends AbstractRector
                         $actionsColumn = true;
                         $actions = Php::value($items['actions'] ?? null);
                         foreach (is_array($actions) ? $actions : [] as $action) {
-                            if (is_string($action) && isset(self::BUTTONS[$action])) {
-                                $buttons[] = self::BUTTONS[$action];
+                            if (is_string($action) && in_array($action, self::ITEM_ACTIONS, true)) {
+                                $buttons[] = $action;
                             } elseif ($action !== 'create') {
                                 $left[] = 'the '.(is_string($action) ? $action : 'custom').' action';
                             }
@@ -122,7 +124,8 @@ final class ResourceIndexRector extends AbstractRector
             }
             $left[] = match ($key) {
                 'withFadedId' => null,
-                'actionsProps' => str_contains(Php::describe($value), 'Duplicate') ? 'the duplicate action' : 'actionsProps',
+                // The duplicate route: the duplicate button of the column decides
+                'actionsProps' => str_contains(Php::describe($value), 'Duplicate') ? null : 'actionsProps',
                 'actions' => 'the buttons of actions',
                 'batchActions' => 'batchActions: actions on a selection',
                 default => is_string($key) ? $key : null,
@@ -130,9 +133,11 @@ final class ResourceIndexRector extends AbstractRector
         }
         $left = array_values(array_unique(array_filter($left)));
         // Without an `actions` column, the rows of 1.x lists had these three buttons
-        $buttons = $actionsColumn || $withoutButtons ? array_values(array_unique($buttons)) : array_values(self::BUTTONS);
-        if ($columns === [] && $buttons === [] && ! $withoutButtons) {
-            return Todo::add($index, ['the 1.x index: write list() and actions() from it, then delete it']) ? $node : null;
+        $buttons = $actionsColumn || $withoutButtons ? array_values(array_unique($buttons)) : self::DEFAULT_1X_BUTTONS;
+        // The four of the default need no itemActions()
+        $writesButtons = $buttons !== self::ITEM_ACTIONS;
+        if ($columns === [] && ! $writesButtons) {
+            return Todo::add($index, ['the 1.x index: write list() and itemActions() from it, then delete it']) ? $node : null;
         }
 
         $factory = new BuilderFactory;
@@ -148,20 +153,17 @@ final class ResourceIndexRector extends AbstractRector
                 ->addStmt(new Stmt\Return_($list))
                 ->getNode();
         }
-        $actions = $node->getMethod('actions');
-        if (($buttons !== [] || $withoutButtons) && $actions === null) {
-            $actions = $factory->method('actions')->makePublic()->setReturnType('array')
-                ->addStmt(new Stmt\Return_(new Expr\Array_(
-                    array_map(fn (string $class): Node\ArrayItem => $this->classItem($class), $buttons),
-                    ['kind' => Expr\Array_::KIND_SHORT],
-                )))
+        $itemActions = $node->getMethod('itemActions');
+        if ($writesButtons && $itemActions === null) {
+            $itemActions = $factory->method('itemActions')->makePublic()->setReturnType('array')
+                ->addStmt(new Stmt\Return_($this->nodeFactory->createArray($buttons)))
                 ->getNode();
-            $methods[] = $actions;
-        } elseif ($buttons !== []) {
-            $this->addActions($actions, $buttons);
+            $methods[] = $itemActions;
+        } elseif ($writesButtons) {
+            Todo::add($itemActions, ['the 1.x list showed these buttons in its rows: '.($buttons === [] ? 'none' : implode(', ', $buttons))]);
         }
-        if ($actionsColumn && $actions !== null && ! in_array(self::BUTTONS['show'], $buttons, true)) {
-            Todo::add($actions, ["the 1.x list had no show button: if the panel of an item adds nothing to its form, open it in its form with open(): 'edit'"]);
+        if ($itemActions !== null && $buttons !== [] && ! in_array('show', $buttons, true)) {
+            Todo::add($itemActions, ["the 1.x list had no show button: if the panel of an item adds nothing to its form, open it in its form with open(): 'edit'"]);
         }
 
         $stmts = [];
@@ -180,38 +182,6 @@ final class ResourceIndexRector extends AbstractRector
         $node->stmts = $stmts;
 
         return $node;
-    }
-
-    private function classItem(string $class): Node\ArrayItem
-    {
-        return new Node\ArrayItem(new Expr\ClassConstFetch(new FullyQualified($class), 'class'));
-    }
-
-    /**
-     * Adds the actions of the 1.x buttons to an `actions()` the resource already has, after
-     * its own, or lists them in a TODO when it doesn't return an array.
-     *
-     * @param  list<string>  $classes
-     */
-    private function addActions(Stmt\ClassMethod $method, array $classes): void
-    {
-        $return = (new NodeFinder)->findFirstInstanceOf($method->stmts ?? [], Stmt\Return_::class);
-        if (! $return?->expr instanceof Expr\Array_) {
-            Todo::add($method, ['add the buttons of the 1.x index to actions(): '.implode(', ', array_map(fn (string $class): string => class_basename($class), $classes))]);
-
-            return;
-        }
-        $listed = [];
-        foreach ($return->expr->items as $item) {
-            if ($item->value instanceof Expr\ClassConstFetch && $item->value->class instanceof Node\Name) {
-                $listed[] = $this->getName($item->value->class);
-            }
-        }
-        foreach ($classes as $class) {
-            if (! in_array($class, $listed, true)) {
-                $return->expr->items[] = $this->classItem($class);
-            }
-        }
     }
 
     /**

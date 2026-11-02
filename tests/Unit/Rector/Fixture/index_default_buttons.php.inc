@@ -34,9 +34,6 @@ namespace App\Panneau\Resources;
 
 use Panneau\Resources\Resource;
 use Panneau\Lists\ResourceList;
-use Panneau\Actions\ShowAction;
-use Panneau\Actions\EditAction;
-use Panneau\Actions\DeleteAction;
 use Panneau\Fields\Email;
 use Panneau\Fields\Text;
 
@@ -50,9 +47,9 @@ class Users extends Resource
     {
         return $list->columns(['name', 'email']);
     }
-    public function actions(): array
+    public function itemActions(): array
     {
-        return [ShowAction::class, EditAction::class, DeleteAction::class];
+        return ['show', 'edit', 'delete'];
     }
     public function fields(): array
     {

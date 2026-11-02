@@ -45,7 +45,7 @@ class Logs extends Resource
     {
         return $list->columns(['message']);
     }
-    public function actions(): array
+    public function itemActions(): array
     {
         return [];
     }

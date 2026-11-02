@@ -195,10 +195,8 @@ class DefinitionBuilderTest extends TestCase
     {
         $actions = array_column($this->resource('posts')['actions'], null, 'id');
 
-        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'duplicate', 'preview', 'copy-link'], array_keys($actions));
-        // The built-in links: the app resolves them to its routes and labels them
-        $this->assertSame(['id' => 'show', 'kind' => 'link', 'scope' => ['item']], $actions['show']);
-        $this->assertSame(['id' => 'edit', 'kind' => 'link', 'scope' => ['item']], $actions['edit']);
+        // The built-in item actions aren't declared
+        $this->assertSame(['publish-posts', 'archive-posts', 'preview', 'copy-link'], array_keys($actions));
 
         $this->assertSame([
             'id' => 'publish-posts',
@@ -237,11 +235,13 @@ class DefinitionBuilderTest extends TestCase
         $this->assertArrayNotHasKey('actions', $this->resource('tags'));
     }
 
-    public function test_what_opens_an_item(): void
+    public function test_what_opens_an_item_and_its_built_in_actions(): void
     {
         $this->assertSame('edit', $this->resource('authors')['open']);
-        // The default, `panel`, is left out
+        $this->assertSame(['edit', 'delete'], $this->resource('authors')['itemActions']);
+        // The defaults, `panel` and the four built-in actions, are left out
         $this->assertArrayNotHasKey('open', $this->resource('tags'));
+        $this->assertArrayNotHasKey('itemActions', $this->resource('tags'));
     }
 
     public function test_without_policies_everything_is_denied(): void

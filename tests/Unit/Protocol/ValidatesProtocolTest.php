@@ -83,7 +83,7 @@ class ValidatesProtocolTest extends TestCase
      */
     public static function invalidActions(): iterable
     {
-        yield 'an action without a label' => [['id' => 'delete', 'kind' => 'server', 'scope' => ['item']]];
+        yield 'an action without a label' => [['id' => 'publish', 'kind' => 'server', 'scope' => ['item']]];
         yield 'a server action with the id edit' => [['id' => 'edit', 'kind' => 'server', 'scope' => ['item']]];
         yield 'an action with the id show and no kind' => [['id' => 'show', 'label' => 'Show', 'scope' => ['item']]];
         yield 'a link without a target' => [['id' => 'preview', 'label' => 'Preview', 'kind' => 'link', 'scope' => ['item']]];

@@ -72,9 +72,6 @@ namespace App\Panneau\Resources;
 use Panneau\Resources\Resource;
 use App\Panneau\Resources\Pages\Page;
 use Panneau\Lists\ResourceList;
-use Panneau\Actions\ShowAction;
-use Panneau\Actions\EditAction;
-use Panneau\Actions\DeleteAction;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Text;
 use App\Http\Resources\PageResource;
@@ -114,7 +111,7 @@ class Pages extends Resource
         return trans('panneau.pages.name');
     }
 
-    // TODO(panneau-5): the rest of the 1.x index, then delete it: the column parent, the duplicate action, the search: $list->search([...]) with the fields to search, the filter site_id (select)
+    // TODO(panneau-5): the rest of the 1.x index, then delete it: the column parent, the search: $list->search([...]) with the fields to search, the filter site_id (select)
     public function index(): ?array
     {
         return [
@@ -134,10 +131,6 @@ class Pages extends Resource
     public function list(ResourceList $list): ResourceList
     {
         return $list->columns(['title', 'published'])->sorts(['title']);
-    }
-    public function actions(): array
-    {
-        return [ShowAction::class, EditAction::class, DeleteAction::class];
     }
 
     public function fields(): array

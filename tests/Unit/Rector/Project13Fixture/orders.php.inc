@@ -58,8 +58,6 @@ namespace App\Panneau\Resources;
 use Panneau\Resources\Resource;
 use App\Http\Resources\InvoiceResource;
 use Panneau\Lists\ResourceList;
-use Panneau\Actions\ShowAction;
-use Panneau\Actions\EditAction;
 use App\Panneau\Fields\Customer;
 use App\Panneau\Fields\Fields;
 use Panneau\Fields\Email;
@@ -84,9 +82,9 @@ class Invoices extends Resource
     {
         return $list->columns(['number', 'email']);
     }
-    public function actions(): array
+    public function itemActions(): array
     {
-        return [ShowAction::class, EditAction::class];
+        return ['show', 'edit'];
     }
     public function fields(): array
     {

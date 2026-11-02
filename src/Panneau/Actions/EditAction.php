@@ -3,8 +3,8 @@
 namespace Panneau\Actions;
 
 /**
- * The built-in `edit` link: opens the item's form. Resources have it by default (see
- * `Resource::actions()`). Hidden on items that can't be updated (`abilities.update`).
+ * Replaces the built-in `edit` link, which opens the item's form:
+ * `EditAction::make()->url('/editor/{id}')`. Shown on the items that can be updated.
  */
 class EditAction extends BuiltInLink
 {

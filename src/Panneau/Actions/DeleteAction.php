@@ -5,8 +5,9 @@ namespace Panneau\Actions;
 use Illuminate\Support\Collection;
 
 /**
- * The built-in `delete` action, on items and selections. Authorized by the policy's
- * `delete` method. Runs the resource's `deleting` hook before each deletion. Answers dry runs.
+ * The built-in `delete` action, on items and selections, which every resource has without
+ * declaring it: declare it, or a subclass, to change its label or confirmation. Authorized by
+ * the policy's `delete` method. Runs the resource's `deleting` hook before each deletion. Answers dry runs.
  */
 class DeleteAction extends Action
 {

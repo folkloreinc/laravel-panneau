@@ -5,13 +5,13 @@ namespace Panneau\Actions;
 use Panneau\Contracts\ActionDeclaration;
 
 /**
- * A built-in link of the protocol, `edit` or `show`, on items ([panneau-js decision 0040]).
- * Without a `url()` or a `route()`, the app resolves it to its own routes. Without a `label()`
- * or an `icon()`, the app labels it in the user's locale and gives it its icon. Without a
- * `placement()`, it is in the rows of the list.
+ * Replaces a built-in link of the protocol, `edit` or `show`, on items ([panneau-js decision
+ * 0040]). Every resource has them without declaring them: declare one only to change it, with a
+ * `url()` or a `route()` instead of the app's route, a `label()`, an `icon()` or a
+ * `placement()`; what isn't set stays the app's.
  *
- * It doesn't run: the app hides it on items whose abilities deny it (`update` for `edit`,
- * `view` for `show`).
+ * It doesn't run: the app shows it on the items whose abilities allow it (`update` for `edit`,
+ * `view` for `show`), when `Resource::itemActions()` lists it.
  *
  * [panneau-js decision 0040]: https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0040-row-links-and-open-mode.md
  *

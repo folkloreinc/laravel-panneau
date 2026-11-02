@@ -6,6 +6,7 @@ use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 use LogicException;
 use Panneau\Actions\BuiltInLink;
+use Panneau\Actions\DeleteAction;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
@@ -239,6 +240,10 @@ final class ResourceRegistry
         }, $resource->actions());
     }
 
+    /**
+     * An action of a resource: one it declares, or the built-in `delete`, which every resource
+     * has (the app shows it by the `delete` ability of each item).
+     */
     public function action(Resource $resource, string $id): ?ActionDeclaration
     {
         foreach ($this->actions($resource) as $action) {
@@ -247,7 +252,7 @@ final class ResourceRegistry
             }
         }
 
-        return null;
+        return $id === 'delete' ? $this->container->make(DeleteAction::class) : null;
     }
 
     private function makeRepository(Resource $resource): ResourceRepository

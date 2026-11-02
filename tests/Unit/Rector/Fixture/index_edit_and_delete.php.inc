@@ -33,8 +33,6 @@ class Orders extends Resource
 namespace App\Panneau\Resources;
 
 use Panneau\Resources\Resource;
-use Panneau\Actions\EditAction;
-use Panneau\Actions\DeleteAction;
 use Panneau\Fields\Text;
 
 class Orders extends Resource
@@ -45,9 +43,9 @@ class Orders extends Resource
     }
 
     // TODO(panneau-5): the 1.x list had no show button: if the panel of an item adds nothing to its form, open it in its form with open(): 'edit'
-    public function actions(): array
+    public function itemActions(): array
     {
-        return [EditAction::class, DeleteAction::class];
+        return ['edit', 'delete'];
     }
 
     public function fields(): array

@@ -96,7 +96,7 @@ final class PagesResource extends Resource
 
     public function actions(): array
     {
-        return [...parent::actions(), PublishPages::class, DeleteAction::class]; // EditAction, then these
+        return [PublishPages::class]; // show, edit, duplicate and delete are built in
     }
 
     public function scope(Request $request): array
@@ -371,13 +371,13 @@ final class PublishPages extends Action
 
 - **Declaration.** `label()`, `icon()`, `scope()`, `placement()`, `destructive()`, `confirm()`, `fields()` and `layout()` are serialized into the definition. The action id is derived from the class name (`publish-pages`), or set with `id()`.
 - **Kinds.** Server actions extend `Action`. `LinkAction::make('preview')->url(...)` and `ClientAction::make('copy-link')->component('copy-link')` cover the two other kinds, with no PHP logic.
-- **Built-in links** ([panneau-js decision 0040](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0040-row-links-and-open-mode.md)). `EditAction` and `ShowAction` are `link` actions with the reserved ids `edit` and `show`, on items, declared with their id only: `{ "id": "edit", "kind": "link", "scope": ["item"] }`.
-  - The app resolves them to its own routes (`edit` the item's form, `show` its panel), labels them in the user's locale, gives them their icons, and shows them in the rows. `label()`, `icon()`, `placement()`, `url()` and `route()` (`EditAction::make()->route('...')`) are sent only when the project sets them.
-  - The app hides `edit` on items whose `abilities.update` is false, and `show` on those whose `abilities.view` is false. Every item has both: those of the policy, `view` and `update`.
-  - They don't run: `POST /resources/{resource}/actions/edit` is a `404`.
-  - **Defaults.** `Resource::actions()` returns `[EditAction::class]`, so that the rows of a resource that lists no action open the item's form. A resource that overrides `actions()` gets exactly what it lists: `[...parent::actions(), DeleteAction::class]` keeps the link, `[DeleteAction::class]` leaves it out. The app adds no action by itself.
-  - The ids `show` and `edit` are reserved: a server or client action that has one throws when the actions are resolved. A `LinkAction::make('edit')->url(...)` with its own target replaces the built-in one.
-- **What opens an item.** `Resource::open()` returns `'panel'` (the default, left out of the definition): the title of an item opens its panel, next to the list. With `'edit'` (sent as `"open": "edit"`), it opens its form, the show route redirects there, and the app leaves out `ShowAction`. Use it when the panel adds nothing to the form (orders, users).
+- **Built-in item actions** ([panneau-js decision 0040](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0040-row-links-and-open-mode.md)). `show`, `edit`, `duplicate` and `delete` exist on every resource without being declared. The app shows each one on the items whose ability allows it: `view`, `update`, `duplicate`, `delete`; a missing or `false` ability hides it. It labels them and gives them their icons.
+  - **Abilities.** Every item has the four: `view`, `update` and `delete` from the policy; `duplicate` from the policy's `duplicate()`, or else `create` on the resource, and `false` when the repository isn't `Duplicable` (`ResourceRegistry::duplicable()`) or for a media library, whose copies would share the media's file.
+  - **`itemActions()`** says which ones the app shows, in which order: `['edit', 'delete']`, `[]` for none. Null, the default, shows the four, and is left out of the definition. It only changes what the app shows: the policy decides what the API allows.
+  - **`delete`** is the action `delete`, which answers for every resource (`POST /resources/{resource}/actions/delete`, with selections and dry runs), authorized by the policy's `delete`. It isn't in the definition: declare a `DeleteAction` (or a subclass) to change its label or confirmation, and the declared one replaces it.
+  - **`duplicate`** is `POST /resources/{resource}/{id}/duplicate`: the repository's `duplicate()` copies the item within the resource's scope (`replicate()` with Eloquent), between the resource's `duplicating()` and `duplicated()` hooks, and the answer is `201` with the copy and its `ETag`. It is a `403` when the item's `duplicate` ability is false, and a `404` outside the scope.
+  - **`show` and `edit`** are links the app resolves to its routes. `EditAction` and `ShowAction` replace them: `EditAction::make()->url('/editor/{id}')`, `->route(...)`, `->label(...)`, `->placement(...)`, sent as `{ "id": "edit", "kind": "link", "scope": ["item"], … }`. They don't run: `POST /resources/{resource}/actions/edit` is a `404`. The ids `show` and `edit` are reserved for links: a server or client action that has one throws when the actions are resolved.
+- **What opens an item.** `Resource::open()` returns `'panel'` (the default, left out of the definition): the title of an item opens its panel, next to the list. With `'edit'` (sent as `"open": "edit"`), it opens its form, the show route redirects there, and the app leaves out `show`. An item that can't be updated still opens in its panel. Use it when the panel adds nothing to the form (orders, users).
 - **Selection:**
   - The controller resolves the selection through the resource's repository and `scope()`: it applies the ids, or the list filters and search of a query selection, then the exclusions.
   - A selection never reaches items outside the resource's scope.
@@ -401,9 +401,7 @@ final class PublishPages extends Action
   - Items are processed in chunks (`chunkSize()`), through a job batch. This needs a repository with the `ChunkedQuery` capability.
   - Progress and results are stored in a `panneau_action_runs` table, and `ActionRunFinished` is dispatched at the end.
   - An action that can't be queued refuses selections above the limit with a `422`.
-- **Built-in actions:** `DeleteAction` exists, with the built-in links `EditAction` and `ShowAction` (above); the others are **not built yet**.
-  - `DuplicateAction`: for repositories that are `Duplicable` (`replicate()` with Eloquent), plus the resource's `duplicating` hook.
-  - `DeleteAction`, which answers dry runs.
+- **Built-in actions:** the item actions above (`delete`, which answers dry runs, and `duplicate`, for repositories that are `Duplicable`); the others are **not built yet**.
   - `RestoreAction`: for repositories that are `Restorable`.
   - `ExportAction`: CSV, or XLSX with an optional dependency; queued.
   - `ImportAction`: file field and column mapping; validates each row with the resource's rules; queued.
@@ -442,7 +440,7 @@ final class PublishPages extends Action
   - The routes can be mounted under a prefix with its own parameter, such as `tenants/{tenant}`: the controllers read their parameters by name.
   - `panneau.auth` requires a user on the guard of `panneau.auth.guard`, and the `viewPanneau` gate. Without that gate, nobody gets in.
   - Every other path under `{panneau.path}` serves the page of the app (route `panneau.app`), since the app routes on the client. The route is registered last: the project's own routes under that path go before `Panneau::routes()`. The project's routes registered before outside that path (with the prefix of the group that calls `Panneau::routes()`, such as `tenants/{tenant}`) are moved after Panneau's, so that a page route of the site, such as `/{page}`, doesn't catch `/panneau` when the site's routes are loaded first (a `RouteServiceProvider` listed before the provider that loads `routes/panneau.php`). Routes loaded after Panneau's never shadow them. `Panneau::routes(app: false)` registers only the API.
-  - **Parts of the API.** A project with its own admin front can mount only what it uses, under its own group: `Panneau::uploadRoutes()` (nothing when uploads are not enabled) and `Panneau::resourceRoutes($resources, only: [...])`, where `$resources` are ids (null for all) and `only` picks among `index`, `store`, `show`, `update`, `destroy`, `actions` and `check` (the field check endpoint). The routes keep their `panneau.api.*` names, after the group's name, and render their errors as problems. They don't get `panneau.middleware`: the group authenticates. Add `RenderProblems` first to the group's middleware so that its errors are problems too.
+  - **Parts of the API.** A project with its own admin front can mount only what it uses, under its own group: `Panneau::uploadRoutes()` (nothing when uploads are not enabled) and `Panneau::resourceRoutes($resources, only: [...])`, where `$resources` are ids (null for all) and `only` picks among `index`, `store`, `show`, `update`, `destroy`, `duplicate`, `actions` and `check` (the field check endpoint). The routes keep their `panneau.api.*` names, after the group's name, and render their errors as problems. They don't get `panneau.middleware`: the group authenticates. Add `RenderProblems` first to the group's middleware so that its errors are problems too.
 
     ```php
     Route::prefix('workspaces/{workspace}')

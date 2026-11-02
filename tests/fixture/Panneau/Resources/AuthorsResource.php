@@ -18,6 +18,11 @@ class AuthorsResource extends Resource
         return 'edit';
     }
 
+    public function itemActions(): array
+    {
+        return ['edit', 'delete'];
+    }
+
     public function fields(): array
     {
         return [Text::make('name')->required()];

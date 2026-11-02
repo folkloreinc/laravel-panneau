@@ -6,7 +6,8 @@ use LogicException;
 
 /**
  * An action that navigates: to a URL template (`/pages/{id}/preview`), or to a named route of
- * the definition. For the app's own `edit` and `show` routes, use `EditAction` and `ShowAction`.
+ * the definition. The built-in `edit` and `show` need no declaration: `EditAction` and
+ * `ShowAction` replace them.
  */
 final class LinkAction extends FluentAction
 {
@@ -38,7 +39,7 @@ final class LinkAction extends FluentAction
     {
         if ($this->url === null && $this->route === null) {
             throw new LogicException(in_array($this->id, BuiltInLink::IDS, true)
-                ? sprintf('The link action "%s" needs a url() or a route(): use %s for the app\'s own route.', $this->id, $this->id === 'edit' ? EditAction::class : ShowAction::class)
+                ? sprintf('The link action "%s" needs a url() or a route(): the built-in one needs no declaration, and %s replaces it.', $this->id, $this->id === 'edit' ? EditAction::class : ShowAction::class)
                 : sprintf('The link action "%s" needs a url() or a route().', $this->id));
         }
 

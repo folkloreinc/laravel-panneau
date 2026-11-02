@@ -224,6 +224,13 @@
                         }
                     ]
                 },
+                "itemActions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
                 "fields": {
                     "type": "array",
                     "items": {
@@ -1094,6 +1101,28 @@
                             "id": {
                                 "enum": [
                                     "show",
+                                    "edit",
+                                    "duplicate",
+                                    "delete"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ]
+                    },
+                    "else": {
+                        "required": [
+                            "label"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "id": {
+                                "enum": [
+                                    "show",
                                     "edit"
                                 ]
                             }
@@ -1110,11 +1139,6 @@
                         },
                         "required": [
                             "kind"
-                        ]
-                    },
-                    "else": {
-                        "required": [
-                            "label"
                         ]
                     }
                 },

@@ -46,7 +46,6 @@ namespace App\Panneau\Resources;
 use Panneau\Resources\Resource;
 use Panneau\Lists\ResourceList;
 use Panneau\Actions\EditAction;
-use Panneau\Actions\ShowAction;
 use Panneau\Actions\LinkAction;
 use Panneau\Fields\Text;
 
@@ -56,12 +55,14 @@ class Users extends Resource
     {
         return \App\Repositories\Users::class;
     }
-
     public function list(ResourceList $list): ResourceList
     {
         return $list->columns(['name', 'email'])->sorts(['name']);
     }
-
+    public function itemActions(): array
+    {
+        return ['edit', 'show'];
+    }
     public function fields(): array
     {
         return [
@@ -75,7 +76,6 @@ class Users extends Resource
         return [
             LinkAction::make('profile')->url('/users/{id}'),
             EditAction::class,
-            ShowAction::class,
         ];
     }
 }

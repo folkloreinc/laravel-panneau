@@ -2,6 +2,7 @@
 
 namespace Panneau\Http\Controllers;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Http\JsonResponse;
@@ -9,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\Repositories\CursorPaginated;
+use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\VersionConflictException;
 use Panneau\Forms\Form;
@@ -25,7 +27,7 @@ use Panneau\Uploads\Uploads;
 use Throwable;
 
 /**
- * The resource endpoints: list, show, create, update and delete.
+ * The resource endpoints: list, show, create, update, duplicate and delete.
  *
  * @internal
  */
@@ -173,6 +175,26 @@ final class ResourceController
         $resource->saved($item, $values, $request);
 
         return $this->itemResponse($request, $resource, $item, references: $references);
+    }
+
+    /**
+     * `POST /resources/{resource}/{id}/duplicate`: copies an item through its repository, for
+     * the built-in `duplicate` of the app. Authorized like the item's `duplicate` ability.
+     */
+    public function duplicate(Request $request): JsonResponse
+    {
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
+        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
+        $repository = $this->resources->repository($resource);
+        if (! $repository instanceof Duplicable || ! $this->authorizer->allowsDuplicate($request->user(), $resource, $item)) {
+            throw new AuthorizationException;
+        }
+
+        $resource->duplicating($item);
+        $copy = $repository->duplicate($item, $resource->repositoryScope($request));
+        $resource->duplicated($item, $copy);
+
+        return $this->itemResponse($request, $resource, $copy, 201);
     }
 
     public function destroy(Request $request): Response

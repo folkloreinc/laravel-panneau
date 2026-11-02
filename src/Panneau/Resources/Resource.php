@@ -135,14 +135,29 @@ abstract class Resource
     }
 
     /**
-     * The actions: `Action` classes, the built-in links (`EditAction`, `ShowAction`) to replace
-     * them, or declarations such as `LinkAction::make()`.
+     * The actions: `Action` classes, or declarations such as `LinkAction::make()`. The built-in
+     * item actions (`show`, `edit`, `duplicate`, `delete`) need no declaration: an action with
+     * their id replaces them, such as `EditAction::make()->url(...)` or a `DeleteAction` with its
+     * own confirmation.
      *
      * @return list<class-string<Action>|class-string<BuiltInLink>|ActionDeclaration>
      */
     public function actions(): array
     {
         return [];
+    }
+
+    /**
+     * The built-in item actions the app shows, in their order: `show`, `edit`, `duplicate` and
+     * `delete`, each on the items whose ability allows it (`view`, `update`, `duplicate`,
+     * `delete`). Null, the default, shows all four; `[]` none. It only changes what the app
+     * shows: the policy decides what the API allows.
+     *
+     * @return list<'show'|'edit'|'duplicate'|'delete'>|null
+     */
+    public function itemActions(): ?array
+    {
+        return null;
     }
 
     /**

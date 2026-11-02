@@ -6,7 +6,7 @@ use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
-use Panneau\Actions\DuplicateAction;
+use Panneau\Actions\DeleteAction;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 
@@ -72,8 +72,9 @@ final class Authorizer
         if ($allowed !== null) {
             return $allowed;
         }
-        if ($action instanceof DuplicateAction) {
-            return $this->allowsDuplicate($user, $resource, $item);
+        if ($action instanceof DeleteAction) {
+            // The ability the app shows the built-in delete by
+            return $this->allowsItem($user, $resource, 'delete', $item);
         }
         if (! $this->hasPolicy($resource, $item)) {
             return $this->allowWithoutPolicies;

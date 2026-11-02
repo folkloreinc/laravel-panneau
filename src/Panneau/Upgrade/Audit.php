@@ -23,6 +23,11 @@ use PhpParser\NodeFinder;
  */
 final class Audit
 {
+    /**
+     * The built-in item actions of 5.x, in the order the app shows them by default.
+     */
+    private const ITEM_ACTIONS = ['show', 'edit', 'duplicate', 'delete'];
+
     public const CONFIG = 'config/panneau.php';
 
     public const ROUTES = 'routes/panneau.php';
@@ -574,7 +579,7 @@ final class Audit
             }
             if ($base5 === null && ! $this->hasIndex($name)) {
                 // The default list of 1.x had these buttons in its rows; the Rector rules only see an index()
-                $finding->add('no index(): the buttons show, edit, delete', 'manual: actions(): ShowAction, EditAction, DeleteAction (5.x has EditAction by default)');
+                $finding->add('no index(): the buttons show, edit, delete', "manual: itemActions(): ['show', 'edit', 'delete'], or nothing for the four built-in actions of 5.x, duplicate included");
             }
             foreach ($class->methods() as $method) {
                 // A resource moved to 5.x: only what is left of 1.x
@@ -702,12 +707,12 @@ final class Audit
         foreach ($items as $key => $value) {
             match ($key) {
                 'columns' => $this->auditColumns($finding, $value),
-                'withoutActionsColumn' => $finding->add('withoutActionsColumn', 'actions(): [] when it is true'),
+                'withoutActionsColumn' => $finding->add('withoutActionsColumn', 'itemActions(): [] when it is true'),
                 'filters' => $this->auditFilters($finding, $value),
                 'actions' => $finding->add('actions: '.count(Php::items($value)).' buttons', 'actions(): LinkAction, or actions of the resource'),
                 'batchActions' => $finding->add('batchActions: '.count(Php::items($value)), 'actions() with ActionScope::Selection'),
                 'actionsProps' => $finding->add('actionsProps: '.$this->describe($value), str_contains($this->describe($value), 'Duplicate')
-                    ? 'DuplicateAction (not built yet)' : 'manual: actions()'),
+                    ? 'nothing: duplicate is a built-in item action (itemActions())' : 'manual: actions()'),
                 'withFadedId' => $finding->add('withFadedId', 'nothing'),
                 default => $finding->add("{$key}: {$this->describe($value)}", 'manual: list() or a JS plugin'),
             };
@@ -722,25 +727,31 @@ final class Audit
      */
     private function buttonsTarget(array $buttons): string
     {
-        $classes = ['show' => 'ShowAction', 'edit' => 'EditAction', 'delete' => 'DeleteAction'];
-        $actions = [];
-        $others = [];
+        $builtIn = [];
+        $manual = [];
         foreach ($buttons as $button) {
-            if (isset($classes[$button])) {
-                $actions[] = $classes[$button];
-            } elseif ($button === 'duplicate') {
-                $others[] = 'duplicate: DuplicateAction (not built yet)';
+            if (in_array($button, self::ITEM_ACTIONS, true)) {
+                $builtIn[] = $button;
             } elseif ($button !== 'create') {
                 // create has none: the list has its own button
-                $others[] = "{$button}: a LinkAction or an Action";
+                $manual[] = $button;
             }
         }
-        $target = $actions !== [] ? 'actions(): '.implode(', ', array_unique($actions)) : 'manual: actions()';
-        if (! in_array('show', $buttons, true)) {
+        $others = [];
+        $builtIn = array_values(array_unique($builtIn));
+        $target = $builtIn === self::ITEM_ACTIONS
+            ? 'nothing: the four built-in item actions, by the abilities of the policy'
+            : "itemActions(): ['".implode("', '", $builtIn)."'], by the abilities of the policy";
+        if ($builtIn === []) {
+            $target = 'itemActions(): []';
+        }
+        if ($builtIn !== [] && ! in_array('show', $builtIn, true)) {
             $others[] = "no show: open() can return 'edit'";
         }
 
-        return implode('; ', [$target, ...$others]);
+        $manual = $manual !== [] ? ['manual: '.implode(', ', $manual).', a LinkAction or an Action'] : [];
+
+        return implode('; ', [...$manual, $target, ...$others]);
     }
 
     private function auditColumns(Finding $finding, Expr $columns): void

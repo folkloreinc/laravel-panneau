@@ -136,8 +136,27 @@ class ResourcesTest extends TestCase
         $ids = fn (string $resource): array => array_map(fn (ActionDeclaration $action): string => $action->id(), $registry->actions($registry->find($resource)));
 
         $this->assertSame([], $ids('tags'));
-        $this->assertSame(['show', 'edit', 'publish-posts', 'archive-posts', 'delete', 'duplicate', 'preview', 'copy-link'], $ids('posts'));
-        $this->assertInstanceOf(EditAction::class, $registry->action($registry->find('posts'), 'edit'));
+        $this->assertSame(['publish-posts', 'archive-posts', 'preview', 'copy-link'], $ids('posts'));
+    }
+
+    public function test_every_resource_has_the_built_in_delete(): void
+    {
+        $registry = $this->registry();
+
+        $this->assertInstanceOf(DeleteAction::class, $registry->action($registry->find('tags'), 'delete'));
+        $this->assertNull($registry->action($registry->find('tags'), 'edit'));
+        // A declared one replaces it
+        $this->app->forgetInstance(ResourceRegistry::class);
+        $registry = $this->app->make(ResourceRegistry::class);
+        $delete = new class extends DeleteAction
+        {
+            public function label(): string
+            {
+                return 'Remove';
+            }
+        };
+        $registry->register([new BlogPostsWithActions([$delete, EditAction::make()->url('/blog/{id}')])]);
+        $this->assertSame($delete, $registry->action($registry->all()[0], 'delete'));
     }
 
     public function test_the_ids_of_the_built_in_links_are_reserved_for_links(): void
