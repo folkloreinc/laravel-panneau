@@ -570,6 +570,8 @@ class UpgradeCommandTest extends TestCase
             'two_factor' => false,
             'two_factor_required' => false,
             'passkeys' => false,
+            'providers' => [],
+            'provider_users' => null,
             'update_profile_using' => UpdateUserProfileInformation::class,
             'update_password_using' => UpdateUserPassword::class,
             'password_timeout' => null,

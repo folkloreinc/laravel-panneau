@@ -32,6 +32,7 @@ use Panneau\Http\Controllers\FieldCheckController;
 use Panneau\Http\Controllers\PasskeyController;
 use Panneau\Http\Controllers\PasswordConfirmationController;
 use Panneau\Http\Controllers\PasswordResetController;
+use Panneau\Http\Controllers\ProviderController;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\TwoFactorController;
@@ -169,7 +170,7 @@ class Panneau implements PanneauContract
      * With two-factor authentication, its challenge is outside too, and the routes of the account's
      * two-factor authentication are without the context; its changes need a recent password.
      *
-     * @param  array{passwordReset?: bool, emailVerification?: bool, twoFactor?: bool, passkeys?: bool}  $auth
+     * @param  array{passwordReset?: bool, emailVerification?: bool, twoFactor?: bool, passkeys?: bool, providers?: list<array{id: string, label: string, url: string}>}  $auth
      */
     private function registerAuthRoutes(Router $router, array $auth): void
     {
@@ -184,6 +185,14 @@ class Panneau implements PanneauContract
         $router->patch('account', [AccountController::class, 'update'])->withoutMiddleware(ResolveContext::class)->name('account.update');
         $router->put('account/password', [AccountController::class, 'password'])
             ->withoutMiddleware(ResolveContext::class)->middleware($throttle)->name('account.password');
+        $providers = array_column($auth['providers'] ?? [], 'id');
+        if ($providers !== []) {
+            // Another provider than those of the config is a 404 problem of the controller
+            $router->get('auth/providers/{provider}/redirect', [ProviderController::class, 'redirect'])
+                ->withoutMiddleware($outside)->name('auth.providers.redirect');
+            $router->get('auth/providers/{provider}/callback', [ProviderController::class, 'callback'])
+                ->withoutMiddleware($outside)->name('auth.providers.callback');
+        }
         if (($auth['passkeys'] ?? false) === true) {
             $router->post('auth/passkeys/options', [PasskeyController::class, 'loginOptions'])
                 ->withoutMiddleware($outside)->middleware($throttle)->name('auth.passkeys.options');

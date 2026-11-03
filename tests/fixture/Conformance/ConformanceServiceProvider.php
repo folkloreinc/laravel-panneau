@@ -51,6 +51,9 @@ class ConformanceServiceProvider extends ServiceProvider
         $config->set('panneau.auth.passkeys', true);
         $config->set('passkeys.relying_party_id', 'localhost');
         $config->set('passkeys.allowed_origins', ['http://localhost']);
+        // An OAuth provider: the kit checks that its login starts with a redirection
+        $config->set('panneau.auth.providers', ['google' => ['label' => 'Google']]);
+        $config->set('services.google', ['client_id' => 'conformance', 'client_secret' => 'conformance', 'redirect' => null]);
         $config->set('panneau.auth.passwords', 'conformance');
         // A token, not a session: no "web" middleware, so no CSRF token to send
         $config->set('panneau.middleware', ['panneau.auth']);
