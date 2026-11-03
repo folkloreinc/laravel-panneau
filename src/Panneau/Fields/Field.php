@@ -162,7 +162,7 @@ abstract class Field
      * Shown only to the users who have an ability: a Gate ability (`'contests.budget.view'`), or a
      * closure that receives the user. For the others, the definition gives the field
      * `"abilities": { "view": false }`, items leave out its value, and saving ignores it
-     * (panneau-js decision 0042). For the fields at the top of a resource.
+     * (panneau-js decision 0046). For the fields at the top of a resource.
      *
      * @param  string|(Closure(?Authenticatable): bool)  $ability
      */

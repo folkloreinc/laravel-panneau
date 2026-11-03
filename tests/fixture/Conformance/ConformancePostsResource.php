@@ -7,7 +7,7 @@ use TestApp\Panneau\Resources\PostsResource;
 
 /**
  * The posts of the fixture, with a field the user can't see, for the conformance kit's check of
- * field abilities (panneau-js decision 0042).
+ * field abilities (panneau-js decision 0046).
  */
 class ConformancePostsResource extends PostsResource
 {
