@@ -9,6 +9,10 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User;
 use LogicException;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Fields\Country;
+use Panneau\Fields\Json;
+use Panneau\Fields\Region;
+use Panneau\Fields\Text;
 use Panneau\Resources\Duplication;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
@@ -193,6 +197,18 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame([['field' => 'name']], $this->resource('authors')['list']['columns']);
         $this->assertSame([['field' => 'name'], ['field' => 'slug']], $this->resource('tags')['list']['columns']);
         $this->assertFalse($this->resource('authors')['list']['search']);
+
+        $addresses = new class extends TagsResource
+        {
+            public function fields(): array
+            {
+                return [Text::make('name'), Json::make('metadata'), Country::make('country'), Region::make('region')->from('country')];
+            }
+        };
+        $this->assertSame(
+            [['field' => 'name'], ['field' => 'country'], ['field' => 'region']],
+            $this->app->make(DefinitionBuilder::class)->resource($addresses)['list']['columns'],
+        );
     }
 
     public function test_actions(): void

@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 use Panneau\Contracts\EmbedResolver;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
+use Panneau\Fields\Country;
 use Panneau\Fields\Date;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Email;
@@ -18,6 +19,7 @@ use Panneau\Fields\Location;
 use Panneau\Fields\Media;
 use Panneau\Fields\Number;
 use Panneau\Fields\Range;
+use Panneau\Fields\Region;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\Select;
@@ -442,7 +444,7 @@ class FormTest extends TestCase
     public function test_tel_range_and_duration(): void
     {
         $fields = [
-            Tel::make('phone')->pattern('^[0-9 +-]+$'),
+            Tel::make('phone')->pattern('^\\+1'),
             Range::make('rating'),
             Range::make('score')->min(-5)->max(5),
             Duration::make('length'),
@@ -454,9 +456,57 @@ class FormTest extends TestCase
         );
         $this->assertSame(['rating', 'length'], array_keys($this->errors($fields, ['rating' => -1, 'length' => -60])));
         $this->assertSame(
-            ['phone' => '+1 514 555-0123', 'rating' => 0, 'score' => -5, 'length' => 3930],
-            $this->validate($fields, ['phone' => '+1 514 555-0123', 'rating' => 0, 'score' => -5, 'length' => 3930]),
+            ['phone' => '+15145550123', 'rating' => 0, 'score' => -5, 'length' => 3930],
+            $this->validate($fields, ['phone' => '+15145550123', 'rating' => 0, 'score' => -5, 'length' => 3930]),
         );
+        // The pattern applies with the tel rule
+        $this->assertArrayHasKey('phone', $this->errors($fields, ['phone' => '+33612345678']));
+    }
+
+    public function test_tel_values_are_e164(): void
+    {
+        $fields = [Tel::make('phone')];
+
+        foreach (['+1 514 555-0123', '5145550123', '+0145550123', '+123456', '+1234567890123456', '514'] as $phone) {
+            $this->assertArrayHasKey('phone', $this->errors($fields, ['phone' => $phone]), $phone);
+        }
+        $this->assertSame(['phone' => '+15145550123'], $this->validate($fields, ['phone' => '+15145550123']));
+        $this->assertSame(['phone' => '+1234567'], $this->validate($fields, ['phone' => '+1234567']));
+        $this->assertSame(['phone' => '+123456789012345'], $this->validate($fields, ['phone' => '+123456789012345']));
+        $this->assertSame(['phone' => null], $this->validate($fields, ['phone' => null]));
+        // Per locale too
+        $this->assertSame(
+            ['phone.en'],
+            array_keys($this->errors([Tel::make('phone')->localized()], ['phone' => ['fr' => '+33612345678', 'en' => '555-0123']])),
+        );
+    }
+
+    public function test_countries_are_iso_codes(): void
+    {
+        $fields = [
+            Country::make('country'),
+            Country::make('shipping')->countries(['CA', 'US']),
+        ];
+
+        foreach (['ca', 'CAN', 'QC', 'XX', 12] as $code) {
+            $this->assertSame(['country'], array_keys($this->errors($fields, ['country' => $code])), (string) $code);
+        }
+        $this->assertSame(['shipping'], array_keys($this->errors($fields, ['shipping' => 'FR'])));
+        $this->assertSame(['country' => 'FR', 'shipping' => 'US'], $this->validate($fields, ['country' => 'FR', 'shipping' => 'US']));
+        $this->assertSame(['country' => 'XK'], $this->validate($fields, ['country' => 'XK']));
+        $this->assertSame(['country' => null, 'shipping' => null], $this->validate($fields, ['country' => null, 'shipping' => null]));
+    }
+
+    public function test_regions_are_strings(): void
+    {
+        $fields = [Country::make('country'), Region::make('region')->from('country')];
+
+        $this->assertSame(['region'], array_keys($this->errors($fields, ['region' => ['QC']])));
+        $this->assertArrayHasKey('region', $this->errors($fields, ['region' => 12]));
+        // A code of the country, or the text as typed for a country without known regions
+        $this->assertSame(['country' => 'CA', 'region' => 'QC'], $this->validate($fields, ['country' => 'CA', 'region' => 'QC']));
+        $this->assertSame(['country' => 'BE', 'region' => 'Wallonie'], $this->validate($fields, ['country' => 'BE', 'region' => 'Wallonie']));
+        $this->assertSame(['region' => null], $this->validate($fields, ['region' => null]));
     }
 
     public function test_json_values_are_objects_or_arrays(): void

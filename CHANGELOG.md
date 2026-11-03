@@ -6,6 +6,14 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Breaking changes
+
+- `Tel` values are phone numbers in E.164 (`+15145550199`): the type implies the protocol's new `tel` rule, and the server refuses any other value. Convert the numbers kept as typed, or their forms refuse them until they are retyped (folkloreinc/panneau-js decision 0042).
+
+### Added
+
+- `Country` and `Region` fields, the `country` and `region` types: a country is an ISO 3166-1 alpha-2 code (`Country::CODES`, with `XK`), limited with `countries()` and ordered with `preferred()`; a region is a string, whose country comes from the field that `from()` names or from `country()`. `Tel::country()` sets the country of a new number. Lists show `country` and `region` fields without columns (folkloreinc/panneau-js decision 0042).
+
 ## [5.0.0-alpha.8] - 2026-11-02
 
 Goes with `@panneau/*` `5.0.0-alpha.10`, which it needs: earlier admins ignore the rules limited to a mode and would require a `Password` on every update.

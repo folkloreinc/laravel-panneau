@@ -186,6 +186,7 @@ interface ResourceRepository
   - `Select`, `Email`, `Url`, `Color`;
   - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
   - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types));
+  - `Country`, `Region` (see [Countries, regions and phone numbers](#countries-regions-and-phone-numbers));
   - `Password`, a `text` field with `settings.secret` (see [Passwords](#passwords)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
@@ -254,7 +255,7 @@ Location::make('place')->zoom(14)->center(45.5017, -73.5673),
 ```
 
 - **Values:**
-  - `tel` is a string; `range` a number between its ends (0 and 100 by default); `duration` a whole number of seconds, 0 or more;
+  - `tel` is a phone number in E.164 (see [below](#countries-regions-and-phone-numbers)); `range` a number between its ends (0 and 100 by default); `duration` a whole number of seconds, 0 or more;
   - `json` an object or an array, never a string: an empty object is given back as an empty array;
   - `tags` a list of strings, at most 255 characters each, only the options' values with `allowCustom(false)`. `min()` and `max()` count the tags. Saving trims them and drops empty and repeated ones;
   - `location` is `{ "lat", "lng", "address" }`, with the latitude from -90 to 90, the longitude from -180 to 180, and an optional address;
@@ -263,6 +264,25 @@ Location::make('place')->zoom(14)->center(45.5017, -73.5673),
 - **Saving an embed** keeps only the URL of the request and resolves it again, so the `html` sites render comes from the provider. An unchanged URL keeps the item's value; a URL that can't be resolved is saved as `{ "url" }`.
 - **Lists.** Without columns, a list shows the `tel`, `range`, `duration` and `tags` fields with the other simple types.
 - **Model.** `json`, `tags`, `embed` and `location` need a JSON column with the `array` cast.
+
+### Countries, regions and phone numbers
+
+The types of [panneau-js decision 0042](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0042-countries-regions-and-phone-numbers.md), for addresses and contacts.
+
+```php
+Country::make('country')->preferred(['CA', 'US']),     // countries(['CA', 'US']) to allow only those
+Region::make('province')->from('country')->country('CA'),
+Tel::make('phone')->country('CA'),                      // the country of a new number
+```
+
+- **Values:**
+  - `country` is an ISO 3166-1 alpha-2 code in capitals (`CA`), or `XK` for Kosovo (`Country::CODES`). The server refuses other codes, and those outside `countries()` when the field has them;
+  - `region` is a string: the code of the region without its country (`QC` for `CA-QC`) for the countries the admin knows the regions of, the text as typed for the others. The server only checks that it is a string;
+  - `tel` is an international number in E.164, `+15145550199`. The type implies the protocol's `tel` rule, as `json` implies `json`: the server refuses any other value, such as a number without its country code or the text of a number not typed in full. `pattern()` still applies on top of it.
+- **The country of a region** is the value of the field of the same object that `from()` names, or `country()` when it has no `from()` or that field is empty.
+- **Codes.** `countries()`, `preferred()` and `country()` take codes in capitals, and throw an `InvalidArgumentException` for any other.
+- **Lists.** Without columns, a list shows `country` and `region` fields with the other simple types.
+- **Phone numbers kept as typed** before (`514 555-0199`) are refused until they are converted to E.164, or retyped.
 
 ### File
 
