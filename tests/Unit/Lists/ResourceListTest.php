@@ -67,6 +67,16 @@ class ResourceListTest extends TestCase
         $this->assertArrayNotHasKey('pagination', $definition);
     }
 
+    public function test_calendar(): void
+    {
+        $this->assertArrayNotHasKey('calendar', $this->list()->toDefinition(searchable: true));
+        $this->assertSame(['field' => 'published_at'], $this->list()->calendar('published_at')->toDefinition(searchable: true)['calendar']);
+        $this->assertSame(
+            ['field' => 'published_at', 'filter' => 'published', 'perPage' => 200],
+            $this->list()->calendar('published_at', filter: 'published', perPage: 200)->toDefinition(searchable: true)['calendar'],
+        );
+    }
+
     public function test_cursor_pagination(): void
     {
         $list = $this->list()->cursorPagination();
