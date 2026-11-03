@@ -469,6 +469,43 @@ final class PublishPages extends Action
 - The package sends the theme as configured. Token names and values, tone and variant names, and fonts follow the restrictions of the protocol's schema (no `{`, `}`, `;` or `<` in values, for example): a theme that breaks them makes the definition invalid.
 - The tests check a definition with a theme against `definition.schema.json`.
 
+## Pages and menus
+
+The app shell of `@panneau/app` reads the definition's `pages` and `menus` (#33). A page is a component that a JS plugin registers (or a built-in page), at `{basePath}/pages/{id}`; the page `home` is the home page of the app. A menu is a list of entries; `main` is the sidebar.
+
+```php
+use Illuminate\Contracts\Auth\Authenticatable;
+use Panneau\Navigation\MenuItem;
+use Panneau\Navigation\Page;
+
+// In a service provider
+Panneau::pages([
+    Page::make('reports', 'reports')        // id, and the component a JS plugin registers
+        ->label(__('Reports'))
+        ->props(['period' => 'month']),
+    Page::make('post-stats', 'post-stats')->params(['id']), // {basePath}/pages/post-stats/{id}
+]);
+
+Panneau::menu('main', fn (?Authenticatable $user): array => [
+    MenuItem::resources(),                                     // every resource, in their order
+    MenuItem::resource(PostsResource::class)->label(__('Posts'))->icon('file-text'), // a class or an id
+    MenuItem::page('reports'),
+    MenuItem::link(__('Site'), url('/'))->external(),
+    MenuItem::separator(),
+    MenuItem::group(__('Content'), [MenuItem::resource('tags')])->icon('folder'),
+    ...($user?->is_admin ? [MenuItem::resource(UsersResource::class)] : []), // by role
+]);
+```
+
+- **Where they are declared.** In `config/panneau.php`, as `pages` (a map of id to page) and `menus` (a map of name to entries), in the protocol's shape, or in a service provider with `Panneau::pages()` and `Panneau::menu()`, which take the builders or the same arrays. `Panneau::pages()` adds pages; `Panneau::menu()` sets a whole menu. **The service provider wins:** a page declared there replaces the page of the config with the same id, and a menu the menu of the same name; a later call wins over an earlier one.
+- **Closures.** `Panneau::pages()` and `Panneau::menu()` also take a closure that returns the pages or the entries. It is called each time the definition is built, through the container (`$app->call()`), with the user (or null) as `$user`: labels are translated in the request's locale, and a menu can depend on the user, such as their role. Arrays are evaluated once, when they are declared: `__()` in an array of a service provider gives the boot locale, and the config can't translate.
+- **Pages.** `Page::make($id, $component)`, with `label()`, `path()` (a custom path), `props()` (the props of the component) and `params()` (the names of the path segments after the page, which the component gets as `params`).
+- **Entries.** `MenuItem::resources()`, `resource()`, `page()`, `link()`, `separator()` and `group()`, with `label()`, `icon()` (a Lucide name) and `external()`. A resource or a page without a label gets its own in the app. `MenuItem::make($type, [...])` makes an entry of a type a plugin provides, which is sent as it is.
+- **Checked when the definition is built.** Resource classes become resource ids. An entry that names a resource that isn't registered, a page that isn't declared, or a page with `params` (a page about one thing, which the app leaves out of menus), and a link without a URL, throw a `LogicException`: the app would leave them out without a word.
+- **Left out when there are none**, so that definitions stay as they were. Without `menus.main`, the app lists every resource, then the pages without params. A menu declared empty is sent empty. Null values and empty `props` and `params` are left out, so that an empty map isn't sent as a JSON list.
+- **Not filtered.** The app hides the resources the user can't list (`abilities.viewAny`). Pages and other entries are not filtered by abilities: a closure that gets the user builds a menu for their role.
+- The tests check a definition with pages and menus against `definition.schema.json`, and the conformance app has a page and a `main` menu.
+
 ## HTTP layer
 
 - **Routes are opt-in.** Nothing is registered until the project calls `Panneau::routes()`, usually in `routes/panneau.php`. Every route gets the middleware from `config('panneau.middleware')`, `['web', 'panneau.auth']` by default. See [decisions/0002](decisions/0002-secure-by-default.md).

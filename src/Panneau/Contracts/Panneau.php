@@ -5,6 +5,8 @@ namespace Panneau\Contracts;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Container\Container;
+use Panneau\Navigation\MenuItem;
+use Panneau\Navigation\Page;
 use Panneau\Resources\Resource;
 
 interface Panneau
@@ -20,6 +22,27 @@ interface Panneau
      * A registered resource, by id.
      */
     public function resource(string $id): ?Resource;
+
+    /**
+     * Declares pages of the app shell: `Panneau\Navigation\Page` builders, or pages in the
+     * protocol's shape keyed by id, or a closure that returns them, called each time the
+     * definition is built (in the request's locale), through the container, with the user as
+     * `$user`. They are added to those of `panneau.pages` and of earlier calls, and replace a
+     * page of the same id. The page `home` is the home page of the app.
+     *
+     * @param  array<array-key, Page|array<string, mixed>>|Closure  $pages
+     */
+    public function pages(array|Closure $pages): static;
+
+    /**
+     * Declares a menu of the app shell, such as `main`, the sidebar: `Panneau\Navigation\MenuItem`
+     * builders, or items in the protocol's shape, or a closure that returns them, called like
+     * those of `pages()`. It replaces the menu of the same name, of `panneau.menus` or of an
+     * earlier call.
+     *
+     * @param  list<MenuItem|array<string, mixed>>|Closure  $items
+     */
+    public function menu(string $name, array|Closure $items): static;
 
     /**
      * Registers an adapter that turns every repository implementing a contract into a

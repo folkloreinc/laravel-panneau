@@ -26,6 +26,7 @@ use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\RenderProblems;
+use Panneau\Navigation\Navigation;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
@@ -50,6 +51,20 @@ class Panneau implements PanneauContract
     public function resource(string $id): ?Resource
     {
         return $this->container->make(ResourceRegistry::class)->find($id);
+    }
+
+    public function pages(array|Closure $pages): static
+    {
+        $this->container->make(Navigation::class)->addPages($pages);
+
+        return $this;
+    }
+
+    public function menu(string $name, array|Closure $items): static
+    {
+        $this->container->make(Navigation::class)->setMenu($name, $items);
+
+        return $this;
     }
 
     public function repositoryAdapter(string $contract, string|Closure $adapter): static

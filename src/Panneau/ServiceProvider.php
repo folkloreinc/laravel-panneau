@@ -16,6 +16,7 @@ use Panneau\Embeds\OEmbedResolver;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Middleware\Authenticate;
+use Panneau\Navigation\Navigation;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\ResourceRegistry;
@@ -39,6 +40,7 @@ class ServiceProvider extends BaseServiceProvider
 
             return $registry;
         });
+        $this->app->singleton(Navigation::class);
         $this->app->singleton(ItemSerializer::class);
         $this->app->singleton(Authorizer::class);
         $this->app->singletonIf(UploadStorage::class, S3UploadStorage::class);

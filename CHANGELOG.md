@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Pages and menus of the app shell in the definition, as `pages` and `menus`: declared in `config/panneau.php` (`pages`, `menus`, in the protocol's shape) or in a service provider with `Panneau::pages([...])` and `Panneau::menu('main', [...])`, which take the builders `Panneau\Navigation\Page` and `Panneau\Navigation\MenuItem` (`resources()`, `resource()`, `page()`, `link()`, `separator()`, `group()`, and `make()` for the types of plugins) or arrays, or a closure called through the container with the user as `$user` each time the definition is built, for labels in the request's locale and menus that depend on the user. The service provider wins over the config, for a page of the same id or a menu of the same name. Resource classes in menus become ids, and an entry that names a resource that isn't registered, a page that isn't declared or a page with `params` throws a `LogicException` when the definition is built. Without pages or menus, the definition is unchanged (#33).
+
 ## [5.0.0-alpha.8] - 2026-11-02
 
 Goes with `@panneau/*` `5.0.0-alpha.10`, which it needs: earlier admins ignore the rules limited to a mode and would require a `Password` on every update.
