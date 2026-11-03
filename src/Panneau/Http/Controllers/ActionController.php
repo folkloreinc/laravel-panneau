@@ -54,7 +54,7 @@ final class ActionController
         }
         $user = $request->user();
         if (! $this->authorizer->allowsResource($user, $resource, 'viewAny')
-            || ! $this->authorizer->allowsActionOnResource($user, $action)) {
+            || ! $this->authorizer->allowsActionOnResource($user, $action, $resource)) {
             throw new AuthorizationException;
         }
 

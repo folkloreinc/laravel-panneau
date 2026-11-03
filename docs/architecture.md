@@ -175,6 +175,8 @@ interface ResourceRepository
   - `toItem()` or `jsonResource()` serializes an item; Panneau adds `id`, `version` and `abilities`.
   - With `EloquentRepository` and no `toItem()`, items are serialized from their declared fields only.
 - **Policies.** Policies receive the item. For Entities, they are registered on the Entity contract (`Gate::policy(PageContract::class, PagePolicy::class)`); Laravel resolves policies through interfaces. `itemClass()` is the class used for resource-level abilities (`viewAny`, `create`).
+  - **`deleteAny($user)`**, when the policy has it, says whether the user can delete items of the resource at all. When it refuses, the definition declares the built-in `delete` with `"abilities": { "run": false }`, so the app offers no "Delete" and no checkboxes for it, and `POST /resources/{resource}/actions/delete` answers `403` ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)).
+  - **`runAction($user, ?object $item, string $action)`**, when the policy has it, answers every action of its resource: on an item (the item's ability), and on the resource (`null`, the action's `abilities.run`). Without it, an action is checked by the policy method named after it (`publishPages`), or `update`.
 - **Hooks.** `creating`, `created`, `updating`, `updated`, `deleting`, `deleted` and `saved` receive the values and the item. They replace most of the custom controllers of v1.
 - **Types.** Variants of a resource with their own fields, such as page types, are declared with `types()`.
 
@@ -191,7 +193,9 @@ interface ResourceRepository
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
   - `localized()`, `readOnly()`, `visibleWhen()`;
+  - `canSee()` and `canUpdate()`, below;
   - `createOnly()`, `updateOnly()`.
+- **Abilities of a field** ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)). `canSee($ability)` shows a field only to the users who have an ability, and `canUpdate($ability)` lets only them edit it: a Gate ability (`'contests.budget.view'`), or a closure that receives the user. For the others, the definition gives the field `"abilities": { "view": false }` or `{ "update": false }`, items leave out the value of a field they can't see, and saving ignores the values of the fields they can't see or edit, as it ignores read-only ones. For the fields at the top of a resource.
 - **Secrets.** `Text::secret()` writes `"settings": { "secret": true }`: clients type the value in a password input that a button reveals, keep the browser from filling it in, and show it as dots in lists and details. The backend still decides whether it sends the value back. A secret the project keeps encrypted (an access key) is usually write-only, `->secret()->writeOnly()`: items have `null` for it, and an update that leaves it out, or sends it empty, keeps the stored value, since the form starts without it. Only for fields at the top of a resource; a resource with its own `toItem()` leaves the value out there.
 - **Options** of `Select`, `Tags` and `SelectFilter` are a backed enum class, a list of options (`['value' => …, 'label' => …, 'description' => …, 'disabled' => …, 'tone' => …]`), or labels keyed by value. `tone` colors the option where it shows as a badge, in lists and details: `neutral` (the default), `accent`, `success`, `warning`, `danger`, `info`, or a tone of the theme (`panneau.theme.tones`). An enum case gives its label with a `label()` method, and its tone with a `tone()` method (null for the default).
 - **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`, `crop()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
@@ -505,14 +509,111 @@ final class PublishPages extends Action
 - The package sends the theme as configured. Token names and values, tone and variant names, and fonts follow the restrictions of the protocol's schema (no `{`, `}`, `;` or `<` in values, for example): a theme that breaks them makes the definition invalid.
 - The tests check a definition with a theme against `definition.schema.json`.
 
+## Pages and menus
+
+The app shell of `@panneau/app` reads the definition's `pages` and `menus` (#33). A page is a component that a JS plugin registers (or a built-in page), at `{basePath}/pages/{id}`; the page `home` is the home page of the app. A menu is a list of entries; `main` is the sidebar.
+
+```php
+use Illuminate\Contracts\Auth\Authenticatable;
+use Panneau\Navigation\MenuItem;
+use Panneau\Navigation\Page;
+
+// In a service provider
+Panneau::pages([
+    Page::make('reports', 'reports')        // id, and the component a JS plugin registers
+        ->label(__('Reports'))
+        ->props(['period' => 'month']),
+    Page::make('post-stats', 'post-stats')->params(['id']), // {basePath}/pages/post-stats/{id}
+]);
+
+Panneau::menu('main', fn (?Authenticatable $user): array => [
+    MenuItem::resources(),                                     // every resource, in their order
+    MenuItem::resource(PostsResource::class)->label(__('Posts'))->icon('file-text'), // a class or an id
+    MenuItem::page('reports'),
+    MenuItem::link(__('Site'), url('/'))->external(),
+    MenuItem::separator(),
+    MenuItem::group(__('Content'), [MenuItem::resource('tags')])->icon('folder'),
+    ...($user?->is_admin ? [MenuItem::resource(UsersResource::class)] : []), // by role
+]);
+```
+
+- **Where they are declared.** In `config/panneau.php`, as `pages` (a map of id to page) and `menus` (a map of name to entries), in the protocol's shape, or in a service provider with `Panneau::pages()` and `Panneau::menu()`, which take the builders or the same arrays. `Panneau::pages()` adds pages; `Panneau::menu()` sets a whole menu. **The service provider wins:** a page declared there replaces the page of the config with the same id, and a menu the menu of the same name; a later call wins over an earlier one.
+- **Closures.** `Panneau::pages()` and `Panneau::menu()` also take a closure that returns the pages or the entries. It is called each time the definition is built, through the container (`$app->call()`), with the user (or null) as `$user`: labels are translated in the request's locale, and a menu can depend on the user, such as their role, or on the current context, with a parameter of type `Panneau\Context\Context` (see [Current context](#current-context)). Arrays are evaluated once, when they are declared: `__()` in an array of a service provider gives the boot locale, and the config can't translate.
+- **Pages.** `Page::make($id, $component)`, with `label()`, `path()` (a custom path), `props()` (the props of the component) and `params()` (the names of the path segments after the page, which the component gets as `params`). `can($ability)` shows the page only to the users who have a Gate ability (`'stats.view'`), or a closure that gets the user: for the others, the page has `"abilities": { "view": false }`, and the app leaves it out of menus and shows a forbidden page on its route ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)). It only hides the page: the endpoints its component calls check the user themselves.
+- **Entries.** `MenuItem::resources()`, `resource()`, `page()`, `link()`, `separator()` and `group()`, with `label()`, `icon()` (a Lucide name) and `external()`. A resource or a page without a label gets its own in the app. `MenuItem::make($type, [...])` makes an entry of a type a plugin provides, which is sent as it is.
+- **Checked when the definition is built.** Resource classes become resource ids. An entry that names a resource that isn't registered, a page that isn't declared, or a page with `params` (a page about one thing, which the app leaves out of menus), and a link without a URL, throw a `LogicException`: the app would leave them out without a word.
+- **Left out when there are none**, so that definitions stay as they were. Without `menus.main`, the app lists every resource, then the pages without params. A menu declared empty is sent empty. Null values and empty `props` and `params` are left out, so that an empty map isn't sent as a JSON list.
+- **Not filtered.** The app hides the resources the user can't list (`abilities.viewAny`). Pages and other entries are not filtered by abilities: a closure that gets the user builds a menu for their role.
+- The tests check a definition with pages and menus against `definition.schema.json`, and the conformance app has a page and a `main` menu.
+
+## Current context
+
+The current context is what the admin works on, such as a client, then a contest ([panneau-js decision 0045](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0045-current-context.md), #147, [decisions/0015](decisions/0015-current-context.md)). The request can fix a value, such as the client of its domain, and the user picks the others in the app. The app sends the values it has with every request, in a `Panneau-Context` header (`contest=12`), and keeps them in its URL (`/panneau/contest/12/resources/entries`). The API checks each value for the user, resources apply them in their scope, and the definition is built for them.
+
+```php
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Request;
+use Panneau\Context\Context;
+use Panneau\Context\ContextParam;
+
+// In a service provider
+Panneau::context(fn (?Authenticatable $user): array => [
+    ContextParam::make('client')
+        ->label(__('Client'))
+        ->allLabel(__('All clients'))        // where the user picks it: the label of no value
+        ->resource(ClientsResource::class)   // its items, within its scope, that the user can view
+        // On a client's domain, the client of the domain: the user can't change it
+        ->fixed(fn (Request $request): ?string => Client::idForDomain($request->getHost())),
+    ContextParam::make('contest')
+        ->label(__('Contest'))
+        ->required()
+        ->resource(ContestsResource::class)  // whose scope reads the client
+        ->default(fn (?Authenticatable $user): ?string => $user?->last_contest_id), // without a value
+    ContextParam::make('season')
+        ->options(['2026' => __('Season 2026'), '2025' => __('Season 2025')]), // inline choices
+]);
+
+final class EntriesResource extends Resource
+{
+    public function scope(Request $request): array
+    {
+        return array_filter([
+            'client_id' => $this->context()->get('client'),         // null: all clients
+            'contest_id' => $this->context()->getOrFail('contest'), // a 403 context problem without one
+        ], fn (mixed $value): bool => $value !== null);
+    }
+}
+
+Panneau::menu('main', fn (Context $context): array => [
+    MenuItem::resource(EntriesResource::class)->label(__('Entries of :contest', ['contest' => $context->label('contest')])),
+]);
+```
+
+- **Params.** `ContextParam::make($name)`: a name that is an identifier, and not a first segment of the client routes (`resources`, `pages`, `media`, `search`, `account`, `auth`). `label()` (defaults to the name), `required()` (the app shows a page to pick a value until it has one), `allLabel()` for an optional param. The params are in order, and each one depends on those before it. `Panneau::context()` takes the params or a closure called through the container with `$user`; a later call replaces the params.
+- **Choices**, one source per param:
+  - `options()`: inline choices, sent in the definition. Labels keyed by value, or a list of `['value' => …, 'label' => …, 'description' => …]` (or `ContextOption`), or a closure that returns them.
+  - `resource()`: the items of a registered resource, by class or id. A value is found with the repository's `find()`, within the resource's `scope()`, and the user must be allowed to `view` it. The choices are the first items of its `query()`, searched like its list (or by its title), filtered by `view`. The label is the item's title (`itemTitle()`), and `Context::item()` gives the item.
+  - `search()` and `find()`, for anything else: `search` gets `$q` and returns choices, `find` gets `$value` and returns its label (or a choice), or null when the user can't use it.
+- **Closures** (`options`, `search`, `find`, `default`, and `fixed`, which also gets `$request`) are called through the container with `$user` and the `Context` of the params before as `$context` (or any parameter of type `Context`). While a param's resource is queried, the current `Context` holds the values before it only: the resource's `scope()` reads what the param depends on.
+- **Checked on every request.** The `ResolveContext` middleware (alias `panneau.context`) is on every route of the API, after the authentication, and in the groups of `Panneau::resourceRoutes()` and `uploadRoutes()`. It reads the header, checks each value in order, and fills `Panneau\Context\Context`. A value the user can't use is a `403` problem of type `urn:panneau:problem:context`, with its `param`. Names that aren't params are ignored. Responses get `Vary: Panneau-Context`, problems too.
+- **Fixed by the request.** `fixed()` gives the value that the request fixes, such as the client of its domain, or null when it fixes none (the user then picks it, as any other param). It is checked like any other value: the user must be allowed it, or the request is the `403` context problem. The definition marks the param `fixed`, and the app shows it without a field and keeps it out of its path and of the header. Another value in the header is the `403` context problem of the param: a link from another admin, or a header, can't widen it.
+- **Defaults.** A param without a value gets its `default()`, a value or null, checked like any other: a default the user can't use is left out. For a required param, that is the user's only contest, or the last one.
+- **`Context`** is bound once per request: inject it, or call `$this->context()` in a resource. `get($name)` and `getOrFail($name)` (the `403` problem without a value, for a resource that needs one), `has()`, `all()`, `label()`, and `item()` for a param of a resource. It is empty without a context, and outside the routes of Panneau.
+- **The definition** has `context.params`: each param's `name`, `label`, `required`, `fixed`, `allLabel`, inline `options`, and `value` and `valueLabel`, what it was built for. Menus and pages declared as closures get the current context (`Context $context`), so they can depend on it.
+- **`GET /context/{param}/options?q=…`** (`panneau.api.context.options`) gives the first 20 choices that match `q`, for the values of the params before it. An unknown param is a `404`.
+- **The page of the app** reads the values in the prefix of its path, and inlines the definition built for them, with the defaults. A value the user can't use leaves the definition out of the boot config: the app fetches it, and handles the `403`. `Panneau::bootConfig($user, path: 'contest/12/resources/entries')` does the same for a project's own page.
+- **Without a context**, nothing changes: the middleware does nothing, the definition has no `context`, and responses don't vary.
+- **Not filtered by roles.** The choices are what the resources, policies and closures allow.
+
 ## HTTP layer
 
 - **Routes are opt-in.** Nothing is registered until the project calls `Panneau::routes()`, usually in `routes/panneau.php`. Every route gets the middleware from `config('panneau.middleware')`, `['web', 'panneau.auth']` by default. See [decisions/0002](decisions/0002-secure-by-default.md).
   - The API is under `{panneau.path}/api` (`/panneau/api` by default), with routes named `panneau.api.*`.
   - The routes can be mounted under a prefix with its own parameter, such as `tenants/{tenant}`: the controllers read their parameters by name.
   - `panneau.auth` requires a user on the guard of `panneau.auth.guard`, and the `viewPanneau` gate. Without that gate, nobody gets in.
+  - `panneau.context` (`ResolveContext`) checks the values of `Panneau-Context`, on every route of the API but login and logout (see [Current context](#current-context)).
   - Every other path under `{panneau.path}` serves the page of the app (route `panneau.app`), since the app routes on the client. The route is registered last: the project's own routes under that path go before `Panneau::routes()`. The project's routes registered before outside that path (with the prefix of the group that calls `Panneau::routes()`, such as `tenants/{tenant}`) are moved after Panneau's, so that a page route of the site, such as `/{page}`, doesn't catch `/panneau` when the site's routes are loaded first (a `RouteServiceProvider` listed before the provider that loads `routes/panneau.php`). Routes loaded after Panneau's never shadow them. `Panneau::routes(app: false)` registers only the API.
-  - **Parts of the API.** A project with its own admin front can mount only what it uses, under its own group: `Panneau::uploadRoutes()` (nothing when uploads are not enabled) and `Panneau::resourceRoutes($resources, only: [...])`, where `$resources` are ids (null for all) and `only` picks among `index`, `store`, `show`, `update`, `destroy`, `duplicate`, `actions` and `check` (the field check endpoint). The routes keep their `panneau.api.*` names, after the group's name, and render their errors as problems. They don't get `panneau.middleware`: the group authenticates. Add `RenderProblems` first to the group's middleware so that its errors are problems too.
+  - **Parts of the API.** A project with its own admin front can mount only what it uses, under its own group: `Panneau::uploadRoutes()` (nothing when uploads are not enabled) and `Panneau::resourceRoutes($resources, only: [...])`, where `$resources` are ids (null for all) and `only` picks among `index`, `store`, `show`, `update`, `destroy`, `duplicate`, `actions` and `check` (the field check endpoint). The routes keep their `panneau.api.*` names, after the group's name, and render their errors as problems. They don't get `panneau.middleware`: the group authenticates. They get `ResolveContext`, after the group's middleware. Add `RenderProblems` first to the group's middleware so that its errors are problems too.
 
     ```php
     Route::prefix('workspaces/{workspace}')
@@ -558,7 +659,12 @@ See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://g
   - `panneau.auth.logout_url` is where the browser goes to log out (`auth.logoutUrl`), the site's own logout. It has to accept a `GET` navigation: Laravel's default logout route is a `POST`, so the site needs a route that logs out and redirects. Without it, the app has no "Log out" button.
 - **The user of the definition.** `user` has the id of `getAuthIdentifier()`, and the `name` and `email` of the user: its attributes (an Eloquent model, `GenericUser`), or else its public methods `name()` and `email()`, for users that are entities (laravel-folklore's `Folklore\Entities\User`). Without a name, the email is the name.
 - **Isolation.** Panneau never changes the site's Fortify configuration, views or guards.
-- **Roles module (optional, not built yet).** Roles and permissions are defined in config, with a `panneau_roles` pivot, an assignment UI, invitations, and a policy base class that checks permissions such as `pages.update`.
+- **Roles module (optional).** See [decisions/0014](decisions/0014-roles-module.md). Off by default (`panneau.roles.enabled`): projects with their own policies or roles leave it off.
+  - **Roles are config.** `panneau.roles.roles` defines each role: a `label`, `permissions`, and `owned` for a role that reaches only the items its users own. A permission is `{resource}.{ability}` (`contests.viewAny`, `contests.update`, `contests.export` for an action), `{resource}.*`, `*`, or a name listed in `panneau.roles.permissions` (`stats.view`), for pages, fields and the project's own checks. `panneau.roles.grantable` lists the permissions that can be given to one user on top of their roles.
+  - **Users get roles and grants** from a `RoleStore`: `DatabaseRoleStore` by default, on `panneau_role_user` and `panneau_permission_user` (a morph type and an id, so any user model works; the migrations load when the module is on, and publish with the `panneau-roles-migrations` tag). The `Roles` and `Grants` fields (`Panneau\Roles\Fields`) assign them on the project's resource of users: they are kept by the store, not on the item, and only users with `roles.assign` can change them. `php artisan panneau:role {user} {roles*} --grant=…` sets them from the command line, for the first admin.
+  - **The Gate answers the permissions of Panneau.** A `Gate::before()` allows a permission the user has through a role or a grant, and answers nothing otherwise, nor for abilities that aren't Panneau's: `$user->can('contests.export')` works anywhere, and the project's own gates still apply. Without a `viewPanneau` gate of the project, users with a role can open the admin.
+  - **`ResourcePolicy`** is the base of the policy of a resource that uses roles: it names its resource (`protected string $resource = 'contests'`) and checks `viewAny`, `view`, `create`, `update`, `delete`, `deleteAny` and `runAction()` against the permissions. `panneau:install` generates such a policy when the module is on.
+  - **Ownership.** A user whose roles are all `owned` reaches only the items they own. A resource says which with `OwnedResource::ownerScope($user)`, a scope (`['client_id' => $user->client_id]`, or a list of accepted values), which joins `repositoryScope()`, so lists, items, updates, deletes, duplicates, actions, checks and the search stay within it: an item outside it is a `404`. `ResourcePolicy` checks it again on the item, and refuses an owned user on a resource that doesn't implement `OwnedResource` (one owned users see in full returns `[]`).
 
 ## Uploads
 

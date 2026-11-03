@@ -8,12 +8,14 @@ use Illuminate\Contracts\Foundation\Application;
 use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Auth\Authorizer;
+use Panneau\Context\ContextResolver;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Group;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Layout\Node;
+use Panneau\Navigation\Navigation;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use ReflectionMethod;
@@ -38,10 +40,13 @@ final class DefinitionBuilder
         private readonly Authorizer $authorizer,
         private readonly Config $config,
         private readonly Application $app,
+        private readonly Navigation $navigation,
+        private readonly ContextResolver $context,
     ) {}
 
     /**
-     * The definition for a user, in the current locale, with their abilities.
+     * The definition for a user, in the current locale, with their abilities, and for the values
+     * of the current context.
      *
      * @return array<string, mixed>
      */
@@ -54,13 +59,27 @@ final class DefinitionBuilder
             'locales' => $this->locales(),
             'api' => ['baseUrl' => $this->apiBaseUrl()],
             'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
-            'auth' => $this->auth(),
         ];
+        // Left out when there are none, so that definitions stay as they were
+        $pages = $this->navigation->pages($user);
+        if ($pages !== []) {
+            $definition['pages'] = $pages;
+        }
+        $menus = $this->menus($user, $pages);
+        if ($menus !== []) {
+            $definition['menus'] = $menus;
+        }
+        $definition['auth'] = $this->auth();
         // Without it, the app doesn't call GET /search, which doesn't exist
         $definition['search'] = ['enabled' => (bool) $this->config->get('panneau.search.enabled', true)];
         if ($this->config->get('panneau.uploads.enabled')) {
             // Direct uploads to the disk, as well as files sent through the API.
             $definition['uploads'] = ['mode' => 'presigned'];
+        }
+        // Left out without a context, so that definitions stay as they were
+        $context = $this->context->definition($user);
+        if ($context !== null) {
+            $definition['context'] = $context;
         }
         $theme = $this->theme();
         if ($theme !== null) {
@@ -69,6 +88,69 @@ final class DefinitionBuilder
         $definition['user'] = $user !== null ? $this->user($user) : null;
 
         return $definition;
+    }
+
+    /**
+     * The menus of the app shell for a user, by name: `panneau.menus`, then those of
+     * `Panneau::menu()`. Resource classes become ids, and references to resources and pages
+     * are checked: a typo would leave the entry out of the menu.
+     *
+     * @param  array<string, array<string, mixed>>  $pages
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function menus(?Authenticatable $user, array $pages): array
+    {
+        $menus = [];
+        foreach ($this->navigation->menus($user) as $name => $items) {
+            $menus[$name] = $this->menuItems($name, $items, $pages);
+        }
+
+        return $menus;
+    }
+
+    /**
+     * Items of a menu, checked, with resource ids. Items of the types of plugins are left as
+     * they are.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @param  array<string, array<string, mixed>>  $pages
+     * @return list<array<string, mixed>>
+     */
+    private function menuItems(string $menu, array $items, array $pages): array
+    {
+        return array_map(function (array $item) use ($menu, $pages): array {
+            switch ($item['type']) {
+                case 'resource':
+                    $reference = $item['resource'] ?? null;
+                    $resource = is_string($reference) ? $this->resources->resolve($reference) : null;
+                    if ($resource === null) {
+                        throw new LogicException(sprintf('The menu "%s" links to the resource %s, which is not registered.', $menu, json_encode($reference)));
+                    }
+                    $item['resource'] = $resource->id();
+                    break;
+                case 'page':
+                    $page = $item['page'] ?? null;
+                    if (! is_string($page) || ! isset($pages[$page])) {
+                        throw new LogicException(sprintf('The menu "%s" links to the page %s, which is not declared in panneau.pages or with Panneau::pages().', $menu, json_encode($page)));
+                    }
+                    if (($pages[$page]['params'] ?? []) !== []) {
+                        throw new LogicException(sprintf('The menu "%s" links to the page "%s", which has params: a page about one thing can\'t be in a menu.', $menu, $page));
+                    }
+                    break;
+                case 'link':
+                    if (! is_string($item['url'] ?? null)) {
+                        throw new LogicException(sprintf('The menu "%s" has a link without a URL: %s.', $menu, json_encode($item)));
+                    }
+                    break;
+                case 'group':
+                    if (isset($item['children']) && is_array($item['children'])) {
+                        $item['children'] = $this->menuItems($menu, $item['children'], $pages);
+                    }
+                    break;
+            }
+
+            return $item;
+        }, $items);
     }
 
     /**
@@ -188,7 +270,7 @@ final class DefinitionBuilder
             $definition['kind'] = $resource->kind();
         }
         $definition['label'] = ['singular' => $resource->singularLabel(), 'plural' => $resource->pluralLabel()];
-        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'itemTitle' => $resource->itemTitle()] as $key => $value) {
+        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'itemTitle' => $resource->itemTitle(), 'itemImage' => $resource->itemImage()] as $key => $value) {
             if ($value !== null) {
                 $definition[$key] = $value;
             }
@@ -205,7 +287,7 @@ final class DefinitionBuilder
         // A duplication that lists a relation the repository can't copy throws here, when the
         // admin loads, rather than on a click
         $this->resources->duplication($resource);
-        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field), $fields);
+        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $fields);
 
         $layout = $resource->layout();
         if (count($layout) > 0) {
@@ -223,12 +305,23 @@ final class DefinitionBuilder
         $definition['list'] = $list;
 
         $abilities = $this->authorizer->resourceAbilities($user, $resource);
-        $actions = $this->resources->actions($resource);
+        $actions = array_map(
+            fn (ActionDeclaration $action): array => $this->action($action, $user, $abilities['viewAny'], $resource),
+            $this->resources->actions($resource),
+        );
+        // A user who can't delete any item (the policy's `deleteAny()`): the built-in `delete`,
+        // declared or not, can't run, so lists have no "Delete" (panneau-js decision 0046).
+        if (in_array('delete', $itemActions ?? Resource::ITEM_ACTIONS, true)
+            && ! $this->authorizer->allowsDeleteAny($user, $resource)) {
+            $declared = array_search('delete', array_column($actions, 'id'), true);
+            if ($declared === false) {
+                $actions[] = ['id' => 'delete', 'kind' => 'server', 'scope' => ['item', 'selection'], 'abilities' => ['run' => false]];
+            } else {
+                $actions[$declared]['abilities'] = ['run' => false];
+            }
+        }
         if (count($actions) > 0) {
-            $definition['actions'] = array_map(
-                fn (ActionDeclaration $action): array => $this->action($action, $user, $abilities['viewAny']),
-                $actions,
-            );
+            $definition['actions'] = $actions;
         }
         $definition['abilities'] = $abilities;
 
@@ -277,11 +370,11 @@ final class DefinitionBuilder
     /**
      * @return array<string, mixed>
      */
-    public function action(ActionDeclaration $action, ?Authenticatable $user = null, bool $canViewResource = true): array
+    public function action(ActionDeclaration $action, ?Authenticatable $user = null, bool $canViewResource = true, ?Resource $resource = null): array
     {
         $definition = $action->toDefinition();
         if ($action instanceof Action) {
-            $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action)];
+            $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action, $resource)];
         }
         if (isset($definition['fields']) && is_array($definition['fields'])) {
             $definition['fields'] = array_map(fn (array $field): array => $this->nestedField($field), $definition['fields']);
@@ -293,9 +386,16 @@ final class DefinitionBuilder
     /**
      * @return array<string, mixed>
      */
-    private function field(Field $field): array
+    private function field(Field $field, ?Authenticatable $user): array
     {
-        return $this->resolveFieldReferences($field->toDefinition());
+        $definition = $this->resolveFieldReferences($field->toDefinition());
+        // What the user can't do with the field (panneau-js decision 0046)
+        $abilities = $this->authorizer->fieldAbilities($user, $field);
+        if ($abilities !== []) {
+            $definition['abilities'] = $abilities;
+        }
+
+        return $definition;
     }
 
     /**

@@ -56,6 +56,11 @@ final class ResourceList
     private bool $cursorPagination = false;
 
     /**
+     * @var array{field: string, filter: string|null, perPage: int|null}|null
+     */
+    private ?array $calendar = null;
+
+    /**
      * @param  list<string|Column>  $columns  Field names, or columns.
      */
     public function columns(array $columns): self
@@ -211,6 +216,19 @@ final class ResourceList
     }
 
     /**
+     * Shows the items on the days of a date field, in the `calendar` layout (panneau-js
+     * decision 0044). The calendar asks for a month through the list's `date-range` filter on
+     * that field: `$filter`, the field's name by default, which the list must declare. A month
+     * takes one request of `$perPage` items (100 by default, within `panneau.list.max_per_page`).
+     */
+    public function calendar(string $field, ?string $filter = null, ?int $perPage = null): self
+    {
+        $this->calendar = ['field' => $field, 'filter' => $filter, 'perPage' => $perPage !== null ? max(1, $perPage) : null];
+
+        return $this;
+    }
+
+    /**
      * What the query string can ask for.
      *
      * @param  bool  $searchable  Whether the repository supports search.
@@ -263,6 +281,9 @@ final class ResourceList
             'pagination' => $cursors ? 'cursor' : null,
             'inlineEdit' => count($this->inlineEdit) > 0 ? $this->inlineEdit : null,
             'selectable' => $this->selectable,
+            'calendar' => $this->calendar !== null
+                ? array_filter($this->calendar, fn (mixed $value): bool => $value !== null)
+                : null,
         ], fn (mixed $value): bool => $value !== null);
     }
 }

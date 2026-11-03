@@ -1,5 +1,7 @@
 <?php
 
+use Panneau\Roles\DatabaseRoleStore;
+
 return [
     // Name of the admin, in the definition. Defaults to the app's name.
     'name' => null,
@@ -10,6 +12,38 @@ return [
     // Resource classes, registered at boot. Resources can also be registered with
     // Panneau::resources([...]) in a service provider.
     'resources' => [],
+
+    // Pages of the app shell, by id, in the shape of the protocol's pages: a component that a JS
+    // plugin registers, at {path}/pages/{id} (or its own "path"). The page "home" is the home
+    // page of the app. Pages can also be declared with Panneau::pages([...]) in a service
+    // provider, with Panneau\Navigation\Page, or with a closure, for labels in the request's
+    // locale or pages that depend on the user. A page declared there replaces the one of the
+    // same id here.
+    //
+    //     'pages' => [
+    //         'reports' => ['component' => 'reports', 'label' => 'Reports', 'props' => ['period' => 'month']],
+    //         'post-stats' => ['component' => 'post-stats', 'params' => ['id']], // {path}/pages/post-stats/{id}
+    //     ],
+    'pages' => [],
+
+    // Menus of the app shell, by name, in the shape of the protocol's menu items. "main" is the
+    // sidebar: without it, the app lists every resource, then the pages without params. Types:
+    // "resources" (every resource), "resource" (a class or an id), "page" (an id of "pages",
+    // without params), "link" (a "url", "external" or not), "separator" and "group" (with
+    // "children"); other types are a plugin's. Menus can also be declared with
+    // Panneau::menu('main', [...]) in a service provider, with Panneau\Navigation\MenuItem, or
+    // with a closure, for labels in the request's locale or menus that depend on the user. A
+    // menu declared there replaces the one of the same name here.
+    //
+    //     'menus' => [
+    //         'main' => [
+    //             ['type' => 'resources'],
+    //             ['type' => 'separator'],
+    //             ['type' => 'page', 'page' => 'reports', 'icon' => 'chart-line'],
+    //             ['type' => 'link', 'label' => 'Site', 'url' => '/', 'external' => true],
+    //         ],
+    //     ],
+    'menus' => [],
 
     // Path of the admin. The API is under {path}/api. Routes are only registered when the
     // project calls Panneau::routes().
@@ -175,5 +209,26 @@ return [
     'files' => [
         // Seconds a temporary URL of a private file lives.
         'url_ttl' => 3600,
+    ],
+
+    // The roles module (decision 0014). Off by default: projects with their own policies or
+    // roles leave it off. On, users get roles and grants, the Gate answers the permissions of
+    // Panneau, and resources use Panneau\Roles\ResourcePolicy as the base of their policies.
+    'roles' => [
+        'enabled' => false,
+        // Where the roles and grants of users are kept (a Panneau\Roles\Contracts\RoleStore).
+        'store' => DatabaseRoleStore::class,
+        // The database connection of the default store. Null: the default connection.
+        'connection' => null,
+        // The roles, by id: a label, permissions (`contests.update`, `contests.*`, `*`), and
+        // `owned` for a role that reaches only the items its users own (OwnedResource).
+        'roles' => [
+            // 'admin' => ['label' => 'Admin', 'permissions' => ['*']],
+            // 'client' => ['label' => 'Client', 'permissions' => ['contests.viewAny', 'contests.view'], 'owned' => true],
+        ],
+        // Permissions given to one user on top of their roles, with the Grants field.
+        'grantable' => [],
+        // Other permissions the Gate answers, for pages, fields and the project's own checks.
+        'permissions' => [],
     ],
 ];

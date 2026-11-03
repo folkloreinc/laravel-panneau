@@ -70,6 +70,18 @@ class InstallCommandTest extends TestCase
         $this->assertPhpFilesAreValid();
     }
 
+    public function test_with_the_roles_module_the_policy_checks_the_permissions_of_roles(): void
+    {
+        $this->app['config']->set('panneau.roles.enabled', true);
+        $this->artisan('panneau:install', ['--guard' => 'web', '--login-url' => '/login', '--resource' => 'TestApp\\Models\\Post'])
+            ->assertSuccessful();
+
+        $policy = $this->read('app/Policies/PostPolicy.php');
+        $this->assertStringContainsString('class PostPolicy extends ResourcePolicy', $policy);
+        $this->assertStringContainsString("protected string \$resource = 'posts';", $policy);
+        $this->assertPhpFilesAreValid();
+    }
+
     public function test_it_creates_a_first_resource_and_its_policy(): void
     {
         $this->artisan('panneau:install', ['--guard' => 'web', '--login-url' => '/login', '--resource' => 'TestApp\\Models\\Post'])

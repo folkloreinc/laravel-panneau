@@ -183,6 +183,21 @@ final class Condition
     }
 
     /**
+     * The fields the condition reads: the first segment of each path, once each.
+     *
+     * @return list<string>
+     */
+    public function fields(): array
+    {
+        $fields = $this->field !== null ? [explode('.', $this->field)[0]] : [];
+        foreach ([...($this->all ?? []), ...($this->any ?? [])] as $condition) {
+            $fields = [...$fields, ...$condition->fields()];
+        }
+
+        return array_values(array_unique($fields));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

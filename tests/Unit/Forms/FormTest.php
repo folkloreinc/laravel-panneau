@@ -92,6 +92,27 @@ class FormTest extends TestCase
         $this->assertArrayHasKey('title', $this->errors($fields, ['title' => ''], $context));
     }
 
+    public function test_partial_updates_read_conditions_with_the_values_of_the_item(): void
+    {
+        $fields = [
+            Select::make('status')->options(['draft' => 'Draft', 'published' => 'Published']),
+            Text::make('url')->required()->visibleWhen(Condition::field('status')->equals('published')),
+        ];
+        $published = new ValidationContext(FormMode::Update, ['en'], partial: true, item: (object) ['status' => 'published']);
+        $draft = new ValidationContext(FormMode::Update, ['en'], partial: true, item: (object) ['status' => 'draft']);
+
+        // Sent alone, the field applies to a published item, with its rules
+        $this->assertSame(['url' => 'https://example.com'], $this->validate($fields, ['url' => 'https://example.com'], $published));
+        $this->assertArrayHasKey('url', $this->errors($fields, ['url' => ''], $published));
+        // Not to a draft, unless the values sent make it apply
+        $this->assertSame([], $this->validate($fields, ['url' => 'https://example.com'], $draft));
+        $this->assertSame(
+            ['status' => 'published', 'url' => 'https://example.com'],
+            $this->validate($fields, ['status' => 'published', 'url' => 'https://example.com'], $draft),
+        );
+        $this->assertSame(['status', 'url'], Condition::all([Condition::field('status'), Condition::any([Condition::field('url.en')])])->fields());
+    }
+
     public function test_optional_values_can_be_null(): void
     {
         $this->assertSame(['title' => null], $this->validate([Text::make('title')], ['title' => null]));

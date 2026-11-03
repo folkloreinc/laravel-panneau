@@ -2,15 +2,19 @@
 
 namespace Panneau\Resources;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
 use Panneau\Actions\BuiltInLink;
+use Panneau\Context\Context;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Text;
 use Panneau\Layout\Node;
 use Panneau\Lists\ResourceList;
+use Panneau\Roles\RoleManager;
 
 /**
  * A set of items managed in the admin: its fields, form layout, list and actions.
@@ -90,6 +94,15 @@ abstract class Resource
             }
         }
 
+        return null;
+    }
+
+    /**
+     * The field shown as the image of an item, in the gallery of its list, search results and
+     * pickers: a media or image field, or a URL (panneau-js decision 0044).
+     */
+    public function itemImage(): ?string
+    {
         return null;
     }
 
@@ -187,13 +200,23 @@ abstract class Resource
 
     /**
      * The scope given to the repository for every operation: list, find, create, update,
-     * delete and actions. This is where tenant or ownership isolation goes.
+     * delete and actions. This is where tenant or ownership isolation goes, and the current
+     * context: `$this->context()->get('contest')`.
      *
      * @return array<string, mixed>
      */
     public function scope(Request $request): array
     {
         return [];
+    }
+
+    /**
+     * The current context of the request: the values of the params of `Panneau::context()`,
+     * checked for the user. Empty without a context.
+     */
+    protected function context(): Context
+    {
+        return app(Context::class);
     }
 
     /**
@@ -210,8 +233,9 @@ abstract class Resource
     }
 
     /**
-     * The scope the repository receives: `scope()`, and the constraints of the kind of the
-     * resource, such as the media types of a library.
+     * The scope the repository receives: `scope()`, the constraints of the kind of the
+     * resource, such as the media types of a library, and with the roles module, the items the
+     * user owns (`OwnedResource`, decision 0014).
      *
      * @internal Override `scope()`.
      *
@@ -219,7 +243,26 @@ abstract class Resource
      */
     public function repositoryScope(Request $request): array
     {
-        return $this->scope($request);
+        return $this->ownedScope($request, $this->scope($request));
+    }
+
+    /**
+     * A scope with the owner scope of the roles module, when it is on.
+     *
+     * @internal
+     *
+     * @param  array<string, mixed>  $scope
+     * @return array<string, mixed>
+     */
+    protected function ownedScope(Request $request, array $scope): array
+    {
+        $container = Container::getInstance();
+        if (! $container->bound('config') || $container->make('config')->get('panneau.roles.enabled') !== true) {
+            return $scope;
+        }
+        $user = $request->user();
+
+        return $container->make(RoleManager::class)->scope($this, $user instanceof Authenticatable ? $user : null, $scope);
     }
 
     /**

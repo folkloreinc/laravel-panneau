@@ -170,13 +170,16 @@ final class InstallCommand extends Command
             return;
         }
 
-        $this->write($path, $this->stub('policy', [
+        // With the roles module, the policy checks the permissions of the user's roles
+        $roles = $this->laravel['config']->get('panneau.roles.enabled') === true;
+        $this->write($path, $this->stub($roles ? 'roles-policy' : 'policy', [
             'namespace' => $namespace,
             'class' => $basename.'Policy',
             'model' => $basename,
             'modelClass' => $modelClass,
             'variable' => Str::camel($basename),
             'plural' => Str::plural(Str::snake($basename, ' ')),
+            'resource' => Str::kebab(Str::plural($basename)),
         ]));
     }
 

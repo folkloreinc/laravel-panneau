@@ -22,14 +22,18 @@ final class ItemSerializer
      * @param  MediaReferences|null  $references  Finds the media of `media` values, within the
      *                                            scope of their library for the request. Defaults
      *                                            to the current request.
+     * @param  list<string>  $hidden  Fields the user can't see: their values are left out.
      * @return array<string, mixed>
      */
-    public function serialize(Resource $resource, object $item, ?array $fields = null, array $abilities = [], ?MediaReferences $references = null): array
+    public function serialize(Resource $resource, object $item, ?array $fields = null, array $abilities = [], ?MediaReferences $references = null, array $hidden = []): array
     {
         $repository = $this->resources->repository($resource);
         $values = $resource->toItem($item);
         if ($fields !== null) {
             $values = array_intersect_key($values, array_flip($fields));
+        }
+        if ($hidden !== []) {
+            $values = array_diff_key($values, array_flip($hidden));
         }
         foreach ($resource->allFields() as $field) {
             if ($field instanceof Relation && array_key_exists($field->name(), $values)) {
