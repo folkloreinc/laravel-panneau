@@ -374,6 +374,14 @@ abstract class Field
     }
 
     /**
+     * The condition that shows the field, if any.
+     */
+    public function getVisibleWhen(): ?Condition
+    {
+        return $this->visibleWhen;
+    }
+
+    /**
      * Reads the field's value from an item.
      */
     public function resolve(object $item): mixed
