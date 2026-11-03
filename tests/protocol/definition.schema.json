@@ -278,9 +278,6 @@
                 "readOnly": {
                     "type": "boolean"
                 },
-                "abilities": {
-                    "$ref": "#/$defs/Abilities"
-                },
                 "createOnly": {
                     "type": "boolean"
                 },
@@ -383,15 +380,6 @@
             ],
             "additionalProperties": {}
         },
-        "Abilities": {
-            "type": "object",
-            "propertyNames": {
-                "type": "string"
-            },
-            "additionalProperties": {
-                "type": "boolean"
-            }
-        },
         "Rule": {
             "anyOf": [
                 {
@@ -485,7 +473,8 @@
                             "enum": [
                                 "email",
                                 "url",
-                                "json"
+                                "json",
+                                "tel"
                             ]
                         },
                         "message": {
@@ -920,6 +909,9 @@
                 },
                 "selectable": {
                     "type": "boolean"
+                },
+                "calendar": {
+                    "$ref": "#/$defs/ListCalendar"
                 }
             },
             "additionalProperties": {}
@@ -957,6 +949,12 @@
                         "center",
                         "end"
                     ]
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "hideable": {
+                    "type": "boolean"
                 }
             },
             "additionalProperties": {}
@@ -992,6 +990,28 @@
             "required": [
                 "id",
                 "type"
+            ],
+            "additionalProperties": {}
+        },
+        "ListCalendar": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "filter": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "perPage": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                }
+            },
+            "required": [
+                "field"
             ],
             "additionalProperties": {}
         },
@@ -1216,6 +1236,15 @@
                 }
             ]
         },
+        "Abilities": {
+            "type": "object",
+            "propertyNames": {
+                "type": "string"
+            },
+            "additionalProperties": {
+                "type": "boolean"
+            }
+        },
         "ResourceFeatures": {
             "type": "object",
             "properties": {
@@ -1283,9 +1312,6 @@
                         "type": "string",
                         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
                     }
-                },
-                "abilities": {
-                    "$ref": "#/$defs/Abilities"
                 }
             },
             "required": [

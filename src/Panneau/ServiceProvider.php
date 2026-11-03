@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Auth\Authorizer;
+use Panneau\Console\ConvertPhonesCommand;
 use Panneau\Console\InstallCommand;
 use Panneau\Console\PruneUploadsCommand;
 use Panneau\Console\RoleCommand;
@@ -98,7 +99,7 @@ class ServiceProvider extends BaseServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class]);
+            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, ConvertPhonesCommand::class]);
         }
     }
 

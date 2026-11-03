@@ -7,6 +7,7 @@ use Closure;
 use InvalidArgumentException;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Color;
+use Panneau\Fields\Country;
 use Panneau\Fields\Date;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
@@ -16,6 +17,7 @@ use Panneau\Fields\Json;
 use Panneau\Fields\Location;
 use Panneau\Fields\Number;
 use Panneau\Fields\Range;
+use Panneau\Fields\Region;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\RichText;
@@ -40,13 +42,14 @@ class FieldTest extends TestCase
         $this->assertSame(
             [
                 'text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'slug', 'relation', 'group', 'repeater',
-                'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location',
+                'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location', 'country', 'region',
             ],
             array_map(fn ($field) => $field->type(), [
                 Text::make('a'), Textarea::make('a'), RichText::make('a'), Number::make('a'), Boolean::make('a'),
                 Date::make('a'), DateTime::make('a'), Time::make('a'), Select::make('a'), Color::make('a'),
                 Slug::make('a'), Relation::make('a'), Group::make('a'), Repeater::make('a'),
                 Tel::make('a'), Range::make('a'), Duration::make('a'), Json::make('a'), Tags::make('a'), Embed::make('a'), Location::make('a'),
+                Country::make('a'), Region::make('a'),
             ]),
         );
     }
@@ -169,6 +172,60 @@ class FieldTest extends TestCase
             ]],
             Location::make('place')->zoom(14)->center(45.5, -73.56)->tiles('https://tiles.example.com/{z}/{x}/{y}.png', '© Example')->toDefinition(),
         );
+    }
+
+    public function test_countries_regions_and_phone_numbers(): void
+    {
+        $this->assertSame(
+            ['name' => 'country', 'type' => 'country', 'settings' => ['countries' => ['CA', 'US', 'FR'], 'preferred' => ['CA', 'US']]],
+            Country::make('country')->countries(['CA', 'US', 'FR'])->preferred(['CA', 'US'])->toDefinition(),
+        );
+        $this->assertSame(['name' => 'country', 'type' => 'country'], Country::make('country')->toDefinition());
+        $this->assertSame(
+            ['name' => 'province', 'type' => 'region', 'from' => 'country', 'settings' => ['country' => 'CA']],
+            Region::make('province')->from('country')->country('CA')->toDefinition(),
+        );
+        $this->assertSame(['name' => 'province', 'type' => 'region'], Region::make('province')->toDefinition());
+        // The tel rule is implied by the type, as json is: it isn't in the definition
+        $this->assertSame(
+            ['name' => 'phone', 'type' => 'tel', 'settings' => ['country' => 'CA']],
+            Tel::make('phone')->country('CA')->toDefinition(),
+        );
+    }
+
+    public function test_the_country_codes(): void
+    {
+        $this->assertCount(250, Country::CODES);
+        $this->assertSame(Country::CODES, array_values(array_unique(Country::CODES)));
+        $sorted = Country::CODES;
+        sort($sorted);
+        $this->assertSame($sorted, Country::CODES);
+        $this->assertContains('XK', Country::CODES);
+        $this->assertSame(['CA', 'US'], Country::make('country')->countries(['CA', 'US'])->allowed());
+        $this->assertSame(Country::CODES, Country::make('country')->allowed());
+    }
+
+    /**
+     * @return array<string, array{Closure(): mixed}>
+     */
+    public static function invalidCountryCodes(): array
+    {
+        return [
+            'lowercase countries' => [fn () => Country::make('country')->countries(['ca'])],
+            'unknown preferred' => [fn () => Country::make('country')->preferred(['CA', 'XX'])],
+            'region with a region code' => [fn () => Region::make('region')->country('QC')],
+            'tel with an alpha-3 code' => [fn () => Tel::make('phone')->country('CAN')],
+        ];
+    }
+
+    /**
+     * @param  Closure(): mixed  $build
+     */
+    #[DataProvider('invalidCountryCodes')]
+    public function test_setters_refuse_codes_that_are_not_iso(Closure $build): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $build();
     }
 
     public function test_rich_text_settings(): void

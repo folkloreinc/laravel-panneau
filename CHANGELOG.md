@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Breaking changes
+
+- `Tel` values are phone numbers in E.164 (`+15145550199`): the type implies the protocol's new `tel` rule, and the server refuses any other value. Convert the numbers kept as typed, or their forms refuse them until they are retyped (folkloreinc/panneau-js decision 0047).
+
 ### Added
 
 - Pages and menus of the app shell in the definition, as `pages` and `menus`: declared in `config/panneau.php` (`pages`, `menus`, in the protocol's shape) or in a service provider with `Panneau::pages([...])` and `Panneau::menu('main', [...])`, which take the builders `Panneau\Navigation\Page` and `Panneau\Navigation\MenuItem` (`resources()`, `resource()`, `page()`, `link()`, `separator()`, `group()`, and `make()` for the types of plugins) or arrays, or a closure called through the container with the user as `$user` each time the definition is built, for labels in the request's locale and menus that depend on the user. The service provider wins over the config, for a page of the same id or a menu of the same name. Resource classes in menus become ids, and an entry that names a resource that isn't registered, a page that isn't declared or a page with `params` throws a `LogicException` when the definition is built. Without pages or menus, the definition is unchanged (#33).
@@ -18,6 +22,8 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - `Page::can()` takes a Gate ability or a closure: a page the user can't open has `"abilities": { "view": false }` in the definition, and the app hides it (panneau-js decision 0046, #149).
 - `Column::hidden()`, a column the list doesn't show until the user shows it, and `Column::hideable(false)`, one the user can't hide (panneau-js decision 0042, #150).
 - `ResourceList::calendar()`: the items on the days of a date field, in the `calendar` layout of the list, with the list's `date-range` filter on that field; and `Resource::itemImage()`, the field shown as the image of an item, in the `gallery` layout (panneau-js decision 0044, #150).
+- `php artisan panneau:convert-phones` turns the phone numbers that a project kept as typed into E.164, in the columns and JSON keys of `panneau.phones.columns`, without a library of numbering plans; `Panneau\Fields\PhoneNumber` converts and formats them, and `panneau.phones.country` is the country of the `Tel` fields without `country()` (folkloreinc/panneau-js decision 0047).
+- `Country` and `Region` fields, the `country` and `region` types: a country is an ISO 3166-1 alpha-2 code (`Country::CODES`, with `XK`), limited with `countries()` and ordered with `preferred()`; a region is a string, whose country comes from the field that `from()` names or from `country()`. `Tel::country()` sets the country of a new number. Lists show `country` and `region` fields without columns (folkloreinc/panneau-js decision 0047).
 
 ### Fixed
 

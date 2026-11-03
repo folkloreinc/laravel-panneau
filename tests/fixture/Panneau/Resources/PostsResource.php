@@ -8,6 +8,7 @@ use Panneau\Actions\ClientAction;
 use Panneau\Actions\LinkAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
+use Panneau\Fields\Country;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Embed;
@@ -17,6 +18,7 @@ use Panneau\Fields\Location;
 use Panneau\Fields\Media;
 use Panneau\Fields\Password;
 use Panneau\Fields\Range;
+use Panneau\Fields\Region;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\RichText;
@@ -69,13 +71,15 @@ class PostsResource extends Resource
                 Textarea::make('description'),
             ]),
             Group::make('details')->fields([
-                Tel::make('contact'),
+                Tel::make('contact')->country('CA'),
                 Range::make('rating')->max(10),
                 Duration::make('reading_time')->precision('minutes'),
                 Json::make('metadata'),
                 Tags::make('keywords')->options(['culture' => 'Culture', 'food' => 'Food'])->max(5),
                 Embed::make('video'),
                 Location::make('place')->zoom(14)->center(45.5017, -73.5673),
+                Country::make('country')->preferred(['CA', 'US']),
+                Region::make('region')->from('country')->country('CA'),
             ]),
             Repeater::make('blocks')->types([
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),
