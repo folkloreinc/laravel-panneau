@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Orchestra\Testbench\Attributes\WithMigration;
+use Panneau\Navigation\Page;
 use Panneau\Roles\RoleManager;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Concerns\ValidatesProtocol;
@@ -47,7 +48,7 @@ class RolesModuleTest extends TestCase
             'enabled' => true,
             'roles' => [
                 'admin' => ['label' => 'Admin', 'permissions' => ['*']],
-                'manager' => ['label' => 'Manager', 'permissions' => ['contests.*', 'prizes.*', 'authors.*', 'users.viewAny', 'users.view', 'users.update', 'stats.view']],
+                'manager' => ['label' => 'Manager', 'permissions' => ['contests.*', 'prizes.*', 'authors.*', 'users.viewAny', 'users.view', 'users.update', 'stats.view', 'billing.view']],
                 'client' => [
                     'label' => 'Client',
                     'permissions' => ['contests.viewAny', 'contests.view', 'contests.publish-posts', 'prizes.viewAny', 'prizes.view', 'authors.viewAny', 'stats.view'],
@@ -55,7 +56,7 @@ class RolesModuleTest extends TestCase
                 ],
             ],
             'grantable' => ['prizes.update', 'contests.budget.view'],
-            'permissions' => ['stats.view'],
+            'permissions' => ['stats.view', 'billing.view'],
         ]);
     }
 
@@ -68,6 +69,7 @@ class RolesModuleTest extends TestCase
         Gate::policy(Author::class, AuthorPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Panneau::resources([ContestsResource::class, PrizesResource::class, AuthorsResource::class, UsersResource::class]);
+        Panneau::pages([Page::make('stats', 'stats')->can('stats.view'), Page::make('billing', 'billing')->can('billing.view')]);
         Panneau::routes();
         $this->app['router']->getRoutes()->refreshNameLookups();
     }
@@ -132,6 +134,7 @@ class RolesModuleTest extends TestCase
     {
         $this->actingAs($this->user(1, ['manager']));
         $resources = $this->definition();
+        $this->assertArrayNotHasKey('abilities', $this->getJson(self::API.'/definition')->json('pages.billing'));
         $this->assertSame(['viewAny' => true, 'create' => true], $resources['contests']['abilities']);
         $this->assertNotContains('delete', array_column($resources['contests']['actions'], 'id'));
 
@@ -146,6 +149,10 @@ class RolesModuleTest extends TestCase
         $this->assertSame(['view' => false], collect($resources['contests']['fields'])->firstWhere('name', 'body')['abilities']);
         // The roles of users are only for those who can assign them
         $this->assertFalse($resources['users']['abilities']['viewAny']);
+        // Pages by the permissions of the role
+        $pages = $this->getJson(self::API.'/definition')->json('pages');
+        $this->assertArrayNotHasKey('abilities', $pages['stats']);
+        $this->assertSame(['view' => false], $pages['billing']['abilities']);
     }
 
     public function test_clients_reach_only_the_contests_of_their_team_on_every_route(): void

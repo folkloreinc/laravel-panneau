@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
 use Panneau\Actions\BuiltInLink;
+use Panneau\Context\Context;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Text;
@@ -190,13 +191,23 @@ abstract class Resource
 
     /**
      * The scope given to the repository for every operation: list, find, create, update,
-     * delete and actions. This is where tenant or ownership isolation goes.
+     * delete and actions. This is where tenant or ownership isolation goes, and the current
+     * context: `$this->context()->get('contest')`.
      *
      * @return array<string, mixed>
      */
     public function scope(Request $request): array
     {
         return [];
+    }
+
+    /**
+     * The current context of the request: the values of the params of `Panneau::context()`,
+     * checked for the user. Empty without a context.
+     */
+    protected function context(): Context
+    {
+        return app(Context::class);
     }
 
     /**

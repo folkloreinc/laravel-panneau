@@ -88,7 +88,7 @@ All three keep Policies as the place where the backend decides, and the roles as
 
 ### Pages and fields
 
-- A field is shown by an ability, `->canSee('contests.budget.view')`, and edited by another, `->canUpdate('contests.budget.update')`, or a closure. A page will take `->can('stats.view')` once pages are in the definition ([#33](https://github.com/folkloreinc/laravel-panneau/issues/33)). They give the `abilities` of panneau-js decision 0046, and work without the module, with any Gate ability.
+- A field is shown by an ability, `->canSee('contests.budget.view')`, and edited by another, `->canUpdate('contests.budget.update')`, or a closure. A page is shown by `->can('stats.view')`. They give the `abilities` of panneau-js decision 0046, and work without the module, with any Gate ability.
 
 ### Not on spatie/laravel-permission
 

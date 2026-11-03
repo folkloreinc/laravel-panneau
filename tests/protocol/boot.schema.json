@@ -143,6 +143,9 @@
                 "uploads": {
                     "$ref": "#/$defs/Uploads"
                 },
+                "context": {
+                    "$ref": "#/$defs/DefinitionContext"
+                },
                 "theme": {
                     "$ref": "#/$defs/DefinitionTheme"
                 },
@@ -1506,6 +1509,91 @@
             },
             "required": [
                 "mode"
+            ],
+            "additionalProperties": {}
+        },
+        "DefinitionContext": {
+            "type": "object",
+            "properties": {
+                "params": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ContextParam"
+                    }
+                }
+            },
+            "required": [
+                "params"
+            ],
+            "additionalProperties": {}
+        },
+        "ContextParam": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "pattern": "^(?!(?:resources|pages|media|search|account|auth)$)[A-Za-z_][A-Za-z0-9_]*$"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "fixed": {
+                    "type": "boolean"
+                },
+                "allLabel": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ContextOption"
+                    }
+                },
+                "value": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "valueLabel": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "name",
+                "label"
+            ],
+            "additionalProperties": {}
+        },
+        "ContextOption": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "label": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "value",
+                "label"
             ],
             "additionalProperties": {}
         },

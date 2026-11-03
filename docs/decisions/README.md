@@ -18,3 +18,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0012](0012-embeds-and-more-field-types.md) | Embeds come from an allowlist of oEmbed providers, and saving resolves them again | Accepted |
 | [0013](0013-upgrade-from-1x.md) | The upgrade from 1.x reads the project without running it, and never loses a file | Accepted |
 | [0014](0014-roles-module.md) | An optional roles module on Policies and the Gate, without spatie/laravel-permission | Accepted |
+| [0015](0015-current-context.md) | The context is checked param by param, through the repositories, on every request | Proposed |
