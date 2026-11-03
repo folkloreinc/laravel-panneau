@@ -5,6 +5,7 @@ namespace Panneau\Tests\Feature\Definition;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Support\Facades\Gate;
 use LogicException;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Navigation\MenuItem;
@@ -45,6 +46,26 @@ class NavigationTest extends TestCase
 
         $this->assertArrayNotHasKey('pages', $definition);
         $this->assertArrayNotHasKey('menus', $definition);
+    }
+
+    public function test_a_page_the_user_cant_open_has_view_false(): void
+    {
+        Gate::define('reports.view', fn (Authenticatable $user): bool => $user->getAuthIdentifier() === 1);
+        Panneau::pages([
+            Page::make('reports', 'reports')->label('Reports')->can('reports.view'),
+            Page::make('jobs', 'jobs')->can(fn (?Authenticatable $user): bool => $user !== null),
+            Page::make('help', 'help'),
+        ]);
+
+        $pages = $this->definition(new GenericUser(['id' => 2, 'name' => 'Grace']))['pages'];
+        $this->assertSame(['view' => false], $pages['reports']['abilities']);
+        $this->assertArrayNotHasKey('abilities', $pages['jobs']);
+        $this->assertArrayNotHasKey('abilities', $pages['help']);
+
+        $pages = $this->definition(new GenericUser(['id' => 1, 'name' => 'Ada']))['pages'];
+        $this->assertArrayNotHasKey('abilities', $pages['reports']);
+        $this->assertSame(['view' => false], $this->definition()['pages']['jobs']['abilities']);
+        $this->assertValidDefinition($this->definition());
     }
 
     public function test_pages_and_menus_from_the_service_provider(): void

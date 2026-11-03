@@ -3,6 +3,7 @@
 namespace Panneau\Navigation;
 
 use Closure;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
@@ -72,6 +73,10 @@ final class Navigation
         foreach ($sources as $source) {
             foreach ($this->evaluate($source, $user, 'pages') as $key => $page) {
                 [$id, $definition] = self::page($key, $page);
+                // A page the user can't open (`Page::can()`, panneau-js decision 0046)
+                if ($page instanceof Page && ! $this->allows($user, $page->ability())) {
+                    $definition['abilities'] = ['view' => false];
+                }
                 $pages[$id] = $definition;
             }
         }
@@ -122,6 +127,24 @@ final class Navigation
         }
 
         return $declaration;
+    }
+
+    /**
+     * Whether the user has the ability of a page: a Gate ability, or a closure. Without one,
+     * every user.
+     *
+     * @param  string|(Closure(?Authenticatable): bool)|null  $ability
+     */
+    private function allows(?Authenticatable $user, string|Closure|null $ability): bool
+    {
+        if ($ability === null) {
+            return true;
+        }
+        if ($ability instanceof Closure) {
+            return $this->container->call($ability, ['user' => $user]) === true;
+        }
+
+        return $this->container->make(Gate::class)->forUser($user)->allows($ability);
     }
 
     /**
