@@ -117,7 +117,7 @@ final class Authorizer
      * Whether the user can delete items of the resource at all: the policy's `deleteAny()`, when
      * it has one. When it refuses, the definition declares the built-in `delete` with
      * `"abilities": { "run": false }`, so lists offer no "Delete" and no checkboxes for it
-     * (panneau-js decision 0042), and its route answers `403`.
+     * (panneau-js decision 0046), and its route answers `403`.
      */
     public function allowsDeleteAny(?Authenticatable $user, Resource $resource): bool
     {
@@ -148,7 +148,7 @@ final class Authorizer
 
     /**
      * The abilities of a field in the definition: only those that are false (panneau-js decision
-     * 0042), `view` and `update`.
+     * 0046), `view` and `update`.
      *
      * @return array<string, false>
      */

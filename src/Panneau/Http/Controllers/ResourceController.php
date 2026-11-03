@@ -106,7 +106,7 @@ final class ResourceController
 
         $uploads = $this->uploadResolver($request);
         $references = $this->mediaReferences($request);
-        // The values of fields the user can't see or edit are ignored (panneau-js decision 0042)
+        // The values of fields the user can't see or edit are ignored (panneau-js decision 0046)
         $fields = $this->authorizer->writableFields($request->user(), $resource);
         $values = Form::validate(
             $this->validator,

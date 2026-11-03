@@ -228,7 +228,7 @@ final class DefinitionBuilder
             $this->resources->actions($resource),
         );
         // A user who can't delete any item (the policy's `deleteAny()`): the built-in `delete`,
-        // declared or not, can't run, so lists have no "Delete" (panneau-js decision 0042).
+        // declared or not, can't run, so lists have no "Delete" (panneau-js decision 0046).
         if (in_array('delete', $itemActions ?? Resource::ITEM_ACTIONS, true)
             && ! $this->authorizer->allowsDeleteAny($user, $resource)) {
             $declared = array_search('delete', array_column($actions, 'id'), true);
@@ -307,7 +307,7 @@ final class DefinitionBuilder
     private function field(Field $field, ?Authenticatable $user): array
     {
         $definition = $this->resolveFieldReferences($field->toDefinition());
-        // What the user can't do with the field (panneau-js decision 0042)
+        // What the user can't do with the field (panneau-js decision 0046)
         $abilities = $this->authorizer->fieldAbilities($user, $field);
         if ($abilities !== []) {
             $definition['abilities'] = $abilities;

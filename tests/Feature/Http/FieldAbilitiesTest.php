@@ -15,7 +15,7 @@ use TestApp\Policies\ReportPolicy;
 
 /**
  * Abilities of fields, and the `deleteAny()` and `runAction()` of policies (panneau-js decision
- * 0042): the definition says what the user can do, and the API agrees.
+ * 0046): the definition says what the user can do, and the API agrees.
  */
 class FieldAbilitiesTest extends HttpTestCase
 {
