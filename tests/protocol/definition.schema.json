@@ -1498,6 +1498,9 @@
                 "required": {
                     "type": "boolean"
                 },
+                "fixed": {
+                    "type": "boolean"
+                },
                 "allLabel": {
                     "type": "string"
                 },

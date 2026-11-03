@@ -508,24 +508,27 @@ Panneau::menu('main', fn (?Authenticatable $user): array => [
 
 ## Current context
 
-The user picks a current context in the app, such as a contest, then a client ([panneau-js decision 0045](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0045-current-context.md), #147, [decisions/0015](decisions/0015-current-context.md)). The app sends its values with every request, in a `Panneau-Context` header (`contest=12&client=4`), and keeps them in its URL (`/panneau/contest/12/client/4/resources/entries`). The API checks each value for the user, resources apply them in their scope, and the definition is built for them.
+The current context is what the admin works on, such as a client, then a contest ([panneau-js decision 0045](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0045-current-context.md), #147, [decisions/0015](decisions/0015-current-context.md)). The request can fix a value, such as the client of its domain, and the user picks the others in the app. The app sends the values it has with every request, in a `Panneau-Context` header (`contest=12`), and keeps them in its URL (`/panneau/contest/12/resources/entries`). The API checks each value for the user, resources apply them in their scope, and the definition is built for them.
 
 ```php
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Request;
 use Panneau\Context\Context;
 use Panneau\Context\ContextParam;
 
 // In a service provider
 Panneau::context(fn (?Authenticatable $user): array => [
+    ContextParam::make('client')
+        ->label(__('Client'))
+        ->allLabel(__('All clients'))        // where the user picks it: the label of no value
+        ->resource(ClientsResource::class)   // its items, within its scope, that the user can view
+        // On a client's domain, the client of the domain: the user can't change it
+        ->fixed(fn (Request $request): ?string => Client::idForDomain($request->getHost())),
     ContextParam::make('contest')
         ->label(__('Contest'))
         ->required()
-        ->resource(ContestsResource::class)  // its items, within its scope, that the user can view
+        ->resource(ContestsResource::class)  // whose scope reads the client
         ->default(fn (?Authenticatable $user): ?string => $user?->last_contest_id), // without a value
-    ContextParam::make('client')
-        ->label(__('Client'))
-        ->allLabel(__('All clients'))        // an optional param: the label of no value
-        ->resource(ClientsResource::class),  // whose scope reads the contest
     ContextParam::make('season')
         ->options(['2026' => __('Season 2026'), '2025' => __('Season 2025')]), // inline choices
 ]);
@@ -535,8 +538,8 @@ final class EntriesResource extends Resource
     public function scope(Request $request): array
     {
         return array_filter([
-            'contest_id' => $this->context()->getOrFail('contest'), // a 403 context problem without one
             'client_id' => $this->context()->get('client'),         // null: all clients
+            'contest_id' => $this->context()->getOrFail('contest'), // a 403 context problem without one
         ], fn (mixed $value): bool => $value !== null);
     }
 }
@@ -551,11 +554,12 @@ Panneau::menu('main', fn (Context $context): array => [
   - `options()`: inline choices, sent in the definition. Labels keyed by value, or a list of `['value' => …, 'label' => …, 'description' => …]` (or `ContextOption`), or a closure that returns them.
   - `resource()`: the items of a registered resource, by class or id. A value is found with the repository's `find()`, within the resource's `scope()`, and the user must be allowed to `view` it. The choices are the first items of its `query()`, searched like its list (or by its title), filtered by `view`. The label is the item's title (`itemTitle()`), and `Context::item()` gives the item.
   - `search()` and `find()`, for anything else: `search` gets `$q` and returns choices, `find` gets `$value` and returns its label (or a choice), or null when the user can't use it.
-- **Closures** (`options`, `search`, `find`, `default`) are called through the container with `$user` and the `Context` of the params before as `$context` (or any parameter of type `Context`). While a param's resource is queried, the current `Context` holds the values before it only: the resource's `scope()` reads what the param depends on.
+- **Closures** (`options`, `search`, `find`, `default`, and `fixed`, which also gets `$request`) are called through the container with `$user` and the `Context` of the params before as `$context` (or any parameter of type `Context`). While a param's resource is queried, the current `Context` holds the values before it only: the resource's `scope()` reads what the param depends on.
 - **Checked on every request.** The `ResolveContext` middleware (alias `panneau.context`) is on every route of the API, after the authentication, and in the groups of `Panneau::resourceRoutes()` and `uploadRoutes()`. It reads the header, checks each value in order, and fills `Panneau\Context\Context`. A value the user can't use is a `403` problem of type `urn:panneau:problem:context`, with its `param`. Names that aren't params are ignored. Responses get `Vary: Panneau-Context`, problems too.
+- **Fixed by the request.** `fixed()` gives the value that the request fixes, such as the client of its domain, or null when it fixes none (the user then picks it, as any other param). It is checked like any other value: the user must be allowed it, or the request is the `403` context problem. The definition marks the param `fixed`, and the app shows it without a field and keeps it out of its path and of the header. Another value in the header is the `403` context problem of the param: a link from another admin, or a header, can't widen it.
 - **Defaults.** A param without a value gets its `default()`, a value or null, checked like any other: a default the user can't use is left out. For a required param, that is the user's only contest, or the last one.
 - **`Context`** is bound once per request: inject it, or call `$this->context()` in a resource. `get($name)` and `getOrFail($name)` (the `403` problem without a value, for a resource that needs one), `has()`, `all()`, `label()`, and `item()` for a param of a resource. It is empty without a context, and outside the routes of Panneau.
-- **The definition** has `context.params`: each param's `name`, `label`, `required`, `allLabel`, inline `options`, and `value` and `valueLabel`, what it was built for. Menus and pages declared as closures get the current context (`Context $context`), so they can depend on it.
+- **The definition** has `context.params`: each param's `name`, `label`, `required`, `fixed`, `allLabel`, inline `options`, and `value` and `valueLabel`, what it was built for. Menus and pages declared as closures get the current context (`Context $context`), so they can depend on it.
 - **`GET /context/{param}/options?q=…`** (`panneau.api.context.options`) gives the first 20 choices that match `q`, for the values of the params before it. An unknown param is a `404`.
 - **The page of the app** reads the values in the prefix of its path, and inlines the definition built for them, with the defaults. A value the user can't use leaves the definition out of the boot config: the app fetches it, and handles the `403`. `Panneau::bootConfig($user, path: 'contest/12/resources/entries')` does the same for a project's own page.
 - **Without a context**, nothing changes: the middleware does nothing, the definition has no `context`, and responses don't vary.

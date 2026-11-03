@@ -3749,6 +3749,10 @@
                         "description": "Whether the app needs a value: without one, it shows a page to pick it in place of the page of the route.",
                         "type": "boolean"
                     },
+                    "fixed": {
+                        "description": "The backend sets the value from the request, such as its domain: the app shows it without a picker, and leaves it out of the path and of the `Panneau-Context` header. Another value in the header is a `403` context problem. A fixed param has a `value`.",
+                        "type": "boolean"
+                    },
                     "allLabel": {
                         "description": "An optional param: the label of no value, such as \"All clients\".",
                         "type": "string"

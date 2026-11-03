@@ -116,6 +116,20 @@ final class ContextResolver
                 $before = new Context;
                 $before->replace($current);
                 $value = $values[$param->name()] ?? null;
+                $fixed = $this->fixedValue($param, $before, $user, $request);
+                if ($fixed !== null) {
+                    // The request fixes it: another value can't widen it, and the user must
+                    // be allowed this one
+                    if ($value !== null && $value !== $fixed) {
+                        throw new ContextRefusedException($param->name());
+                    }
+                    $current->setFixed(
+                        $param->name(),
+                        $this->find($param, $fixed, $before, $user, $request) ?? throw new ContextRefusedException($param->name()),
+                    );
+
+                    continue;
+                }
                 if ($value !== null) {
                     $option = $this->find($param, $value, $before, $user, $request)
                         ?? throw new ContextRefusedException($param->name());
@@ -174,7 +188,10 @@ final class ContextResolver
         $params = [];
         foreach ($this->registry->params($user) as $param) {
             $definition = $param->toDefinition();
-            if ($param->inlineOptions() !== null) {
+            $fixed = $current->isFixed($param->name());
+            if ($fixed) {
+                $definition['fixed'] = true;
+            } elseif ($param->inlineOptions() !== null) {
                 $before = $current->only($names);
                 $definition['options'] = array_map(
                     fn (ContextOption $option): array => $option->toArray(),
@@ -319,6 +336,20 @@ final class ContextResolver
         }
 
         return ContextOption::list($options, $param->name());
+    }
+
+    private function fixedValue(ContextParam $param, Context $before, ?Authenticatable $user, Request $request): ?string
+    {
+        $fixed = $param->fixedCallback();
+        if ($fixed === null) {
+            return null;
+        }
+        $value = $this->within($before, fn (): mixed => $this->call($fixed, $before, $user, ['request' => $request, Request::class => $request]));
+        if ($value !== null && ! is_string($value) && ! is_int($value)) {
+            throw new LogicException(sprintf('The fixed() of the context param "%s" gives a %s: return a value or null.', $param->name(), get_debug_type($value)));
+        }
+
+        return $value !== null && $value !== '' ? (string) $value : null;
     }
 
     private function defaultValue(ContextParam $param, Context $before, ?Authenticatable $user): ?string

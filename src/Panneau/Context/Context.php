@@ -22,6 +22,13 @@ final class Context
     public function __construct(private array $values = []) {}
 
     /**
+     * The params whose value the request fixes.
+     *
+     * @var array<string, true>
+     */
+    private array $fixed = [];
+
+    /**
      * The value of a param, or null without one.
      */
     public function get(string $name): ?string
@@ -94,7 +101,10 @@ final class Context
      */
     public function only(array $names): self
     {
-        return new self(array_intersect_key($this->values, array_flip($names)));
+        $context = new self(array_intersect_key($this->values, array_flip($names)));
+        $context->fixed = array_intersect_key($this->fixed, array_flip($names));
+
+        return $context;
     }
 
     /**
@@ -115,5 +125,24 @@ final class Context
     public function replace(self $context): void
     {
         $this->values = $context->values;
+        $this->fixed = $context->fixed;
+    }
+
+    /**
+     * Whether the request fixes the value of a param, such as the client of its domain
+     * (`ContextParam::fixed()`): the user can't change it.
+     */
+    public function isFixed(string $name): bool
+    {
+        return isset($this->fixed[$name]);
+    }
+
+    /**
+     * @internal
+     */
+    public function setFixed(string $name, ContextOption $option): void
+    {
+        $this->values[$name] = $option;
+        $this->fixed[$name] = true;
     }
 }

@@ -52,6 +52,8 @@ final class ContextParam
 
     private ?Closure $default = null;
 
+    private ?Closure $fixed = null;
+
     private function __construct(private readonly string $name)
     {
         if (preg_match(self::NAME_PATTERN, $name) !== 1 || in_array($name, self::RESERVED_NAMES, true)) {
@@ -161,6 +163,21 @@ final class ContextParam
     }
 
     /**
+     * The value that the request fixes, such as the client of its domain: a closure called
+     * through the container with `$request`, `$user` and the `Context` of the params before as
+     * `$context`, which returns a value, or null when the request fixes none (the user then picks
+     * it, as any other param). A fixed value is checked like any other; the definition marks the
+     * param `fixed`, the app shows it without a field, and another value in the request is
+     * refused with the `403` context problem (panneau-js decision 0045).
+     */
+    public function fixed(Closure $value): self
+    {
+        $this->fixed = $value;
+
+        return $this;
+    }
+
+    /**
      * The value when the request has none, such as the user's only contest, or the last one:
      * a closure called through the container with `$user` and the `Context` of the params
      * before as `$context`, which returns a value or null. It is checked like any other value;
@@ -221,6 +238,14 @@ final class ContextParam
     public function defaultCallback(): ?Closure
     {
         return $this->default;
+    }
+
+    /**
+     * @internal
+     */
+    public function fixedCallback(): ?Closure
+    {
+        return $this->fixed;
     }
 
     /**

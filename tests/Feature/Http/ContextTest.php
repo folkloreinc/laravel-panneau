@@ -3,6 +3,7 @@
 namespace Panneau\Tests\Feature\Http;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Testing\TestResponse;
 use LogicException;
@@ -170,6 +171,36 @@ class ContextTest extends HttpTestCase
         // A value in the header wins over the default
         $params = self::params($this->getJson(self::API.'/definition', self::header(['author' => (string) $this->ada->id]))->assertOk());
         $this->assertSame((string) $this->ada->id, $params['author']['value']);
+    }
+
+    public function test_the_request_fixes_a_param_such_as_the_client_of_its_domain(): void
+    {
+        $grace = (string) $this->grace->id;
+        $this->declareContext(
+            ContextParam::make('author')->label('Author')->resource(AuthorsResource::class)->required()
+                ->fixed(fn (Request $request): ?string => $request->getHost() === 'grace.test' ? $grace : null),
+        );
+
+        // On the domain of an author: fixed, whatever the header says
+        $params = self::params($this->getJson('http://grace.test'.self::API.'/definition')->assertOk());
+        $this->assertSame(['fixed' => true, 'value' => $grace, 'valueLabel' => 'Grace Hopper'], array_intersect_key($params['author'], array_flip(['fixed', 'value', 'valueLabel'])));
+        $this->getJson('http://grace.test'.self::API.'/definition', self::header(['author' => $grace]))->assertOk();
+        $this->assertContextProblem($this->getJson('http://grace.test'.self::API.'/definition', self::header(['author' => (string) $this->ada->id])), 'author');
+
+        // Elsewhere: picked, as any other param
+        $params = self::params($this->getJson('http://localhost'.self::API.'/definition', self::header(['author' => (string) $this->ada->id]))->assertOk());
+        $this->assertArrayNotHasKey('fixed', $params['author']);
+        $this->assertSame((string) $this->ada->id, $params['author']['value']);
+    }
+
+    public function test_a_fixed_value_the_user_cannot_use_is_a_context_problem(): void
+    {
+        $hidden = Author::query()->create(['name' => 'Hidden']);
+        $this->declareContext(
+            ContextParam::make('author')->resource(AuthorsResource::class)->required()->fixed(fn (): string => (string) $hidden->id),
+        );
+
+        $this->assertContextProblem($this->getJson(self::API.'/definition'), 'author');
     }
 
     public function test_a_default_the_user_cannot_use_is_left_out(): void
