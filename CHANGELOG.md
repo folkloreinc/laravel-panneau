@@ -12,6 +12,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Added
 
+- `php artisan panneau:convert-phones` turns the phone numbers that a project kept as typed into E.164, in the columns and JSON keys of `panneau.phones.columns`, without a library of numbering plans; `Panneau\Fields\PhoneNumber` converts and formats them, and `panneau.phones.country` is the country of the `Tel` fields without `country()` (folkloreinc/panneau-js decision 0042).
 - `Country` and `Region` fields, the `country` and `region` types: a country is an ISO 3166-1 alpha-2 code (`Country::CODES`, with `XK`), limited with `countries()` and ordered with `preferred()`; a region is a string, whose country comes from the field that `from()` names or from `country()`. `Tel::country()` sets the country of a new number. Lists show `country` and `region` fields without columns (folkloreinc/panneau-js decision 0042).
 
 ## [5.0.0-alpha.8] - 2026-11-02

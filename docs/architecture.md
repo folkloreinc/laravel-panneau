@@ -282,6 +282,22 @@ Tel::make('phone')->country('CA'),                      // the country of a new 
 - **The country of a region** is the value of the field of the same object that `from()` names, or `country()` when it has no `from()` or that field is empty.
 - **Codes.** `countries()`, `preferred()` and `country()` take codes in capitals, and throw an `InvalidArgumentException` for any other.
 - **Lists.** Without columns, a list shows `country` and `region` fields with the other simple types.
+- **The country of the project.** `panneau.phones.country` (`CA`) is the country of the `Tel` fields without `country()`. Without it, the admin takes the region of the user's locale.
+- **Numbers kept as typed.** `php artisan panneau:convert-phones` turns them into E.164, in the columns of `panneau.phones.columns`: `table.column`, or `table.column:path.in.json` for a key of a JSON column.
+
+  ```php
+  // config/panneau.php
+  'phones' => [
+      'country' => 'CA',
+      'columns' => ['users.phone', 'orders.data:contact.phone'],
+  ],
+  ```
+
+  - A number with its calling code (`+33 6…`, `0033 6…`, `011 33 6…`) converts for any country. A number without one converts for the countries whose national numbers `PhoneNumber::COUNTRIES` knows (Canada and the United States, France, Belgium and Switzerland), in the country of the config (`--country` to use another).
+  - Anything else (a name, an extension, a digit too many or too few) stays as typed, and `-v` lists it by its shape (`999-9999`, an `a` for each letter), never its value. `--dry-run` counts and lists without writing.
+  - It reads and writes rows by their `id`, without their models: their dates don't change, and deleted rows convert too. Running it again changes nothing, so a deployment can run it every time.
+  - `PhoneNumber::format()` shows a number in the format of the project's country (`514 555-0199`), or with its calling code (`+33 6 12 34 56 78`), for emails, PDFs and pages; `PhoneNumber::nationalNumber()` gives its digits without the calling code, for exports.
+  - No library of numbering plans: the admin checks numbers with the smallest metadata of `libphonenumber-js`, which mostly checks their lengths, and the table above does the same on the server for the numbers it converts.
 - **Phone numbers kept as typed** before (`514 555-0199`) are refused until they are converted to E.164, or retyped.
 
 ### File

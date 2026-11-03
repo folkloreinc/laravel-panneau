@@ -2,6 +2,7 @@
 
 namespace Panneau\Fields;
 
+use Illuminate\Container\Container;
 use Panneau\Forms\ValidationContext;
 
 /**
@@ -14,7 +15,7 @@ class Tel extends Text
     /**
      * The `tel` rule: `+`, then 7 to 15 digits, without a leading zero.
      */
-    public const E164 = '/^\+[1-9]\d{6,14}$/';
+    public const E164 = PhoneNumber::E164;
 
     public function type(): string
     {
@@ -22,12 +23,25 @@ class Tel extends Text
     }
 
     /**
-     * The country of a new number, as a code (`CA`). Without it, the admin takes the region of
-     * the user's locale.
+     * The country of a new number, as a code (`CA`). Without it, `panneau.phones.country`, and
+     * without that, the admin takes the region of the user's locale.
      */
     public function country(string $code): static
     {
         return $this->settings(['country' => Country::code($code)]);
+    }
+
+    public function toDefinition(): array
+    {
+        $definition = parent::toDefinition();
+        // Fields are also built without an app (definitions in tests, exports)
+        $container = Container::getInstance();
+        $country = $container->bound('config') ? $container->make('config')->get('panneau.phones.country') : null;
+        if (! isset($definition['settings']['country']) && is_string($country)) {
+            $definition['settings'] = [...$definition['settings'] ?? [], 'country' => Country::code($country)];
+        }
+
+        return $definition;
     }
 
     protected function valueRules(ValidationContext $context): array

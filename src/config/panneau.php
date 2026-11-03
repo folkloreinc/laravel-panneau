@@ -159,6 +159,17 @@ return [
         'max_size' => null,
     ],
 
+    // Phone numbers (Panneau\Fields\Tel), kept in E.164: `+15145550199`.
+    'phones' => [
+        // The country of a number typed without its calling code (`CA`): the country of the `Tel`
+        // fields without `country()`, and of `panneau:convert-phones`. Null: the field takes the
+        // region of the user's locale.
+        'country' => null,
+        // Where a project kept numbers as typed, for `panneau:convert-phones`: `table.column`,
+        // or `table.column:path.in.json` for a key of a JSON column (`orders.data:contact.phone`).
+        'columns' => [],
+    ],
+
     // File fields (Panneau\Fields\File): files that belong to an item, stored on the field's
     // disk. Private files get temporary URLs.
     'files' => [
