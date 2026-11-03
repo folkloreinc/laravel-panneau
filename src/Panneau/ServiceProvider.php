@@ -4,12 +4,15 @@ namespace Panneau;
 
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\InstallCommand;
 use Panneau\Console\PruneUploadsCommand;
+use Panneau\Console\RoleCommand;
 use Panneau\Contracts\EmbedResolver;
 use Panneau\Contracts\UploadStorage;
 use Panneau\Embeds\OEmbedResolver;
@@ -19,6 +22,9 @@ use Panneau\Http\Middleware\Authenticate;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Roles\Contracts\RoleStore;
+use Panneau\Roles\DatabaseRoleStore;
+use Panneau\Roles\RoleManager;
 use Panneau\Uploads\S3UploadStorage;
 use Panneau\Uploads\Uploads;
 
@@ -44,6 +50,14 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->singletonIf(UploadStorage::class, S3UploadStorage::class);
         $this->app->singleton(Uploads::class);
         $this->app->singletonIf(EmbedResolver::class, OEmbedResolver::class);
+
+        // The roles module (decision 0014). Bound in any case; used only when it is on.
+        $this->app->singletonIf(RoleStore::class, function ($app): RoleStore {
+            $store = $app['config']->get('panneau.roles.store', DatabaseRoleStore::class);
+
+            return $app->make(is_string($store) ? $store : DatabaseRoleStore::class);
+        });
+        $this->app->singleton(RoleManager::class);
     }
 
     public function boot(): void
@@ -67,9 +81,30 @@ class ServiceProvider extends BaseServiceProvider
             $this->loadMigrationsFrom($migrations);
         }
 
-        if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class, PruneUploadsCommand::class]);
+        $roles = __DIR__.'/../../database/roles';
+        $this->publishesMigrations([$roles => database_path('migrations')], 'panneau-roles-migrations');
+        if ($this->app['config']->get('panneau.roles.enabled') === true) {
+            $this->loadMigrationsFrom($roles);
+            $this->bootRoles();
         }
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class]);
+        }
+    }
+
+    /**
+     * The Gate answers the permissions of Panneau, and lets users with a role in, unless the
+     * project defines `viewPanneau` itself.
+     */
+    private function bootRoles(): void
+    {
+        $this->callAfterResolving(Gate::class, function (Gate $gate): void {
+            $gate->before(fn (?Authenticatable $user, string $ability): ?bool => $this->app->make(RoleManager::class)->before($user, $ability));
+            if (! $gate->has('viewPanneau')) {
+                $gate->define('viewPanneau', fn (Authenticatable $user): bool => $this->app->make(RoleManager::class)->rolesOf($user) !== []);
+            }
+        });
     }
 
     /**

@@ -1,5 +1,7 @@
 <?php
 
+use Panneau\Roles\DatabaseRoleStore;
+
 return [
     // Name of the admin, in the definition. Defaults to the app's name.
     'name' => null,
@@ -164,5 +166,26 @@ return [
     'files' => [
         // Seconds a temporary URL of a private file lives.
         'url_ttl' => 3600,
+    ],
+
+    // The roles module (decision 0014). Off by default: projects with their own policies or
+    // roles leave it off. On, users get roles and grants, the Gate answers the permissions of
+    // Panneau, and resources use Panneau\Roles\ResourcePolicy as the base of their policies.
+    'roles' => [
+        'enabled' => false,
+        // Where the roles and grants of users are kept (a Panneau\Roles\Contracts\RoleStore).
+        'store' => DatabaseRoleStore::class,
+        // The database connection of the default store. Null: the default connection.
+        'connection' => null,
+        // The roles, by id: a label, permissions (`contests.update`, `contests.*`, `*`), and
+        // `owned` for a role that reaches only the items its users own (OwnedResource).
+        'roles' => [
+            // 'admin' => ['label' => 'Admin', 'permissions' => ['*']],
+            // 'client' => ['label' => 'Client', 'permissions' => ['contests.viewAny', 'contests.view'], 'owned' => true],
+        ],
+        // Permissions given to one user on top of their roles, with the Grants field.
+        'grantable' => [],
+        // Other permissions the Gate answers, for pages, fields and the project's own checks.
+        'permissions' => [],
     ],
 ];

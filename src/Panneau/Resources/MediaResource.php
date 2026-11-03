@@ -135,7 +135,7 @@ abstract class MediaResource extends Resource
     }
 
     /**
-     * `scope()`, and the media types under the `type` key.
+     * `scope()`, the media types under the `type` key, and the items the user owns.
      *
      * @internal Override `scope()`.
      */
@@ -147,7 +147,7 @@ abstract class MediaResource extends Resource
             $scope[self::TYPE] = array_values(array_unique($types));
         }
 
-        return $scope;
+        return $this->ownedScope($request, $scope);
     }
 
     /**
