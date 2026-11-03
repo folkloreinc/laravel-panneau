@@ -1,6 +1,8 @@
 <?php
 
 use Panneau\Auth\ResetUserPassword;
+use Panneau\Auth\UpdateUserPassword;
+use Panneau\Auth\UpdateUserProfileInformation;
 use Panneau\Roles\DatabaseRoleStore;
 
 return [
@@ -106,6 +108,14 @@ return [
         // it are allowed. The roles of the roles module can require it too ('two_factor' => true).
         // Until they set it up, the API refuses them and the app shows the setup.
         'two_factor_required' => false,
+
+        // "panneau" mode: the Fortify actions of the account page, which save the name and the
+        // email (Laravel\Fortify\Contracts\UpdatesUserProfileInformation) and change the
+        // password (UpdatesUserPasswords), such as the site's App\Actions\Fortify actions. The
+        // defaults save an Eloquent user, and send Panneau's verification link to a new email
+        // with email_verification.
+        'update_profile_using' => UpdateUserProfileInformation::class,
+        'update_password_using' => UpdateUserPassword::class,
 
         // Seconds that a confirmed password lasts, for the changes that need it (two-factor
         // authentication). Null: auth.password_timeout, 3 hours by default.

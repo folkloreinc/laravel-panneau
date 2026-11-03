@@ -21,3 +21,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0015](0015-current-context.md) | The context is checked param by param, through the repositories, on every request | Proposed |
 | [0016](0016-password-reset-and-email-verification.md) | Password reset and email verification send Panneau's own emails, to pages of the app | Proposed |
 | [0017](0017-two-factor-authentication.md) | Two-factor authentication on Fortify's trait and actions, required by config, ability or role | Proposed |
+| [0018](0018-account-endpoints.md) | The account is saved by Fortify's profile and password actions | Proposed |

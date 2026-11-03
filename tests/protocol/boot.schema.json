@@ -1433,6 +1433,9 @@
                         "$ref": "#/$defs/AuthProvider"
                     }
                 },
+                "account": {
+                    "type": "boolean"
+                },
                 "passwordReset": {
                     "type": "boolean"
                 },

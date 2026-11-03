@@ -5,6 +5,8 @@ namespace Panneau\Tests\Feature\Console;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Artisan;
 use Panneau\Auth\ResetUserPassword;
+use Panneau\Auth\UpdateUserPassword;
+use Panneau\Auth\UpdateUserProfileInformation;
 use Panneau\Tests\TestCase;
 use Panneau\Upgrade\Audit;
 use Panneau\Upgrade\Codebase;
@@ -567,6 +569,8 @@ class UpgradeCommandTest extends TestCase
             'email_verification' => false,
             'two_factor' => false,
             'two_factor_required' => false,
+            'update_profile_using' => UpdateUserProfileInformation::class,
+            'update_password_using' => UpdateUserPassword::class,
             'password_timeout' => null,
             'rate_limit' => 6,
         ], $config['auth']);

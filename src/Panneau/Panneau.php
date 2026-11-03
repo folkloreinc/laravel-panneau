@@ -20,6 +20,7 @@ use Panneau\Context\ContextResolver;
 use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\ContextRefusedException;
+use Panneau\Http\Controllers\AccountController;
 use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\AuthController;
@@ -177,6 +178,11 @@ class Panneau implements PanneauContract
         $router->post('auth/logout', [AuthController::class, 'logout'])->withoutMiddleware($outside)->name('auth.logout');
         $router->post('auth/password/confirm', PasswordConfirmationController::class)
             ->withoutMiddleware($outside)->middleware($throttle)->name('auth.password.confirm');
+        // The account of the user, without the context (panneau-js decision 0050)
+        $router->get('account', [AccountController::class, 'show'])->withoutMiddleware(ResolveContext::class)->name('account');
+        $router->patch('account', [AccountController::class, 'update'])->withoutMiddleware(ResolveContext::class)->name('account.update');
+        $router->put('account/password', [AccountController::class, 'password'])
+            ->withoutMiddleware(ResolveContext::class)->middleware($throttle)->name('account.password');
         if (($auth['twoFactor'] ?? false) === true) {
             $router->post('auth/two-factor/challenge', [TwoFactorController::class, 'challenge'])
                 ->withoutMiddleware($outside)->middleware($throttle)->name('auth.two-factor.challenge');

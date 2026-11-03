@@ -85,7 +85,7 @@ class EmailVerificationTest extends HttpTestCase
         $boot = json_decode($matches[1], true, flags: JSON_THROW_ON_ERROR);
         $this->assertIsArray($boot);
         $this->assertArrayNotHasKey('definition', $boot);
-        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null, 'emailVerification' => true], $boot['auth']);
+        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null, 'account' => true, 'emailVerification' => true], $boot['auth']);
     }
 
     public function test_verified_users_get_in(): void
