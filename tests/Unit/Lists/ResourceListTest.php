@@ -21,7 +21,11 @@ class ResourceListTest extends TestCase
     private function list(): ResourceList
     {
         return (new ResourceList)
-            ->columns(['title', Column::make('status')->label('State')->align('center')->sortable(false), Column::id('preview')->width(80)])
+            ->columns([
+                Column::make('title')->hideable(false),
+                Column::make('status')->label('State')->align('center')->sortable(false),
+                Column::id('preview')->width(80)->hidden(),
+            ])
             ->filters([
                 SelectFilter::make('status')->options(PostStatus::class)->multiple()->label('Status'),
                 ToggleFilter::make('featured')->default(true),
@@ -45,9 +49,9 @@ class ResourceListTest extends TestCase
         $definition = $this->list()->toDefinition(searchable: true);
 
         $this->assertSame([
-            ['field' => 'title', 'sortable' => true],
+            ['field' => 'title', 'sortable' => true, 'hideable' => false],
             ['field' => 'status', 'label' => 'State', 'align' => 'center'],
-            ['id' => 'preview', 'width' => 80],
+            ['id' => 'preview', 'width' => 80, 'hidden' => true],
         ], $definition['columns']);
         $this->assertSame(['id' => 'featured', 'type' => 'toggle', 'default' => true], $definition['filters'][1]);
         $this->assertSame(['id' => 'author', 'type' => 'relation', 'resource' => 'authors'], $definition['filters'][4]);
