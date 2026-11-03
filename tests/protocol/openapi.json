@@ -1010,6 +1010,16 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1312,6 +1322,16 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1395,6 +1415,16 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
                         "content": {
@@ -1420,6 +1450,16 @@
                 "responses": {
                     "204": {
                         "description": "Logged out."
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1461,6 +1501,16 @@
                     "302": {
                         "description": "Redirect to the provider."
                     },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "Not found.",
                         "content": {
@@ -1498,6 +1548,16 @@
                 "responses": {
                     "204": {
                         "description": "A reset link was sent, if the account exists."
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
@@ -1550,6 +1610,16 @@
                     "204": {
                         "description": "The password was reset."
                     },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
                         "content": {
@@ -1600,6 +1670,16 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
                         "content": {
@@ -1629,6 +1709,16 @@
                                 "schema": {
                                     "type": "object",
                                     "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
                                 }
                             }
                         }
@@ -1662,6 +1752,16 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Session"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
                                 }
                             }
                         }
@@ -1715,6 +1815,16 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1752,6 +1862,16 @@
                     },
                     "401": {
                         "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1836,6 +1956,16 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
                         "content": {
@@ -1891,6 +2021,16 @@
                     },
                     "401": {
                         "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
