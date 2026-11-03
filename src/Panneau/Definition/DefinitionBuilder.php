@@ -8,6 +8,7 @@ use Illuminate\Contracts\Foundation\Application;
 use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Auth\Authorizer;
+use Panneau\Context\ContextResolver;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Group;
@@ -40,10 +41,12 @@ final class DefinitionBuilder
         private readonly Config $config,
         private readonly Application $app,
         private readonly Navigation $navigation,
+        private readonly ContextResolver $context,
     ) {}
 
     /**
-     * The definition for a user, in the current locale, with their abilities.
+     * The definition for a user, in the current locale, with their abilities, and for the values
+     * of the current context.
      *
      * @return array<string, mixed>
      */
@@ -72,6 +75,11 @@ final class DefinitionBuilder
         if ($this->config->get('panneau.uploads.enabled')) {
             // Direct uploads to the disk, as well as files sent through the API.
             $definition['uploads'] = ['mode' => 'presigned'];
+        }
+        // Left out without a context, so that definitions stay as they were
+        $context = $this->context->definition($user);
+        if ($context !== null) {
+            $definition['context'] = $context;
         }
         $theme = $this->theme();
         if ($theme !== null) {

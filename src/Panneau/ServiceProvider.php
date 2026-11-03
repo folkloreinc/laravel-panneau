@@ -10,12 +10,15 @@ use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\InstallCommand;
 use Panneau\Console\PruneUploadsCommand;
+use Panneau\Context\Context;
+use Panneau\Context\ContextRegistry;
 use Panneau\Contracts\EmbedResolver;
 use Panneau\Contracts\UploadStorage;
 use Panneau\Embeds\OEmbedResolver;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Middleware\Authenticate;
+use Panneau\Http\Middleware\ResolveContext;
 use Panneau\Navigation\Navigation;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\ItemSerializer;
@@ -41,6 +44,9 @@ class ServiceProvider extends BaseServiceProvider
             return $registry;
         });
         $this->app->singleton(Navigation::class);
+        $this->app->singleton(ContextRegistry::class);
+        // The values of the current request, filled by the ResolveContext middleware
+        $this->app->scoped(Context::class, fn (): Context => new Context);
         $this->app->singleton(ItemSerializer::class);
         $this->app->singleton(Authorizer::class);
         $this->app->singletonIf(UploadStorage::class, S3UploadStorage::class);
@@ -56,6 +62,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/panneau')], 'panneau-views');
 
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
+        $this->app->make(Router::class)->aliasMiddleware('panneau.context', ResolveContext::class);
         // Defined when the rate limiter is first resolved: a limiter of the same name that the
         // project defines in its own provider replaces it.
         $this->callAfterResolving(RateLimiter::class, function (RateLimiter $limiter): void {
