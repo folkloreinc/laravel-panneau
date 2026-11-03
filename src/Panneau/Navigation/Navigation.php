@@ -13,7 +13,8 @@ use LogicException;
  * The pages and menus of the app shell: those of `panneau.pages` and `panneau.menus`, then
  * those declared with `Panneau::pages()` and `Panneau::menu()`, which replace a page of the same
  * id, or a menu of the same name. Closures are called each time the definition is built, through
- * the container, with the user as `$user`.
+ * the container, with the user as `$user`; a parameter of type `Panneau\Context\Context` gets
+ * the current context.
  */
 final class Navigation
 {

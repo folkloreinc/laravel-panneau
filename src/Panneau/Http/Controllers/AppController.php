@@ -33,7 +33,12 @@ final class AppController
     public function __invoke(Request $request): Response
     {
         $user = $request->user();
-        $boot = $this->panneau->bootConfig($user, $user !== null && (bool) $this->config->get('panneau.app.inline_definition', true));
+        // With a context, the definition is built for the values in the prefix of the path
+        $boot = $this->panneau->bootConfig(
+            $user,
+            $user !== null && (bool) $this->config->get('panneau.app.inline_definition', true),
+            $this->appPath($request),
+        );
         $entry = $this->config->get('panneau.app.entry');
         $buildDirectory = $this->config->get('panneau.app.build_directory');
         $view = $this->config->get('panneau.app.view');
@@ -47,5 +52,18 @@ final class AppController
         ])->render();
 
         return new Response($html, 200, ['Cache-Control' => 'no-store, private']);
+    }
+
+    /**
+     * The path of the app after `panneau.path` (and the prefix of the caller's group), as the
+     * request has it, URL-encoded: the route parameter is decoded, and a value of the context
+     * can have a `/`.
+     */
+    private function appPath(Request $request): string
+    {
+        $uri = $request->route()?->uri() ?? '';
+        $prefix = count(explode('/', trim($uri, '/'))) - 1;
+
+        return implode('/', array_slice(explode('/', trim($request->path(), '/')), max(0, $prefix)));
     }
 }
