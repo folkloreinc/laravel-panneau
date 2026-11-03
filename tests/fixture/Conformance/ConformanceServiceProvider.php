@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Panneau\Context\ContextParam;
+use Panneau\Navigation\MenuItem;
+use Panneau\Navigation\Page;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Asset;
 use TestApp\Models\Author;
@@ -19,8 +22,9 @@ use TestApp\Policies\AuthorPolicy;
 use TestApp\Policies\PostPolicy;
 
 /**
- * The app served to the protocol's conformance kit in CI: the fixture resources, a media library
- * and direct uploads, behind a bearer token (`Authorization: Bearer conformance`).
+ * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
+ * direct uploads, a page and a main menu, a context with an optional param, behind a bearer token (`Authorization: Bearer
+ * conformance`).
  */
 class ConformanceServiceProvider extends ServiceProvider
 {
@@ -60,6 +64,18 @@ class ConformanceServiceProvider extends ServiceProvider
         Gate::policy(Asset::class, AssetPolicy::class);
 
         Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class]);
+        Panneau::pages([Page::make('reports', 'reports')->label('Reports')]);
+        Panneau::menu('main', [
+            MenuItem::resources(),
+            MenuItem::separator(),
+            MenuItem::group('More', [MenuItem::page('reports'), MenuItem::link('Site', '/')->external()]),
+        ]);
+        // The resources don't read it: the kit checks its choices, a definition built for a
+        // value, and a value that doesn't exist refused
+        Panneau::context([
+            ContextParam::make('season')->label('Season')->allLabel('All seasons')
+                ->options(['2026' => 'Season 2026', '2025' => 'Season 2025']),
+        ]);
         Panneau::routes();
     }
 }

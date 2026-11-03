@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use InvalidArgumentException;
 use Panneau\Contracts\UploadStorage;
 use Panneau\Http\Middleware\RenderProblems;
+use Panneau\Http\Middleware\ResolveContext;
 use Panneau\Http\Problem;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\TestCase;
@@ -73,7 +74,8 @@ class PartialRoutesTest extends TestCase
         $complete = Route::getRoutes()->getByName('panneau.api.uploads.complete');
         $this->assertSame('workspaces/{workspace}/uploads/sign', $sign?->uri());
         $this->assertSame('workspaces/{workspace}/uploads/{upload}/complete', $complete?->uri());
-        $this->assertSame(['web', RenderProblems::class], $sign->middleware());
+        // The context after the group's middleware, which authenticates
+        $this->assertSame(['web', RenderProblems::class, ResolveContext::class], $sign->middleware());
         $this->assertFalse(Route::has('panneau.api.definition'));
         $this->assertFalse(Route::has('panneau.api.resources.store'));
         $this->assertFalse(Route::has('panneau.app'));

@@ -34,6 +34,13 @@ final class RenderProblems
             return $response;
         }
 
-        return Problem::fromThrowable($exception, (bool) $this->config->get('app.debug'));
+        $problem = Problem::fromThrowable($exception, (bool) $this->config->get('app.debug'));
+        // What the response varies with, such as the context, holds for its error too
+        $vary = array_values(array_unique([...$problem->getVary(), ...$response->getVary()]));
+        if ($vary !== []) {
+            $problem->setVary($vary);
+        }
+
+        return $problem;
     }
 }
