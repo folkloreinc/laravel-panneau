@@ -3,7 +3,7 @@
 - Status: accepted
 - Date: 2026-11-03
 - Issue: [#149](https://github.com/folkloreinc/laravel-panneau/issues/149)
-- Follows: [panneau-js decision 0011](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0011-permissions.md) and [0042](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0042-abilities-in-the-ui.md)
+- Follows: [panneau-js decision 0011](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0011-permissions.md) and [0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)
 
 ## Context
 
@@ -77,7 +77,7 @@ All three keep Policies as the place where the backend decides, and the roles as
     ```
 
 - The definition's abilities and the API both come from these Policies, through the `Authorizer`, so they can't disagree: a button the user sees doesn't fail with a `403`.
-- **Two additions to the `Authorizer`, for every Policy:** a Policy with `deleteAny()` declares the built-in `delete` with `"abilities": { "run": false }` when it refuses (panneau-js decision 0042), and a Policy with `runAction()` answers every action of its resource, on items and on the resource.
+- **Two additions to the `Authorizer`, for every Policy:** a Policy with `deleteAny()` declares the built-in `delete` with `"abilities": { "run": false }` when it refuses (panneau-js decision 0046), and a Policy with `runAction()` answers every action of its resource, on items and on the resource.
 
 ### Ownership
 
@@ -88,7 +88,7 @@ All three keep Policies as the place where the backend decides, and the roles as
 
 ### Pages and fields
 
-- A field is shown by an ability, `->canSee('contests.budget.view')`, and edited by another, `->canUpdate('contests.budget.update')`, or a closure. A page will take `->can('stats.view')` once pages are in the definition ([#33](https://github.com/folkloreinc/laravel-panneau/issues/33)). They give the `abilities` of panneau-js decision 0042, and work without the module, with any Gate ability.
+- A field is shown by an ability, `->canSee('contests.budget.view')`, and edited by another, `->canUpdate('contests.budget.update')`, or a closure. A page will take `->can('stats.view')` once pages are in the definition ([#33](https://github.com/folkloreinc/laravel-panneau/issues/33)). They give the `abilities` of panneau-js decision 0046, and work without the module, with any Gate ability.
 
 ### Not on spatie/laravel-permission
 
