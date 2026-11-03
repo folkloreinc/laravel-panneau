@@ -11,6 +11,38 @@ return [
     // Panneau::resources([...]) in a service provider.
     'resources' => [],
 
+    // Pages of the app shell, by id, in the shape of the protocol's pages: a component that a JS
+    // plugin registers, at {path}/pages/{id} (or its own "path"). The page "home" is the home
+    // page of the app. Pages can also be declared with Panneau::pages([...]) in a service
+    // provider, with Panneau\Navigation\Page, or with a closure, for labels in the request's
+    // locale or pages that depend on the user. A page declared there replaces the one of the
+    // same id here.
+    //
+    //     'pages' => [
+    //         'reports' => ['component' => 'reports', 'label' => 'Reports', 'props' => ['period' => 'month']],
+    //         'post-stats' => ['component' => 'post-stats', 'params' => ['id']], // {path}/pages/post-stats/{id}
+    //     ],
+    'pages' => [],
+
+    // Menus of the app shell, by name, in the shape of the protocol's menu items. "main" is the
+    // sidebar: without it, the app lists every resource, then the pages without params. Types:
+    // "resources" (every resource), "resource" (a class or an id), "page" (an id of "pages",
+    // without params), "link" (a "url", "external" or not), "separator" and "group" (with
+    // "children"); other types are a plugin's. Menus can also be declared with
+    // Panneau::menu('main', [...]) in a service provider, with Panneau\Navigation\MenuItem, or
+    // with a closure, for labels in the request's locale or menus that depend on the user. A
+    // menu declared there replaces the one of the same name here.
+    //
+    //     'menus' => [
+    //         'main' => [
+    //             ['type' => 'resources'],
+    //             ['type' => 'separator'],
+    //             ['type' => 'page', 'page' => 'reports', 'icon' => 'chart-line'],
+    //             ['type' => 'link', 'label' => 'Site', 'url' => '/', 'external' => true],
+    //         ],
+    //     ],
+    'menus' => [],
+
     // Path of the admin. The API is under {path}/api. Routes are only registered when the
     // project calls Panneau::routes().
     'path' => 'panneau',

@@ -7,17 +7,23 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
 use InvalidArgumentException;
 use Panneau\Auth\Authorizer;
+use Panneau\Context\ContextParam;
+use Panneau\Context\ContextRegistry;
+use Panneau\Context\ContextResolver;
 use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Exceptions\ContextRefusedException;
 use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\AuthController;
+use Panneau\Http\Controllers\ContextOptionsController;
 use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\FieldCheckController;
@@ -26,6 +32,8 @@ use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\RenderProblems;
+use Panneau\Http\Middleware\ResolveContext;
+use Panneau\Navigation\Navigation;
 use Panneau\Repositories\RepositoryAdapters;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
@@ -50,6 +58,30 @@ class Panneau implements PanneauContract
     public function resource(string $id): ?Resource
     {
         return $this->container->make(ResourceRegistry::class)->find($id);
+    }
+
+    public function pages(array|Closure $pages): static
+    {
+        $this->container->make(Navigation::class)->addPages($pages);
+
+        return $this;
+    }
+
+    public function menu(string $name, array|Closure $items): static
+    {
+        $this->container->make(Navigation::class)->setMenu($name, $items);
+
+        return $this;
+    }
+
+    /**
+     * @param  list<ContextParam>|Closure  $params
+     */
+    public function context(array|Closure $params): static
+    {
+        $this->container->make(ContextRegistry::class)->declare($params);
+
+        return $this;
     }
 
     public function repositoryAdapter(string $contract, string|Closure $adapter): static
@@ -88,17 +120,19 @@ class Panneau implements PanneauContract
         $auth = $this->container->make(DefinitionBuilder::class)->auth()['mode'] === 'panneau';
 
         $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search, $embeds, $auth): void {
-            $router->prefix('api')->as('api.')->group(function (Router $router) use ($search, $embeds, $auth): void {
+            // The context after the authentication: values are checked for the user
+            $router->prefix('api')->as('api.')->middleware(ResolveContext::class)->group(function (Router $router) use ($search, $embeds, $auth): void {
                 if ($auth) {
                     // Guests log in, and users the gate refuses can still log out
                     $router->post('auth/login', [AuthController::class, 'login'])
-                        ->withoutMiddleware(Authenticate::class)
+                        ->withoutMiddleware([Authenticate::class, ResolveContext::class])
                         ->name('auth.login');
                     $router->post('auth/logout', [AuthController::class, 'logout'])
-                        ->withoutMiddleware(Authenticate::class)
+                        ->withoutMiddleware([Authenticate::class, ResolveContext::class])
                         ->name('auth.logout');
                 }
                 $router->get('definition', DefinitionController::class)->name('definition');
+                $router->get('context/{param}/options', ContextOptionsController::class)->name('context.options');
                 if ($search) {
                     $router->get('search', SearchController::class)
                         ->middleware(ThrottleRequests::using(SearchController::RATE_LIMITER))
@@ -188,14 +222,15 @@ class Panneau implements PanneauContract
 
     /**
      * A group of API routes in the caller's group, named `panneau.api.*`, with their errors
-     * rendered as problems.
+     * rendered as problems, and the current context, after the middleware of the caller's
+     * group (which authenticates).
      *
      * @param  Closure(Router): void  $routes
      */
     private function apiGroup(Closure $routes): void
     {
         $this->container->make(Router::class)->group(
-            ['as' => 'panneau.api.', 'middleware' => [RenderProblems::class]],
+            ['as' => 'panneau.api.', 'middleware' => [RenderProblems::class, ResolveContext::class]],
             $routes,
         );
     }
@@ -236,18 +271,21 @@ class Panneau implements PanneauContract
         $router->post('uploads/{upload}/complete', [UploadController::class, 'complete'])->name('uploads.complete');
     }
 
-    public function bootConfig(?Authenticatable $user = null, bool $withDefinition = true): array
+    public function bootConfig(?Authenticatable $user = null, bool $withDefinition = true, ?string $path = null): array
     {
         $config = $this->container->make(Config::class);
         $definition = $this->container->make(DefinitionBuilder::class);
-        $path = trim((string) $config->get('panneau.path', 'panneau'), '/');
+        $basePath = trim((string) $config->get('panneau.path', 'panneau'), '/');
         // Before the definition, for the login page of the app
         $auth = $definition->auth();
+        if ($withDefinition) {
+            $withDefinition = $this->resolvePathContext($user, $path);
+        }
 
         return array_filter([
             'protocol' => DefinitionBuilder::PROTOCOL_VERSION,
             'apiBaseUrl' => $definition->apiBaseUrl(),
-            'basePath' => '/'.$path,
+            'basePath' => '/'.$basePath,
             'locale' => $this->container->make(Application::class)->getLocale(),
             'definition' => $withDefinition ? $definition->build($user) : null,
             'auth' => $auth,
@@ -258,5 +296,30 @@ class Panneau implements PanneauContract
     public function definition(?Authenticatable $user = null): array
     {
         return $this->container->make(DefinitionBuilder::class)->build($user);
+    }
+
+    /**
+     * Fills the current context with the values of the prefix of a path of the app, checked for
+     * the user, with the defaults of the params without a value: the definition of the boot
+     * config is built for them. False when the user can't use a value: the app fetches the
+     * definition, and gets the `403` context problem.
+     */
+    private function resolvePathContext(?Authenticatable $user, ?string $path): bool
+    {
+        $registry = $this->container->make(ContextRegistry::class);
+        if (! $registry->declared()) {
+            return true;
+        }
+        try {
+            $this->container->make(ContextResolver::class)->resolve(
+                ContextResolver::parsePath($path ?? '', $registry->params($user)),
+                $user,
+                $this->container->make(Request::class),
+            );
+        } catch (ContextRefusedException) {
+            return false;
+        }
+
+        return true;
     }
 }
