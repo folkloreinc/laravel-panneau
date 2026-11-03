@@ -111,9 +111,9 @@ return [
         // authentication). Null: auth.password_timeout, 3 hours by default.
         'password_timeout' => null,
 
-        // Requests per minute to the password reset, the email verification, the two-factor
-        // challenge and the password confirmation, per user or IP address. Define the `panneau-auth` limiter with RateLimiter::for() to limit
-        // differently.
+        // Requests per minute to each route of the password reset, the email verification, the
+        // two-factor challenge and the password confirmation, per user or IP address. Define the
+        // `panneau-auth` limiter with RateLimiter::for() to limit differently.
         'rate_limit' => 6,
     ],
 
