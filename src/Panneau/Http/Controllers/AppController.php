@@ -8,6 +8,7 @@ use Illuminate\Foundation\Vite;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Panneau\Auth\EmailVerification;
+use Panneau\Auth\TwoFactor;
 use Panneau\Contracts\Panneau;
 use Panneau\Definition\DefinitionBuilder;
 
@@ -16,7 +17,8 @@ use Panneau\Definition\DefinitionBuilder;
  * `@panneau/app`. Served for every path of the app, since the app routes on the client. Guests
  * get it in the `panneau` auth mode, without the definition: the app shows its login page. So do
  * users whose address isn't verified, with `panneau.auth.email_verification`: the app shows its
- * verification page.
+ * verification page, and those who must set up two-factor authentication: the app shows its
+ * setup.
  *
  * The view gets the CSP nonce of Vite (`Vite::useCspNonce()`), if the request has one, which the
  * default view writes in `<meta property="csp-nonce">` for `@panneau/app`.
@@ -32,6 +34,7 @@ final class AppController
         private readonly View $view,
         private readonly Vite $vite,
         private readonly EmailVerification $verification,
+        private readonly TwoFactor $twoFactor,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -40,7 +43,7 @@ final class AppController
         // With a context, the definition is built for the values in the prefix of the path
         $boot = $this->panneau->bootConfig(
             $user,
-            $user !== null && ! $this->verification->mustVerify($user) && (bool) $this->config->get('panneau.app.inline_definition', true),
+            $user !== null && ! $this->verification->mustVerify($user) && ! $this->twoFactor->mustSetUp($user) && (bool) $this->config->get('panneau.app.inline_definition', true),
             $this->appPath($request),
         );
         $entry = $this->config->get('panneau.app.entry');

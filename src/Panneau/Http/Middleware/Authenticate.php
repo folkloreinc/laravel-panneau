@@ -10,8 +10,10 @@ use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Http\Request;
 use Panneau\Auth\EmailVerification;
+use Panneau\Auth\TwoFactor;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\EmailUnverifiedException;
+use Panneau\Exceptions\TwoFactorRequiredException;
 use Panneau\Http\Controllers\AppController;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -26,7 +28,9 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * With `panneau.auth.email_verification`, the API refuses users whose address isn't verified
  * with the `urn:panneau:problem:email-unverified` problem: they get the app's page, without the
- * definition, and the app shows its verification page.
+ * definition, and the app shows its verification page. Users who must have two-factor
+ * authentication and haven't set it up get the `urn:panneau:problem:two-factor-required` problem
+ * the same way, but on the routes of `/account/two-factor`.
  */
 final class Authenticate
 {
@@ -36,6 +40,7 @@ final class Authenticate
         private readonly Config $config,
         private readonly DefinitionBuilder $definition,
         private readonly EmailVerification $verification,
+        private readonly TwoFactor $twoFactor,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -62,6 +67,10 @@ final class Authenticate
         }
         if ($this->verification->mustVerify($user) && ! $this->servesGuests($request)) {
             throw new EmailUnverifiedException;
+        }
+        // The routes of the account's two-factor authentication set it up
+        if ($this->twoFactor->mustSetUp($user) && ! $this->servesGuests($request) && ! $request->routeIs('panneau.api.account.two-factor*')) {
+            throw new TwoFactorRequiredException;
         }
 
         return $next($request);

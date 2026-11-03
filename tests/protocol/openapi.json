@@ -32,7 +32,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -100,7 +100,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -231,7 +231,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -305,7 +305,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -403,7 +403,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -479,7 +479,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -547,7 +547,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -636,7 +636,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -727,7 +727,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -842,7 +842,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -943,7 +943,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1012,7 +1012,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1068,7 +1068,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1106,7 +1106,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1174,7 +1174,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1267,7 +1267,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1324,7 +1324,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1404,19 +1404,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "twoFactor": {
-                                            "type": "boolean",
-                                            "const": true
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/TwoFactorChallenge"
                                 }
                             }
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1427,6 +1421,16 @@
                     },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1452,7 +1456,7 @@
                         "description": "Logged out."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1502,7 +1506,7 @@
                         "description": "Redirect to the provider."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1551,7 +1555,7 @@
                         "description": "A reset link was sent, if the address has an account. The answer is the same when it hasn't, or when a link was sent recently."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1623,7 +1627,7 @@
                         "description": "The password was reset."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1679,7 +1683,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1733,7 +1737,7 @@
                         "description": "The address is verified."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1773,20 +1777,36 @@
         "/auth/two-factor/challenge": {
             "post": {
                 "operationId": "twoFactorChallenge",
+                "summary": "Ends a login that answered `202`, with a code of the authenticator app or a recovery code. A login that is no longer pending is a `422`.",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "code": {
-                                        "type": "string"
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "required": [
+                                            "code"
+                                        ],
+                                        "properties": {
+                                            "code": {
+                                                "type": "string"
+                                            }
+                                        }
                                     },
-                                    "recoveryCode": {
-                                        "type": "string"
+                                    {
+                                        "type": "object",
+                                        "required": [
+                                            "recoveryCode"
+                                        ],
+                                        "properties": {
+                                            "recoveryCode": {
+                                                "type": "string"
+                                            }
+                                        }
                                     }
-                                }
+                                ]
                             }
                         }
                     }
@@ -1803,7 +1823,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1814,6 +1834,391 @@
                     },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/auth/password/confirm": {
+            "post": {
+                "operationId": "confirmPassword",
+                "summary": "Confirms the password of the current user, for the operations that answer `423`.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "password"
+                                ],
+                                "properties": {
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "The password is confirmed."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/two-factor": {
+            "get": {
+                "operationId": "getTwoFactor",
+                "summary": "With `auth.twoFactor`: the two-factor authentication of the user.",
+                "responses": {
+                    "200": {
+                        "description": "Its status.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TwoFactorStatus"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "enableTwoFactor",
+                "summary": "Starts setting it up: a new secret, `pending` until `POST /account/two-factor/confirm`.",
+                "responses": {
+                    "200": {
+                        "description": "The secret to add to an authenticator app.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TwoFactorSetup"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "disableTwoFactor",
+                "summary": "Turns it off. A `409` when the backend requires it for the user.",
+                "responses": {
+                    "204": {
+                        "description": "Turned off."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/two-factor/confirm": {
+            "post": {
+                "operationId": "confirmTwoFactor",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "code"
+                                ],
+                                "properties": {
+                                    "code": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Turned on, with its recovery codes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecoveryCodes"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/two-factor/recovery-codes": {
+            "post": {
+                "operationId": "regenerateRecoveryCodes",
+                "summary": "New recovery codes, in place of the old ones.",
+                "responses": {
+                    "200": {
+                        "description": "The new codes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecoveryCodes"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1846,7 +2251,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1889,7 +2294,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1949,7 +2354,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2003,7 +2408,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2089,7 +2494,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2162,7 +2567,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2239,7 +2644,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -3740,6 +4145,7 @@
                         "type": "boolean"
                     },
                     "twoFactor": {
+                        "description": "`panneau`: two-factor authentication, which users set up through `/account/two-factor`, and which a password login asks for with a `202`.",
                         "type": "boolean"
                     },
                     "passkeys": {
@@ -5571,6 +5977,83 @@
                     "user"
                 ],
                 "additionalProperties": {}
+            },
+            "TwoFactorChallenge": {
+                "type": "object",
+                "properties": {
+                    "twoFactor": {
+                        "type": "boolean",
+                        "const": true
+                    }
+                },
+                "required": [
+                    "twoFactor"
+                ],
+                "additionalProperties": {},
+                "description": "The answer of `POST /auth/login` when a second factor is needed: the login waits for `POST /auth/two-factor/challenge`."
+            },
+            "TwoFactorStatus": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "disabled",
+                            "pending",
+                            "enabled"
+                        ],
+                        "description": "`pending`: set up, not confirmed with a code yet."
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "description": "The backend requires it for this user: it can't be turned off."
+                    }
+                },
+                "required": [
+                    "status",
+                    "required"
+                ],
+                "additionalProperties": {},
+                "description": "The two-factor authentication of the current user."
+            },
+            "TwoFactorSetup": {
+                "type": "object",
+                "properties": {
+                    "secret": {
+                        "type": "string",
+                        "description": "The secret, to type in an authenticator app."
+                    },
+                    "otpauthUrl": {
+                        "type": "string",
+                        "description": "The `otpauth://totp/…` URL of the secret."
+                    },
+                    "qrCode": {
+                        "description": "An SVG document of the QR code of `otpauthUrl`. Clients show it as an image, never as markup.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "secret",
+                    "otpauthUrl"
+                ],
+                "additionalProperties": {},
+                "description": "A two-factor authentication to confirm with a code."
+            },
+            "RecoveryCodes": {
+                "type": "object",
+                "properties": {
+                    "recoveryCodes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "recoveryCodes"
+                ],
+                "additionalProperties": {},
+                "description": "Codes that each log in once in place of a code of the authenticator app."
             },
             "SearchResponse": {
                 "type": "object",

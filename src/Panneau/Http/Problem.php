@@ -10,6 +10,8 @@ use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Panneau\Exceptions\ContextRefusedException;
 use Panneau\Exceptions\EmailUnverifiedException;
+use Panneau\Exceptions\PasswordConfirmationRequiredException;
+use Panneau\Exceptions\TwoFactorRequiredException;
 use Panneau\Exceptions\VersionConflictException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -36,6 +38,18 @@ final class Problem
      * (panneau-js decision 0048).
      */
     public const EMAIL_UNVERIFIED = 'urn:panneau:problem:email-unverified';
+
+    /**
+     * A user who must have two-factor authentication and hasn't set it up (panneau-js decision
+     * 0049).
+     */
+    public const TWO_FACTOR_REQUIRED = 'urn:panneau:problem:two-factor-required';
+
+    /**
+     * An operation that needs the password, which wasn't confirmed recently: a `423` (panneau-js
+     * decision 0049).
+     */
+    public const PASSWORD_CONFIRMATION = 'urn:panneau:problem:password-confirmation';
 
     /**
      * @param  array<string, mixed>  $extra  Extension members: `errors`, `current`…
@@ -94,6 +108,16 @@ final class Problem
                 403,
                 __('Your email address is not verified.'),
                 self::EMAIL_UNVERIFIED,
+            ),
+            $exception instanceof TwoFactorRequiredException => self::response(
+                403,
+                __('Two-factor authentication is required for this account.'),
+                self::TWO_FACTOR_REQUIRED,
+            ),
+            $exception instanceof PasswordConfirmationRequiredException => self::response(
+                423,
+                __('Password confirmation required.'),
+                self::PASSWORD_CONFIRMATION,
             ),
             $exception instanceof AuthenticationException => self::response(401),
             $exception instanceof AuthorizationException => self::response(

@@ -5,22 +5,25 @@ namespace TestApp\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
- * A user of the skeleton's `users` table that verifies its email address.
+ * A user of the skeleton's `users` table that verifies its email address, and can have
+ * two-factor authentication (with Fortify's columns).
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
     use Notifiable;
+    use TwoFactorAuthenticatable;
 
     protected $table = 'users';
 
     protected $guarded = [];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
 
     protected function casts(): array
     {
-        return ['email_verified_at' => 'datetime'];
+        return ['email_verified_at' => 'datetime', 'two_factor_confirmed_at' => 'datetime'];
     }
 }

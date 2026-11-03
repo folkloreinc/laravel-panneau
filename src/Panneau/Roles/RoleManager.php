@@ -40,7 +40,7 @@ final class RoleManager
     /**
      * The roles of config, by id.
      *
-     * @return array<string, array{label: string, permissions: list<string>, owned: bool}>
+     * @return array<string, array{label: string, permissions: list<string>, owned: bool, twoFactor: bool}>
      */
     public function roles(): array
     {
@@ -53,10 +53,27 @@ final class RoleManager
                 'label' => is_string($role['label'] ?? null) ? $role['label'] : (string) $id,
                 'permissions' => array_values(array_map(strval(...), array_filter($permissions, is_string(...)))),
                 'owned' => ($role['owned'] ?? false) === true,
+                'twoFactor' => ($role['two_factor'] ?? false) === true,
             ];
         }
 
         return $roles;
+    }
+
+    /**
+     * Whether a role of the user requires two-factor authentication (`two_factor`, panneau-js
+     * decision 0049).
+     */
+    public function requiresTwoFactor(?Authenticatable $user): bool
+    {
+        $roles = $this->roles();
+        foreach ($this->rolesOf($user) as $role) {
+            if (($roles[$role]['twoFactor'] ?? false) === true) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
