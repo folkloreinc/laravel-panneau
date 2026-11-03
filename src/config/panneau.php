@@ -95,9 +95,9 @@ return [
         // the app ({path}/auth/verify-email). Its expiry is auth.verification.expire.
         'email_verification' => false,
 
-        // Requests per minute to the password reset and the email verification, per user or
-        // IP address. Define the `panneau-auth` limiter with RateLimiter::for() to limit
-        // differently.
+        // Requests per minute to each route of the password reset and the email verification,
+        // per user or IP address. Define the `panneau-auth` limiter with RateLimiter::for() to
+        // limit differently.
         'rate_limit' => 6,
     ],
 

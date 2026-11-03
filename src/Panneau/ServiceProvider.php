@@ -84,7 +84,8 @@ class ServiceProvider extends BaseServiceProvider
         $this->callAfterResolving(RateLimiter::class, function (RateLimiter $limiter): void {
             $limiter->for(SearchController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.search.rate_limit'));
             $limiter->for(EmbedController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.embeds.rate_limit'));
-            $limiter->for(PasswordResetController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.auth.rate_limit'));
+            // Each route of the auth has its own budget
+            $limiter->for(PasswordResetController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.auth.rate_limit', perRoute: true));
         });
 
         $migrations = __DIR__.'/../../database/migrations';
@@ -123,9 +124,9 @@ class ServiceProvider extends BaseServiceProvider
      * A limit of requests per minute from a config key, for each user, or each IP address
      * without one: the global search (`panneau.search.rate_limit`), embeds
      * (`panneau.embeds.rate_limit`), and the password reset and the email verification
-     * (`panneau.auth.rate_limit`).
+     * (`panneau.auth.rate_limit`, per route).
      */
-    private function perMinute(Request $request, string $key): Limit
+    private function perMinute(Request $request, string $key, bool $perRoute = false): Limit
     {
         $perMinute = $this->app['config']->get($key);
         if (! is_numeric($perMinute) || (int) $perMinute <= 0) {
@@ -133,6 +134,8 @@ class ServiceProvider extends BaseServiceProvider
         }
         $user = $request->user();
 
-        return Limit::perMinute((int) $perMinute)->by($user !== null ? 'user:'.$user->getAuthIdentifier() : 'ip:'.$request->ip());
+        $by = $user !== null ? 'user:'.$user->getAuthIdentifier() : 'ip:'.$request->ip();
+
+        return Limit::perMinute((int) $perMinute)->by($perRoute ? $request->route()?->getName().'|'.$by : $by);
     }
 }

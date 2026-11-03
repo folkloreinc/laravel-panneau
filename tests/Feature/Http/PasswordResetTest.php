@@ -121,6 +121,9 @@ class PasswordResetTest extends HttpTestCase
         $this->postJson('/panneau/api/auth/password/forgot', ['email' => 'nobody@example.com'])
             ->assertStatus(429)
             ->assertHeader('Retry-After');
+        // Each route has its own budget
+        $this->postJson('/panneau/api/auth/password/reset', ['token' => 'wrong', 'email' => 'nobody@example.com', 'password' => 'a new password'])
+            ->assertStatus(422);
     }
 
     public function test_a_password_is_reset_without_logging_in(): void
