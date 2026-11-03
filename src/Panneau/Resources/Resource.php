@@ -2,6 +2,8 @@
 
 namespace Panneau\Resources;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
@@ -12,6 +14,7 @@ use Panneau\Fields\Field;
 use Panneau\Fields\Text;
 use Panneau\Layout\Node;
 use Panneau\Lists\ResourceList;
+use Panneau\Roles\RoleManager;
 
 /**
  * A set of items managed in the admin: its fields, form layout, list and actions.
@@ -230,8 +233,9 @@ abstract class Resource
     }
 
     /**
-     * The scope the repository receives: `scope()`, and the constraints of the kind of the
-     * resource, such as the media types of a library.
+     * The scope the repository receives: `scope()`, the constraints of the kind of the
+     * resource, such as the media types of a library, and with the roles module, the items the
+     * user owns (`OwnedResource`, decision 0014).
      *
      * @internal Override `scope()`.
      *
@@ -239,7 +243,26 @@ abstract class Resource
      */
     public function repositoryScope(Request $request): array
     {
-        return $this->scope($request);
+        return $this->ownedScope($request, $this->scope($request));
+    }
+
+    /**
+     * A scope with the owner scope of the roles module, when it is on.
+     *
+     * @internal
+     *
+     * @param  array<string, mixed>  $scope
+     * @return array<string, mixed>
+     */
+    protected function ownedScope(Request $request, array $scope): array
+    {
+        $container = Container::getInstance();
+        if (! $container->bound('config') || $container->make('config')->get('panneau.roles.enabled') !== true) {
+            return $scope;
+        }
+        $user = $request->user();
+
+        return $container->make(RoleManager::class)->scope($this, $user instanceof Authenticatable ? $user : null, $scope);
     }
 
     /**

@@ -1,0 +1,14 @@
+<?php
+
+namespace {{ namespace }}Policies;
+
+use Panneau\Roles\ResourcePolicy;
+
+/**
+ * Who can do what with {{ plural }} in the admin: the permissions of their roles in
+ * config/panneau.php (`{{ resource }}.viewAny`, `{{ resource }}.update`, `{{ resource }}.*`…).
+ */
+class {{ class }} extends ResourcePolicy
+{
+    protected string $resource = '{{ resource }}';
+}

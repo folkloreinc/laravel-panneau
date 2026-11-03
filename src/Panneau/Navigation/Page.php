@@ -2,6 +2,8 @@
 
 namespace Panneau\Navigation;
 
+use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 
 /**
@@ -29,6 +31,11 @@ final class Page
      * @var list<string>
      */
     private array $params = [];
+
+    /**
+     * @var string|(Closure(?Authenticatable): bool)|null
+     */
+    private string|Closure|null $ability = null;
 
     private function __construct(private readonly string $id, private readonly string $component)
     {
@@ -102,6 +109,32 @@ final class Page
         $this->params = $params;
 
         return $this;
+    }
+
+    /**
+     * Shown only to the users who have an ability: a Gate ability (`'stats.view'`), or a closure
+     * called through the container with the user as `$user`. For the others, the page has
+     * `"abilities": { "view": false }`: the app leaves it out of menus, and its route shows a
+     * forbidden page (panneau-js decision 0046). The page only hides: the endpoints its
+     * component calls still check the user.
+     *
+     * @param  string|(Closure(?Authenticatable): bool)  $ability
+     */
+    public function can(string|Closure $ability): self
+    {
+        $this->ability = $ability;
+
+        return $this;
+    }
+
+    /**
+     * @internal Read by `Navigation`.
+     *
+     * @return string|(Closure(?Authenticatable): bool)|null
+     */
+    public function ability(): string|Closure|null
+    {
+        return $this->ability;
     }
 
     /**

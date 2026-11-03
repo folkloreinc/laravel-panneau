@@ -97,6 +97,10 @@ final class Form
             $path = $prefix.$field->name();
             if (array_key_exists($field->name(), $values)) {
                 $values[$field->name()] = $field->prepare($values[$field->name()], $path, $context);
+                // Kept elsewhere: the field saved it with the context
+                if (! $field->isStored()) {
+                    unset($values[$field->name()]);
+                }
             } elseif ($nested) {
                 $field->prepareAbsent($path, $context);
             }

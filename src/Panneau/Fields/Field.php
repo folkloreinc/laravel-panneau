@@ -712,6 +712,16 @@ abstract class Field
     }
 
     /**
+     * Whether the repository receives the value. A field that keeps its value elsewhere (the
+     * roles of a user) returns false: it saves it from `prepare()`, once the item is saved, and
+     * reads it with `resolveUsing()`.
+     */
+    public function isStored(): bool
+    {
+        return true;
+    }
+
+    /**
      * Turns a validated value into the value the repository receives. Called once the values
      * are valid, before the `creating` and `updating` hooks. Most fields keep the value as is;
      * a field that keeps something outside the item (a file field stores its files) does it
