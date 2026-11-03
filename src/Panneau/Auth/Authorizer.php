@@ -2,12 +2,14 @@
 
 namespace Panneau\Auth;
 
+use Closure;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
 use Panneau\Actions\DeleteAction;
+use Panneau\Fields\Field;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
@@ -98,12 +100,111 @@ final class Authorizer
             return $this->allowWithoutPolicies;
         }
         $policy = $this->gate->getPolicyFor($item) ?? $this->gate->getPolicyFor((string) $resource->itemClass());
+        // A policy with `runAction($user, ?object $item, string $action)` answers every action of
+        // its resource
+        if (is_object($policy) && method_exists($policy, 'runAction')) {
+            return $this->gate->forUser($user)->allows('runAction', [$item, $action->id()]);
+        }
         $method = Str::camel($action->id());
 
         return $this->gate->forUser($user)->allows(
             is_object($policy) && method_exists($policy, $method) ? $method : 'update',
             $item,
         );
+    }
+
+    /**
+     * Whether the user can delete items of the resource at all: the policy's `deleteAny()`, when
+     * it has one. When it refuses, the definition declares the built-in `delete` with
+     * `"abilities": { "run": false }`, so lists offer no "Delete" and no checkboxes for it
+     * (panneau-js decision 0042), and its route answers `403`.
+     */
+    public function allowsDeleteAny(?Authenticatable $user, Resource $resource): bool
+    {
+        $class = $resource->itemClass();
+        $policy = $class !== null ? $this->gate->getPolicyFor($class) : null;
+        if (! is_object($policy) || ! method_exists($policy, 'deleteAny')) {
+            return true;
+        }
+
+        return $this->gate->forUser($user)->allows('deleteAny', $class);
+    }
+
+    /**
+     * Whether the user can see a field: its `canSee()` ability, or everyone.
+     */
+    public function canSeeField(?Authenticatable $user, Field $field): bool
+    {
+        return $this->allowsFieldAbility($user, $field->seeAbility());
+    }
+
+    /**
+     * Whether the user can edit a field: they can see it, and have its `canUpdate()` ability.
+     */
+    public function canUpdateField(?Authenticatable $user, Field $field): bool
+    {
+        return $this->canSeeField($user, $field) && $this->allowsFieldAbility($user, $field->updateAbility());
+    }
+
+    /**
+     * The abilities of a field in the definition: only those that are false (panneau-js decision
+     * 0042), `view` and `update`.
+     *
+     * @return array<string, false>
+     */
+    public function fieldAbilities(?Authenticatable $user, Field $field): array
+    {
+        if (! $this->canSeeField($user, $field)) {
+            return ['view' => false];
+        }
+
+        return $this->canUpdateField($user, $field) ? [] : ['update' => false];
+    }
+
+    /**
+     * The names of the fields of the resource the user can't see: items leave their values out.
+     *
+     * @return list<string>
+     */
+    public function hiddenFields(?Authenticatable $user, Resource $resource): array
+    {
+        $hidden = [];
+        foreach ($resource->allFields() as $field) {
+            if (! $this->canSeeField($user, $field)) {
+                $hidden[] = $field->name();
+            }
+        }
+
+        return $hidden;
+    }
+
+    /**
+     * The fields of the resource whose values the user can save: those they can see and edit.
+     * Saving ignores the values of the others, as it ignores read-only fields.
+     *
+     * @return list<Field>
+     */
+    public function writableFields(?Authenticatable $user, Resource $resource): array
+    {
+        return array_values(array_filter(
+            $resource->allFields(),
+            fn (Field $field): bool => $this->canUpdateField($user, $field),
+        ));
+    }
+
+    /**
+     * @param  string|(Closure(?Authenticatable): bool)|null  $ability
+     */
+    private function allowsFieldAbility(?Authenticatable $user, string|Closure|null $ability): bool
+    {
+        if ($ability === null) {
+            return true;
+        }
+        if ($ability instanceof Closure) {
+            return $ability($user) === true;
+        }
+
+        return $this->gate->forUser($user)->allows($ability);
     }
 
     /**
@@ -168,11 +269,29 @@ final class Authorizer
     }
 
     /**
-     * Whether the action is offered to the user at all.
+     * Whether the action is offered to the user at all: its `authorizeResource()`, and with the
+     * resource, the `deleteAny()` of its policy for the built-in `delete`, or the `runAction()`
+     * of its policy, which receives `null` for the item.
      */
-    public function allowsActionOnResource(?Authenticatable $user, Action $action): bool
+    public function allowsActionOnResource(?Authenticatable $user, Action $action, ?Resource $resource = null): bool
     {
-        return $action->authorizeResource($user);
+        if (! $action->authorizeResource($user)) {
+            return false;
+        }
+        if ($resource === null) {
+            return true;
+        }
+        if ($action instanceof DeleteAction) {
+            return $this->allowsDeleteAny($user, $resource);
+        }
+        $class = $resource->itemClass();
+        $policy = $class !== null ? $this->gate->getPolicyFor($class) : null;
+        if (is_object($policy) && method_exists($policy, 'runAction')) {
+            // The Gate finds the policy by the class, and passes it the rest: no item, the action
+            return $this->gate->forUser($user)->allows('runAction', [$class, null, $action->id()]);
+        }
+
+        return true;
     }
 
     /**
@@ -204,7 +323,7 @@ final class Authorizer
         $abilities['duplicate'] = $this->allowsDuplicateWhenViewed($user, $resource, $item, $abilities['view']);
         foreach ($this->resources->actions($resource) as $action) {
             if ($action instanceof Action && $action->appliesToItems()) {
-                $abilities[$action->id()] = $this->allowsActionOnResource($user, $action)
+                $abilities[$action->id()] = $this->allowsActionOnResource($user, $action, $resource)
                     && $this->allowsAction($user, $resource, $action, $item);
             }
         }

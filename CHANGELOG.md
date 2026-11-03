@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Abilities of fields: `canSee()` and `canUpdate()` take a Gate ability or a closure, and give the field `"abilities": { "view": false }` or `{ "update": false }` in the definition of the users without it. Items leave out the values of the fields the user can't see, in lists, items and the search, and saving ignores those of the fields they can't see or edit (panneau-js decision 0042, #148).
+- A policy with `deleteAny()` hides the built-in `delete` when it refuses: the definition declares it with `"abilities": { "run": false }`, and its route answers `403` (#148).
+- A policy with `runAction($user, ?object $item, string $action)` answers every action of its resource, on items and on the resource (#148).
+
 ## [5.0.0-alpha.8] - 2026-11-02
 
 Goes with `@panneau/*` `5.0.0-alpha.10`, which it needs: earlier admins ignore the rules limited to a mode and would require a `Password` on every update.
