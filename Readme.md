@@ -23,6 +23,7 @@ The alphas of `laravel-panneau` go with the alphas of `@panneau/*`: upgrade both
 
 | `laravel-panneau` | `@panneau/*` |
 |---|---|
+| 5.0.0-alpha.9 | 5.0.0-alpha.13 or later |
 | 5.0.0-alpha.8 | 5.0.0-alpha.10 or later |
 | 5.0.0-alpha.7 | 5.0.0-alpha.7 |
 | 5.0.0-alpha.6 | 5.0.0-alpha.7 |

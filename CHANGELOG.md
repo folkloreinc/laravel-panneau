@@ -6,8 +6,15 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.9] - 2026-11-03
+
+Goes with `@panneau/*` `5.0.0-alpha.13`, which it needs: the pages and menus, the current context, the abilities of pages and fields, hidden columns, the calendar and the `country`, `region` and E.164 `tel` types are new in the protocol of that release.
+
+What the contests platform needs for its app shell, its roles and its lists: pages and menus in the definition, a current context with values fixed by the request (the client of its domain), abilities of fields and pages, an optional roles module, hidden columns, inline editing, the calendar and the gallery, and the `Country` and `Region` fields with phone numbers in E.164.
+
 ### Breaking changes
 
+- Requires `@panneau/*` `5.0.0-alpha.13` or later (see above).
 - `Tel` values are phone numbers in E.164 (`+15145550199`): the type implies the protocol's new `tel` rule, and the server refuses any other value. Convert the numbers kept as typed, or their forms refuse them until they are retyped (folkloreinc/panneau-js decision 0047).
 
 ### Added
@@ -179,7 +186,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.8...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.9...v5.x
+[5.0.0-alpha.9]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.9
 [5.0.0-alpha.8]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.8
 [5.0.0-alpha.7]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.7
 [5.0.0-alpha.6]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.6
