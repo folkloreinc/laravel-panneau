@@ -14,6 +14,7 @@ use Panneau\Fields\Group;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Layout\Node;
+use Panneau\Navigation\Navigation;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use ReflectionMethod;
@@ -38,6 +39,7 @@ final class DefinitionBuilder
         private readonly Authorizer $authorizer,
         private readonly Config $config,
         private readonly Application $app,
+        private readonly Navigation $navigation,
     ) {}
 
     /**
@@ -54,8 +56,17 @@ final class DefinitionBuilder
             'locales' => $this->locales(),
             'api' => ['baseUrl' => $this->apiBaseUrl()],
             'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
-            'auth' => $this->auth(),
         ];
+        // Left out when there are none, so that definitions stay as they were
+        $pages = $this->navigation->pages($user);
+        if ($pages !== []) {
+            $definition['pages'] = $pages;
+        }
+        $menus = $this->menus($user, $pages);
+        if ($menus !== []) {
+            $definition['menus'] = $menus;
+        }
+        $definition['auth'] = $this->auth();
         // Without it, the app doesn't call GET /search, which doesn't exist
         $definition['search'] = ['enabled' => (bool) $this->config->get('panneau.search.enabled', true)];
         if ($this->config->get('panneau.uploads.enabled')) {
@@ -69,6 +80,69 @@ final class DefinitionBuilder
         $definition['user'] = $user !== null ? $this->user($user) : null;
 
         return $definition;
+    }
+
+    /**
+     * The menus of the app shell for a user, by name: `panneau.menus`, then those of
+     * `Panneau::menu()`. Resource classes become ids, and references to resources and pages
+     * are checked: a typo would leave the entry out of the menu.
+     *
+     * @param  array<string, array<string, mixed>>  $pages
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function menus(?Authenticatable $user, array $pages): array
+    {
+        $menus = [];
+        foreach ($this->navigation->menus($user) as $name => $items) {
+            $menus[$name] = $this->menuItems($name, $items, $pages);
+        }
+
+        return $menus;
+    }
+
+    /**
+     * Items of a menu, checked, with resource ids. Items of the types of plugins are left as
+     * they are.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @param  array<string, array<string, mixed>>  $pages
+     * @return list<array<string, mixed>>
+     */
+    private function menuItems(string $menu, array $items, array $pages): array
+    {
+        return array_map(function (array $item) use ($menu, $pages): array {
+            switch ($item['type']) {
+                case 'resource':
+                    $reference = $item['resource'] ?? null;
+                    $resource = is_string($reference) ? $this->resources->resolve($reference) : null;
+                    if ($resource === null) {
+                        throw new LogicException(sprintf('The menu "%s" links to the resource %s, which is not registered.', $menu, json_encode($reference)));
+                    }
+                    $item['resource'] = $resource->id();
+                    break;
+                case 'page':
+                    $page = $item['page'] ?? null;
+                    if (! is_string($page) || ! isset($pages[$page])) {
+                        throw new LogicException(sprintf('The menu "%s" links to the page %s, which is not declared in panneau.pages or with Panneau::pages().', $menu, json_encode($page)));
+                    }
+                    if (($pages[$page]['params'] ?? []) !== []) {
+                        throw new LogicException(sprintf('The menu "%s" links to the page "%s", which has params: a page about one thing can\'t be in a menu.', $menu, $page));
+                    }
+                    break;
+                case 'link':
+                    if (! is_string($item['url'] ?? null)) {
+                        throw new LogicException(sprintf('The menu "%s" has a link without a URL: %s.', $menu, json_encode($item)));
+                    }
+                    break;
+                case 'group':
+                    if (isset($item['children']) && is_array($item['children'])) {
+                        $item['children'] = $this->menuItems($menu, $item['children'], $pages);
+                    }
+                    break;
+            }
+
+            return $item;
+        }, $items);
     }
 
     /**

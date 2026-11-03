@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Panneau\Navigation\MenuItem;
+use Panneau\Navigation\Page;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Asset;
 use TestApp\Models\Author;
@@ -20,8 +22,9 @@ use TestApp\Policies\AuthorPolicy;
 use TestApp\Policies\PostPolicy;
 
 /**
- * The app served to the protocol's conformance kit in CI: the fixture resources, a media library
- * and direct uploads, behind a bearer token (`Authorization: Bearer conformance`).
+ * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
+ * direct uploads, a page and a main menu, behind a bearer token (`Authorization: Bearer
+ * conformance`).
  */
 class ConformanceServiceProvider extends ServiceProvider
 {
@@ -61,6 +64,12 @@ class ConformanceServiceProvider extends ServiceProvider
         Gate::policy(Asset::class, AssetPolicy::class);
 
         Panneau::resources([PostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class]);
+        Panneau::pages([Page::make('reports', 'reports')->label('Reports')]);
+        Panneau::menu('main', [
+            MenuItem::resources(),
+            MenuItem::separator(),
+            MenuItem::group('More', [MenuItem::page('reports'), MenuItem::link('Site', '/')->external()]),
+        ]);
         Panneau::routes();
     }
 }
