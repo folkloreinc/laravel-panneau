@@ -1,4 +1,4 @@
-# 0014: The context is checked param by param, through the repositories, on every request
+# 0015: The context is checked param by param, through the repositories, on every request
 
 - Status: proposed
 - Date: 2026-11-03
@@ -25,4 +25,4 @@ The contests platform, its first user, picks a contest, then a client of that co
 - Every request with a context checks each value: one `find()` and one policy check per param of a resource. A product with many params or slow repositories caches in its repository, not in Panneau.
 - A resource can't be scoped by a value the user can't see: the scope only gets checked values.
 - The choices of a param of a resource are filtered after the query: a page can have fewer than 20 choices when the policy refuses some of them. A scope that keeps to what the user can see avoids it.
-- `GET /search` and `GET /embeds` get the same `403` for a refused value, which the protocol's OpenAPI document doesn't list for them yet.
+- `GET /search` and `GET /embeds` get the same `403` for a refused value, as every operation of the protocol's OpenAPI document does.

@@ -508,7 +508,7 @@ Panneau::menu('main', fn (?Authenticatable $user): array => [
 
 ## Current context
 
-The user picks a current context in the app, such as a contest, then a client ([panneau-js decision 0045](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0045-current-context.md), #147, [decisions/0014](decisions/0014-current-context.md)). The app sends its values with every request, in a `Panneau-Context` header (`contest=12&client=4`), and keeps them in its URL (`/panneau/contest/12/client/4/resources/entries`). The API checks each value for the user, resources apply them in their scope, and the definition is built for them.
+The user picks a current context in the app, such as a contest, then a client ([panneau-js decision 0045](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0045-current-context.md), #147, [decisions/0015](decisions/0015-current-context.md)). The app sends its values with every request, in a `Panneau-Context` header (`contest=12&client=4`), and keeps them in its URL (`/panneau/contest/12/client/4/resources/entries`). The API checks each value for the user, resources apply them in their scope, and the definition is built for them.
 
 ```php
 use Illuminate\Contracts\Auth\Authenticatable;
