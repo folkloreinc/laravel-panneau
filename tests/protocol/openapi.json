@@ -2638,7 +2638,12 @@
                         "type": "boolean"
                     },
                     "readOnly": {
+                        "description": "Nobody edits the field (a computed value). For a field the current user can't edit, use `abilities.update: false`.",
                         "type": "boolean"
+                    },
+                    "abilities": {
+                        "description": "What the current user can do with the field (decision 0046). Only `false` restricts: `view: false` leaves the field out of forms, details and lists, and items don't carry its value; `update: false` makes it read-only, and the backend ignores its value. For the fields at the top of a resource and of its types.",
+                        "$ref": "#/components/schemas/Abilities"
                     },
                     "createOnly": {
                         "type": "boolean"
@@ -3645,6 +3650,10 @@
                             "type": "string",
                             "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
                         }
+                    },
+                    "abilities": {
+                        "description": "What the current user can do with the page (decision 0046). `view: false` leaves it out of menus, and its route shows a forbidden state; `pages.home` falls back to the built-in home. Without it, the page is allowed.",
+                        "$ref": "#/components/schemas/Abilities"
                     }
                 },
                 "required": [

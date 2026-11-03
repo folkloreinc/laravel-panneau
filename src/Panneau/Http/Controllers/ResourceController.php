@@ -106,9 +106,11 @@ final class ResourceController
 
         $uploads = $this->uploadResolver($request);
         $references = $this->mediaReferences($request);
+        // The values of fields the user can't see or edit are ignored (panneau-js decision 0046)
+        $fields = $this->authorizer->writableFields($request->user(), $resource);
         $values = Form::validate(
             $this->validator,
-            $resource->allFields(),
+            $fields,
             $request->all(),
             $this->validationContext(
                 $request,
@@ -120,7 +122,7 @@ final class ResourceController
         );
         $saving = new SaveContext(FormMode::Create, null, $uploads);
         try {
-            $values = Form::prepare($resource->allFields(), $values, $saving);
+            $values = Form::prepare($fields, $values, $saving);
             $values = $resource->creating($values, $request);
             $item = $this->resources->repository($resource)->create($values, $resource->repositoryScope($request));
         } catch (Throwable $exception) {
@@ -149,9 +151,10 @@ final class ResourceController
 
         $uploads = $this->uploadResolver($request);
         $references = $this->mediaReferences($request);
+        $fields = $this->authorizer->writableFields($request->user(), $resource);
         $values = Form::validate(
             $this->validator,
-            $resource->allFields(),
+            $fields,
             $request->all(),
             $this->validationContext(
                 $request,
@@ -165,7 +168,7 @@ final class ResourceController
         );
         $saving = new SaveContext(FormMode::Update, $item, $uploads);
         try {
-            $values = Form::prepare($resource->allFields(), $values, $saving);
+            $values = Form::prepare($fields, $values, $saving);
             $values = $resource->updating($item, $values, $request);
             $item = $repository->update($item, $values);
         } catch (Throwable $exception) {
@@ -259,6 +262,7 @@ final class ResourceController
             $fields,
             $this->authorizer->itemAbilities($request->user(), $resource, $item),
             $references ?? $this->mediaReferences($request),
+            $this->authorizer->hiddenFields($request->user(), $resource),
         );
     }
 

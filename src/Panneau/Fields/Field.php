@@ -4,6 +4,7 @@ namespace Panneau\Fields;
 
 use Closure;
 use DateTimeInterface;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Validation\Rule as LaravelRule;
 use Panneau\Forms\Condition;
 use Panneau\Forms\FieldCheck;
@@ -44,6 +45,21 @@ abstract class Field
     protected bool $updateOnly = false;
 
     protected ?Condition $visibleWhen = null;
+
+    /**
+     * The ability the user needs to see the field: a Gate ability, or a closure that receives
+     * the user. Null: everyone who sees the resource.
+     *
+     * @var string|(Closure(?Authenticatable): bool)|null
+     */
+    protected string|Closure|null $seeAbility = null;
+
+    /**
+     * The ability the user needs to edit the field, as `$seeAbility`.
+     *
+     * @var string|(Closure(?Authenticatable): bool)|null
+     */
+    protected string|Closure|null $updateAbility = null;
 
     protected ?string $display = null;
 
@@ -140,6 +156,54 @@ abstract class Field
         $this->readOnly = $readOnly;
 
         return $this;
+    }
+
+    /**
+     * Shown only to the users who have an ability: a Gate ability (`'contests.budget.view'`), or a
+     * closure that receives the user. For the others, the definition gives the field
+     * `"abilities": { "view": false }`, items leave out its value, and saving ignores it
+     * (panneau-js decision 0046). For the fields at the top of a resource.
+     *
+     * @param  string|(Closure(?Authenticatable): bool)  $ability
+     */
+    public function canSee(string|Closure $ability): static
+    {
+        $this->seeAbility = $ability;
+
+        return $this;
+    }
+
+    /**
+     * Edited only by the users who have an ability, as `canSee()`. For the others, the field is
+     * read-only (`"abilities": { "update": false }`), and saving ignores its value.
+     *
+     * @param  string|(Closure(?Authenticatable): bool)  $ability
+     */
+    public function canUpdate(string|Closure $ability): static
+    {
+        $this->updateAbility = $ability;
+
+        return $this;
+    }
+
+    /**
+     * @internal Read by the `Authorizer`.
+     *
+     * @return string|(Closure(?Authenticatable): bool)|null
+     */
+    public function seeAbility(): string|Closure|null
+    {
+        return $this->seeAbility;
+    }
+
+    /**
+     * @internal Read by the `Authorizer`.
+     *
+     * @return string|(Closure(?Authenticatable): bool)|null
+     */
+    public function updateAbility(): string|Closure|null
+    {
+        return $this->updateAbility;
     }
 
     /**

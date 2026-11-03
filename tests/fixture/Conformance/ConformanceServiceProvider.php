@@ -16,7 +16,6 @@ use TestApp\Models\Author;
 use TestApp\Models\Post;
 use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\ImagesResource;
-use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Panneau\Resources\TagsResource;
 use TestApp\Policies\AssetPolicy;
 use TestApp\Policies\AuthorPolicy;
@@ -64,7 +63,7 @@ class ConformanceServiceProvider extends ServiceProvider
         Gate::policy(Author::class, AuthorPolicy::class);
         Gate::policy(Asset::class, AssetPolicy::class);
 
-        Panneau::resources([PostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class]);
+        Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class]);
         Panneau::pages([Page::make('reports', 'reports')->label('Reports')]);
         Panneau::menu('main', [
             MenuItem::resources(),
