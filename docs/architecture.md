@@ -267,7 +267,7 @@ Location::make('place')->zoom(14)->center(45.5017, -73.5673),
 
 ### Countries, regions and phone numbers
 
-The types of [panneau-js decision 0042](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0042-countries-regions-and-phone-numbers.md), for addresses and contacts.
+The types of [panneau-js decision 0047](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0047-countries-regions-and-phone-numbers.md), for addresses and contacts.
 
 ```php
 Country::make('country')->preferred(['CA', 'US']),     // countries(['CA', 'US']) to allow only those

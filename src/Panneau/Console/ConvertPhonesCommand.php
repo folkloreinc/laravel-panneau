@@ -10,7 +10,7 @@ use Panneau\Fields\PhoneNumber;
 
 /**
  * Turns the phone numbers that a project kept as typed into E.164, the values of `Tel` fields
- * (decision 0042 of panneau-js). Its columns are those of `panneau.phones.columns`, or its
+ * (decision 0047 of panneau-js). Its columns are those of `panneau.phones.columns`, or its
  * arguments: `table.column` for a column, `table.column:path.in.json` for a key of a JSON column.
  *
  * Numbers that don't read as one stay as typed, and are listed with `-v` by their shape

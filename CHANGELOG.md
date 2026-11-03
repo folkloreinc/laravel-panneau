@@ -8,12 +8,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Breaking changes
 
-- `Tel` values are phone numbers in E.164 (`+15145550199`): the type implies the protocol's new `tel` rule, and the server refuses any other value. Convert the numbers kept as typed, or their forms refuse them until they are retyped (folkloreinc/panneau-js decision 0042).
+- `Tel` values are phone numbers in E.164 (`+15145550199`): the type implies the protocol's new `tel` rule, and the server refuses any other value. Convert the numbers kept as typed, or their forms refuse them until they are retyped (folkloreinc/panneau-js decision 0047).
 
 ### Added
 
-- `php artisan panneau:convert-phones` turns the phone numbers that a project kept as typed into E.164, in the columns and JSON keys of `panneau.phones.columns`, without a library of numbering plans; `Panneau\Fields\PhoneNumber` converts and formats them, and `panneau.phones.country` is the country of the `Tel` fields without `country()` (folkloreinc/panneau-js decision 0042).
-- `Country` and `Region` fields, the `country` and `region` types: a country is an ISO 3166-1 alpha-2 code (`Country::CODES`, with `XK`), limited with `countries()` and ordered with `preferred()`; a region is a string, whose country comes from the field that `from()` names or from `country()`. `Tel::country()` sets the country of a new number. Lists show `country` and `region` fields without columns (folkloreinc/panneau-js decision 0042).
+- `php artisan panneau:convert-phones` turns the phone numbers that a project kept as typed into E.164, in the columns and JSON keys of `panneau.phones.columns`, without a library of numbering plans; `Panneau\Fields\PhoneNumber` converts and formats them, and `panneau.phones.country` is the country of the `Tel` fields without `country()` (folkloreinc/panneau-js decision 0047).
+- `Country` and `Region` fields, the `country` and `region` types: a country is an ISO 3166-1 alpha-2 code (`Country::CODES`, with `XK`), limited with `countries()` and ordered with `preferred()`; a region is a string, whose country comes from the field that `from()` names or from `country()`. `Tel::country()` sets the country of a new number. Lists show `country` and `region` fields without columns (folkloreinc/panneau-js decision 0047).
 
 ## [5.0.0-alpha.8] - 2026-11-02
 
