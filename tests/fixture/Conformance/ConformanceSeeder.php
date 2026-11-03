@@ -23,5 +23,15 @@ class ConformanceSeeder extends Seeder
                 'published_at' => now()->subDays($index),
             ]);
         }
+        // A post the user can't update or delete (PostPolicy), for the checks of item abilities
+        Post::query()->create([
+            'team_id' => 1,
+            'title' => 'Locked',
+            'slug' => ['fr' => 'verrouille', 'en' => 'locked'],
+            'subtitle' => ['fr' => 'Verrouillé', 'en' => 'Locked'],
+            'status' => 'published',
+            'author_id' => $author->id,
+            'published_at' => now()->subDays(3),
+        ]);
     }
 }

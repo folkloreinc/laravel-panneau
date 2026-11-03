@@ -287,7 +287,7 @@ final class DefinitionBuilder
         // A duplication that lists a relation the repository can't copy throws here, when the
         // admin loads, rather than on a click
         $this->resources->duplication($resource);
-        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field), $fields);
+        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $fields);
 
         $layout = $resource->layout();
         if (count($layout) > 0) {
@@ -305,12 +305,23 @@ final class DefinitionBuilder
         $definition['list'] = $list;
 
         $abilities = $this->authorizer->resourceAbilities($user, $resource);
-        $actions = $this->resources->actions($resource);
+        $actions = array_map(
+            fn (ActionDeclaration $action): array => $this->action($action, $user, $abilities['viewAny'], $resource),
+            $this->resources->actions($resource),
+        );
+        // A user who can't delete any item (the policy's `deleteAny()`): the built-in `delete`,
+        // declared or not, can't run, so lists have no "Delete" (panneau-js decision 0046).
+        if (in_array('delete', $itemActions ?? Resource::ITEM_ACTIONS, true)
+            && ! $this->authorizer->allowsDeleteAny($user, $resource)) {
+            $declared = array_search('delete', array_column($actions, 'id'), true);
+            if ($declared === false) {
+                $actions[] = ['id' => 'delete', 'kind' => 'server', 'scope' => ['item', 'selection'], 'abilities' => ['run' => false]];
+            } else {
+                $actions[$declared]['abilities'] = ['run' => false];
+            }
+        }
         if (count($actions) > 0) {
-            $definition['actions'] = array_map(
-                fn (ActionDeclaration $action): array => $this->action($action, $user, $abilities['viewAny']),
-                $actions,
-            );
+            $definition['actions'] = $actions;
         }
         $definition['abilities'] = $abilities;
 
@@ -359,11 +370,11 @@ final class DefinitionBuilder
     /**
      * @return array<string, mixed>
      */
-    public function action(ActionDeclaration $action, ?Authenticatable $user = null, bool $canViewResource = true): array
+    public function action(ActionDeclaration $action, ?Authenticatable $user = null, bool $canViewResource = true, ?Resource $resource = null): array
     {
         $definition = $action->toDefinition();
         if ($action instanceof Action) {
-            $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action)];
+            $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action, $resource)];
         }
         if (isset($definition['fields']) && is_array($definition['fields'])) {
             $definition['fields'] = array_map(fn (array $field): array => $this->nestedField($field), $definition['fields']);
@@ -375,9 +386,16 @@ final class DefinitionBuilder
     /**
      * @return array<string, mixed>
      */
-    private function field(Field $field): array
+    private function field(Field $field, ?Authenticatable $user): array
     {
-        return $this->resolveFieldReferences($field->toDefinition());
+        $definition = $this->resolveFieldReferences($field->toDefinition());
+        // What the user can't do with the field (panneau-js decision 0046)
+        $abilities = $this->authorizer->fieldAbilities($user, $field);
+        if ($abilities !== []) {
+            $definition['abilities'] = $abilities;
+        }
+
+        return $definition;
     }
 
     /**
