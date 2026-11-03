@@ -32,7 +32,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -100,7 +100,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -231,7 +231,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -305,7 +305,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -403,7 +403,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -479,7 +479,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -547,7 +547,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -636,7 +636,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -727,7 +727,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -842,7 +842,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -943,7 +943,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1012,7 +1012,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1068,7 +1068,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1106,7 +1106,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1174,7 +1174,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1267,7 +1267,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1324,7 +1324,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1416,7 +1416,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1452,7 +1452,7 @@
                         "description": "Logged out."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1502,7 +1502,7 @@
                         "description": "Redirect to the provider."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1527,6 +1527,7 @@
         "/auth/password/forgot": {
             "post": {
                 "operationId": "forgotPassword",
+                "summary": "With `auth.passwordReset`: emails a link to the page of the app at `{basePath}/auth/reset-password?token=…&email=…`.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1547,10 +1548,10 @@
                 },
                 "responses": {
                     "204": {
-                        "description": "A reset link was sent, if the account exists."
+                        "description": "A reset link was sent, if the address has an account. The answer is the same when it hasn't, or when a link was sent recently."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1561,6 +1562,16 @@
                     },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1580,6 +1591,7 @@
         "/auth/password/reset": {
             "post": {
                 "operationId": "resetPassword",
+                "summary": "With `auth.passwordReset`: sets a new password, with the token and the email of the link. It does not log in.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1611,7 +1623,7 @@
                         "description": "The password was reset."
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1622,6 +1634,126 @@
                     },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/auth/email/verification": {
+            "post": {
+                "operationId": "sendEmailVerification",
+                "summary": "With `auth.emailVerification`: emails the current user a link to the page of the app at `{basePath}/auth/verify-email?token=…`.",
+                "responses": {
+                    "204": {
+                        "description": "A link was sent, or the address is already verified."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/auth/email/verify": {
+            "post": {
+                "operationId": "verifyEmail",
+                "summary": "With `auth.emailVerification`: verifies the address of the token of a link. The user does not need to be logged in.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "token"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "The address is verified."
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1671,7 +1803,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1714,7 +1846,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1757,7 +1889,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1817,7 +1949,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1871,7 +2003,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1957,7 +2089,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2030,7 +2162,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2107,7 +2239,7 @@
                         }
                     },
                     "403": {
-                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`.",
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2639,7 +2771,12 @@
                         "type": "boolean"
                     },
                     "readOnly": {
+                        "description": "Nobody edits the field (a computed value). For a field the current user can't edit, use `abilities.update: false`.",
                         "type": "boolean"
+                    },
+                    "abilities": {
+                        "description": "What the current user can do with the field (decision 0046). Only `false` restricts: `view: false` leaves the field out of forms, details and lists, and items don't carry its value; `update: false` makes it read-only, and the backend ignores its value. For the fields at the top of a resource and of its types.",
+                        "$ref": "#/components/schemas/Abilities"
                     },
                     "createOnly": {
                         "type": "boolean"
@@ -3599,6 +3736,7 @@
                         }
                     },
                     "passwordReset": {
+                        "description": "`panneau`: a \"Forgot your password?\" link on the login page, through `POST /auth/password/forgot` and `POST /auth/password/reset`.",
                         "type": "boolean"
                     },
                     "twoFactor": {
@@ -3608,6 +3746,7 @@
                         "type": "boolean"
                     },
                     "emailVerification": {
+                        "description": "`panneau`: the backend refuses users whose email address isn't verified with a `403` problem of type `urn:panneau:problem:email-unverified`, and verifies it through `POST /auth/email/verification` and `POST /auth/email/verify`.",
                         "type": "boolean"
                     }
                 },
@@ -3684,6 +3823,10 @@
                             "type": "string",
                             "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
                         }
+                    },
+                    "abilities": {
+                        "description": "What the current user can do with the page (decision 0046). `view: false` leaves it out of menus, and its route shows a forbidden state; `pages.home` falls back to the built-in home. Without it, the page is allowed.",
+                        "$ref": "#/components/schemas/Abilities"
                     }
                 },
                 "required": [

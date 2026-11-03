@@ -175,19 +175,29 @@ final class DefinitionBuilder
      * The `auth` of the definition and of the boot config. The login and logout URLs are those
      * of the site, in `external` mode.
      *
-     * @return array{mode: 'external'|'panneau', loginUrl: string|null, logoutUrl: string|null}
+     * In `panneau` mode, `passwordReset` and `emailVerification` are set when they are on
+     * (panneau-js decision 0048).
+     *
+     * @return array{mode: 'external'|'panneau', loginUrl: string|null, logoutUrl: string|null, passwordReset?: true, emailVerification?: true}
      */
     public function auth(): array
     {
         $mode = $this->config->get('panneau.auth.mode') === 'panneau' ? 'panneau' : 'external';
         $loginUrl = $this->config->get('panneau.auth.login_url');
         $logoutUrl = $this->config->get('panneau.auth.logout_url');
-
-        return [
+        $auth = [
             'mode' => $mode,
             'loginUrl' => $mode === 'external' && is_string($loginUrl) ? $loginUrl : null,
             'logoutUrl' => $mode === 'external' && is_string($logoutUrl) && $logoutUrl !== '' ? $logoutUrl : null,
         ];
+        if ($mode === 'panneau' && $this->config->get('panneau.auth.password_reset') === true) {
+            $auth['passwordReset'] = true;
+        }
+        if ($mode === 'panneau' && $this->config->get('panneau.auth.email_verification') === true) {
+            $auth['emailVerification'] = true;
+        }
+
+        return $auth;
     }
 
     /**

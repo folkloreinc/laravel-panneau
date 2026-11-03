@@ -1,5 +1,6 @@
 <?php
 
+use Panneau\Auth\ResetUserPassword;
 use Panneau\Roles\DatabaseRoleStore;
 
 return [
@@ -59,8 +60,8 @@ return [
     'auth' => [
         // "external": the site handles login, and unauthenticated users are sent to
         // login_url. "panneau": the app shows its own login page, which logs in with an email
-        // and a password on the guard (a session guard). Two-factor, passkeys, password reset
-        // and OAuth providers come in a later version.
+        // and a password on the guard (a session guard). Two-factor, passkeys and OAuth
+        // providers come in a later version.
         'mode' => 'external',
 
         // Guard of the admin users. Null: the default guard.
@@ -73,6 +74,31 @@ return [
         // accept a GET navigation (a route that logs out and redirects). Null: the app has no
         // "Log out" button.
         'logout_url' => null,
+
+        // "panneau" mode: a "Forgot your password?" link on the login page. The link of the
+        // email opens the page of the app ({path}/auth/reset-password), and is sent with
+        // Panneau's own notification (Panneau\Auth\Notifications\ResetPassword), only to users
+        // that the viewPanneau gate allows in. The site's reset emails are left alone.
+        'password_reset' => false,
+
+        // The password broker of the reset (auth.passwords). Null: the default broker.
+        'passwords' => null,
+
+        // The Fortify action that sets the new password (Laravel\Fortify\Contracts\
+        // ResetsUserPasswords), such as the site's App\Actions\Fortify\ResetUserPassword. The
+        // default follows Password::defaults() and saves an Eloquent user.
+        'reset_password_using' => ResetUserPassword::class,
+
+        // "panneau" mode: users whose address isn't verified (MustVerifyEmail) are refused by
+        // the API until they open the link of a verification email. The app has a page that
+        // sends a new link (Panneau\Auth\Notifications\VerifyEmail), which opens the page of
+        // the app ({path}/auth/verify-email). Its expiry is auth.verification.expire.
+        'email_verification' => false,
+
+        // Requests per minute to the password reset and the email verification, per user or
+        // IP address. Define the `panneau-auth` limiter with RateLimiter::for() to limit
+        // differently.
+        'rate_limit' => 6,
     ],
 
     // The page of the app, served for every path under {path} except the API.

@@ -79,8 +79,11 @@ interface Panneau
      * the project under `{path}` must be registered before. Routes of the project registered
      * before outside `{path}` are moved after Panneau's, so that a page route such as `/{page}`
      * doesn't catch `{path}`. In the `panneau` auth mode, the API also has `POST auth/login`
-     * and `POST auth/logout`. The routes of the API check the current context (`ResolveContext`),
-     * but login and logout, and `GET context/{param}/options` gives the choices of its params.
+     * and `POST auth/logout`, `POST auth/password/forgot` and `POST auth/password/reset` with
+     * `panneau.auth.password_reset`, and `POST auth/email/verification` and
+     * `POST auth/email/verify` with `panneau.auth.email_verification`. The routes of the API
+     * check the current context (`ResolveContext`), but those of the auth, and
+     * `GET context/{param}/options` gives the choices of its params.
      *
      * @param  bool  $app  Whether to register the app's page. Without it, only the API.
      */
