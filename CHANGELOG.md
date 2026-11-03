@@ -16,6 +16,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - An optional roles module (decision 0014, #149), off by default (`panneau.roles.enabled`): roles and their permissions in config (`contests.update`, `contests.*`, `*`), roles and grants of users in a `RoleStore` (two tables by default, `panneau-roles-migrations`), the `Roles` and `Grants` fields and `panneau:role` to assign them, a `Gate::before()` that answers the permissions of Panneau and nothing else, `ResourcePolicy` as the base of the policies of resources, and ownership: users whose roles are all `owned` reach only the items of `OwnedResource::ownerScope()`, on every route. `panneau:install` generates a `ResourcePolicy` when the module is on.
 - `Field::isStored()`: a field that keeps its value elsewhere returns false, and saves it from `prepare()` (#149).
 - `Page::can()` takes a Gate ability or a closure: a page the user can't open has `"abilities": { "view": false }` in the definition, and the app hides it (panneau-js decision 0046, #149).
+- `Column::hidden()`, a column the list doesn't show until the user shows it, and `Column::hideable(false)`, one the user can't hide (panneau-js decision 0042, #150).
+- `ResourceList::calendar()`: the items on the days of a date field, in the `calendar` layout of the list, with the list's `date-range` filter on that field; and `Resource::itemImage()`, the field shown as the image of an item, in the `gallery` layout (panneau-js decision 0044, #150).
+
+### Fixed
+
+- A partial update reads the `visibleWhen` of a field with the item's values of the fields it doesn't send: a field shown when `status` is `published`, sent alone, as a list edits it in place, was dropped without an error. It is now saved on a published item (panneau-js decision 0043, #150).
 
 ## [5.0.0-alpha.8] - 2026-11-02
 

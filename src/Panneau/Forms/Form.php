@@ -11,7 +11,8 @@ use Panneau\Fields\Field;
  *
  * At each level (the form, a group, a repeater block), a field applies when it is editable in
  * this mode (not read-only, create-only or update-only), visible (`visibleWhen`), and, for a
- * partial update, present in the values.
+ * partial update, present in the values. A partial update reads the conditions with the item's
+ * values of the fields it doesn't send.
  */
 final class Form
 {
@@ -115,11 +116,41 @@ final class Form
      */
     private static function applicable(array $fields, array $values, ValidationContext $context): array
     {
+        $visibility = $context->partial && $context->item !== null
+            ? self::visibilityValues($fields, $values, $context->item)
+            : $values;
+
         return array_values(array_filter(
             $fields,
             fn (Field $field): bool => $field->isEditable($context->mode)
-                && $field->isVisible($values)
+                && $field->isVisible($visibility)
                 && (! $context->partial || array_key_exists($field->name(), $values)),
         ));
+    }
+
+    /**
+     * What the conditions of a partial update read: the values sent, and the item's values of
+     * the fields they name that aren't sent. A field shown when `status` is `published`, sent
+     * alone, applies to a published item (panneau-js decision 0043).
+     *
+     * @param  list<Field>  $fields
+     * @param  array<array-key, mixed>  $values
+     * @return array<array-key, mixed>
+     */
+    private static function visibilityValues(array $fields, array $values, object $item): array
+    {
+        $byName = [];
+        foreach ($fields as $field) {
+            $byName[$field->name()] = $field;
+        }
+        foreach ($fields as $field) {
+            foreach ($field->getVisibleWhen()?->fields() ?? [] as $name) {
+                if (! array_key_exists($name, $values) && isset($byName[$name])) {
+                    $values[$name] = $byName[$name]->resolve($item);
+                }
+            }
+        }
+
+        return $values;
     }
 }

@@ -248,6 +248,20 @@ class DefinitionBuilderTest extends TestCase
         $this->assertArrayNotHasKey('itemActions', $this->resource('tags'));
     }
 
+    public function test_the_image_of_items(): void
+    {
+        $this->assertArrayNotHasKey('itemImage', $this->resource('tags'));
+        $resource = new class extends TagsResource
+        {
+            public function itemImage(): string
+            {
+                return 'cover';
+            }
+        };
+
+        $this->assertSame('cover', $this->app->make(DefinitionBuilder::class)->resource($resource)['itemImage'] ?? null);
+    }
+
     /**
      * @return iterable<string, array{resource, string}>
      */

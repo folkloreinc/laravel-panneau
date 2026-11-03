@@ -17,6 +17,10 @@ final class Column
 
     private ?string $align = null;
 
+    private bool $hidden = false;
+
+    private bool $hideable = true;
+
     private function __construct(private ?string $field, private ?string $id) {}
 
     /**
@@ -82,6 +86,26 @@ final class Column
     }
 
     /**
+     * Not shown by default: users show it from the columns of the list (panneau-js decision 0042).
+     */
+    public function hidden(bool $hidden = true): self
+    {
+        $this->hidden = $hidden;
+
+        return $this;
+    }
+
+    /**
+     * Whether users can hide the column. A column that can't be hidden is always shown.
+     */
+    public function hideable(bool $hideable = true): self
+    {
+        $this->hideable = $hideable;
+
+        return $this;
+    }
+
+    /**
      * @param  list<string>  $sorts
      * @return array<string, mixed>
      */
@@ -97,6 +121,8 @@ final class Column
             'sortable' => $sortable ?: null,
             'width' => $this->width,
             'align' => $this->align,
+            'hidden' => $this->hidden && $this->hideable ? true : null,
+            'hideable' => $this->hideable ? null : false,
         ], fn (mixed $value): bool => $value !== null);
     }
 }

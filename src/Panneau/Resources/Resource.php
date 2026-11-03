@@ -98,6 +98,15 @@ abstract class Resource
     }
 
     /**
+     * The field shown as the image of an item, in the gallery of its list, search results and
+     * pickers: a media or image field, or a URL (panneau-js decision 0044).
+     */
+    public function itemImage(): ?string
+    {
+        return null;
+    }
+
+    /**
      * The repository: a class or contract resolved from the container. It implements
      * `ResourceRepository`, or a contract with a registered adapter.
      *

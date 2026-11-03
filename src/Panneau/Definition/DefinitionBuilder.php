@@ -270,7 +270,7 @@ final class DefinitionBuilder
             $definition['kind'] = $resource->kind();
         }
         $definition['label'] = ['singular' => $resource->singularLabel(), 'plural' => $resource->pluralLabel()];
-        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'itemTitle' => $resource->itemTitle()] as $key => $value) {
+        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'itemTitle' => $resource->itemTitle(), 'itemImage' => $resource->itemImage()] as $key => $value) {
             if ($value !== null) {
                 $definition[$key] = $value;
             }
