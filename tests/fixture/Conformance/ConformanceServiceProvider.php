@@ -46,6 +46,11 @@ class ConformanceServiceProvider extends ServiceProvider
         $config->set('panneau.auth.email_verification', true);
         // Two-factor authentication: the kit reads the status, and sends a challenge without a login
         $config->set('panneau.auth.two_factor', true);
+        // Passkeys: the kit asks for the options of a login, sends a credential that doesn't
+        // exist, and lists the passkeys of the account
+        $config->set('panneau.auth.passkeys', true);
+        $config->set('passkeys.relying_party_id', 'localhost');
+        $config->set('passkeys.allowed_origins', ['http://localhost']);
         $config->set('panneau.auth.passwords', 'conformance');
         // A token, not a session: no "web" middleware, so no CSRF token to send
         $config->set('panneau.middleware', ['panneau.auth']);

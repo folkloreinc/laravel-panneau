@@ -176,10 +176,10 @@ final class DefinitionBuilder
      * of the site, in `external` mode.
      *
      * In `panneau` mode, `account` is set (the account page, panneau-js decision 0050), and
-     * `passwordReset`, `emailVerification` and `twoFactor` when they are on (decisions 0048 and
-     * 0049).
+     * `passwordReset`, `emailVerification`, `twoFactor` and `passkeys` when they are on (decisions
+     * 0048, 0049 and 0051).
      *
-     * @return array{mode: 'external'|'panneau', loginUrl: string|null, logoutUrl: string|null, account?: true, passwordReset?: true, emailVerification?: true, twoFactor?: true}
+     * @return array{mode: 'external'|'panneau', loginUrl: string|null, logoutUrl: string|null, account?: true, passwordReset?: true, emailVerification?: true, twoFactor?: true, passkeys?: true}
      */
     public function auth(): array
     {
@@ -203,6 +203,9 @@ final class DefinitionBuilder
 
         if ($mode === 'panneau' && $this->config->get('panneau.auth.two_factor') === true) {
             $auth['twoFactor'] = true;
+        }
+        if ($mode === 'panneau' && $this->config->get('panneau.auth.passkeys') === true) {
+            $auth['passkeys'] = true;
         }
 
         return $auth;
