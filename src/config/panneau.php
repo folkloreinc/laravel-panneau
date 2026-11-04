@@ -287,6 +287,21 @@ return [
         'columns' => [],
     ],
 
+    // Postal addresses (Panneau\Fields\Address), kept as one value: `{ "street", "unit", "city",
+    // "region", "postalCode", "country" }` in a JSON column.
+    'addresses' => [
+        // The country of an address without one (`CA`), for `panneau:convert-addresses`.
+        'country' => null,
+        // Where a project kept the parts of addresses in separate columns, for
+        // `panneau:convert-addresses`: the JSON column that receives the address (`table.column`),
+        // and the source of each part, a column of the same table, or `column:path.in.json` for a
+        // key of a JSON column (`city:fr` for a localized column).
+        //
+        // 'venues.address' => ['street' => 'address', 'unit' => 'address2', 'city' => 'city',
+        //     'region' => 'province', 'postalCode' => 'postal_code', 'country' => 'country'],
+        'columns' => [],
+    ],
+
     // File fields (Panneau\Fields\File): files that belong to an item, stored on the field's
     // disk. Private files get temporary URLs.
     'files' => [
