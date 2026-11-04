@@ -487,6 +487,27 @@ class FormTest extends TestCase
         $this->assertArrayHasKey('phone', $this->errors($fields, ['phone' => '+33612345678']));
     }
 
+    public function test_durations_are_whole_numbers_whatever_their_unit(): void
+    {
+        $fields = [
+            Duration::make('running_time')->unit('minutes')->min(1)->max(600),
+            Duration::make('window')->unit('days')->largestUnit('days'),
+        ];
+
+        $this->assertSame(
+            ['running_time', 'window'],
+            array_keys($this->errors($fields, ['running_time' => 1.5, 'window' => -1])),
+        );
+        $this->assertSame(['running_time'], array_keys($this->errors($fields, ['running_time' => 601, 'window' => 30])));
+        $this->assertSame(['running_time'], array_keys($this->errors($fields, ['running_time' => 'PT1H30M'])));
+        // min and max are in the unit: 90 minutes
+        $this->assertSame(
+            ['running_time' => 90, 'window' => 30],
+            $this->validate($fields, ['running_time' => 90, 'window' => 30]),
+        );
+        $this->assertSame(['window' => 0], $this->validate($fields, ['window' => 0]));
+    }
+
     public function test_tel_values_are_e164(): void
     {
         $fields = [Tel::make('phone')];

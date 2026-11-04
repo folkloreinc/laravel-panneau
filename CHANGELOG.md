@@ -18,6 +18,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - `php artisan panneau:convert-addresses` turns the parts of addresses kept in separate columns (`panneau.addresses.columns`, `panneau.addresses.country`) into address values in a JSON column, and the upgrade from 1.x points the groups of a street, a city and a postal code to `Address` (panneau-js decision 0054).
 - The `Link` field, the `link` type of panneau-js decision 0055: `url`, `page`, `email`, `tel`, `file` and a site's types (`types()`), with `pages()`, `libraries()`, `newTab()`, `linkLabel()` and `resolvePageUrlUsing()`. The backend checks the parts of the type on their paths (`link.url`, `link.page`), keeps only those, sets `newTab`, and items give the reference and the URL of the page or the file of the links at the top of a resource. The upgrade from 1.x points the groups of a label, a URL and a new tab toggle, and the `Url` fields that accepted `mailto:`, to it (folkloreinc/panneau-js#202).
 - Lists without columns show `address` fields, with the other simple types.
+- `Duration::unit()` and `Duration::largestUnit()`, and `Duration::precision()` takes `hours` and `days` too (panneau-js decision 0056): a duration is a whole number of its unit, `seconds` (the default), `minutes`, `hours` or `days`, and the admin's input can show days. The three refuse another unit with an `InvalidArgumentException`. The server still checks a whole number, 0 or more (folkloreinc/panneau-js#211).
 
 ## [5.0.0-alpha.10] - 2026-11-04
 

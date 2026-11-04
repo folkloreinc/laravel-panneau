@@ -233,6 +233,49 @@ class FieldTest extends TestCase
         $build();
     }
 
+    public function test_duration_units(): void
+    {
+        $this->assertSame(['name' => 'length', 'type' => 'duration'], Duration::make('length')->toDefinition());
+        $this->assertSame(
+            ['name' => 'running_time', 'type' => 'duration', 'settings' => ['unit' => 'minutes']],
+            Duration::make('running_time')->unit('minutes')->toDefinition(),
+        );
+        $this->assertSame(
+            ['name' => 'window', 'type' => 'duration', 'settings' => ['unit' => 'hours', 'largestUnit' => 'days', 'precision' => 'hours']],
+            Duration::make('window')->unit('hours')->largestUnit('days')->precision('hours')->toDefinition(),
+        );
+        $this->assertSame(
+            ['name' => 'half_life', 'type' => 'duration', 'settings' => ['precision' => 'days']],
+            Duration::make('half_life')->precision('days')->toDefinition(),
+        );
+        $this->assertSame(['seconds', 'minutes', 'hours', 'days'], Duration::UNITS);
+    }
+
+    /**
+     * @return array<string, array{Closure(): mixed}>
+     */
+    public static function invalidDurationUnits(): array
+    {
+        return [
+            'unit in weeks' => [fn () => Duration::make('length')->unit('weeks')],
+            'unit in months' => [fn () => Duration::make('length')->unit('months')],
+            'largest unit in years' => [fn () => Duration::make('length')->largestUnit('years')],
+            'precision in milliseconds' => [fn () => Duration::make('length')->precision('milliseconds')],
+            'singular unit' => [fn () => Duration::make('length')->unit('minute')],
+            'capitalized unit' => [fn () => Duration::make('length')->unit('Hours')],
+        ];
+    }
+
+    /**
+     * @param  Closure(): mixed  $build
+     */
+    #[DataProvider('invalidDurationUnits')]
+    public function test_duration_setters_refuse_other_units(Closure $build): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $build();
+    }
+
     public function test_rich_text_settings(): void
     {
         $this->assertSame(
