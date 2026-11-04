@@ -6,6 +6,16 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.12] - 2026-11-04
+
+Goes with `@panneau/*` `5.0.0-alpha.17` (`5.0.0-alpha.16` works too: the sortable column headers are already in it).
+
+Lists that declare no sorts can now be sorted by their columns.
+
+### Breaking changes
+
+- A list without `sorts()` now accepts the `sort` param for the sortable fields of its columns, and its headers sort them. To keep a list unsortable, call `sorts([])`.
+
 ### Changed
 
 - A list that doesn't declare its sorts (`sorts()`) sorts by the fields of its columns whose values sort as they are stored, and its column headers sort: text, numbers, dates, durations, amounts, booleans and single choices, in one locale, and not computed by `resolveUsing()` (`Field::isSortable()`). `EloquentRepository` leaves out accessors, relations, and ranges and amounts without their casts (the new `SortsFields` contract). `sorts([])` turns sorting off, and a column marked `sortable()` now adds its field to the sorts the query accepts (#176).
@@ -231,7 +241,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.11...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.12...v5.x
+[5.0.0-alpha.12]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.12
 [5.0.0-alpha.11]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.11
 [5.0.0-alpha.10]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.10
 [5.0.0-alpha.9]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.9
