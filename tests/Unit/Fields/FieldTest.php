@@ -9,12 +9,14 @@ use Panneau\Fields\Boolean;
 use Panneau\Fields\Color;
 use Panneau\Fields\Country;
 use Panneau\Fields\Date;
+use Panneau\Fields\DateRange;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Embed;
 use Panneau\Fields\Group;
 use Panneau\Fields\Json;
 use Panneau\Fields\Location;
+use Panneau\Fields\Money;
 use Panneau\Fields\Number;
 use Panneau\Fields\Range;
 use Panneau\Fields\Region;
@@ -22,6 +24,7 @@ use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\RichText;
 use Panneau\Fields\Select;
+use Panneau\Fields\Sessions;
 use Panneau\Fields\Slug;
 use Panneau\Fields\Tags;
 use Panneau\Fields\Tel;
@@ -43,6 +46,7 @@ class FieldTest extends TestCase
             [
                 'text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'slug', 'relation', 'group', 'repeater',
                 'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location', 'country', 'region',
+                'daterange', 'money', 'repeater',
             ],
             array_map(fn ($field) => $field->type(), [
                 Text::make('a'), Textarea::make('a'), RichText::make('a'), Number::make('a'), Boolean::make('a'),
@@ -50,6 +54,7 @@ class FieldTest extends TestCase
                 Slug::make('a'), Relation::make('a'), Group::make('a'), Repeater::make('a'),
                 Tel::make('a'), Range::make('a'), Duration::make('a'), Json::make('a'), Tags::make('a'), Embed::make('a'), Location::make('a'),
                 Country::make('a'), Region::make('a'),
+                DateRange::make('a'), Money::make('a'), Sessions::make('a'),
             ]),
         );
     }

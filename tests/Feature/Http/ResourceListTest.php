@@ -124,6 +124,37 @@ class ResourceListTest extends HttpTestCase
         $this->assertSame([], $titles('filter[published_at][from]=9999-12-31'));
     }
 
+    public function test_a_date_range_filter_on_a_range_keeps_the_ranges_that_overlap_it(): void
+    {
+        $this->createPost(['title' => 'Before', 'dates' => ['start' => '2026-10-01', 'end' => '2026-10-31']]);
+        $this->createPost(['title' => 'Across', 'dates' => ['start' => '2026-10-20', 'end' => '2026-11-02T10:00:00Z']]);
+        $this->createPost(['title' => 'Inside', 'dates' => ['start' => '2026-11-10T19:30:00Z', 'end' => '2026-11-10T22:00:00Z']]);
+        $this->createPost(['title' => 'Open', 'dates' => ['start' => '2026-11-30', 'end' => null]]);
+        $this->createPost(['title' => 'After', 'dates' => ['start' => '2026-12-01', 'end' => '2026-12-31']]);
+        $this->createPost(['title' => 'Without dates']);
+        $titles = fn (string $query): array => array_column($this->getJson(self::API.'/resources/posts?sort=dates&'.$query)->assertOk()->json('data'), 'title');
+
+        // On or before the last day, and on or after the first one; an open end never limits
+        $this->assertSame(['Across', 'Inside', 'Open'], $titles('filter[dates][from]=2026-11-01&filter[dates][to]=2026-11-30'));
+        $this->assertSame(['Before', 'Across'], $titles('filter[dates][from]=2026-10-31&filter[dates][to]=2026-10-31'));
+        $this->assertSame(['Open', 'After'], $titles('filter[dates][from]=2026-12-15'));
+        $this->assertSame(['Open'], $titles('filter[dates][from]=2027-06-01'));
+        $this->assertSame(['Before', 'Across'], $titles('filter[dates][to]=2026-10-31'));
+        // Sorted by the start, without a range last
+        $this->assertSame(['After', 'Open', 'Inside', 'Across', 'Before', 'Without dates'], $titles('sort=-dates'));
+    }
+
+    public function test_money_sorts_by_its_amount(): void
+    {
+        $this->createPost(['title' => 'Ten', 'price' => ['amount' => 1000, 'currency' => 'CAD']]);
+        $this->createPost(['title' => 'Two', 'price' => ['amount' => 200, 'currency' => 'USD']]);
+        $this->createPost(['title' => 'Free', 'price' => ['amount' => 0, 'currency' => 'CAD']]);
+
+        $response = $this->getJson(self::API.'/resources/posts?sort=price')->assertOk();
+        $this->assertSame(['Free', 'Two', 'Ten'], array_column($response->json('data'), 'title'));
+        $this->assertSame(['amount' => 200, 'currency' => 'USD'], $response->json('data.1.price'));
+    }
+
     public function test_invalid_parameters_are_ignored(): void
     {
         $this->createPost();

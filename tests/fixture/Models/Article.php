@@ -17,6 +17,7 @@ class Article extends Model
             'cover' => 'array',
             'gallery' => 'array',
             'blocks' => 'array',
+            'download' => 'array',
         ];
     }
 }

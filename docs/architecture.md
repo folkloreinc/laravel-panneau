@@ -189,6 +189,8 @@ interface ResourceRepository
   - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
   - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types));
   - `Country`, `Region` (see [Countries, regions and phone numbers](#countries-regions-and-phone-numbers));
+  - `DateRange`, `Money`, and the `Sessions` preset (see [Date ranges and money](#date-ranges-and-money));
+  - `Address`, `Link` (see [Addresses](#addresses) and [Links](#links));
   - `Password`, a `text` field with `settings.secret` (see [Passwords](#passwords)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
@@ -198,7 +200,7 @@ interface ResourceRepository
 - **Abilities of a field** ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)). `canSee($ability)` shows a field only to the users who have an ability, and `canUpdate($ability)` lets only them edit it: a Gate ability (`'contests.budget.view'`), or a closure that receives the user. For the others, the definition gives the field `"abilities": { "view": false }` or `{ "update": false }`, items leave out the value of a field they can't see, and saving ignores the values of the fields they can't see or edit, as it ignores read-only ones. For the fields at the top of a resource.
 - **Secrets.** `Text::secret()` writes `"settings": { "secret": true }`: clients type the value in a password input that a button reveals, keep the browser from filling it in, and show it as dots in lists and details. The backend still decides whether it sends the value back. A secret the project keeps encrypted (an access key) is usually write-only, `->secret()->writeOnly()`: items have `null` for it, and an update that leaves it out, or sends it empty, keeps the stored value, since the form starts without it. Only for fields at the top of a resource; a resource with its own `toItem()` leaves the value out there.
 - **Options** of `Select`, `Tags` and `SelectFilter` are a backed enum class, a list of options (`['value' => …, 'label' => …, 'description' => …, 'disabled' => …, 'tone' => …]`), or labels keyed by value. `tone` colors the option where it shows as a badge, in lists and details: `neutral` (the default), `accent`, `success`, `warning`, `danger`, `info`, or a tone of the theme (`panneau.theme.tones`). An enum case gives its label with a `label()` method, and its tone with a `tone()` method (null for the default).
-- **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`, `crop()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
+- **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`, `crop()`, `postalCode()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
 - **Rules limited to a mode** ([panneau-js#165](https://github.com/folkloreinc/panneau-js/pull/165)). `required()`, `min()`, `max()`, `pattern()`, `in()`, `before()` and `after()` take a `mode`: `Text::make('code')->required(mode: FormMode::Create)` sends `{ "rule": "required", "mode": "create" }`, and the rule applies only when the item is created, in the admin and on the server. In the other mode, the field accepts no value, `null` or `""`. A rule replaces the rule of the same name that applies in the same modes: `required()` replaces both, `required(mode: …)` only the one of its mode. `isRequired(FormMode::Create)` says whether a field is required in a mode, `isRequired()` in every mode. Admins before `@panneau/*` 5.0.0-alpha.10 ignore `mode`: they apply the rule in both modes.
 - **Validation.** Rules are built for the submitted values, so they follow the form:
   - fields hidden by `visibleWhen`, read-only fields, and `createOnly`/`updateOnly` fields outside their mode are neither validated nor saved;
@@ -306,6 +308,117 @@ Tel::make('phone')->country('CA'),                      // the country of a new 
   - `PhoneNumber::format()` shows a number in the format of the project's country (`514 555-0199`), or with its calling code (`+33 6 12 34 56 78`), for emails, PDFs and pages; `PhoneNumber::nationalNumber()` gives its digits without the calling code, for exports.
   - No library of numbering plans: the admin checks numbers with the smallest metadata of `libphonenumber-js`, which mostly checks their lengths, and the table above does the same on the server for the numbers it converts.
 - **Phone numbers kept as typed** before (`514 555-0199`) are refused until they are converted to E.164, or retyped.
+
+### Date ranges and money
+
+The types of [panneau-js decision 0053](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0053-date-ranges-and-money.md) (folkloreinc/panneau-js#198, folkloreinc/panneau-js#200), for events, editions and campaigns, and for prices, offers and donations.
+
+```php
+DateRange::make('dates'),                                          // days, both inclusive
+DateRange::make('dates')->time()->open('end'),                     // date-times; the end can be null
+DateRange::make('dates')->allDay()->timeZone('America/Toronto'),   // an "All day" switch; the zone of the place
+DateRange::make('dates')->time()->chooseTimeZone(),                // a zone per value
+Money::make('price')->currency('CAD')->min(0),                     // one currency
+Money::make('donation')->currencies(['CAD', 'USD'])->min(500),     // the currencies to pick from; min() in cents
+Sessions::make('sessions')->venues(VenuesResource::class)->append([Money::make('price')->currency('CAD')]),
+```
+
+- **Values:**
+  - `daterange` is `{ "start", "end" }`, or null. Its bounds are days (`2026-11-04`), both inclusive, or with `time()` date-times with their offset (`2026-11-04T23:30:00Z`), which items give in ATOM with the offset of the app. With `allDay()`, which turns `time()` on, an all-day value has days as bounds and `"allDay": true`. With `chooseTimeZone()`, the value keeps the IANA zone the user picked (`"timeZone": "America/Vancouver"`). An empty range (`null`, or both bounds empty) is null;
+  - `money` is `{ "amount": 1250, "currency": "CAD" }`, or null: an integer in the minor unit of the currency, its exponent in ISO 4217 (`Currency::digits()`: 2 for `CAD`, 0 for `JPY`, 3 for `KWD`), and an ISO 4217 code in capitals (`Currency::CODES`, the list of `@panneau/protocol`).
+- **Rules.** The types imply the protocol's `daterange` and `money` rules, as `tel` implies `tel`: the server enforces them from the settings of the field, and doesn't write them in the definition (the admin adds them, with `open` and `currencies`). A filled range has both bounds, except the one `open()` lets be null (`start`, `end` or `both`), bounds of the right kind, and ends on or after its start; each failure has its message (`Give the start of the dates.`, `Give the end of the dates.`, `The end of the dates can’t be before its start.`), on the path of the field. An amount must be an integer with a currency among `currency()` or `currencies()`, or any known one; `min()` and `max()` apply to the amount, in minor units (`min(100)` is one dollar), and don't convert currencies.
+- **Settings.** `open()`, `timeZone()`, `currency()` and `currencies()` throw an `InvalidArgumentException` for an unknown bound, an IANA zone that doesn't exist, or a code that isn't a known ISO 4217 code in capitals.
+- **Model.** `AsDateRange` keeps a range in the columns of its bounds, so that both stay sortable and filterable; `AsMoney` keeps an amount in an integer column, with a column of its currency or a fixed one:
+
+  ```php
+  protected function casts(): array
+  {
+      return [
+          'dates' => AsDateRange::class.':starts_at,ends_at',            // + ',timezone' for chooseTimeZone(), + ',all_day' for allDay()
+          'period' => AsDateRange::columns('starts_at', 'ends_at', timeZone: 'timezone', allDay: 'all_day'),
+          'price' => AsMoney::class.':price_cents,currency',             // the currency in a column
+          'fee' => AsMoney::class.':fee_cents,CAD',                       // always in CAD
+      ];
+  }
+  ```
+
+  - `AsDateRange` gives `['start' => ?CarbonImmutable, 'end' => ?CarbonImmutable]`, with `timeZone` and `allDay` when they have a column, or null. It stores a day at its midnight and a date-time converted to the zone of the app, as the `datetime` cast does. Without a column for them, the zone and `allDay` of a value are lost.
+  - `AsMoney` gives a `Panneau\Money\Money`, or null. Its second argument is a currency when it is a known ISO 4217 code in capitals, a column otherwise. It takes a `Money`, `{ amount, currency }` or null, refuses an amount in another currency than a fixed one, and refuses to read an amount that isn't an integer: convert those first (below).
+  - In a group, a repeater or a JSON column, both are kept as their JSON values.
+- **`Money`** is a value object: `Money::of(1250, 'CAD')`, `Money::fromDecimal('12.5', 'CAD')` (rounded half away from zero to the digits of the currency, without the errors of floating point: `1.005` is 101 cents), `toDecimal()` (`'12.50'`), `format('fr_CA')` (`1 250,00 $`, with `ext-intl`; the amount and the code without it), `equals()`, and `toArray()` and JSON as the protocol's value. `Money` fields serialize it.
+- **Lists.** Without columns, a list shows `daterange` and `money` fields with the other simple types. On an attribute with the `AsDateRange` cast, `EloquentRepository` reads a `date-range` filter as an overlap: the items whose range starts on or before `to` and ends on or after `from`, where a null bound never limits it and items without a range are left out; a sort on it sorts by its start column. A sort on an `AsMoney` attribute sorts by its amount column, whatever the currency. `calendar()` takes a `daterange` field: the calendar asks for each month through that same filter.
+- **Sessions** of a performance or a screening are a `Repeater` (decision 0053), not a type: `Sessions::make('sessions')` has `dates`, a `DateRange` with `time()` (`dates(fn (DateRange $dates) => …)` to change it), `venues()` adds `venue`, a `Relation` to the resource of the venues, and `append()` other fields. They are kept as the value of the repeater (a JSON column with the `array` cast), or in rows of their own by the project's repository.
+- **Amounts kept in major units.** `php artisan panneau:convert-money` turns the floats, decimals and numeric strings of `panneau.money.columns` into minor units, in the currency of `panneau.money.currency` (`--currency` to use another):
+
+  ```php
+  // config/panneau.php
+  'money' => [
+      'currency' => 'CAD',
+      'columns' => ['products.price:price_cents', 'orders.data:total'],
+  ],
+  ```
+
+  - `table.column:target_column`, when the table has that column: the amount of `column` goes to `target_column`, an integer column the project added by migration for the `AsMoney` cast. A row whose target is filled is never overwritten.
+  - `table.column:path.in.json` otherwise: the number at that key of the JSON column becomes a money value, `{ "amount", "currency" }`, in place.
+  - What doesn't read as a number stays as it is, and `-v` lists it by its shape (`99,99 $`, an `a` for each letter), never its value. `--dry-run` counts and lists without writing. Rows are read and written by their `id`, without their models; running it again changes nothing.
+- **From 1.x.** `--check` lists two date fields of a file named as a start and an end (`starts_at` and `ends_at`), and `Number` fields with a currency in their strings (a `$` suffix): neither change is automatic (see the [migration guide](migration.md)).
+
+### Addresses
+
+The `address` type of [panneau-js decision 0054](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0054-addresses.md): a postal address as one value, with its parts.
+
+```php
+Address::make('address')
+    ->country('CA')                       // the country of a new address
+    ->countries(['CA', 'US'])             // and preferred(), as Country
+    ->requiredParts(['street', 'city', 'region', 'postalCode', 'country'])
+    ->point(),                            // a map, and the point in the value
+Text::make('zip')->postalCode(field: 'country'), // the rule on a text field: a code, or a field
+```
+
+- **Value:** `{ "street", "unit", "city", "region", "postalCode", "country" }`, and `{ "lat", "lng" }` in `point` with `point()`. Empty parts are left out. A street, a unit, a city, a region or a postal code fills an address (`Address::FILLING_PARTS`): without one, it is `null`, or its point alone (`{ "point" }`). A country alone, which the admin may set by itself, is no address. `region` is a value of the `region` type for the country (`QC`), `country` a value of the `country` type.
+- **Checks.** Once the address is filled, as clients count it, the parts of `requiredParts()` are required (`street`, `city` and `country` without it; not the country when the field has `country()`, which saving sets), every part is a string of 255 characters at most, the country is one of `countries()` (or any code), and the postal code is one of the address's country. Errors are keyed by the path of the part: `address.postalCode`, `details.venue.street`, `address.fr.city` for a localized address. The point is checked whenever it is there. `required()` requires a filled address: a country or a point alone fails it.
+- **The `postalCode` rule** (`Panneau\Rules\PostalCode`) is a portable rule: `{ "rule": "postalCode", "value": "CA" }`, or `{ "field": "country" }` for another field of the same object, as for `before`. It checks the format of Canada (`H2X 1Y4`, without the letters Canada Post doesn't use) and of the United States (`12345`, `12345-6789`) once normalized; postal codes of other countries, or without a country, pass. `PostalCode::normalize()` and `PostalCode::isValid()` do the same in a project.
+- **Saving** trims the parts, puts the country in capitals (or `country()` on an address that has parts and no country), the regions of Canada and the United States as their codes (`Québec`, `Quebec` and `qc` are `QC`), and the postal code in the format of its country (`h2x1y4` is `H2X 1Y4`, `123456789` is `12345-6789`; elsewhere in capitals, spaces collapsed). `Address::normalize()` does the same.
+- **Lists.** Without columns, a list shows an `address` field with the other simple types, on one line.
+- **Model.** The attribute needs a JSON column with the `array` cast.
+- **Addresses kept in separate columns.** `php artisan panneau:convert-addresses` writes the address of each row in a JSON column, from the columns of `panneau.addresses.columns`: the target `table.column`, and the source of each part, a column of the same table, or `column:path.in.json` for a key of a JSON column (`city:fr` for a localized column, `data:address.street` for a group of 1.x).
+
+  ```php
+  // config/panneau.php
+  'addresses' => [
+      'country' => 'CA', // the country of an address without one
+      'columns' => [
+          'venues.address' => ['street' => 'address', 'unit' => 'address2', 'city' => 'city',
+              'region' => 'province', 'postalCode' => 'postal_code', 'country' => 'country'],
+      ],
+  ],
+  ```
+
+  - Parts are normalized as saving does. Countries become codes from their names in English or French (`Canada`, `États-Unis`) with `ext-intl`, and two-letter codes are put in capitals. Regions of Canada and the United States become their codes from their names in English or French, in any case, with or without accents (`Québec`, `Qc`, `Qué.`).
+  - A country, a region of Canada or the United States, or a postal code it can't convert stays as typed, and `-v` lists it by its shape (`a9a 9a`), never its value: its form refuses it until it is fixed. `--dry-run` counts and lists without writing, `--country` replaces `panneau.addresses.country`, and arguments convert some targets only.
+  - A row whose target already holds an address is left alone: running it again changes nothing, and keeps the addresses edited since. The target can be one of the sources (a text column of streets that becomes the JSON column of addresses). Rows are read and written by their `id`, without their models.
+
+### Links
+
+The `link` type of [panneau-js decision 0055](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0055-links.md): the link of a button, a card or a menu item.
+
+```php
+Link::make('cta')
+    ->pages(PagesResource::class, EventsResource::class) // the resources of page links
+    ->resolvePageUrlUsing(fn (object $page, string $resource): ?string => route($resource.'.show', $page))
+    ->types(['page', 'url', 'email', 'file', ['id' => 'anchor', 'label' => 'Anchor', 'pattern' => '^#[\w-]+$']])
+    ->libraries([DocumentsResource::class])              // the libraries of file links
+    ->newTab('external')                                 // choose (the default), external or never
+    ->linkLabel('required'),                             // optional (the default), required or none
+```
+
+- **Value:** `{ "type", "url", "page", "file", "label", "newTab" }`, or `null`. `url` is the `href`: `https://…` for `url` links, `mailto:…` for `email` links, `tel:+…` (E.164) for `tel` links, the text typed for a site's types. `label` is a string per locale (`{ "fr": "…" }`), or a string in a `localized()` link, whose every part is per locale already. `newTab` is always there.
+- **Types.** `types()` lists built-in names and a site's types (an `id`, a `label`, an optional `pattern` and `placeholder`). Without it: `url`, `email` and `tel`, after `page` with `pages()`. A `page` type without `pages()` is left out, as clients do. `label()` is the label of the field: the setting of link labels is `linkLabel()`.
+- **Checks**, keyed by the path of each part: `link.type` must be one of the types; `link.url` is required for the types with a URL, an `http://` or `https://` URL for `url` links, `mailto:` and an email address (and a query, if any) for `email` links, `tel:` and a number in E.164 for `tel` links, the `pattern` of a site's type; `link.page` must be an item of the resources of `pages()`, within their scope, and `link.file` a media of the libraries, checked as a `media` field checks its media; `link.label` is required (a locale at least) with `linkLabel('required')`. Labels are 255 characters at most.
+- **Requests** send a page as its id, or `{ "id", "resource" }` when the field has several resources, and a file as a `media` field's value. Saving keeps the parts of the type only: the repository receives `{ "type", "page": { "id", "resource" } }` for a page, the `url` of other types, the filled labels, and `newTab`, false with `newTab('never')`, and with `newTab('external')` true for `url` and `file` links and a site's types that point to another site (`https://`, `//`), false for the others. The `url` of `page` and `file` links is ignored.
+- **Items** give a page as a reference, `{ "id", "resource", "label" }`, with the URL of `resolvePageUrlUsing()` in `url` (left out without it: a site resolves the page itself), and a file as a `MediaReference`, with the URL of its file in `url`, for the fields at the top of a resource. In groups and blocks, values give what the repository received, as `media` values do.
+- **Model.** The attribute needs a JSON column with the `array` cast.
 
 ### File
 

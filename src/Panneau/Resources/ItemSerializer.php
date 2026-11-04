@@ -2,6 +2,7 @@
 
 namespace Panneau\Resources;
 
+use Panneau\Fields\Link;
 use Panneau\Fields\Media;
 use Panneau\Fields\Relation;
 use Panneau\Media\MediaReferences;
@@ -10,7 +11,8 @@ use Panneau\Media\MediaReferences;
  * Turns an item into its protocol form: its values, from `toItem()`, with `id`, `version` and
  * `abilities`. Related items become references (`{ "id": "12", "label": "Ada" }`), and the
  * values of `media` fields media references (`{ "id", "label", "media", "transform" }`). The
- * items of a media library also get their `media`.
+ * pages and files of `link` fields become references too, with their URL. The items of a media
+ * library also get their `media`.
  */
 final class ItemSerializer
 {
@@ -42,6 +44,10 @@ final class ItemSerializer
             if ($field instanceof Media && array_key_exists($field->name(), $values)) {
                 $references ??= new MediaReferences($this->resources, request());
                 $values[$field->name()] = $references->references($field, $values[$field->name()]);
+            }
+            if ($field instanceof Link && array_key_exists($field->name(), $values)) {
+                $references ??= new MediaReferences($this->resources, request());
+                $values[$field->name()] = $this->link($field, $values[$field->name()], $references);
             }
         }
         if ($resource instanceof MediaResource) {
@@ -94,5 +100,82 @@ final class ItemSerializer
         }
 
         return $convert($value);
+    }
+
+    /**
+     * The value of a `link` field, with the reference and the URL of its page or its file: one,
+     * or an object of them keyed by locale.
+     */
+    private function link(Link $field, mixed $value, MediaReferences $references): mixed
+    {
+        if (is_string($value) && str_starts_with(ltrim($value), '{')) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : $value;
+        }
+        if ($field->isLocalized() && is_array($value) && ! array_key_exists('type', $value)) {
+            return array_map(fn (mixed $localized): mixed => $this->linkValue($field, $localized, $references), $value);
+        }
+
+        return $this->linkValue($field, $value, $references);
+    }
+
+    private function linkValue(Link $field, mixed $value, MediaReferences $references): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+        $type = $value['type'] ?? null;
+        if ($type === 'page' || $type === 'file') {
+            unset($value['url']);
+        }
+        if ($type === 'page' && isset($value['page'])) {
+            [$reference, $url] = $this->page($field, $value['page']);
+            $value['page'] = $reference ?? $value['page'];
+            if ($url !== null) {
+                $value['url'] = $url;
+            }
+        }
+        if ($type === 'file' && isset($value['file'])) {
+            $value['file'] = $references->references($field->fileField(), $value['file']);
+            $url = is_array($value['file']) ? ($value['file']['media']['url'] ?? null) : null;
+            if (is_string($url) && $url !== '') {
+                $value['url'] = $url;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * The reference to the page of a link, `{ "id", "resource", "label" }`, and its URL, from
+     * the repository of its resource, within its scope for the request. Null when it isn't found.
+     *
+     * @return array{array<string, mixed>|null, string|null}
+     */
+    private function page(Link $field, mixed $page): array
+    {
+        $id = Media::idOf($page);
+        $named = is_array($page) && is_string($page['resource'] ?? null) ? $page['resource'] : null;
+        $resources = $field->getPages();
+        $related = $named !== null || count($resources) === 1 ? $this->resources->resolve($named ?? $resources[0]) : null;
+        if ($id === null || $related === null
+            || ($named !== null && ! in_array($related->id(), array_map($this->resources->idOf(...), $resources), true))) {
+            return [null, null];
+        }
+        $key = $related->id();
+        $item = $this->resources->repository($related)->find($id, $related->repositoryScope(request()));
+        if ($item === null) {
+            return [['id' => $id, 'resource' => $key], null];
+        }
+        $reference = ['id' => $id, 'resource' => $key];
+        $label = $this->reference($related, $item)['label'] ?? null;
+        if (is_array($label)) {
+            $label = $label[app()->getLocale()] ?? collect($label)->first(fn (mixed $localized): bool => is_string($localized) && $localized !== '');
+        }
+        if (is_string($label) && $label !== '') {
+            $reference['label'] = $label;
+        }
+
+        return [$reference, $field->pageUrl($item, $key)];
     }
 }

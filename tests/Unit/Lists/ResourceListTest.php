@@ -75,6 +75,8 @@ class ResourceListTest extends TestCase
             ['field' => 'published_at', 'filter' => 'published', 'perPage' => 200],
             $this->list()->calendar('published_at', filter: 'published', perPage: 200)->toDefinition(searchable: true)['calendar'],
         );
+        // On the days of a range (panneau-js decision 0053), through its date-range filter
+        $this->assertSame(['field' => 'dates'], $this->list()->calendar('dates')->toDefinition(searchable: true)['calendar']);
     }
 
     public function test_cursor_pagination(): void

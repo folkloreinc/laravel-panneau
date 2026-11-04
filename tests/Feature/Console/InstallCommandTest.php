@@ -95,6 +95,13 @@ class InstallCommandTest extends TestCase
         $this->assertStringContainsString("Textarea::make('body')", $resource);
         $this->assertStringContainsString("Boolean::make('featured')", $resource);
         $this->assertStringContainsString("DateTime::make('published_at')", $resource);
+        // The attributes of the AsDateRange and AsMoney casts, instead of their columns
+        $this->assertStringContainsString("DateRange::make('dates')->time()->allDay()->chooseTimeZone()", $resource);
+        $this->assertStringContainsString("Money::make('price')", $resource);
+        $this->assertStringContainsString('use Panneau\\Fields\\DateRange;', $resource);
+        foreach (['starts_at', 'ends_at', 'time_zone', 'all_day', 'price_cents', 'currency'] as $column) {
+            $this->assertStringNotContainsString("'{$column}'", $resource);
+        }
         $this->assertStringNotContainsString("'team_id'", $resource);
         $this->assertStringNotContainsString("'created_at'", $resource);
         $this->assertStringNotContainsString("'secret'", $resource);

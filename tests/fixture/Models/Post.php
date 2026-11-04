@@ -5,6 +5,8 @@ namespace TestApp\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Panneau\Casts\AsDateRange;
+use Panneau\Casts\AsMoney;
 
 class Post extends Model
 {
@@ -22,7 +24,11 @@ class Post extends Model
             'blocks' => 'array',
             'seo' => 'array',
             'details' => 'array',
+            'address' => 'array',
+            'link' => 'array',
             'published_at' => 'datetime',
+            'dates' => AsDateRange::columns('starts_at', 'ends_at', timeZone: 'time_zone', allDay: 'all_day'),
+            'price' => AsMoney::class.':price_cents,currency',
         ];
     }
 

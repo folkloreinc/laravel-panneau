@@ -68,6 +68,7 @@ trait ResolvesResources
                 fn (MediaResource $library): string => $library->id(),
                 $this->resources->mediaLibraries($libraries),
             ),
+            resourceId: fn (string $resource): ?string => $this->resources->resolve($resource)?->id(),
         );
     }
 

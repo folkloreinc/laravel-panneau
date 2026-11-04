@@ -33,7 +33,7 @@ final class DefinitionBuilder
     /**
      * Field types shown as columns when a list declares none.
      */
-    private const DEFAULT_COLUMN_TYPES = ['text', 'email', 'url', 'slug', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'tel', 'range', 'duration', 'tags', 'country', 'region'];
+    private const DEFAULT_COLUMN_TYPES = ['text', 'email', 'url', 'slug', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'tel', 'range', 'duration', 'tags', 'country', 'region', 'daterange', 'money', 'address'];
 
     public function __construct(
         private readonly ResourceRegistry $resources,
@@ -450,16 +450,23 @@ final class DefinitionBuilder
     }
 
     /**
-     * Turns the resource classes of relation, media and image fields into resource ids (one, or
-     * a list for a media field that allows several libraries), in nested fields too.
+     * Turns the resource classes of relation, media, image and link fields into resource ids (one,
+     * or a list for a media field that allows several libraries, or a link to several resources),
+     * and the libraries of link fields, in nested fields too.
      *
      * @param  array<array-key, mixed>  $field
      * @return array<array-key, mixed>
      */
     private function resolveFieldReferences(array $field): array
     {
-        if (in_array($field['type'] ?? null, ['relation', 'media', 'image'], true)) {
+        if (in_array($field['type'] ?? null, ['relation', 'media', 'image', 'link'], true)) {
             $field = $this->resolveResource($field);
+        }
+        if (($field['type'] ?? null) === 'link' && isset($field['settings']['libraries']) && is_array($field['settings']['libraries'])) {
+            $field['settings']['libraries'] = array_values(array_unique(array_map(
+                fn (mixed $library): mixed => is_string($library) ? $this->resources->idOf($library) : $library,
+                $field['settings']['libraries'],
+            )));
         }
         if (isset($field['fields']) && is_array($field['fields'])) {
             $field['fields'] = array_map(fn (array $child): array => $this->nestedField($child), $field['fields']);
