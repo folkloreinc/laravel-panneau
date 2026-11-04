@@ -12,7 +12,7 @@ namespace Panneau\Fields;
  * (a name, a digit too many or too few) can't become E.164 without guessing.
  *
  * An extension follows the number after `;ext=`, as in a `tel:` URI (RFC 3966):
- * `+15145550199;ext=123`, for `Tel` fields with `extension()` (decision 0058 of panneau-js). Methods
+ * `+15145550199;ext=123`, for `Tel` fields with `extension()` (decision 0057 of panneau-js). Methods
  * read and keep extensions only when asked: by default, a number with an extension is not E.164.
  */
 final class PhoneNumber

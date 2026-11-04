@@ -14,7 +14,7 @@ use Panneau\Fields\PhoneNumber;
  * arguments: `table.column` for a column, `table.column:path.in.json` for a key of a JSON column.
  *
  * A column of `panneau.phones.columns` can keep extensions, for `Tel` fields with `extension()`
- * (decision 0058 of panneau-js): `'contacts.phone' => ['extension' => true]` reads an extension
+ * (decision 0057 of panneau-js): `'contacts.phone' => ['extension' => true]` reads an extension
  * typed after the number (`ext. 123`, `x123`, `poste 123`), and `['extension' => 'phone_ext']`
  * also merges the extension kept in another column of the same table (`column`, or
  * `column:path.in.json`). Either way the value becomes `+15145550199;ext=123`. The extension's own
