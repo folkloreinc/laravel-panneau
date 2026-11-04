@@ -251,7 +251,9 @@ The types of [panneau-js decision 0033](https://github.com/folkloreinc/panneau-j
 ```php
 Tel::make('contact'),
 Range::make('rating')->max(10)->suffix('/10'),        // 0 to 100 without min() and max()
-Duration::make('reading_time')->precision('minutes'), // seconds
+Duration::make('reading_time')->precision('minutes'), // seconds, typed in hours and minutes
+Duration::make('running_time')->unit('minutes'),      // minutes
+Duration::make('window')->unit('hours')->largestUnit('days'), // hours, typed in days and hours
 Json::make('metadata'),
 Tags::make('keywords')->options(['culture' => 'Culture'])->allowCustom(false)->max(5),
 Embed::make('video'),
@@ -259,12 +261,13 @@ Location::make('place')->zoom(14)->center(45.5017, -73.5673),
 ```
 
 - **Values:**
-  - `tel` is a phone number in E.164 (see [below](#countries-regions-and-phone-numbers)); `range` a number between its ends (0 and 100 by default); `duration` a whole number of seconds, 0 or more;
+  - `tel` is a phone number in E.164 (see [below](#countries-regions-and-phone-numbers)); `range` a number between its ends (0 and 100 by default); `duration` a whole number of its `unit()`, 0 or more (see below);
   - `json` an object or an array, never a string: an empty object is given back as an empty array;
   - `tags` a list of strings, at most 255 characters each, only the options' values with `allowCustom(false)`. `min()` and `max()` count the tags. Saving trims them and drops empty and repeated ones;
   - `location` is `{ "lat", "lng", "address" }`, with the latitude from -90 to 90, the longitude from -180 to 180, and an optional address;
   - `embed` is the protocol's `EmbedValue`.
-- **Embeds.** `GET /embeds?url=` answers what the `EmbedResolver` gives for a URL, or a `422` on `url`. The default resolver asks the oEmbed endpoint of the provider whose `schemes` match the URL, among `panneau.embeds.providers`, and never fetches the URL itself. Answers are cached (`panneau.embeds.cache_ttl`, one day), and the route is rate limited per user (`panneau.embeds.rate_limit`, 60 a minute). Bind `Panneau\Contracts\EmbedResolver` to use another service.
+- **Durations** ([panneau-js decision 0057](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0057-duration-units.md)). `unit()` is the unit of the value: `seconds` (the default), `minutes`, `hours` or `days`, a day being 24 hours; `min()` and `max()` are in it too. `precision()` is the smallest part the admin's input shows (the unit by default), and `largestUnit()` the largest (`hours` by default, or `days`). The three refuse another unit with an `InvalidArgumentException`. The server checks a whole number, 0 or more, whatever the unit: a column kept in minutes keeps its data with `unit('minutes')`.
+- **Embeds.** `GET /embeds?url= answers what the `EmbedResolver` gives for a URL, or a `422` on `url`. The default resolver asks the oEmbed endpoint of the provider whose `schemes` match the URL, among `panneau.embeds.providers`, and never fetches the URL itself. Answers are cached (`panneau.embeds.cache_ttl`, one day), and the route is rate limited per user (`panneau.embeds.rate_limit`, 60 a minute). Bind `Panneau\Contracts\EmbedResolver` to use another service.
 - **Saving an embed** keeps only the URL of the request and resolves it again, so the `html` sites render comes from the provider. An unchanged URL keeps the item's value; a URL that can't be resolved is saved as `{ "url" }`.
 - **Lists.** Without columns, a list shows the `tel`, `range`, `duration` and `tags` fields with the other simple types.
 - **Model.** `json`, `tags`, `embed` and `location` need a JSON column with the `array` cast.

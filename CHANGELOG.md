@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- `Duration::unit()` and `Duration::largestUnit()`, and `Duration::precision()` takes `hours` and `days` too (panneau-js decision 0057): a duration is a whole number of its unit, `seconds` (the default), `minutes`, `hours` or `days`, and the admin's input can show days. The three refuse another unit with an `InvalidArgumentException`. The server still checks a whole number, 0 or more (folkloreinc/panneau-js#211).
+
 ## [5.0.0-alpha.10] - 2026-11-04
 
 Goes with `@panneau/*` `5.0.0-alpha.15`, which it needs: the pages of the app for password reset, email verification, two-factor authentication, the account and passkeys, and the buttons of OAuth providers, are new in that release.
