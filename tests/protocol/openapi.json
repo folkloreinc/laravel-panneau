@@ -3652,7 +3652,7 @@
                         "type": "boolean"
                     },
                     "resource": {
-                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027).",
+                        "description": "`relation`: id of the related resource. `credits`: id of the resource of people. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027).",
                         "anyOf": [
                             {
                                 "type": "string",
@@ -3714,7 +3714,7 @@
                         "type": "string"
                     },
                     "fields": {
-                        "description": "`group` and `repeater`: the nested fields.",
+                        "description": "`group` and `repeater`: the nested fields. `credits`: the fields of each credit.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Field"
@@ -6706,6 +6706,119 @@
                 ],
                 "additionalProperties": {},
                 "description": "The value of a `location` field: a point, and its address."
+            },
+            "CreditPerson": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "The id of the item."
+                            },
+                            "label": {
+                                "description": "The title of the item. A client resolves it when it is missing.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": {},
+                        "description": "An item of the resource of people (`resource`)."
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "minLength": 1
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ],
+                        "additionalProperties": {},
+                        "description": "A person who isn’t in the resource of people: their name."
+                    }
+                ],
+                "description": "The person of a credit: an item of the resource of people, or a name."
+            },
+            "CreditRole": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "The id of the item."
+                            },
+                            "label": {
+                                "description": "The title of the item. A client resolves it when it is missing.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": {},
+                        "description": "An item of the resource of roles (`settings.roles`)."
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "object",
+                                "propertyNames": {
+                                    "type": "string"
+                                },
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ],
+                        "additionalProperties": {},
+                        "description": "A role without a resource of roles: its name in each locale."
+                    }
+                ],
+                "description": "A role of a credit: an item of the resource of roles, or a name."
+            },
+            "Credit": {
+                "type": "object",
+                "properties": {
+                    "person": {
+                        "$ref": "#/components/schemas/CreditPerson"
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CreditRole"
+                        },
+                        "description": "The roles of the person, in order."
+                    },
+                    "featured": {
+                        "description": "`true` for the credits to put forward.",
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "person",
+                    "roles"
+                ],
+                "additionalProperties": {},
+                "description": "A credit: a person and their roles (decision 0053). The values of the fields of the credit (`fields`) sit next to them."
+            },
+            "CreditsValue": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/components/schemas/Credit"
+                },
+                "description": "The value of a `credits` field: its credits, in order, or `null` when empty."
             }
         },
         "parameters": {
