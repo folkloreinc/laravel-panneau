@@ -55,6 +55,15 @@ abstract class MediaResource extends Resource
     }
 
     /**
+     * The image of the items: their `media`, whose thumbnail the gallery and the table of the
+     * list show (panneau-js decision 0061). Return a field to show another image.
+     */
+    public function itemImage(): ?string
+    {
+        return self::MEDIA;
+    }
+
+    /**
      * The types of media the library holds: `image`, `video`, `audio`, `document`, `font`,
      * `other`, or a type of the backend. Empty: every type.
      *
