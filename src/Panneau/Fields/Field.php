@@ -13,6 +13,7 @@ use Panneau\Forms\RuleSet;
 use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
 use Panneau\Forms\Values;
+use Panneau\Rules\PostalCode;
 
 /**
  * A field of a resource or of an action. Each subclass is a protocol field type.
@@ -653,6 +654,12 @@ abstract class Field
             // An international phone number in E.164
             'tel' => ['regex', 'regex:'.Tel::E164],
             'in' => is_array($value) ? ['in', LaravelRule::in($value)] : null,
+            // A postal code of a country: a code, or another field of the form
+            'postalCode' => match (true) {
+                is_string($value) => ['postal_code', new PostalCode(country: $value)],
+                is_array($value) && is_string($value['field'] ?? null) => ['postal_code', new PostalCode(countryPath: $prefix.$value['field'])],
+                default => ['postal_code', new PostalCode],
+            },
             'before', 'after' => match (true) {
                 is_string($value) => [$rule['rule'], $rule['rule'].':'.$value],
                 is_array($value) && is_string($value['field'] ?? null) => [$rule['rule'], $rule['rule'].':'.$prefix.$value['field']],
@@ -665,7 +672,7 @@ abstract class Field
     /**
      * Converts a JavaScript regular expression to a PCRE pattern with delimiters.
      */
-    private static function regex(string $pattern, string $flags): string
+    protected static function regex(string $pattern, string $flags = ''): string
     {
         $escaped = preg_replace('#(?<!\\\\)/#', '\\/', $pattern) ?? $pattern;
         $modifiers = implode('', array_intersect(str_split($flags), ['i', 'm', 's']));

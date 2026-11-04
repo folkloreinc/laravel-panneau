@@ -169,6 +169,8 @@ class ResourceItemTest extends HttpTestCase
                 'place' => ['lat' => 45.509595, 'lng' => -73.565912, 'address' => 'Place des Arts'],
                 'country' => 'CA',
                 'region' => 'QC',
+                'venue' => null,
+                'website' => null,
             ]);
         Http::assertSent(fn (Request $request): bool => $request['url'] === 'https://www.youtube.com/watch?v=1');
 
