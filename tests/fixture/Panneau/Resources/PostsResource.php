@@ -8,6 +8,7 @@ use Panneau\Actions\ClientAction;
 use Panneau\Actions\LinkAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
+use Panneau\Fields\Color;
 use Panneau\Fields\Country;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
@@ -76,10 +77,15 @@ class PostsResource extends Resource
                 Duration::make('reading_time')->precision('minutes'),
                 Json::make('metadata'),
                 Tags::make('keywords')->options(['culture' => 'Culture', 'food' => 'Food'])->max(5),
-                Embed::make('video'),
+                Embed::make('video')->providers(['YouTube', 'Vimeo']),
                 Location::make('place')->zoom(14)->center(45.5017, -73.5673),
                 Country::make('country')->preferred(['CA', 'US']),
                 Region::make('region')->from('country')->country('CA'),
+                Country::make('countries')->multiple()->max(5),
+                Color::make('background')->palette([
+                    ['value' => 'white', 'label' => 'White', 'color' => '#ffffff'],
+                    ['value' => 'night', 'label' => 'Night', 'color' => '#1e1b4b'],
+                ]),
             ]),
             Repeater::make('blocks')->types([
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),

@@ -4,14 +4,18 @@ namespace Panneau\Fields;
 
 use Illuminate\Validation\Rule as LaravelRule;
 use InvalidArgumentException;
+use Panneau\Forms\RuleSet;
 use Panneau\Forms\ValidationContext;
 
 /**
  * A country: its ISO 3166-1 alpha-2 code, in capitals (`CA`), or `XK` for Kosovo. The server
- * refuses any other code, and the codes outside `countries()` when the field has them.
+ * refuses any other code, and the codes outside `countries()` when the field has them. With
+ * `multiple()`, a list of distinct codes, in the order they were chosen.
  */
 class Country extends Field
 {
+    protected bool $multiple = false;
+
     /**
      * The ISO 3166-1 alpha-2 codes of the countries and territories, and `XK` (Kosovo), which is
      * widely used for it though not assigned.
@@ -72,6 +76,22 @@ class Country extends Field
     }
 
     /**
+     * The value is a list of distinct codes, in the order they were chosen (`['CA', 'FR']`).
+     * `min()` and `max()` count them.
+     */
+    public function multiple(bool $multiple = true): static
+    {
+        $this->multiple = $multiple;
+
+        return $this;
+    }
+
+    public function isMultiple(): bool
+    {
+        return $this->multiple;
+    }
+
+    /**
      * Whether a value is an ISO 3166-1 alpha-2 code, in capitals, or `XK`.
      */
     public static function isCode(mixed $code): bool
@@ -123,8 +143,21 @@ class Country extends Field
         return is_array($countries) ? array_values(array_filter($countries, self::isCode(...))) : self::CODES;
     }
 
+    protected function typeDefinition(): array
+    {
+        return $this->multiple ? ['multiple' => true] : [];
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
-        return ['string', LaravelRule::in($this->allowed())];
+        return $this->multiple ? ['array', 'list'] : ['string', LaravelRule::in($this->allowed())];
+    }
+
+    protected function collectNestedRules(RuleSet $rules, string $path, mixed $value, ValidationContext $context): void
+    {
+        if ($this->multiple) {
+            $rules->attribute($path.'.*', $this->label ?? str_replace('_', ' ', $this->name));
+            $rules->add($path.'.*', ['required', 'string', 'distinct', LaravelRule::in($this->allowed())]);
+        }
     }
 }
