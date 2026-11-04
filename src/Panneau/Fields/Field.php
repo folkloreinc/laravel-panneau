@@ -295,7 +295,8 @@ abstract class Field
     }
 
     /**
-     * Minimum: the value of a number, the length of a text or an array.
+     * Minimum: the value of a number, the length of a text or an array, the amount of a `Money`
+     * in minor units.
      */
     public function min(int|float $value, ?string $message = null, ?FormMode $mode = null): static
     {
@@ -303,7 +304,8 @@ abstract class Field
     }
 
     /**
-     * Maximum: the value of a number, the length of a text or an array.
+     * Maximum: the value of a number, the length of a text or an array, the amount of a `Money`
+     * in minor units.
      */
     public function max(int|float $value, ?string $message = null, ?FormMode $mode = null): static
     {
