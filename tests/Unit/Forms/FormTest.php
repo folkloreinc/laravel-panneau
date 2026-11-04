@@ -9,6 +9,7 @@ use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Country;
 use Panneau\Fields\Date;
+use Panneau\Fields\DateRange;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Email;
 use Panneau\Fields\Embed;
@@ -17,12 +18,14 @@ use Panneau\Fields\Group;
 use Panneau\Fields\Json;
 use Panneau\Fields\Location;
 use Panneau\Fields\Media;
+use Panneau\Fields\Money;
 use Panneau\Fields\Number;
 use Panneau\Fields\Range;
 use Panneau\Fields\Region;
 use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\Select;
+use Panneau\Fields\Sessions;
 use Panneau\Fields\Slug;
 use Panneau\Fields\Tags;
 use Panneau\Fields\Tel;
@@ -484,6 +487,27 @@ class FormTest extends TestCase
         $this->assertArrayHasKey('phone', $this->errors($fields, ['phone' => '+33612345678']));
     }
 
+    public function test_durations_are_whole_numbers_whatever_their_unit(): void
+    {
+        $fields = [
+            Duration::make('running_time')->unit('minutes')->min(1)->max(600),
+            Duration::make('window')->unit('days')->largestUnit('days'),
+        ];
+
+        $this->assertSame(
+            ['running_time', 'window'],
+            array_keys($this->errors($fields, ['running_time' => 1.5, 'window' => -1])),
+        );
+        $this->assertSame(['running_time'], array_keys($this->errors($fields, ['running_time' => 601, 'window' => 30])));
+        $this->assertSame(['running_time'], array_keys($this->errors($fields, ['running_time' => 'PT1H30M'])));
+        // min and max are in the unit: 90 minutes
+        $this->assertSame(
+            ['running_time' => 90, 'window' => 30],
+            $this->validate($fields, ['running_time' => 90, 'window' => 30]),
+        );
+        $this->assertSame(['window' => 0], $this->validate($fields, ['window' => 0]));
+    }
+
     public function test_tel_values_are_e164(): void
     {
         $fields = [Tel::make('phone')];
@@ -561,6 +585,94 @@ class FormTest extends TestCase
         $this->assertSame(['country' => 'CA', 'region' => 'QC'], $this->validate($fields, ['country' => 'CA', 'region' => 'QC']));
         $this->assertSame(['country' => 'BE', 'region' => 'Wallonie'], $this->validate($fields, ['country' => 'BE', 'region' => 'Wallonie']));
         $this->assertSame(['region' => null], $this->validate($fields, ['region' => null]));
+    }
+
+    public function test_date_ranges_follow_the_daterange_rule(): void
+    {
+        $days = [DateRange::make('dates')];
+        $error = fn (array $fields, mixed $value): ?string => $this->errors($fields, ['dates' => $value])['dates'][0] ?? null;
+
+        // Days, both inclusive: a range of one day is valid
+        $this->assertSame(['dates' => ['start' => '2026-11-04', 'end' => '2026-11-06']], $this->validate($days, ['dates' => ['start' => '2026-11-04', 'end' => '2026-11-06', 'extra' => 1]]));
+        $this->assertSame(['dates' => ['start' => '2026-11-04', 'end' => '2026-11-04']], $this->validate($days, ['dates' => ['start' => '2026-11-04', 'end' => '2026-11-04']]));
+        // Empty, and not required: null
+        $this->assertSame(['dates' => null], $this->validate($days, ['dates' => null]));
+        $this->assertSame(['dates' => null], $this->validate($days, ['dates' => ['start' => null, 'end' => '']]));
+        $this->assertArrayHasKey('dates', $this->errors([DateRange::make('dates')->required()], ['dates' => ['start' => null, 'end' => null]]));
+        $this->assertArrayHasKey('dates', $this->errors([DateRange::make('dates')->required()], ['dates' => null]));
+
+        // A clear message for each failure
+        $this->assertSame('Give the start of the dates.', $error($days, ['start' => null, 'end' => '2026-11-06']));
+        $this->assertSame('Give the end of the dates.', $error($days, ['start' => '2026-11-04']));
+        $this->assertSame('The end of the dates can’t be before its start.', $error($days, ['start' => '2026-11-06', 'end' => '2026-11-04']));
+        $this->assertSame('The start of the dates must be a day (YYYY-MM-DD).', $error($days, ['start' => '2026-02-30', 'end' => '2026-03-01']));
+        $this->assertSame('The end of the dates must be a day (YYYY-MM-DD).', $error($days, ['start' => '2026-11-04', 'end' => '2026-11-06T10:00:00Z']));
+        $this->assertSame('The dates must be a date range.', $error($days, '2026-11-04'));
+        $this->assertSame('The dates must be a date range.', $error($days, ['2026-11-04', '2026-11-06']));
+        $this->assertSame('The dates can\'t be all day.', $error($days, ['start' => '2026-11-04', 'end' => '2026-11-04', 'allDay' => true]));
+        $this->assertSame('The dates can\'t have a time zone.', $error($days, ['start' => '2026-11-04', 'end' => '2026-11-04', 'timeZone' => 'UTC']));
+
+        // Open bounds
+        $open = [DateRange::make('dates')->open('end')];
+        $this->assertSame(['dates' => ['start' => '2026-11-04', 'end' => null]], $this->validate($open, ['dates' => ['start' => '2026-11-04', 'end' => null]]));
+        $this->assertSame('Give the start of the dates.', $error($open, ['start' => null, 'end' => '2026-11-04']));
+        $both = [DateRange::make('dates')->open('both')];
+        $this->assertSame(['dates' => ['start' => null, 'end' => '2026-12-01']], $this->validate($both, ['dates' => ['end' => '2026-12-01']]));
+
+        // Date-times with their offset, compared as instants
+        $times = [DateRange::make('dates')->allDay()->chooseTimeZone()];
+        $this->assertSame(
+            ['dates' => ['start' => '2026-11-04T23:30:00+00:00', 'end' => '2026-11-04T20:00:00-05:00', 'timeZone' => 'America/Toronto']],
+            $this->validate($times, ['dates' => ['start' => '2026-11-04T23:30:00.000Z', 'end' => '2026-11-04T20:00:00-05:00', 'timeZone' => 'America/Toronto', 'allDay' => false]]),
+        );
+        $this->assertSame('The end of the dates can’t be before its start.', $error($times, ['start' => '2026-11-05T00:30:00Z', 'end' => '2026-11-04T19:00:00-05:00']));
+        $this->assertSame('The start of the dates must be a date and time with its offset.', $error($times, ['start' => '2026-11-04T23:30:00', 'end' => '2026-11-05T01:00:00Z']));
+        $this->assertSame('The end of the dates must be a date and time with its offset.', $error($times, ['start' => '2026-11-04T23:30:00Z', 'end' => '2026-11-05']));
+        $this->assertSame('The time zone of the dates is invalid.', $error($times, ['start' => '2026-11-04T23:30:00Z', 'end' => '2026-11-05T01:00:00Z', 'timeZone' => 'Mars/Olympus']));
+        // All day: days as bounds
+        $this->assertSame(
+            ['dates' => ['start' => '2026-11-04', 'end' => '2026-11-04', 'allDay' => true]],
+            $this->validate($times, ['dates' => ['start' => '2026-11-04', 'end' => '2026-11-04', 'allDay' => true]]),
+        );
+        $this->assertSame('The dates must be a date range.', $error($times, ['start' => '2026-11-04', 'end' => '2026-11-04', 'allDay' => 'yes']));
+
+        // Per locale, and in each session
+        $this->assertSame(['dates.en'], array_keys($this->errors([DateRange::make('dates')->localized()], ['dates' => ['fr' => ['start' => '2026-11-04', 'end' => '2026-11-04'], 'en' => ['start' => '2026-11-04']]])));
+        $sessions = [Sessions::make('sessions')];
+        $this->assertSame(['sessions.1.dates'], array_keys($this->errors($sessions, ['sessions' => [
+            ['dates' => ['start' => '2026-11-04T19:30:00Z', 'end' => '2026-11-04T21:30:00Z']],
+            ['dates' => ['start' => '2026-11-05T21:30:00Z', 'end' => '2026-11-05T19:30:00Z']],
+        ]])));
+    }
+
+    public function test_amounts_follow_the_money_rule(): void
+    {
+        $fields = [
+            Money::make('price'),
+            Money::make('fee')->currency('CAD')->min(100)->max(10000),
+            Money::make('donation')->currencies(['CAD', 'USD'])->min(500, message: 'Five dollars or more.'),
+        ];
+        $error = fn (string $name, mixed $value): ?string => $this->errors($fields, [$name => $value])[$name][0] ?? null;
+
+        $this->assertSame(
+            ['price' => ['amount' => 125000, 'currency' => 'JPY'], 'fee' => ['amount' => 100, 'currency' => 'CAD'], 'donation' => null],
+            $this->validate($fields, ['price' => ['amount' => 125000, 'currency' => 'JPY', 'note' => 'x'], 'fee' => ['amount' => 100.0, 'currency' => 'CAD'], 'donation' => null]),
+        );
+
+        $this->assertSame('The amount of the price must be a whole number of the currency\'s minor unit.', $error('price', ['amount' => 12.5, 'currency' => 'CAD']));
+        $this->assertSame('The amount of the price must be a whole number of the currency\'s minor unit.', $error('price', ['amount' => '1250', 'currency' => 'CAD']));
+        $this->assertSame('The price needs a currency.', $error('price', ['amount' => 1250, 'currency' => null]));
+        $this->assertSame('The currency of the price is invalid.', $error('price', ['amount' => 1250, 'currency' => 'cad']));
+        $this->assertSame('The currency of the price is invalid.', $error('price', ['amount' => 1250, 'currency' => 'XXX']));
+        $this->assertSame('The price must be an amount with its currency.', $error('price', 1250));
+        $this->assertSame('The currency of the fee is invalid.', $error('fee', ['amount' => 1250, 'currency' => 'USD']));
+        $this->assertSame('The currency of the donation is invalid.', $error('donation', ['amount' => 1250, 'currency' => 'EUR']));
+
+        // min() and max() apply to the amount, in minor units
+        $this->assertSame('The fee must be at least 1.00 CAD.', $error('fee', ['amount' => 99, 'currency' => 'CAD']));
+        $this->assertSame('The fee must not be greater than 100.00 CAD.', $error('fee', ['amount' => 10001, 'currency' => 'CAD']));
+        $this->assertSame('Five dollars or more.', $error('donation', ['amount' => 499, 'currency' => 'USD']));
+        $this->assertSame([], $this->errors($fields, ['donation' => ['amount' => 500, 'currency' => 'USD']]));
     }
 
     public function test_json_values_are_objects_or_arrays(): void

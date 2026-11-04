@@ -6,16 +6,20 @@ use Illuminate\Http\Request;
 use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ClientAction;
 use Panneau\Actions\LinkAction;
+use Panneau\Fields\Address;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Country;
+use Panneau\Fields\DateRange;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Embed;
 use Panneau\Fields\Group;
 use Panneau\Fields\Json;
+use Panneau\Fields\Link;
 use Panneau\Fields\Location;
 use Panneau\Fields\Media;
+use Panneau\Fields\Money;
 use Panneau\Fields\Password;
 use Panneau\Fields\Range;
 use Panneau\Fields\Region;
@@ -64,6 +68,9 @@ class PostsResource extends Resource
             Select::make('status')->options(PostStatus::class)->required()->default('draft'),
             Boolean::make('featured'),
             DateTime::make('published_at'),
+            // In two columns (AsDateRange), and in minor units with their currency (AsMoney)
+            DateRange::make('dates')->allDay()->open('end')->chooseTimeZone(),
+            Money::make('price')->currencies(['CAD', 'USD'])->min(0),
             Relation::make('author')->resource(AuthorsResource::class),
             Relation::make('tags')->resource(TagsResource::class)->multiple(),
             Group::make('seo')->fields([
@@ -80,7 +87,15 @@ class PostsResource extends Resource
                 Location::make('place')->zoom(14)->center(45.5017, -73.5673),
                 Country::make('country')->preferred(['CA', 'US']),
                 Region::make('region')->from('country')->country('CA'),
+                DateRange::make('period'),
+                Money::make('budget')->currency('CAD'),
+                Address::make('venue')->countries(['CA', 'US'])->requiredParts(['street', 'city', 'region', 'postalCode', 'country'])->point(),
+                Link::make('website')->types(['url', ['id' => 'anchor', 'label' => 'Anchor', 'pattern' => '^#[\\w-]+$']])->newTab('external')->linkLabel('none'),
             ]),
+            // At the top of the resource (conformance: update.parts)
+            Address::make('address')->country('CA')->preferred(['CA', 'US']),
+            Link::make('link')->pages(AuthorsResource::class)
+                ->resolvePageUrlUsing(fn (object $author, string $resource): string => 'https://example.com/'.$resource.'/'.$author->getKey()),
             Repeater::make('blocks')->types([
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),
                 BlockType::make('image', 'Image', [Media::make('image')->accept('image/*')->required()]),
@@ -116,8 +131,10 @@ class PostsResource extends Resource
                 ToggleFilter::make('featured'),
                 RelationFilter::make('author_id')->resource(AuthorsResource::class),
                 DateRangeFilter::make('published_at'),
+                // The ranges that overlap its days
+                DateRangeFilter::make('dates'),
             ])
-            ->sorts(['title', 'published_at'])
+            ->sorts(['title', 'published_at', 'dates', 'price'])
             ->defaultSort('-published_at')
             ->search(['title', 'body']);
     }

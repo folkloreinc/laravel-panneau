@@ -3,6 +3,7 @@
 namespace TestApp\Panneau\Resources;
 
 use Panneau\Fields\BlockType;
+use Panneau\Fields\Link;
 use Panneau\Fields\Media;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\Text;
@@ -26,6 +27,7 @@ class ArticlesResource extends Resource
             Media::make('cover')->resource(ImagesResource::class)->accept(['image/png', 'image/jpeg'])->maxSize(500_000),
             Media::make('gallery')->resource(ImagesResource::class)->multiple()->max(3),
             Media::make('attachment')->resource(DocumentsResource::class)->transforms(false),
+            Link::make('download')->types(['file', 'url'])->libraries([DocumentsResource::class])->linkLabel('required'),
             Repeater::make('blocks')->types([
                 BlockType::make('image', 'Image', [Media::make('image')->resource(ImagesResource::class)->required()]),
             ]),

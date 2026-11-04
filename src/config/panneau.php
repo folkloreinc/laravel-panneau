@@ -290,6 +290,33 @@ return [
         'columns' => [],
     ],
 
+    // Amounts of money (Panneau\Fields\Money), kept in minor units: `1250` cents for 12.50 $.
+    'money' => [
+        // The ISO 4217 currency of the amounts that `panneau:convert-money` converts (`CAD`).
+        'currency' => null,
+        // Where a project kept amounts in major units (floats, decimals), for
+        // `panneau:convert-money`: `table.column:target_column`, an integer column of the
+        // table that receives the amount in minor units (`products.price:price_cents`), or
+        // `table.column:path.in.json` for a key of a JSON column, which becomes a money value
+        // (`orders.data:total`).
+        'columns' => [],
+    ],
+
+    // Postal addresses (Panneau\Fields\Address), kept as one value: `{ "street", "unit", "city",
+    // "region", "postalCode", "country" }` in a JSON column.
+    'addresses' => [
+        // The country of an address without one (`CA`), for `panneau:convert-addresses`.
+        'country' => null,
+        // Where a project kept the parts of addresses in separate columns, for
+        // `panneau:convert-addresses`: the JSON column that receives the address (`table.column`),
+        // and the source of each part, a column of the same table, or `column:path.in.json` for a
+        // key of a JSON column (`city:fr` for a localized column).
+        //
+        // 'venues.address' => ['street' => 'address', 'unit' => 'address2', 'city' => 'city',
+        //     'region' => 'province', 'postalCode' => 'postal_code', 'country' => 'country'],
+        'columns' => [],
+    ],
+
     // File fields (Panneau\Fields\File): files that belong to an item, stored on the field's
     // disk. Private files get temporary URLs.
     'files' => [

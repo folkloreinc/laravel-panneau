@@ -9,12 +9,14 @@ use Panneau\Fields\Boolean;
 use Panneau\Fields\Color;
 use Panneau\Fields\Country;
 use Panneau\Fields\Date;
+use Panneau\Fields\DateRange;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Embed;
 use Panneau\Fields\Group;
 use Panneau\Fields\Json;
 use Panneau\Fields\Location;
+use Panneau\Fields\Money;
 use Panneau\Fields\Number;
 use Panneau\Fields\Range;
 use Panneau\Fields\Region;
@@ -22,6 +24,7 @@ use Panneau\Fields\Relation;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\RichText;
 use Panneau\Fields\Select;
+use Panneau\Fields\Sessions;
 use Panneau\Fields\Slug;
 use Panneau\Fields\Tags;
 use Panneau\Fields\Tel;
@@ -43,6 +46,7 @@ class FieldTest extends TestCase
             [
                 'text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'slug', 'relation', 'group', 'repeater',
                 'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location', 'country', 'region',
+                'daterange', 'money', 'repeater',
             ],
             array_map(fn ($field) => $field->type(), [
                 Text::make('a'), Textarea::make('a'), RichText::make('a'), Number::make('a'), Boolean::make('a'),
@@ -50,6 +54,7 @@ class FieldTest extends TestCase
                 Slug::make('a'), Relation::make('a'), Group::make('a'), Repeater::make('a'),
                 Tel::make('a'), Range::make('a'), Duration::make('a'), Json::make('a'), Tags::make('a'), Embed::make('a'), Location::make('a'),
                 Country::make('a'), Region::make('a'),
+                DateRange::make('a'), Money::make('a'), Sessions::make('a'),
             ]),
         );
     }
@@ -223,6 +228,49 @@ class FieldTest extends TestCase
      */
     #[DataProvider('invalidCountryCodes')]
     public function test_setters_refuse_codes_that_are_not_iso(Closure $build): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $build();
+    }
+
+    public function test_duration_units(): void
+    {
+        $this->assertSame(['name' => 'length', 'type' => 'duration'], Duration::make('length')->toDefinition());
+        $this->assertSame(
+            ['name' => 'running_time', 'type' => 'duration', 'settings' => ['unit' => 'minutes']],
+            Duration::make('running_time')->unit('minutes')->toDefinition(),
+        );
+        $this->assertSame(
+            ['name' => 'window', 'type' => 'duration', 'settings' => ['unit' => 'hours', 'largestUnit' => 'days', 'precision' => 'hours']],
+            Duration::make('window')->unit('hours')->largestUnit('days')->precision('hours')->toDefinition(),
+        );
+        $this->assertSame(
+            ['name' => 'half_life', 'type' => 'duration', 'settings' => ['precision' => 'days']],
+            Duration::make('half_life')->precision('days')->toDefinition(),
+        );
+        $this->assertSame(['seconds', 'minutes', 'hours', 'days'], Duration::UNITS);
+    }
+
+    /**
+     * @return array<string, array{Closure(): mixed}>
+     */
+    public static function invalidDurationUnits(): array
+    {
+        return [
+            'unit in weeks' => [fn () => Duration::make('length')->unit('weeks')],
+            'unit in months' => [fn () => Duration::make('length')->unit('months')],
+            'largest unit in years' => [fn () => Duration::make('length')->largestUnit('years')],
+            'precision in milliseconds' => [fn () => Duration::make('length')->precision('milliseconds')],
+            'singular unit' => [fn () => Duration::make('length')->unit('minute')],
+            'capitalized unit' => [fn () => Duration::make('length')->unit('Hours')],
+        ];
+    }
+
+    /**
+     * @param  Closure(): mixed  $build
+     */
+    #[DataProvider('invalidDurationUnits')]
+    public function test_duration_setters_refuse_other_units(Closure $build): void
     {
         $this->expectException(InvalidArgumentException::class);
         $build();
