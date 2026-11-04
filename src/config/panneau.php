@@ -109,6 +109,13 @@ return [
         // Until they set it up, the API refuses them and the app shows the setup.
         'two_factor_required' => false,
 
+        // "panneau" mode: logins with a passkey (WebAuthn), on laravel/passkeys: its
+        // PasskeyAuthenticatable trait and PasskeyUser contract on the user model, its passkeys
+        // table (php artisan vendor:publish --tag=passkeys-migrations) and its config
+        // (passkeys.relying_party_id, passkeys.allowed_origins). Users add and remove them on the
+        // account page. A passkey login doesn't ask for the second factor.
+        'passkeys' => false,
+
         // "panneau" mode: the Fortify actions of the account page, which save the name and the
         // email (Laravel\Fortify\Contracts\UpdatesUserProfileInformation) and change the
         // password (UpdatesUserPasswords), such as the site's App\Actions\Fortify actions. The

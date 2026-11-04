@@ -29,6 +29,7 @@ use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\EmailVerificationController;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\FieldCheckController;
+use Panneau\Http\Controllers\PasskeyController;
 use Panneau\Http\Controllers\PasswordConfirmationController;
 use Panneau\Http\Controllers\PasswordResetController;
 use Panneau\Http\Controllers\ResourceController;
@@ -168,7 +169,7 @@ class Panneau implements PanneauContract
      * With two-factor authentication, its challenge is outside too, and the routes of the account's
      * two-factor authentication are without the context; its changes need a recent password.
      *
-     * @param  array{passwordReset?: bool, emailVerification?: bool, twoFactor?: bool}  $auth
+     * @param  array{passwordReset?: bool, emailVerification?: bool, twoFactor?: bool, passkeys?: bool}  $auth
      */
     private function registerAuthRoutes(Router $router, array $auth): void
     {
@@ -183,6 +184,18 @@ class Panneau implements PanneauContract
         $router->patch('account', [AccountController::class, 'update'])->withoutMiddleware(ResolveContext::class)->name('account.update');
         $router->put('account/password', [AccountController::class, 'password'])
             ->withoutMiddleware(ResolveContext::class)->middleware($throttle)->name('account.password');
+        if (($auth['passkeys'] ?? false) === true) {
+            $router->post('auth/passkeys/options', [PasskeyController::class, 'loginOptions'])
+                ->withoutMiddleware($outside)->middleware($throttle)->name('auth.passkeys.options');
+            $router->post('auth/passkeys/login', [PasskeyController::class, 'login'])
+                ->withoutMiddleware($outside)->middleware($throttle)->name('auth.passkeys.login');
+            $router->prefix('account/passkeys')->as('account.passkeys')->withoutMiddleware(ResolveContext::class)->group(function (Router $router): void {
+                $router->get('', [PasskeyController::class, 'index']);
+                $router->post('options', [PasskeyController::class, 'registrationOptions'])->middleware(RequirePassword::class)->name('.options');
+                $router->post('', [PasskeyController::class, 'store'])->middleware(RequirePassword::class)->name('.store');
+                $router->delete('{passkey}', [PasskeyController::class, 'destroy'])->middleware(RequirePassword::class)->name('.destroy');
+            });
+        }
         if (($auth['twoFactor'] ?? false) === true) {
             $router->post('auth/two-factor/challenge', [TwoFactorController::class, 'challenge'])
                 ->withoutMiddleware($outside)->middleware($throttle)->name('auth.two-factor.challenge');

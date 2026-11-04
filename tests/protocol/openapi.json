@@ -2237,21 +2237,31 @@
         },
         "/auth/passkeys/options": {
             "post": {
-                "operationId": "passkeyOptions",
+                "operationId": "passkeyLoginOptions",
+                "summary": "With `auth.passkeys`: the options of `navigator.credentials.get()`, for any passkey of the site.",
                 "responses": {
                     "200": {
-                        "description": "WebAuthn request options.",
+                        "description": "The options.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": true
+                                    "$ref": "#/components/schemas/WebAuthnOptions"
                                 }
                             }
                         }
                     },
                     "403": {
                         "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -2271,13 +2281,25 @@
         "/auth/passkeys/login": {
             "post": {
                 "operationId": "passkeyLogin",
+                "summary": "Logs in with the credential of a passkey, in the JSON form of the WebAuthn spec. It does not ask for a second factor.",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "additionalProperties": true
+                                "required": [
+                                    "credential"
+                                ],
+                                "properties": {
+                                    "credential": {
+                                        "type": "object",
+                                        "additionalProperties": true
+                                    },
+                                    "remember": {
+                                        "type": "boolean"
+                                    }
+                                }
                             }
                         }
                     }
@@ -2312,6 +2334,16 @@
                                 }
                             }
                         }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -2320,6 +2352,283 @@
                     "$ref": "#/components/parameters/Context"
                 }
             ]
+        },
+        "/account/passkeys": {
+            "get": {
+                "operationId": "listPasskeys",
+                "responses": {
+                    "200": {
+                        "description": "The passkeys of the current user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Passkey"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "addPasskey",
+                "summary": "Adds a passkey, with the credential of `navigator.credentials.create()` for the options of `POST /account/passkeys/options`.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "credential"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "credential": {
+                                        "type": "object",
+                                        "additionalProperties": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "The passkey.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Passkey"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/passkeys/options": {
+            "post": {
+                "operationId": "passkeyRegistrationOptions",
+                "summary": "The options of `navigator.credentials.create()`, for the current user. A `409` for a user who can't have passkeys.",
+                "responses": {
+                    "200": {
+                        "description": "The options.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WebAuthnOptions"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/passkeys/{passkey}": {
+            "parameters": [
+                {
+                    "name": "passkey",
+                    "in": "path",
+                    "required": true,
+                    "description": "The id of the passkey.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ],
+            "delete": {
+                "operationId": "deletePasskey",
+                "responses": {
+                    "204": {
+                        "description": "Removed."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
         "/account": {
             "get": {
@@ -4240,6 +4549,7 @@
                         "type": "boolean"
                     },
                     "passkeys": {
+                        "description": "`panneau`: logins with a passkey (WebAuthn), which users add on the account page.",
                         "type": "boolean"
                     },
                     "emailVerification": {
@@ -6145,6 +6455,61 @@
                 ],
                 "additionalProperties": {},
                 "description": "Codes that each log in once in place of a code of the authenticator app."
+            },
+            "WebAuthnOptions": {
+                "type": "object",
+                "properties": {
+                    "options": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {},
+                        "description": "The options of `navigator.credentials.get()` or `create()`, in the JSON form of the WebAuthn spec."
+                    }
+                },
+                "required": [
+                    "options"
+                ],
+                "additionalProperties": {},
+                "description": "The options of a WebAuthn ceremony."
+            },
+            "Passkey": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/Id"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "authenticator": {
+                        "description": "What keeps it, when the backend knows: \"iCloud Keychain\", \"1Password\"…",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "description": "ISO 8601."
+                    },
+                    "lastUsedAt": {
+                        "description": "ISO 8601, or null before its first login.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "createdAt",
+                    "lastUsedAt"
+                ],
+                "additionalProperties": {},
+                "description": "A passkey of the current user."
             },
             "SearchResponse": {
                 "type": "object",
