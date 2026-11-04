@@ -6,6 +6,17 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.10] - 2026-11-04
+
+Goes with `@panneau/*` `5.0.0-alpha.15`, which it needs: the pages of the app for password reset, email verification, two-factor authentication, the account and passkeys, and the buttons of OAuth providers, are new in that release.
+
+The whole auth of the `panneau` mode, each part off by default: password reset and email verification, two-factor authentication that a site can require by config, ability or role, the account page, passkeys and OAuth providers.
+
+### Breaking changes
+
+- Requires `@panneau/*` `5.0.0-alpha.15` or later (see above).
+- `laravel/passkeys` (`^0.2`) is now a requirement, as Fortify requires it.
+
 ### Added
 
 - OAuth providers on the login page of the `panneau` auth mode (panneau-js decision 0052, decision 0020), with Socialite (suggested): `panneau.auth.providers` (label, allowed `domains`, `scopes`, `with`, `driver`), and `auth.providers` in the definition with the URL of their `GET auth/providers/{provider}/redirect`. The callback needs a verified email (Google's `email_verified`), in an allowed domain and, for Google, with its `hd` claim in it, and the user with this email (or the one of a `Panneau\Contracts\Auth\ResolvesProviderUsers` in `panneau.auth.provider_users`) allowed in by the gate. It goes to `next`, or back to the app with `authError` (#34).
@@ -194,7 +205,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.9...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.10...v5.x
+[5.0.0-alpha.10]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.10
 [5.0.0-alpha.9]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.9
 [5.0.0-alpha.8]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.8
 [5.0.0-alpha.7]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.7
