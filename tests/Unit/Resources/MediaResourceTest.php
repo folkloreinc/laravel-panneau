@@ -85,6 +85,7 @@ class MediaResourceTest extends TestCase
         ], $library->allFields()[0]->toDefinition());
         $this->assertSame($library->fileField(), $library->field('file'));
         $this->assertSame('name', $library->itemTitle());
+        $this->assertSame('media', $library->itemImage());
     }
 
     public function test_the_file_is_configured_by_the_library(): void
