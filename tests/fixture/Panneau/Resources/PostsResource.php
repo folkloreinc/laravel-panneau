@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Panneau\Actions\ActionPlacement;
 use Panneau\Actions\ClientAction;
 use Panneau\Actions\LinkAction;
+use Panneau\Fields\Address;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Country;
@@ -15,6 +16,7 @@ use Panneau\Fields\Duration;
 use Panneau\Fields\Embed;
 use Panneau\Fields\Group;
 use Panneau\Fields\Json;
+use Panneau\Fields\Link;
 use Panneau\Fields\Location;
 use Panneau\Fields\Media;
 use Panneau\Fields\Money;
@@ -87,7 +89,13 @@ class PostsResource extends Resource
                 Region::make('region')->from('country')->country('CA'),
                 DateRange::make('period'),
                 Money::make('budget')->currency('CAD'),
+                Address::make('venue')->countries(['CA', 'US'])->requiredParts(['street', 'city', 'region', 'postalCode', 'country'])->point(),
+                Link::make('website')->types(['url', ['id' => 'anchor', 'label' => 'Anchor', 'pattern' => '^#[\\w-]+$']])->newTab('external')->linkLabel('none'),
             ]),
+            // At the top of the resource (conformance: update.parts)
+            Address::make('address')->country('CA')->preferred(['CA', 'US']),
+            Link::make('link')->pages(AuthorsResource::class)
+                ->resolvePageUrlUsing(fn (object $author, string $resource): string => 'https://example.com/'.$resource.'/'.$author->getKey()),
             Repeater::make('blocks')->types([
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),
                 BlockType::make('image', 'Image', [Media::make('image')->accept('image/*')->required()]),

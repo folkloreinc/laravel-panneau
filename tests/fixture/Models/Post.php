@@ -24,6 +24,8 @@ class Post extends Model
             'blocks' => 'array',
             'seo' => 'array',
             'details' => 'array',
+            'address' => 'array',
+            'link' => 'array',
             'published_at' => 'datetime',
             'dates' => AsDateRange::columns('starts_at', 'ends_at', timeZone: 'time_zone', allDay: 'all_day'),
             'price' => AsMoney::class.':price_cents,currency',

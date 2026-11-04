@@ -171,6 +171,8 @@ class ResourceItemTest extends HttpTestCase
                 'region' => 'QC',
                 'period' => null,
                 'budget' => null,
+                'venue' => null,
+                'website' => null,
             ]);
         Http::assertSent(fn (Request $request): bool => $request['url'] === 'https://www.youtube.com/watch?v=1');
 

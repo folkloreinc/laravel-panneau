@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User;
 use LogicException;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Fields\Address;
 use Panneau\Fields\Country;
 use Panneau\Fields\DateRange;
 use Panneau\Fields\Json;
+use Panneau\Fields\Link;
 use Panneau\Fields\Money;
-use Panneau\Fields\Region;
 use Panneau\Fields\Sessions;
 use Panneau\Fields\Text;
 use Panneau\Resources\Duplication;
@@ -121,7 +122,7 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame(['singular' => 'post', 'plural' => 'posts'], $posts['label']);
         $this->assertSame('title', $posts['itemTitle']);
         $this->assertSame(
-            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'dates', 'price', 'author', 'tags', 'seo', 'details', 'blocks', 'preview_password'],
+            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'dates', 'price', 'author', 'tags', 'seo', 'details', 'address', 'link', 'blocks', 'preview_password'],
             array_column($posts['fields'], 'name'),
         );
         $this->assertSame(['search' => true], $posts['features']);
@@ -205,11 +206,12 @@ class DefinitionBuilderTest extends TestCase
         {
             public function fields(): array
             {
-                return [Text::make('name'), Json::make('metadata'), Country::make('country'), Region::make('region')->from('country')];
+                return [Text::make('name'), Json::make('metadata'), Link::make('website'), Country::make('country'), Address::make('address')];
             }
         };
         $this->assertSame(
-            [['field' => 'name'], ['field' => 'country'], ['field' => 'region']],
+            // An address is shown on one line, a link is content of the item
+            [['field' => 'name'], ['field' => 'country'], ['field' => 'address']],
             $this->app->make(DefinitionBuilder::class)->resource($addresses)['list']['columns'],
         );
 

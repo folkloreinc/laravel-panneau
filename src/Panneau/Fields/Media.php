@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use LogicException;
 use Panneau\Fields\Concerns\AcceptsFiles;
+use Panneau\Fields\Concerns\ValidatesEachLocale;
 use Panneau\Forms\RuleSet;
 use Panneau\Forms\ValidationContext;
 use Panneau\Media\MediaTransform;
@@ -43,6 +44,7 @@ class Media extends Field
     use AcceptsFiles {
         typeDefinition as filesTypeDefinition;
     }
+    use ValidatesEachLocale;
 
     /**
      * @var list<string>
@@ -137,32 +139,6 @@ class Media extends Field
         }
 
         return $definition;
-    }
-
-    /**
-     * A localized field checks each locale like a field that isn't.
-     */
-    public function collectRules(RuleSet $rules, string $path, mixed $value, array $siblings, string $prefix, ValidationContext $context): void
-    {
-        if (! $this->localized) {
-            parent::collectRules($rules, $path, $value, $siblings, $prefix, $context);
-
-            return;
-        }
-        $attribute = $this->label ?? str_replace('_', ' ', $this->name);
-        $rules->attribute($path, $attribute);
-        $server = $this->serverRules instanceof Closure ? ($this->serverRules)($context) : $this->serverRules;
-        $rules->add($path, [$this->isRequired($context->mode) ? 'required' : 'nullable', 'array', ...$server]);
-        foreach ($context->locales as $locale) {
-            $localePath = $path.'.'.$locale;
-            $rules->attribute($localePath, $attribute.' ('.$locale.')');
-            $rules->add($localePath, [
-                $this->isRequired($context->mode) ? 'required' : 'nullable',
-                ...$this->valueRules($context),
-                ...$this->portableLaravelRules($rules, $localePath, $prefix, $context->mode),
-            ]);
-            $this->collectNestedRules($rules, $localePath, is_array($value) ? ($value[$locale] ?? null) : null, $context);
-        }
     }
 
     protected function valueRules(ValidationContext $context): array

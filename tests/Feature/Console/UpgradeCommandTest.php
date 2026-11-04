@@ -443,6 +443,89 @@ class UpgradeCommandTest extends TestCase
         $this->assertStringContainsString('hashed(false)', $secret->target);
     }
 
+    public function test_the_check_points_groups_of_links_and_addresses_and_mailto_urls_to_their_types(): void
+    {
+        $this->project('v1.4');
+        $fields = [
+            'Button' => ['Fields', "TextLocalized::make('label'), UrlLocalized::make('url'), Toggle::make('external')"],
+            'Cta' => ['Fields', "Text::make('text'), Url::make('link')"],
+            'Venue' => ['Fields', "Text::make('name'), Text::make('address'), Text::make('city'), Text::make('postal_code'), Select::make('province')"],
+            'Person' => ['Fields', "Text::make('name'), Url::make('url')"],
+        ];
+        foreach ($fields as $name => [$parent, $made]) {
+            file_put_contents($this->project."/app/Panneau/Fields/{$name}.php", <<<PHP
+                <?php
+
+                namespace App\\Panneau\\Fields;
+
+                use Panneau\\Fields\\{$parent};
+                use Panneau\\Fields\\Select;
+                use Panneau\\Fields\\Text;
+                use Panneau\\Fields\\TextLocalized;
+                use Panneau\\Fields\\Toggle;
+                use Panneau\\Fields\\Url;
+                use Panneau\\Fields\\UrlLocalized;
+
+                class {$name} extends {$parent}
+                {
+                    public function fields(): array
+                    {
+                        return [{$made}];
+                    }
+                }
+                PHP);
+        }
+        file_put_contents($this->project.'/app/Panneau/Fields/Contact.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Fields;
+
+            use Illuminate\Http\Request;
+            use Panneau\Fields\Url;
+
+            class Contact extends Url
+            {
+                public function rules(Request $request): ?array
+                {
+                    return ['nullable', 'regex:/^(https?|mailto):/'];
+                }
+            }
+            PHP);
+        file_put_contents($this->project.'/app/Panneau/Fields/Website.php', <<<'PHP'
+            <?php
+
+            namespace App\Panneau\Fields;
+
+            use Illuminate\Http\Request;
+            use Panneau\Fields\Url;
+
+            class Website extends Url
+            {
+                public function rules(Request $request): ?array
+                {
+                    return ['nullable', 'url', 'max:255'];
+                }
+            }
+            PHP);
+
+        $button = $this->finding('fields', 'Button extends Fields (fields)');
+        $this->assertTrue($button->isManual());
+        $this->assertStringStartsWith('manual: Link->localized()', $button->target);
+        $this->assertStringContainsString('newTab', $button->target);
+        $this->assertStringContainsString('(from label, url, external)', $button->target);
+        $cta = $this->finding('fields', 'Cta extends Fields (fields)')->target;
+        $this->assertStringStartsWith('manual: Link, a built-in type', $cta);
+        $this->assertStringContainsString('the label a string per locale', $cta);
+        $venue = $this->finding('fields', 'Venue extends Fields (fields)')->target;
+        $this->assertStringStartsWith('manual: Address', $venue);
+        $this->assertStringContainsString('panneau:convert-addresses', $venue);
+        // Neither a link nor an address
+        $this->assertSame('Group', $this->finding('fields', 'Person extends Fields (fields)')->target);
+        $this->assertSame('Group', $this->finding('fields', 'Credit extends Fields (fields)')->target);
+        $this->assertStringStartsWith("manual: Link->types(['url', 'email'])", $this->finding('fields', 'Contact extends Url (url)')->target);
+        $this->assertSame('Url', $this->finding('fields', 'Website extends Url (url)')->target);
+    }
+
     public function test_the_check_lists_passwords_that_dont_say_who_hashes(): void
     {
         $this->project('v1.4');

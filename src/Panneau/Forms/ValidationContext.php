@@ -36,6 +36,10 @@ final readonly class ValidationContext
      *                                                                 class): those, in that
      *                                                                 order, or every library
      *                                                                 when it names none.
+     * @param  (Closure(string): ?string)|null  $resourceId  The id of a resource named by id
+     *                                                       or class, or null when there is
+     *                                                       none, for the pages of link fields.
+     *                                                       Without it, names are ids.
      */
     public function __construct(
         public FormMode $mode = FormMode::Create,
@@ -47,6 +51,7 @@ final readonly class ValidationContext
         public ?Closure $media = null,
         public ?Closure $valueExists = null,
         public ?Closure $libraries = null,
+        public ?Closure $resourceId = null,
     ) {}
 
     /**
@@ -55,6 +60,6 @@ final readonly class ValidationContext
      */
     public function nested(): self
     {
-        return new self($this->mode, $this->locales, false, $this->item, $this->relationExists, $this->uploads, $this->media, libraries: $this->libraries);
+        return new self($this->mode, $this->locales, false, $this->item, $this->relationExists, $this->uploads, $this->media, libraries: $this->libraries, resourceId: $this->resourceId);
     }
 }
