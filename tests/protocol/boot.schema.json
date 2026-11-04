@@ -688,6 +688,50 @@
                     "properties": {
                         "rule": {
                             "type": "string",
+                            "const": "postalCode"
+                        },
+                        "value": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{2}$"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                        }
+                                    },
+                                    "required": [
+                                        "field"
+                                    ],
+                                    "additionalProperties": {}
+                                }
+                            ]
+                        },
+                        "message": {
+                            "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "rule"
+                    ],
+                    "additionalProperties": {}
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "rule": {
+                            "type": "string",
                             "const": "crop"
                         },
                         "value": {
