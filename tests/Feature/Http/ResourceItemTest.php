@@ -169,6 +169,8 @@ class ResourceItemTest extends HttpTestCase
                 'place' => ['lat' => 45.509595, 'lng' => -73.565912, 'address' => 'Place des Arts'],
                 'country' => 'CA',
                 'region' => 'QC',
+                'period' => null,
+                'budget' => null,
             ]);
         Http::assertSent(fn (Request $request): bool => $request['url'] === 'https://www.youtube.com/watch?v=1');
 
@@ -184,6 +186,53 @@ class ResourceItemTest extends HttpTestCase
         ]])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['details.rating', 'details.metadata', 'details.keywords', 'details.place.lat', 'details.contact', 'details.country', 'details.region']);
+    }
+
+    public function test_date_ranges_and_money_of_decision_0053(): void
+    {
+        $this->app['config']->set('app.timezone', 'America/Toronto');
+        $post = $this->createPost();
+
+        // Date-times in UTC, kept in two columns in the time zone of the app
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, [
+            'dates' => ['start' => '2026-11-04T23:30:00Z', 'end' => '2026-11-05T01:00:00.000Z', 'timeZone' => 'America/Vancouver', 'note' => 'dropped'],
+            'price' => ['amount' => 1250, 'currency' => 'USD'],
+            'details' => ['period' => ['start' => '2026-11-04', 'end' => '2026-11-06'], 'budget' => ['amount' => 500000, 'currency' => 'CAD']],
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.dates', ['start' => '2026-11-04T18:30:00-05:00', 'end' => '2026-11-04T20:00:00-05:00', 'timeZone' => 'America/Vancouver'])
+            ->assertJsonPath('data.price', ['amount' => 1250, 'currency' => 'USD'])
+            ->assertJsonPath('data.details.period', ['start' => '2026-11-04', 'end' => '2026-11-06'])
+            ->assertJsonPath('data.details.budget', ['amount' => 500000, 'currency' => 'CAD']);
+        $row = (array) $post->getConnection()->table('posts')->find($post->id);
+        $this->assertSame(['2026-11-04 18:30:00', '2026-11-04 20:00:00', 'America/Vancouver'], [$row['starts_at'], $row['ends_at'], $row['time_zone']]);
+        $this->assertSame([1250, 'USD'], [(int) $row['price_cents'], $row['currency']]);
+
+        // All day: days as bounds; open at its end
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['dates' => ['start' => '2026-12-01', 'end' => null, 'allDay' => true]])
+            ->assertOk()
+            ->assertJsonPath('data.dates', ['start' => '2026-12-01', 'end' => null, 'allDay' => true]);
+
+        // Cleared
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['dates' => null, 'price' => null])
+            ->assertOk()
+            ->assertJsonPath('data.dates', null)
+            ->assertJsonPath('data.price', null);
+        $this->assertNull($post->refresh()->getAttributes()['starts_at']);
+
+        // The rules the types imply, with errors on the fields
+        $response = $this->patchJson(self::API.'/resources/posts/'.$post->id, [
+            'dates' => ['start' => '2026-11-06T10:00:00Z', 'end' => '2026-11-04T10:00:00Z'],
+            'price' => ['amount' => 12.5, 'currency' => 'CAD'],
+            'details' => ['period' => ['start' => null, 'end' => '2026-11-06'], 'budget' => ['amount' => 100, 'currency' => 'USD']],
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['dates', 'price', 'details.period', 'details.budget']);
+        $this->assertStringContainsString('can’t be before its start', $response->json('errors.dates.0'));
+        $this->assertStringContainsString('Give the start', $response->json('errors')['details.period'][0]);
+        // min(0) applies to the amount
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['price' => ['amount' => -1, 'currency' => 'CAD']])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['price']);
     }
 
     public function test_update_needs_the_update_ability(): void

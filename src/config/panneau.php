@@ -287,6 +287,18 @@ return [
         'columns' => [],
     ],
 
+    // Amounts of money (Panneau\Fields\Money), kept in minor units: `1250` cents for 12.50 $.
+    'money' => [
+        // The ISO 4217 currency of the amounts that `panneau:convert-money` converts (`CAD`).
+        'currency' => null,
+        // Where a project kept amounts in major units (floats, decimals), for
+        // `panneau:convert-money`: `table.column:target_column`, an integer column of the
+        // table that receives the amount in minor units (`products.price:price_cents`), or
+        // `table.column:path.in.json` for a key of a JSON column, which becomes a money value
+        // (`orders.data:total`).
+        'columns' => [],
+    ],
+
     // File fields (Panneau\Fields\File): files that belong to an item, stored on the field's
     // disk. Private files get temporary URLs.
     'files' => [

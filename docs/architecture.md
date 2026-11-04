@@ -189,6 +189,7 @@ interface ResourceRepository
   - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
   - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types));
   - `Country`, `Region` (see [Countries, regions and phone numbers](#countries-regions-and-phone-numbers));
+  - `DateRange`, `Money`, and the `Sessions` preset (see [Date ranges and money](#date-ranges-and-money));
   - `Password`, a `text` field with `settings.secret` (see [Passwords](#passwords)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
@@ -303,6 +304,60 @@ Tel::make('phone')->country('CA'),                      // the country of a new 
   - `PhoneNumber::format()` shows a number in the format of the project's country (`514 555-0199`), or with its calling code (`+33 6 12 34 56 78`), for emails, PDFs and pages; `PhoneNumber::nationalNumber()` gives its digits without the calling code, for exports.
   - No library of numbering plans: the admin checks numbers with the smallest metadata of `libphonenumber-js`, which mostly checks their lengths, and the table above does the same on the server for the numbers it converts.
 - **Phone numbers kept as typed** before (`514 555-0199`) are refused until they are converted to E.164, or retyped.
+
+### Date ranges and money
+
+The types of [panneau-js decision 0053](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0053-date-ranges-and-money.md) (folkloreinc/panneau-js#198, folkloreinc/panneau-js#200), for events, editions and campaigns, and for prices, offers and donations.
+
+```php
+DateRange::make('dates'),                                          // days, both inclusive
+DateRange::make('dates')->time()->open('end'),                     // date-times; the end can be null
+DateRange::make('dates')->allDay()->timeZone('America/Toronto'),   // an "All day" switch; the zone of the place
+DateRange::make('dates')->time()->chooseTimeZone(),                // a zone per value
+Money::make('price')->currency('CAD')->min(0),                     // one currency
+Money::make('donation')->currencies(['CAD', 'USD'])->min(500),     // the currencies to pick from; min() in cents
+Sessions::make('sessions')->venues(VenuesResource::class)->append([Money::make('price')->currency('CAD')]),
+```
+
+- **Values:**
+  - `daterange` is `{ "start", "end" }`, or null. Its bounds are days (`2026-11-04`), both inclusive, or with `time()` date-times with their offset (`2026-11-04T23:30:00Z`), which items give in ATOM with the offset of the app. With `allDay()`, which turns `time()` on, an all-day value has days as bounds and `"allDay": true`. With `chooseTimeZone()`, the value keeps the IANA zone the user picked (`"timeZone": "America/Vancouver"`). An empty range (`null`, or both bounds empty) is null;
+  - `money` is `{ "amount": 1250, "currency": "CAD" }`, or null: an integer in the minor unit of the currency, its exponent in ISO 4217 (`Currency::digits()`: 2 for `CAD`, 0 for `JPY`, 3 for `KWD`), and an ISO 4217 code in capitals (`Currency::CODES`, the list of `@panneau/protocol`).
+- **Rules.** The types imply the protocol's `daterange` and `money` rules, as `tel` implies `tel`: the server enforces them from the settings of the field, and doesn't write them in the definition (the admin adds them, with `open` and `currencies`). A filled range has both bounds, except the one `open()` lets be null (`start`, `end` or `both`), bounds of the right kind, and ends on or after its start; each failure has its message (`Give the start of the dates.`, `Give the end of the dates.`, `The end of the dates can’t be before its start.`), on the path of the field. An amount must be an integer with a currency among `currency()` or `currencies()`, or any known one; `min()` and `max()` apply to the amount, in minor units (`min(100)` is one dollar), and don't convert currencies.
+- **Settings.** `open()`, `timeZone()`, `currency()` and `currencies()` throw an `InvalidArgumentException` for an unknown bound, an IANA zone that doesn't exist, or a code that isn't a known ISO 4217 code in capitals.
+- **Model.** `AsDateRange` keeps a range in the columns of its bounds, so that both stay sortable and filterable; `AsMoney` keeps an amount in an integer column, with a column of its currency or a fixed one:
+
+  ```php
+  protected function casts(): array
+  {
+      return [
+          'dates' => AsDateRange::class.':starts_at,ends_at',            // + ',timezone' for chooseTimeZone(), + ',all_day' for allDay()
+          'period' => AsDateRange::columns('starts_at', 'ends_at', timeZone: 'timezone', allDay: 'all_day'),
+          'price' => AsMoney::class.':price_cents,currency',             // the currency in a column
+          'fee' => AsMoney::class.':fee_cents,CAD',                       // always in CAD
+      ];
+  }
+  ```
+
+  - `AsDateRange` gives `['start' => ?CarbonImmutable, 'end' => ?CarbonImmutable]`, with `timeZone` and `allDay` when they have a column, or null. It stores a day at its midnight and a date-time converted to the zone of the app, as the `datetime` cast does. Without a column for them, the zone and `allDay` of a value are lost.
+  - `AsMoney` gives a `Panneau\Money\Money`, or null. Its second argument is a currency when it is a known ISO 4217 code in capitals, a column otherwise. It takes a `Money`, `{ amount, currency }` or null, refuses an amount in another currency than a fixed one, and refuses to read an amount that isn't an integer: convert those first (below).
+  - In a group, a repeater or a JSON column, both are kept as their JSON values.
+- **`Money`** is a value object: `Money::of(1250, 'CAD')`, `Money::fromDecimal('12.5', 'CAD')` (rounded half away from zero to the digits of the currency, without the errors of floating point: `1.005` is 101 cents), `toDecimal()` (`'12.50'`), `format('fr_CA')` (`1 250,00 $`, with `ext-intl`; the amount and the code without it), `equals()`, and `toArray()` and JSON as the protocol's value. `Money` fields serialize it.
+- **Lists.** Without columns, a list shows `daterange` and `money` fields with the other simple types. On an attribute with the `AsDateRange` cast, `EloquentRepository` reads a `date-range` filter as an overlap: the items whose range starts on or before `to` and ends on or after `from`, where a null bound never limits it and items without a range are left out; a sort on it sorts by its start column. A sort on an `AsMoney` attribute sorts by its amount column, whatever the currency. `calendar()` takes a `daterange` field: the calendar asks for each month through that same filter.
+- **Sessions** of a performance or a screening are a `Repeater` (decision 0053), not a type: `Sessions::make('sessions')` has `dates`, a `DateRange` with `time()` (`dates(fn (DateRange $dates) => …)` to change it), `venues()` adds `venue`, a `Relation` to the resource of the venues, and `append()` other fields. They are kept as the value of the repeater (a JSON column with the `array` cast), or in rows of their own by the project's repository.
+- **Amounts kept in major units.** `php artisan panneau:convert-money` turns the floats, decimals and numeric strings of `panneau.money.columns` into minor units, in the currency of `panneau.money.currency` (`--currency` to use another):
+
+  ```php
+  // config/panneau.php
+  'money' => [
+      'currency' => 'CAD',
+      'columns' => ['products.price:price_cents', 'orders.data:total'],
+  ],
+  ```
+
+  - `table.column:target_column`, when the table has that column: the amount of `column` goes to `target_column`, an integer column the project added by migration for the `AsMoney` cast. A row whose target is filled is never overwritten.
+  - `table.column:path.in.json` otherwise: the number at that key of the JSON column becomes a money value, `{ "amount", "currency" }`, in place.
+  - What doesn't read as a number stays as it is, and `-v` lists it by its shape (`99,99 $`, an `a` for each letter), never its value. `--dry-run` counts and lists without writing. Rows are read and written by their `id`, without their models; running it again changes nothing.
+- **From 1.x.** `--check` lists two date fields of a file named as a start and an end (`starts_at` and `ends_at`), and `Number` fields with a currency in their strings (a `$` suffix): neither change is automatic (see the [migration guide](migration.md)).
 
 ### File
 

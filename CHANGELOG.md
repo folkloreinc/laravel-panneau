@@ -6,6 +6,14 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- `DateRange` and `Money` fields, the `daterange` and `money` types of the protocol (panneau-js decision 0053, folkloreinc/panneau-js#198, folkloreinc/panneau-js#200). A range is `{ start, end }`, days or with `time()` date-times, with `allDay()`, `open('start'|'end'|'both')`, `timeZone()` and `chooseTimeZone()`; an amount is `{ amount, currency }`, an integer in the minor unit of an ISO 4217 currency, with `currency()` or `currencies()`. The types imply the `daterange` and `money` rules, which the server enforces with a message for each failure (a missing start or end, an end before the start, an amount that isn't an integer, a currency that isn't allowed); `min()` and `max()` of a `Money` apply to the amount, in minor units.
+- The `AsDateRange` cast (`AsDateRange::class.':starts_at,ends_at'`, with optional columns of the zone and of `allDay`, or `AsDateRange::columns()`) and the `AsMoney` cast (`AsMoney::class.':price_cents,currency'`, or a fixed currency, `':price_cents,CAD'`), and `Panneau\Money\Money`, a value object with `fromDecimal()` rounded to the digits of ISO 4217 (`Panneau\Money\Currency`, the table of `@panneau/protocol`), `toDecimal()` and `format()`.
+- On an attribute with the `AsDateRange` cast, `EloquentRepository` reads a `date-range` filter as an overlap of ranges, open bounds included, and sorts by the start column; it sorts an `AsMoney` attribute by its amount. Lists show `daterange` and `money` fields by default, and calendars take a `daterange` field.
+- The `Sessions` preset: a `Repeater` of `dates` (a `DateRange` with `time()`) and, with `venues()`, a `venue` relation, to which `append()` adds fields.
+- `php artisan panneau:convert-money`, which turns the amounts that a project kept in major units (floats, decimals) into minor units: from a column to an integer column, or a key of a JSON column into a money value, in the currency of `panneau.money.currency` (`--currency`), with `--dry-run` and `-v`. `panneau:install` writes `DateRange` and `Money` fields for the attributes of these casts, and `--check` suggests them for two date fields named as a start and an end, and for a `Number` with a currency in its strings.
+
 ## [5.0.0-alpha.10] - 2026-11-04
 
 Goes with `@panneau/*` `5.0.0-alpha.15`, which it needs: the pages of the app for password reset, email verification, two-factor authentication, the account and passkeys, and the buttons of OAuth providers, are new in that release.
