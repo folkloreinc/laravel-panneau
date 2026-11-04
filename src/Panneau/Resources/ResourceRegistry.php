@@ -11,7 +11,9 @@ use Panneau\Contracts\ActionDeclaration;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Contracts\Repositories\Searchable;
+use Panneau\Contracts\Repositories\SortsFields;
 use Panneau\Contracts\ResourceRepository;
+use Panneau\Fields\Field;
 use Panneau\Lists\ResourceList;
 use Panneau\Query\QueryOptions;
 use Panneau\Repositories\EloquentMediaRepository;
@@ -162,7 +164,16 @@ final class ResourceRegistry
 
     public function list(Resource $resource): ResourceList
     {
-        return $this->lists[$resource->id()] ??= $resource->makeList();
+        if (! isset($this->lists[$resource->id()])) {
+            // The fields a list sorts by when it doesn't declare its sorts
+            $repository = $this->repository($resource);
+            $this->lists[$resource->id()] = $resource->makeList()->sortableFields(array_values(array_filter(
+                $resource->allFields(),
+                fn (Field $field): bool => $field->isSortable() && (! $repository instanceof SortsFields || $repository->sortsBy($field)),
+            )));
+        }
+
+        return $this->lists[$resource->id()];
     }
 
     /**

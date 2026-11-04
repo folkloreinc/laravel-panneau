@@ -2,6 +2,7 @@
 
 namespace Panneau\Lists;
 
+use Panneau\Fields\Field;
 use Panneau\Lists\Filters\Filter;
 use Panneau\Query\QueryOptions;
 use Panneau\Query\Sort;
@@ -23,9 +24,16 @@ final class ResourceList
     private array $filters = [];
 
     /**
-     * @var list<string>
+     * @var list<string>|null
      */
-    private array $sorts = [];
+    private ?array $sorts = null;
+
+    /**
+     * The fields the list can sort by when it doesn't declare its sorts.
+     *
+     * @var list<Field>
+     */
+    private array $sortableFields = [];
 
     private ?string $defaultSort = null;
 
@@ -100,7 +108,9 @@ final class ResourceList
     }
 
     /**
-     * Fields the list can be sorted by.
+     * Fields the list can be sorted by. Without it, the list sorts by the fields of its columns
+     * whose values sort as they are stored (`Field::isSortable()`), when its repository can sort
+     * by them; `sorts([])` turns sorting off.
      *
      * @param  list<string>  $sorts
      */
@@ -112,11 +122,57 @@ final class ResourceList
     }
 
     /**
+     * The fields the list can sort by when it doesn't declare its sorts: those of the resource
+     * that its repository can sort by. The registry gives them.
+     *
+     * @internal
+     *
+     * @param  list<Field>  $fields
+     */
+    public function sortableFields(array $fields): self
+    {
+        $this->sortableFields = $fields;
+
+        return $this;
+    }
+
+    /**
+     * The fields the list can be sorted by: those of `sorts()`, or without it, the sortable
+     * fields of its columns (every sortable field without columns, since the default columns are
+     * among them), but those of a column marked `sortable(false)`. A column marked `sortable()`
+     * adds its field.
+     *
      * @return list<string>
      */
     public function getSorts(): array
     {
-        return $this->sorts;
+        $columns = $this->columns ?? [];
+        $sorts = $this->sorts;
+        if ($sorts === null) {
+            $shown = $this->columns !== null
+                ? array_map(fn (Column $column): ?string => $column->field(), $columns)
+                : null;
+            $unsortable = array_map(
+                fn (Column $column): ?string => $column->field(),
+                array_filter($columns, fn (Column $column): bool => $column->getSortable() === false),
+            );
+            $sorts = [];
+            foreach ($this->sortableFields as $field) {
+                $name = $field->name();
+                if ($field->isSortable() && ! in_array($name, $unsortable, true)
+                    && ($shown === null || in_array($name, $shown, true))) {
+                    $sorts[] = $name;
+                }
+            }
+        }
+        foreach ($columns as $column) {
+            $field = $column->field();
+            if ($column->getSortable() === true && $field !== null && ! in_array($field, $sorts, true)) {
+                $sorts[] = $field;
+            }
+        }
+
+        return $sorts;
     }
 
     /**
@@ -245,7 +301,7 @@ final class ResourceList
 
         return new QueryOptions(
             filters: $filters,
-            sorts: $this->sorts,
+            sorts: $this->getSorts(),
             defaultSort: $this->defaultSort !== null ? Sort::parseList($this->defaultSort) : [],
             searchFields: $searchable ? $this->search : [],
             fields: $fields,
@@ -265,14 +321,16 @@ final class ResourceList
      */
     public function toDefinition(bool $searchable, bool $cursors = false): array
     {
+        $sorts = $this->getSorts();
+
         return array_filter([
             'columns' => $this->columns !== null
-                ? array_map(fn (Column $column): array => $column->toDefinition($this->sorts), $this->columns)
+                ? array_map(fn (Column $column): array => $column->toDefinition($sorts), $this->columns)
                 : null,
             'filters' => count($this->filters) > 0
                 ? array_map(fn (Filter $filter): array => $filter->toDefinition(), $this->filters)
                 : null,
-            'sorts' => count($this->sorts) > 0 ? $this->sorts : null,
+            'sorts' => count($sorts) > 0 ? $sorts : null,
             'defaultSort' => $this->defaultSort,
             'search' => $searchable && count($this->search) > 0,
             'layouts' => $this->layouts,

@@ -770,6 +770,7 @@ Panneau::menu('main', fn (Context $context): array => [
 - **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
 - **Query.** Filters, sorts and search only accept what the resource's list declares. The query string can't reach arbitrary columns.
+  - **Sorts by default.** A list that doesn't call `sorts()` sorts by the fields of its columns (every field, without columns) whose values sort as they are stored: `Field::isSortable()`, true for text, numbers, dates, durations, amounts, booleans and a single choice, in one locale and not computed by `resolveUsing()`. Its repository has the last word when it implements `SortsFields`: `EloquentRepository` leaves out accessors and relations, which have no column of their name, and a range or an amount without its cast (`AsDateRange`, `AsMoney`). Their headers sort in the list. A column marked `sortable(false)` stays out, a column marked `sortable()` adds its field, also to declared sorts, and `sorts([])` turns sorting off.
 - **Responses:**
   - Errors on Panneau routes are rendered as `application/problem+json`, including those of the other middleware. Other routes keep the app's error rendering.
   - Single items send an `ETag`.

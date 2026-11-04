@@ -80,4 +80,9 @@ class Duration extends Field
     {
         return ['integer', 'min:0'];
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }

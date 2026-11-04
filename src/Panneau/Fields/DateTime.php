@@ -18,4 +18,9 @@ class DateTime extends Field
     {
         return ['date'];
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }

@@ -160,4 +160,9 @@ class Country extends Field
             $rules->add($path.'.*', ['required', 'string', 'distinct', LaravelRule::in($this->allowed())]);
         }
     }
+
+    protected function sortsByValue(): bool
+    {
+        return ! $this->multiple;
+    }
 }

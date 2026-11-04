@@ -107,4 +107,9 @@ class Color extends Text
 
         return $values !== null ? ['string', LaravelRule::in($values)] : parent::valueRules($context);
     }
+
+    protected function sortsByValue(): bool
+    {
+        return false;
+    }
 }

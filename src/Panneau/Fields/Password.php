@@ -116,4 +116,9 @@ class Password extends Text
 
         return $this->hashed && is_string($value) && ! $isHash ? Hash::make($value) : $value;
     }
+
+    protected function sortsByValue(): bool
+    {
+        return false;
+    }
 }

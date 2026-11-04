@@ -313,4 +313,9 @@ class DateRange extends Field
     {
         return $value === null || $value === '';
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }
