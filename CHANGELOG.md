@@ -8,7 +8,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Changed
 
-- A list that doesn't declare its sorts (`sorts()`) sorts by the fields of its columns whose values sort as they are stored, and its column headers sort: text, numbers, dates, durations, amounts, booleans and single choices, in one locale, and not computed by `resolveUsing()` (`Field::isSortable()`). `EloquentRepository` leaves out accessors, relations, and ranges and amounts without their casts (the new `SortsFields` contract). `sorts([])` turns sorting off, and a column marked `sortable()` now adds its field to the sorts the query accepts.
+- A list that doesn't declare its sorts (`sorts()`) sorts by the fields of its columns whose values sort as they are stored, and its column headers sort: text, numbers, dates, durations, amounts, booleans and single choices, in one locale, and not computed by `resolveUsing()` (`Field::isSortable()`). `EloquentRepository` leaves out accessors, relations, and ranges and amounts without their casts (the new `SortsFields` contract). `sorts([])` turns sorting off, and a column marked `sortable()` now adds its field to the sorts the query accepts (#176).
 
 ## [5.0.0-alpha.11] - 2026-11-04
 
