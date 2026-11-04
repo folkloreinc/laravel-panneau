@@ -3825,6 +3825,43 @@
                 "additionalProperties": {},
                 "description": "The `settings` of a `richtext` field. Its value is HTML. The toolbar only limits what users add: content that the field stores keeps its elements and attributes."
             },
+            "DurationSettings": {
+                "type": "object",
+                "properties": {
+                    "unit": {
+                        "description": "The unit of the value, a whole number: `seconds` (the default), `minutes`, `hours` or `days`. The `min` and `max` rules are in it too.",
+                        "type": "string",
+                        "enum": [
+                            "seconds",
+                            "minutes",
+                            "hours",
+                            "days"
+                        ]
+                    },
+                    "precision": {
+                        "description": "The smallest part the input shows. Defaults to `unit`; a precision finer than `unit` is raised to it.",
+                        "type": "string",
+                        "enum": [
+                            "seconds",
+                            "minutes",
+                            "hours",
+                            "days"
+                        ]
+                    },
+                    "largestUnit": {
+                        "description": "The largest part the input shows, which has no upper bound: `days` shows days, and hours from 0 to 23. Defaults to the larger of `hours` and `precision`; a largest unit smaller than `precision` is raised to it.",
+                        "type": "string",
+                        "enum": [
+                            "seconds",
+                            "minutes",
+                            "hours",
+                            "days"
+                        ]
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `duration` field. Its value is a whole number of `unit`, zero or more. A day is 24 hours."
+            },
             "LayoutNode": {
                 "type": "object",
                 "properties": {
