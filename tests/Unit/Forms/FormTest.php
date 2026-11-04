@@ -548,9 +548,9 @@ class FormTest extends TestCase
         $this->assertArrayHasKey('dates', $this->errors([DateRange::make('dates')->required()], ['dates' => null]));
 
         // A clear message for each failure
-        $this->assertSame('The dates needs a start.', $error($days, ['start' => null, 'end' => '2026-11-06']));
-        $this->assertSame('The dates needs an end.', $error($days, ['start' => '2026-11-04']));
-        $this->assertSame('The dates must end on or after its start.', $error($days, ['start' => '2026-11-06', 'end' => '2026-11-04']));
+        $this->assertSame('Give the start of the dates.', $error($days, ['start' => null, 'end' => '2026-11-06']));
+        $this->assertSame('Give the end of the dates.', $error($days, ['start' => '2026-11-04']));
+        $this->assertSame('The end of the dates can’t be before its start.', $error($days, ['start' => '2026-11-06', 'end' => '2026-11-04']));
         $this->assertSame('The start of the dates must be a day (YYYY-MM-DD).', $error($days, ['start' => '2026-02-30', 'end' => '2026-03-01']));
         $this->assertSame('The end of the dates must be a day (YYYY-MM-DD).', $error($days, ['start' => '2026-11-04', 'end' => '2026-11-06T10:00:00Z']));
         $this->assertSame('The dates must be a date range.', $error($days, '2026-11-04'));
@@ -561,7 +561,7 @@ class FormTest extends TestCase
         // Open bounds
         $open = [DateRange::make('dates')->open('end')];
         $this->assertSame(['dates' => ['start' => '2026-11-04', 'end' => null]], $this->validate($open, ['dates' => ['start' => '2026-11-04', 'end' => null]]));
-        $this->assertSame('The dates needs a start.', $error($open, ['start' => null, 'end' => '2026-11-04']));
+        $this->assertSame('Give the start of the dates.', $error($open, ['start' => null, 'end' => '2026-11-04']));
         $both = [DateRange::make('dates')->open('both')];
         $this->assertSame(['dates' => ['start' => null, 'end' => '2026-12-01']], $this->validate($both, ['dates' => ['end' => '2026-12-01']]));
 
@@ -571,7 +571,7 @@ class FormTest extends TestCase
             ['dates' => ['start' => '2026-11-04T23:30:00+00:00', 'end' => '2026-11-04T20:00:00-05:00', 'timeZone' => 'America/Toronto']],
             $this->validate($times, ['dates' => ['start' => '2026-11-04T23:30:00.000Z', 'end' => '2026-11-04T20:00:00-05:00', 'timeZone' => 'America/Toronto', 'allDay' => false]]),
         );
-        $this->assertSame('The dates must end on or after its start.', $error($times, ['start' => '2026-11-05T00:30:00Z', 'end' => '2026-11-04T19:00:00-05:00']));
+        $this->assertSame('The end of the dates can’t be before its start.', $error($times, ['start' => '2026-11-05T00:30:00Z', 'end' => '2026-11-04T19:00:00-05:00']));
         $this->assertSame('The start of the dates must be a date and time with its offset.', $error($times, ['start' => '2026-11-04T23:30:00', 'end' => '2026-11-05T01:00:00Z']));
         $this->assertSame('The end of the dates must be a date and time with its offset.', $error($times, ['start' => '2026-11-04T23:30:00Z', 'end' => '2026-11-05']));
         $this->assertSame('The time zone of the dates is invalid.', $error($times, ['start' => '2026-11-04T23:30:00Z', 'end' => '2026-11-05T01:00:00Z', 'timeZone' => 'Mars/Olympus']));

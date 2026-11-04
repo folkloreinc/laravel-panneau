@@ -227,8 +227,8 @@ class ResourceItemTest extends HttpTestCase
             'details' => ['period' => ['start' => null, 'end' => '2026-11-06'], 'budget' => ['amount' => 100, 'currency' => 'USD']],
         ])->assertStatus(422)
             ->assertJsonValidationErrors(['dates', 'price', 'details.period', 'details.budget']);
-        $this->assertStringContainsString('end on or after its start', $response->json('errors.dates.0'));
-        $this->assertStringContainsString('needs a start', $response->json('errors')['details.period'][0]);
+        $this->assertStringContainsString('can’t be before its start', $response->json('errors.dates.0'));
+        $this->assertStringContainsString('Give the start', $response->json('errors')['details.period'][0]);
         // min(0) applies to the amount
         $this->patchJson(self::API.'/resources/posts/'.$post->id, ['price' => ['amount' => -1, 'currency' => 'CAD']])
             ->assertStatus(422)

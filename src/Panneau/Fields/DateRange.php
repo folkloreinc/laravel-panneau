@@ -206,11 +206,11 @@ class DateRange extends Field
                 }
             }
             if ($start === null && ! $this->isOpen('start')) {
-                $fail(__('The :attribute needs a start.'));
+                $fail(__('Give the start of the :attribute.'));
             } elseif ($end === null && ! $this->isOpen('end')) {
-                $fail(__('The :attribute needs an end.'));
+                $fail(__('Give the end of the :attribute.'));
             } elseif ($start !== null && $end !== null && self::bound($end, $days) < self::bound($start, $days)) {
-                $fail(__('The :attribute must end on or after its start.'));
+                $fail(__('The end of the :attribute can’t be before its start.'));
             }
         }];
     }
