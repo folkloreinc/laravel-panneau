@@ -9,6 +9,7 @@ use Panneau\Actions\LinkAction;
 use Panneau\Fields\Address;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
+use Panneau\Fields\Color;
 use Panneau\Fields\Country;
 use Panneau\Fields\DateRange;
 use Panneau\Fields\DateTime;
@@ -83,7 +84,7 @@ class PostsResource extends Resource
                 Duration::make('reading_time')->precision('minutes'),
                 Json::make('metadata'),
                 Tags::make('keywords')->options(['culture' => 'Culture', 'food' => 'Food'])->max(5),
-                Embed::make('video'),
+                Embed::make('video')->providers(['YouTube', 'Vimeo']),
                 Location::make('place')->zoom(14)->center(45.5017, -73.5673),
                 Country::make('country')->preferred(['CA', 'US']),
                 Region::make('region')->from('country')->country('CA'),
@@ -91,6 +92,11 @@ class PostsResource extends Resource
                 Money::make('budget')->currency('CAD'),
                 Address::make('venue')->countries(['CA', 'US'])->requiredParts(['street', 'city', 'region', 'postalCode', 'country'])->point(),
                 Link::make('website')->types(['url', ['id' => 'anchor', 'label' => 'Anchor', 'pattern' => '^#[\\w-]+$']])->newTab('external')->linkLabel('none'),
+                Country::make('countries')->multiple()->max(5),
+                Color::make('background')->palette([
+                    ['value' => 'white', 'label' => 'White', 'color' => '#ffffff'],
+                    ['value' => 'night', 'label' => 'Night', 'color' => '#1e1b4b'],
+                ]),
             ]),
             // At the top of the resource (conformance: update.parts)
             Address::make('address')->country('CA')->preferred(['CA', 'US']),

@@ -187,6 +187,10 @@ class FieldTest extends TestCase
         );
         $this->assertSame(['name' => 'country', 'type' => 'country'], Country::make('country')->toDefinition());
         $this->assertSame(
+            ['name' => 'countries', 'type' => 'country', 'rules' => [['rule' => 'max', 'value' => 3]], 'multiple' => true],
+            Country::make('countries')->multiple()->max(3)->toDefinition(),
+        );
+        $this->assertSame(
             ['name' => 'province', 'type' => 'region', 'from' => 'country', 'settings' => ['country' => 'CA']],
             Region::make('province')->from('country')->country('CA')->toDefinition(),
         );
@@ -342,5 +346,61 @@ class FieldTest extends TestCase
         $this->assertSame([['url' => 'https://a.test']], Repeater::make('links')->fields([Text::make('url')])->resolve($item));
         $this->assertNull(Text::make('missing')->resolve($item));
         $this->assertSame('TITLE', Text::make('title')->resolveUsing(fn (object $item) => strtoupper($item->title))->resolve($item));
+    }
+
+    public function test_embeds_name_their_providers_in_a_portable_rule(): void
+    {
+        $this->assertSame(
+            ['name' => 'trailer', 'type' => 'embed', 'rules' => [['rule' => 'providers', 'value' => ['YouTube', 'Vimeo']]]],
+            Embed::make('trailer')->providers(['YouTube', 'Vimeo'])->toDefinition(),
+        );
+    }
+
+    public function test_embeds_need_providers_by_name(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Embed::make('trailer')->providers([]);
+    }
+
+    public function test_colors_take_a_palette(): void
+    {
+        $this->assertSame(
+            ['name' => 'background', 'type' => 'color', 'settings' => ['palette' => [
+                ['value' => 'purple', 'label' => 'Purple', 'color' => '#6b21a8'],
+                ['value' => '#ffffff'],
+            ]]],
+            Color::make('background')->palette([
+                ['value' => 'purple', 'label' => 'Purple', 'color' => '#6b21a8'],
+                ['value' => '#ffffff'],
+            ])->toDefinition(),
+        );
+        $this->assertSame(['name' => 'accent', 'type' => 'color'], Color::make('accent')->toDefinition());
+    }
+
+    /**
+     * @return array<string, array{array<array-key, mixed>}>
+     */
+    public static function invalidPalettes(): array
+    {
+        return [
+            'empty' => [[]],
+            'without a value' => [[['label' => 'Purple', 'color' => '#6b21a8']]],
+            'a name without a color' => [[['value' => 'purple']]],
+            'a color that is not hexadecimal' => [[['value' => 'purple', 'color' => 'purple']]],
+            'a label that is not a string' => [[['value' => '#fff', 'label' => 12]]],
+            'an unknown key' => [[['value' => '#fff', 'tone' => 'accent']]],
+            'a repeated value' => [[['value' => '#fff'], ['value' => '#fff']]],
+            'not a list of colors' => [['#fff']],
+        ];
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $palette
+     */
+    #[DataProvider('invalidPalettes')]
+    public function test_palettes_are_checked(array $palette): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Color::make('background')->palette($palette);
     }
 }

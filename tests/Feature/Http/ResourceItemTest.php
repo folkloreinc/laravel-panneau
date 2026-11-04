@@ -5,6 +5,7 @@ namespace Panneau\Tests\Feature\Http;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Panneau\Contracts\EmbedResolver;
 use Panneau\Http\Problem;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Author;
@@ -173,6 +174,8 @@ class ResourceItemTest extends HttpTestCase
                 'budget' => null,
                 'venue' => null,
                 'website' => null,
+                'countries' => null,
+                'background' => null,
             ]);
         Http::assertSent(fn (Request $request): bool => $request['url'] === 'https://www.youtube.com/watch?v=1');
 
@@ -235,6 +238,50 @@ class ResourceItemTest extends HttpTestCase
         $this->patchJson(self::API.'/resources/posts/'.$post->id, ['price' => ['amount' => -1, 'currency' => 'CAD']])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['price']);
+    }
+
+    public function test_values_of_the_types_of_decision_0058(): void
+    {
+        $this->app->instance(EmbedResolver::class, new class implements EmbedResolver
+        {
+            public function resolve(string $url): ?array
+            {
+                return match (true) {
+                    str_contains($url, 'vimeo') => ['url' => $url, 'type' => 'video', 'title' => 'A video', 'provider' => 'Vimeo'],
+                    str_contains($url, 'spotify') => ['url' => $url, 'type' => 'audio', 'title' => 'A playlist', 'provider' => 'Spotify'],
+                    default => null,
+                };
+            }
+        });
+        $post = $this->createPost();
+
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['details' => [
+            'video' => ['url' => 'https://vimeo.com/1'],
+            'countries' => ['FR', 'CA', 'BE'],
+            'background' => 'night',
+        ]])
+            ->assertOk()
+            ->assertJsonPath('data.details.video', ['url' => 'https://vimeo.com/1', 'type' => 'video', 'title' => 'A video', 'provider' => 'Vimeo'])
+            ->assertJsonPath('data.details.countries', ['FR', 'CA', 'BE'])
+            ->assertJsonPath('data.details.background', 'night');
+
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['details' => [
+            // A provider that isn't listed, whatever the request says
+            'video' => ['url' => 'https://open.spotify.com/playlist/1', 'provider' => 'Vimeo'],
+            'countries' => ['FR', 'FR'],
+            'background' => '#1e1b4b',
+        ]])
+            ->assertStatus(422)
+            ->assertJsonPath('errors', [
+                'details.video' => ['The video must come from YouTube or Vimeo.'],
+                'details.background' => ['The selected background is invalid.'],
+                'details.countries.0' => ['The countries field has a duplicate value.'],
+                'details.countries.1' => ['The countries field has a duplicate value.'],
+            ]);
+
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['details' => ['video' => ['url' => 'https://example.com/post']]])
+            ->assertStatus(422)
+            ->assertJsonPath('errors', ['details.video' => ["The video can't be embedded."]]);
     }
 
     public function test_update_needs_the_update_ability(): void

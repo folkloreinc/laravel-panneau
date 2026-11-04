@@ -272,6 +272,7 @@ Location::make('place')->zoom(14)->center(45.5017, -73.5673),
 - **Embeds.** `GET /embeds?url= answers what the `EmbedResolver` gives for a URL, or a `422` on `url`. The default resolver asks the oEmbed endpoint of the provider whose `schemes` match the URL, among `panneau.embeds.providers`, and never fetches the URL itself. Answers are cached (`panneau.embeds.cache_ttl`, one day), and the route is rate limited per user (`panneau.embeds.rate_limit`, 60 a minute). Bind `Panneau\Contracts\EmbedResolver` to use another service.
 - **Saving an embed** keeps only the URL of the request and resolves it again, so the `html` sites render comes from the provider. An unchanged URL keeps the item's value; a URL that can't be resolved is saved as `{ "url" }`.
 - **Lists.** Without columns, a list shows the `tel`, `range`, `duration` and `tags` fields with the other simple types.
+- **Providers of an embed.** `Embed::make('trailer')->providers(['YouTube', 'Vimeo'])` adds the protocol's `providers` rule ([panneau-js decision 0058](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0058-multiple-countries-embed-providers-color-palettes.md)): names are the `provider_name` of oEmbed, compared without case. Validation resolves the URL with the `EmbedResolver` (from its cache, usually), as saving does, and refuses a URL that it can't resolve or whose provider isn't listed, with a message that names them. The provider of the request is never trusted.
 - **Model.** `json`, `tags`, `embed` and `location` need a JSON column with the `array` cast.
 
 ### Countries, regions and phone numbers
@@ -283,10 +284,17 @@ Country::make('country')->preferred(['CA', 'US']),     // countries(['CA', 'US']
 Region::make('province')->from('country')->country('CA'),
 Tel::make('phone')->country('CA'),                      // the country of a new number
 Tel::make('office')->extension(),                       // +15145550199;ext=123
+Country::make('countries')->multiple()->max(3),         // several countries, in their order
+Color::make('background')->palette([                    // only these colors
+    ['value' => 'purple', 'label' => 'Purple', 'color' => '#6b21a8'],
+    ['value' => '#ffffff', 'label' => 'White'],
+]),
 ```
 
 - **Values:**
   - `country` is an ISO 3166-1 alpha-2 code in capitals (`CA`), or `XK` for Kosovo (`Country::CODES`). The server refuses other codes, and those outside `countries()` when the field has them;
+  - with `multiple()`, `country` is a list of distinct codes, in the order they were chosen (panneau-js decision 0058). `min()` and `max()` count them;
+  - `color` is a hexadecimal color, or, with `palette()`, the `value` of one of its colors, which the server checks. A color of a palette has a `value`, and an optional `label`; its `color` (hexadecimal) draws its swatch, and without one its `value` must be a hexadecimal color. `palette()` throws an `InvalidArgumentException` for any other shape. Storing names lets a site change its brand's colors without rewriting its content;
   - `region` is a string: the code of the region without its country (`QC` for `CA-QC`) for the countries the admin knows the regions of, the text as typed for the others. The server only checks that it is a string;
   - `tel` is an international number in E.164, `+15145550199`. The type implies the protocol's `tel` rule, as `json` implies `json`: the server refuses any other value, such as a number without its country code or the text of a number not typed in full. `pattern()` still applies on top of it;
   - with `extension()`, a `tel` value can have an extension after `;ext=`, as in a `tel:` URI: `+15145550199;ext=123`, 1 to 10 digits ([panneau-js decision 0057](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0057-phone-extensions.md)). The admin shows an input for it after the number, and the type implies the `tel` rule with `extension`. Without it, the server refuses a value with an extension. Code that sends a number to a service without extensions, such as SMS, takes `PhoneNumber::withoutExtension($value)`.

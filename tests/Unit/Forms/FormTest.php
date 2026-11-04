@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 use Panneau\Contracts\EmbedResolver;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
+use Panneau\Fields\Color;
 use Panneau\Fields\Country;
 use Panneau\Fields\Date;
 use Panneau\Fields\DateRange;
@@ -575,6 +576,48 @@ class FormTest extends TestCase
         $this->assertSame(['country' => null, 'shipping' => null], $this->validate($fields, ['country' => null, 'shipping' => null]));
     }
 
+    public function test_several_countries_are_distinct_iso_codes_in_their_order(): void
+    {
+        $fields = [
+            Country::make('countries')->multiple()->max(3),
+            Country::make('shipping')->multiple()->countries(['CA', 'US'])->required(),
+        ];
+
+        $this->assertSame(
+            ['countries' => ['FR', 'CA', 'BE'], 'shipping' => ['US']],
+            $this->validate($fields, ['countries' => ['FR', 'CA', 'BE'], 'shipping' => ['US']]),
+        );
+        $this->assertSame(['countries.1'], array_keys($this->errors($fields, ['countries' => ['FR', 'fr'], 'shipping' => ['CA']])));
+        // Twice the same code
+        $this->assertSame(['countries.0', 'countries.1'], array_keys($this->errors($fields, ['countries' => ['FR', 'FR'], 'shipping' => ['CA']])));
+        $this->assertSame(['countries'], array_keys($this->errors($fields, ['countries' => ['FR', 'CA', 'BE', 'DE'], 'shipping' => ['CA']])));
+        $this->assertSame(['countries'], array_keys($this->errors($fields, ['countries' => 'FR', 'shipping' => ['CA']])));
+        $this->assertSame(['countries'], array_keys($this->errors($fields, ['countries' => ['a' => 'FR'], 'shipping' => ['CA']])));
+        $this->assertSame(['shipping.0'], array_keys($this->errors($fields, ['shipping' => ['FR']])));
+        $this->assertSame(['shipping'], array_keys($this->errors($fields, ['shipping' => []])));
+        $this->assertSame(['countries' => null, 'shipping' => ['CA']], $this->validate($fields, ['countries' => null, 'shipping' => ['CA']]));
+    }
+
+    public function test_colors_of_a_palette_are_its_values(): void
+    {
+        $fields = [
+            Color::make('accent'),
+            Color::make('background')->palette([
+                ['value' => 'purple', 'label' => 'Purple', 'color' => '#6b21a8'],
+                ['value' => '#ffffff', 'label' => 'White'],
+            ]),
+        ];
+
+        $this->assertSame(
+            ['accent' => '#1d4ed8', 'background' => 'purple'],
+            $this->validate($fields, ['accent' => '#1d4ed8', 'background' => 'purple']),
+        );
+        $this->assertSame(['background' => '#ffffff'], $this->validate($fields, ['background' => '#ffffff']));
+        $this->assertSame(['background'], array_keys($this->errors($fields, ['background' => '#6b21a8'])));
+        $this->assertSame(['background'], array_keys($this->errors($fields, ['background' => 'Purple'])));
+        $this->assertSame(['background' => null], $this->validate($fields, ['background' => null]));
+    }
+
     public function test_regions_are_strings(): void
     {
         $fields = [Country::make('country'), Region::make('region')->from('country')];
@@ -770,5 +813,58 @@ class FormTest extends TestCase
         );
         $this->assertSame(['https://www.youtube.com/watch?v=1', 'https://example.com/post'], $resolved);
         $this->assertSame(['video' => null], Form::prepare($fields, ['video' => null], new SaveContext));
+    }
+
+    public function test_the_providers_of_an_embed_are_checked_with_its_resolved_url(): void
+    {
+        $resolved = [];
+        $this->app->instance(EmbedResolver::class, new class($resolved) implements EmbedResolver
+        {
+            /**
+             * @param  list<string>  $resolved
+             */
+            public function __construct(private array &$resolved) {}
+
+            public function resolve(string $url): ?array
+            {
+                $this->resolved[] = $url;
+
+                return match (true) {
+                    str_contains($url, 'youtube') => ['url' => $url, 'type' => 'video', 'provider' => 'YouTube'],
+                    str_contains($url, 'vimeo') => ['url' => $url, 'type' => 'video', 'provider' => 'Vimeo'],
+                    str_contains($url, 'spotify') => ['url' => $url, 'type' => 'audio', 'provider' => 'Spotify'],
+                    default => null,
+                };
+            }
+        });
+        $fields = [
+            Embed::make('trailer')->providers(['youtube', 'Vimeo']),
+            Embed::make('playlist')->providers(['Spotify'], 'A Spotify playlist, please.'),
+            Embed::make('video'),
+        ];
+
+        $this->assertSame(
+            ['trailer' => ['url' => 'https://www.youtube.com/watch?v=1']],
+            $this->validate($fields, ['trailer' => ['url' => 'https://www.youtube.com/watch?v=1', 'provider' => 'Spotify']]),
+        );
+        $this->assertSame(['trailer' => ['url' => 'https://vimeo.com/1']], $this->validate($fields, ['trailer' => ['url' => 'https://vimeo.com/1']]));
+        // The provider comes from the resolver, never from the request
+        $this->assertSame(
+            ['trailer' => ['The trailer must come from youtube or Vimeo.']],
+            $this->errors($fields, ['trailer' => ['url' => 'https://open.spotify.com/1', 'provider' => 'YouTube']]),
+        );
+        $this->assertSame(
+            ['trailer' => ["The trailer can't be embedded."]],
+            $this->errors($fields, ['trailer' => ['url' => 'https://example.com/post']]),
+        );
+        $this->assertSame(
+            ['playlist' => ['A Spotify playlist, please.']],
+            $this->errors($fields, ['playlist' => ['url' => 'https://www.youtube.com/watch?v=1']]),
+        );
+        // A field without the rule accepts any URL, without resolving it
+        $resolved = [];
+        $this->assertSame(['video' => ['url' => 'https://example.com/post']], $this->validate($fields, ['video' => ['url' => 'https://example.com/post']]));
+        $this->assertSame(['trailer' => null], $this->validate($fields, ['trailer' => null]));
+        $this->assertSame([], $resolved);
     }
 }
