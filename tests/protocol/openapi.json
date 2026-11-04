@@ -1490,12 +1490,13 @@
             ],
             "get": {
                 "operationId": "redirectToProvider",
+                "summary": "Starts the login with an OAuth provider of `auth.providers`. The callback is the backend's: it goes to `next`, or to the base path of the app with `authError` when it fails.",
                 "parameters": [
                     {
                         "name": "next",
                         "in": "query",
                         "required": false,
-                        "description": "Local path to go to after login.",
+                        "description": "Where to go after the login: a local path under the base path of the app. Another one is ignored.",
                         "schema": {
                             "type": "string"
                         }
@@ -1504,6 +1505,51 @@
                 "responses": {
                     "302": {
                         "description": "Redirect to the provider."
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/providers/{provider}/callback": {
+            "parameters": [
+                {
+                    "name": "provider",
+                    "in": "path",
+                    "required": true,
+                    "description": "Provider id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ],
+            "get": {
+                "operationId": "providerCallback",
+                "summary": "Optional: the callback of the provider, when the backend has it here. Its URL is the backend's, registered with the provider; the app never calls it.",
+                "responses": {
+                    "302": {
+                        "description": "To `next`, or to the base path of the app with `authError` when the login failed."
                     },
                     "403": {
                         "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
@@ -4470,7 +4516,7 @@
                         "type": "string"
                     },
                     "url": {
-                        "description": "Where the login with this provider starts.",
+                        "description": "Where the login with this provider starts, with a full navigation. The app adds `next`, the path to come back to.",
                         "type": "string"
                     },
                     "icon": {

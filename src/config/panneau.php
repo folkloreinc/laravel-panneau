@@ -116,6 +116,30 @@ return [
         // account page. A passkey login doesn't ask for the second factor.
         'passkeys' => false,
 
+        // "panneau" mode: OAuth providers, with Socialite (composer require laravel/socialite),
+        // each a button of the login page. Their credentials are Socialite's, in
+        // config/services.php ('google' => ['client_id' => …, 'client_secret' => …,
+        // 'redirect' => null]): Panneau sets the redirect to its callback,
+        // {path}/api/auth/providers/{provider}/callback, which the provider must allow. The
+        // user is the one with the provider's verified email, allowed in by the viewPanneau gate:
+        // nobody is created, unless provider_users does it.
+        //
+        //     'google' => [
+        //         'label' => 'Google',
+        //         // Allowed email domains, and Google's hd claim (Workspace). Empty: any.
+        //         'domains' => ['example.com'],
+        //         'scopes' => [],
+        //         // Parameters of the provider's authorization request
+        //         'with' => ['prompt' => 'select_account'],
+        //         // The Socialite driver, when it isn't the id
+        //         'driver' => null,
+        //     ],
+        'providers' => [],
+
+        // A Panneau\Contracts\Auth\ResolvesProviderUsers that finds, links or creates the user of
+        // a provider login. Null: the user with its email, and nobody created.
+        'provider_users' => null,
+
         // "panneau" mode: the Fortify actions of the account page, which save the name and the
         // email (Laravel\Fortify\Contracts\UpdatesUserProfileInformation) and change the
         // password (UpdatesUserPasswords), such as the site's App\Actions\Fortify actions. The

@@ -2,6 +2,8 @@
 #   vendor/bin/testbench workbench:build && vendor/bin/testbench serve
 providers:
   - Panneau\ServiceProvider
+  # The OAuth provider of the conformance app
+  - Laravel\Socialite\SocialiteServiceProvider
   - TestApp\Conformance\ConformanceServiceProvider
 
 migrations:

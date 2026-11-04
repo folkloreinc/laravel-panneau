@@ -179,7 +179,7 @@ final class DefinitionBuilder
      * `passwordReset`, `emailVerification`, `twoFactor` and `passkeys` when they are on (decisions
      * 0048, 0049 and 0051).
      *
-     * @return array{mode: 'external'|'panneau', loginUrl: string|null, logoutUrl: string|null, account?: true, passwordReset?: true, emailVerification?: true, twoFactor?: true, passkeys?: true}
+     * @return array{mode: 'external'|'panneau', loginUrl: string|null, logoutUrl: string|null, account?: true, passwordReset?: true, emailVerification?: true, twoFactor?: true, passkeys?: true, providers?: list<array{id: string, label: string, url: string, icon?: string}>}
      */
     public function auth(): array
     {
@@ -207,8 +207,38 @@ final class DefinitionBuilder
         if ($mode === 'panneau' && $this->config->get('panneau.auth.passkeys') === true) {
             $auth['passkeys'] = true;
         }
+        $providers = $mode === 'panneau' ? $this->providers() : [];
+        if ($providers !== []) {
+            $auth['providers'] = $providers;
+        }
 
         return $auth;
+    }
+
+    /**
+     * The OAuth providers of `panneau.auth.providers` (panneau-js decision 0052), with the URL that
+     * starts their login, under the API.
+     *
+     * @return list<array{id: string, label: string, url: string, icon?: string}>
+     */
+    private function providers(): array
+    {
+        $configured = $this->config->get('panneau.auth.providers', []);
+        $providers = [];
+        foreach (is_array($configured) ? $configured : [] as $id => $settings) {
+            $settings = is_array($settings) ? $settings : [];
+            $provider = [
+                'id' => (string) $id,
+                'label' => is_string($settings['label'] ?? null) ? $settings['label'] : ucfirst((string) $id),
+                'url' => rtrim($this->apiBaseUrl(), '/').'/auth/providers/'.rawurlencode((string) $id).'/redirect',
+            ];
+            if (is_string($settings['icon'] ?? null)) {
+                $provider['icon'] = $settings['icon'];
+            }
+            $providers[] = $provider;
+        }
+
+        return $providers;
     }
 
     /**

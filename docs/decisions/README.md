@@ -23,3 +23,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0017](0017-two-factor-authentication.md) | Two-factor authentication on Fortify's trait and actions, required by config, ability or role | Proposed |
 | [0018](0018-account-endpoints.md) | The account is saved by Fortify's profile and password actions | Proposed |
 | [0019](0019-passkeys.md) | Passkeys on laravel/passkeys | Proposed |
+| [0020](0020-oauth-providers.md) | OAuth providers with Socialite, linked to users by their verified email | Proposed |
