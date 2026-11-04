@@ -477,6 +477,51 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('app/Http/Fields.php:15', $this->finding('field-uses', "new Password('secret') without hashed()")->location);
     }
 
+    public function test_the_check_suggests_date_ranges_and_money(): void
+    {
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Http/EventFields.php', <<<'PHP'
+            <?php
+
+            namespace App\Http;
+
+            use Panneau\Fields\Date;
+            use Panneau\Fields\DateTime;
+            use Panneau\Fields\Number;
+
+            class EventFields
+            {
+                public function all(): array
+                {
+                    return [
+                        DateTime::make('starts_at'),
+                        DateTime::make('ends_at'),
+                        Date::make('date_start'),
+                        Date::make('date_end'),
+                        Date::make('published_at'),
+                        Number::make('price')->withAttributes(['append' => '$ CAD']),
+                        Number::make('stock')->withAttributes(['append' => 'units']),
+                    ];
+                }
+            }
+            PHP);
+
+        $range = $this->finding('field-uses', "DateTime::make('starts_at') and DateTime::make('ends_at')");
+        $this->assertSame('app/Http/EventFields.php:14', $range->location);
+        $this->assertStringStartsWith('DateRange', $range->target);
+        $this->assertStringContainsString('AsDateRange', $range->target);
+        $this->assertNotNull($this->audit()->section('field-uses')->find("Date::make('date_start') and Date::make('date_end')"));
+        $this->assertCount(2, array_filter(
+            $this->audit()->section('field-uses')->findings,
+            fn (Finding $finding): bool => str_contains($finding->subject, ' and '),
+        ));
+
+        $money = $this->finding('field-uses', "Number::make('price') with a currency");
+        $this->assertSame('app/Http/EventFields.php:19', $money->location);
+        $this->assertStringContainsString('panneau:convert-money', $money->target);
+        $this->assertNull($this->audit()->section('field-uses')->find("Number::make('stock') with a currency"));
+    }
+
     public function test_the_check_lists_a_concrete_1x_base_of_types(): void
     {
         $this->project('v1.4');

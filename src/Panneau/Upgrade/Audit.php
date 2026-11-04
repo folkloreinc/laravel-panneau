@@ -914,6 +914,101 @@ final class Audit
             $uses->add(class_basename($class).' ×'.$count.' ('.V1::FIELDS[$class][0].')', V1::FIELDS[$class][1]);
         }
         $this->auditPasswords($uses);
+        $this->auditRangesAndAmounts($uses);
+    }
+
+    /**
+     * The fields that 5.x keeps as one value of a type it didn't have: two date fields of a file
+     * named as the start and the end of a range (`starts_at` and `ends_at`) become a `DateRange`,
+     * and a `Number` with a currency in its strings (a `$` suffix) a `Money`. Both keep their
+     * values in other columns or units, so neither is automatic.
+     */
+    private function auditRangesAndAmounts(Section $uses): void
+    {
+        foreach ($this->sourceFiles() as $file) {
+            $dates = [];
+            foreach ($this->code->find($file, Expr\StaticCall::class) as $call) {
+                $class = $call->class instanceof Node\Name ? class_basename($call->class->toString()) : null;
+                $name = Php::value($call->getArgs()[0]->value ?? null);
+                if (in_array($class, ['Date', 'DateTime'], true) && $call->name instanceof Node\Identifier
+                    && $call->name->toString() === 'make' && is_string($name)) {
+                    $dates[$name] = [$class, $call->getStartLine()];
+                }
+            }
+            foreach ($dates as $start => [$class, $line]) {
+                $end = self::rangeEnd($start, array_keys($dates));
+                if ($end !== null) {
+                    $uses->add(
+                        sprintf("%s::make('%s') and %s::make('%s')", $class, $start, $dates[$end][0], $end),
+                        V1::DATE_RANGE_TARGET,
+                        $file.':'.$line,
+                    );
+                }
+            }
+
+            foreach ($this->code->find($file, Expr\MethodCall::class) as $call) {
+                $root = $call;
+                $strings = [];
+                while ($root instanceof Expr\MethodCall) {
+                    foreach ($root->getArgs() as $arg) {
+                        foreach ((new NodeFinder)->findInstanceOf($arg->value, String_::class) as $string) {
+                            $strings[] = $string->value;
+                        }
+                    }
+                    $root = $root->var;
+                }
+                // The outermost call of a chain: the others are part of it
+                if (! $root instanceof Expr\StaticCall || ! $root->class instanceof Node\Name
+                    || class_basename($root->class->toString()) !== 'Number' || $this->isInnerCall($file, $call)) {
+                    continue;
+                }
+                if (preg_grep(V1::CURRENCY_MARKER, $strings) !== []) {
+                    $uses->add(
+                        sprintf('Number::make(%s) with a currency', Php::describe($root->getArgs()[0]->value ?? null, 30)),
+                        V1::MONEY_TARGET,
+                        $file.':'.$root->getStartLine(),
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * The name of the date field that ends the range a name starts (`ends_at` for `starts_at`),
+     * among the names of a file.
+     *
+     * @param  list<string>  $names
+     */
+    private static function rangeEnd(string $start, array $names): ?string
+    {
+        $words = explode('_', Str::snake($start));
+        $index = array_search(true, array_map(fn (string $word): bool => in_array($word, V1::RANGE_STARTS, true), $words), true);
+        if ($index === false) {
+            return null;
+        }
+        foreach ($names as $name) {
+            $other = explode('_', Str::snake($name));
+            if (count($other) === count($words) && in_array($other[$index], V1::RANGE_ENDS, true)
+                && array_diff_key($other, [$index => true]) === array_diff_key($words, [$index => true])) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether a method call is the receiver of another one of the file: a link inside a chain.
+     */
+    private function isInnerCall(string $file, Expr\MethodCall $call): bool
+    {
+        foreach ($this->code->find($file, Expr\MethodCall::class) as $other) {
+            if ($other->var === $call) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
