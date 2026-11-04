@@ -10,7 +10,7 @@ use Panneau\Forms\RuleSet;
 use Panneau\Forms\ValidationContext;
 
 /**
- * A link (panneau-js decision 0054): `{ "type", "url", "page", "file", "label", "newTab" }`.
+ * A link (panneau-js decision 0055): `{ "type", "url", "page", "file", "label", "newTab" }`.
  *
  * - **Types**, in `types()`: `url` (an `http://` or `https://` URL), `page` (an item of the
  *   resources of `pages()`), `email` (`mailto:` and an address), `tel` (`tel:` and a number in

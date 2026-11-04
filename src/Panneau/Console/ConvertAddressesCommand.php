@@ -14,7 +14,7 @@ use Panneau\Rules\PostalCode;
 
 /**
  * Turns the parts of addresses that a project kept in separate columns into the value of an
- * `Address` field (decision 0053 of panneau-js), in a JSON column. Its targets are those of
+ * `Address` field (decision 0054 of panneau-js), in a JSON column. Its targets are those of
  * `panneau.addresses.columns`: `table.column` and the source of each part, a column, or
  * `column:path.in.json` for a key of a JSON column (`city:fr`).
  *

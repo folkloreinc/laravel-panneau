@@ -3611,7 +3611,7 @@
                         "description": "A rule added in a later version of the protocol. Clients that don't know it ignore it; the server still enforces it."
                     }
                 ],
-                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `postalCode` checks a postal code against the format of its country, for the countries whose format Panneau knows: Canada and the United States (decision 0053)."
+                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `postalCode` checks a postal code against the format of its country, for the countries whose format Panneau knows: Canada and the United States (decision 0054)."
             },
             "BlockType": {
                 "type": "object",
@@ -3701,7 +3701,7 @@
                         "type": "boolean"
                     },
                     "resource": {
-                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027). `link`: the resources of its `page` links (decision 0054).",
+                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027). `link`: the resources of its `page` links (decision 0055).",
                         "anyOf": [
                             {
                                 "type": "string",
@@ -6937,7 +6937,7 @@
                     }
                 },
                 "additionalProperties": {},
-                "description": "The value of an `address` field (decision 0053): the parts of a postal address, the empty ones left out."
+                "description": "The value of an `address` field (decision 0054): the parts of a postal address, the empty ones left out."
             },
             "LinkValue": {
                 "type": "object",
@@ -7033,7 +7033,7 @@
                     "type"
                 ],
                 "additionalProperties": {},
-                "description": "The value of a `link` field (decision 0054)."
+                "description": "The value of a `link` field (decision 0055)."
             }
         },
         "parameters": {

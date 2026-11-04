@@ -11,7 +11,7 @@ use Panneau\Forms\Values;
 use Panneau\Rules\PostalCode;
 
 /**
- * A postal address (panneau-js decision 0053): `{ "street", "unit", "city", "region",
+ * A postal address (panneau-js decision 0054): `{ "street", "unit", "city", "region",
  * "postalCode", "country" }`, and `{ "lat", "lng" }` in `point` with `point()`. Empty parts are
  * left out. An address is filled by a street, a unit, a city, a region or a postal code: without
  * one, it is `null`, or its point alone. A country alone is no address.

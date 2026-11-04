@@ -7,7 +7,7 @@ use TestApp\Models\Author;
 use TestApp\Models\Post;
 
 /**
- * The `address` and `link` fields of PostsResource (panneau-js decisions 0053 and 0054): at the
+ * The `address` and `link` fields of PostsResource (panneau-js decisions 0054 and 0055): at the
  * top of the resource, and in its `details` group.
  */
 class AddressAndLinkFieldsTest extends HttpTestCase

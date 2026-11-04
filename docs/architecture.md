@@ -307,7 +307,7 @@ Tel::make('phone')->country('CA'),                      // the country of a new 
 
 ### Addresses
 
-The `address` type of [panneau-js decision 0053](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0053-addresses.md): a postal address as one value, with its parts.
+The `address` type of [panneau-js decision 0054](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0054-addresses.md): a postal address as one value, with its parts.
 
 ```php
 Address::make('address')
@@ -343,7 +343,7 @@ Text::make('zip')->postalCode(field: 'country'), // the rule on a text field: a 
 
 ### Links
 
-The `link` type of [panneau-js decision 0054](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0054-links.md): the link of a button, a card or a menu item.
+The `link` type of [panneau-js decision 0055](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0055-links.md): the link of a button, a card or a menu item.
 
 ```php
 Link::make('cta')

@@ -7,7 +7,7 @@ use Illuminate\Contracts\Validation\DataAwareRule;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * The protocol's `postalCode` rule (panneau-js decision 0053): a postal code must normalize to
+ * The protocol's `postalCode` rule (panneau-js decision 0054): a postal code must normalize to
  * the format of its country, for the countries whose format is known (Canada and the United
  * States). Postal codes of other countries, or without a country, pass.
  *
