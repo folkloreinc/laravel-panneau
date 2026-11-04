@@ -14,6 +14,7 @@ use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Asset;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
+use TestApp\Models\User;
 use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\ImagesResource;
 use TestApp\Panneau\Resources\TagsResource;
@@ -23,8 +24,9 @@ use TestApp\Policies\PostPolicy;
 
 /**
  * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
- * direct uploads, a page and a main menu, a context with an optional param, behind a bearer token (`Authorization: Bearer
- * conformance`).
+ * direct uploads, a page and a main menu, a context with an optional param, the password reset
+ * and the email verification of the `panneau` auth mode, behind a bearer token (`Authorization:
+ * Bearer conformance`).
  */
 class ConformanceServiceProvider extends ServiceProvider
 {
@@ -33,8 +35,16 @@ class ConformanceServiceProvider extends ServiceProvider
     public function register(): void
     {
         $config = $this->app['config'];
-        $config->set('auth.guards.conformance', ['driver' => 'conformance-token']);
+        $config->set('auth.providers.conformance', ['driver' => 'eloquent', 'model' => User::class]);
+        $config->set('auth.guards.conformance', ['driver' => 'conformance-token', 'provider' => 'conformance']);
+        $config->set('auth.passwords.conformance', ['provider' => 'conformance', 'table' => 'password_reset_tokens', 'expire' => 60, 'throttle' => 60]);
         $config->set('panneau.auth.guard', 'conformance');
+        // The checks of the password reset and of the email verification (panneau-js decision
+        // 0048), with the skeleton's users: the kit doesn't log in, so the API keeps its token
+        $config->set('panneau.auth.mode', 'panneau');
+        $config->set('panneau.auth.password_reset', true);
+        $config->set('panneau.auth.email_verification', true);
+        $config->set('panneau.auth.passwords', 'conformance');
         // A token, not a session: no "web" middleware, so no CSRF token to send
         $config->set('panneau.middleware', ['panneau.auth']);
         $config->set('panneau.locales', ['fr', 'en']);

@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Panneau\Exceptions\ContextRefusedException;
+use Panneau\Exceptions\EmailUnverifiedException;
 use Panneau\Exceptions\VersionConflictException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -29,6 +30,12 @@ final class Problem
      * A value of `Panneau-Context` that the user can't use (panneau-js decision 0045).
      */
     public const CONTEXT = 'urn:panneau:problem:context';
+
+    /**
+     * A user whose email address isn't verified, with `panneau.auth.email_verification`
+     * (panneau-js decision 0048).
+     */
+    public const EMAIL_UNVERIFIED = 'urn:panneau:problem:email-unverified';
 
     /**
      * @param  array<string, mixed>  $extra  Extension members: `errors`, `current`…
@@ -82,6 +89,11 @@ final class Problem
                 self::CONTEXT,
                 extra: ['param' => $exception->param],
                 headers: ['Vary' => 'Panneau-Context'],
+            ),
+            $exception instanceof EmailUnverifiedException => self::response(
+                403,
+                __('Your email address is not verified.'),
+                self::EMAIL_UNVERIFIED,
             ),
             $exception instanceof AuthenticationException => self::response(401),
             $exception instanceof AuthorizationException => self::response(

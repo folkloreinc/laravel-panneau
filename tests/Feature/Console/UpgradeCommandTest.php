@@ -4,6 +4,7 @@ namespace Panneau\Tests\Feature\Console;
 
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Artisan;
+use Panneau\Auth\ResetUserPassword;
 use Panneau\Tests\TestCase;
 use Panneau\Upgrade\Audit;
 use Panneau\Upgrade\Codebase;
@@ -555,7 +556,17 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame(['fr', 'en'], $config['locales']);
         $this->assertSame('panneau', $config['path']);
         $this->assertSame(['web', 'panneau.auth'], $config['middleware']);
-        $this->assertSame(['mode' => 'external', 'guard' => null, 'login_url' => '/login', 'logout_url' => null], $config['auth']);
+        $this->assertSame([
+            'mode' => 'external',
+            'guard' => null,
+            'login_url' => '/login',
+            'logout_url' => null,
+            'password_reset' => false,
+            'passwords' => null,
+            'reset_password_using' => ResetUserPassword::class,
+            'email_verification' => false,
+            'rate_limit' => 6,
+        ], $config['auth']);
         $this->assertSame([], $config['resources']);
         $this->assertArrayHasKey('analytics_id', $config);
         $this->assertArrayNotHasKey('routes', $config);

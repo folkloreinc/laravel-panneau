@@ -19,3 +19,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0013](0013-upgrade-from-1x.md) | The upgrade from 1.x reads the project without running it, and never loses a file | Accepted |
 | [0014](0014-roles-module.md) | An optional roles module on Policies and the Gate, without spatie/laravel-permission | Accepted |
 | [0015](0015-current-context.md) | The context is checked param by param, through the repositories, on every request | Proposed |
+| [0016](0016-password-reset-and-email-verification.md) | Password reset and email verification send Panneau's own emails, to pages of the app | Proposed |

@@ -25,8 +25,10 @@ use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\AuthController;
 use Panneau\Http\Controllers\ContextOptionsController;
 use Panneau\Http\Controllers\DefinitionController;
+use Panneau\Http\Controllers\EmailVerificationController;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\FieldCheckController;
+use Panneau\Http\Controllers\PasswordResetController;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\UploadController;
@@ -117,19 +119,13 @@ class Panneau implements PanneauContract
 
         $search = (bool) $config->get('panneau.search.enabled', true);
         $embeds = (bool) $config->get('panneau.embeds.enabled', true);
-        $auth = $this->container->make(DefinitionBuilder::class)->auth()['mode'] === 'panneau';
+        $auth = $this->container->make(DefinitionBuilder::class)->auth();
 
         $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search, $embeds, $auth): void {
             // The context after the authentication: values are checked for the user
             $router->prefix('api')->as('api.')->middleware(ResolveContext::class)->group(function (Router $router) use ($search, $embeds, $auth): void {
-                if ($auth) {
-                    // Guests log in, and users the gate refuses can still log out
-                    $router->post('auth/login', [AuthController::class, 'login'])
-                        ->withoutMiddleware([Authenticate::class, ResolveContext::class])
-                        ->name('auth.login');
-                    $router->post('auth/logout', [AuthController::class, 'logout'])
-                        ->withoutMiddleware([Authenticate::class, ResolveContext::class])
-                        ->name('auth.logout');
+                if ($auth['mode'] === 'panneau') {
+                    $this->registerAuthRoutes($router, $auth);
                 }
                 $router->get('definition', DefinitionController::class)->name('definition');
                 $router->get('context/{param}/options', ContextOptionsController::class)->name('context.options');
@@ -158,6 +154,33 @@ class Panneau implements PanneauContract
         }
 
         $this->moveSiteRoutesAfter($router, $before, trim($outerPrefix.'/'.($group['prefix'] ?? ''), '/'));
+    }
+
+    /**
+     * The auth routes of the `panneau` mode. Guests log in, users the gate refuses can still log
+     * out, and those whose address isn't verified can verify it: none of them go through the
+     * authentication of Panneau or the context.
+     *
+     * @param  array{passwordReset?: bool, emailVerification?: bool}  $auth
+     */
+    private function registerAuthRoutes(Router $router, array $auth): void
+    {
+        $outside = [Authenticate::class, ResolveContext::class];
+        $throttle = ThrottleRequests::using(PasswordResetController::RATE_LIMITER);
+        $router->post('auth/login', [AuthController::class, 'login'])->withoutMiddleware($outside)->name('auth.login');
+        $router->post('auth/logout', [AuthController::class, 'logout'])->withoutMiddleware($outside)->name('auth.logout');
+        if (($auth['passwordReset'] ?? false) === true) {
+            $router->post('auth/password/forgot', [PasswordResetController::class, 'forgot'])
+                ->withoutMiddleware($outside)->middleware($throttle)->name('auth.password.forgot');
+            $router->post('auth/password/reset', [PasswordResetController::class, 'reset'])
+                ->withoutMiddleware($outside)->middleware($throttle)->name('auth.password.reset');
+        }
+        if (($auth['emailVerification'] ?? false) === true) {
+            $router->post('auth/email/verification', [EmailVerificationController::class, 'send'])
+                ->withoutMiddleware($outside)->middleware($throttle)->name('auth.email.verification');
+            $router->post('auth/email/verify', [EmailVerificationController::class, 'verify'])
+                ->withoutMiddleware($outside)->middleware($throttle)->name('auth.email.verify');
+        }
     }
 
     /**

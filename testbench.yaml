@@ -5,6 +5,8 @@ providers:
   - TestApp\Conformance\ConformanceServiceProvider
 
 migrations:
+  # users and password_reset_tokens, for the password reset and the email verification
+  - vendor/orchestra/testbench-core/laravel/migrations
   - tests/fixture/database/migrations
 
 env:

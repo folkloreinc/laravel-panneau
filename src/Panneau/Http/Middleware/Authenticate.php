@@ -9,7 +9,9 @@ use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Http\Request;
+use Panneau\Auth\EmailVerification;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Exceptions\EmailUnverifiedException;
 use Panneau\Http\Controllers\AppController;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -21,6 +23,10 @@ use Symfony\Component\HttpFoundation\Response;
  * Guests of the app's page are redirected to the login URL of the `external` auth mode. In the
  * `panneau` mode, they get the page, without the definition, and the app shows its login page
  * when the API answers them with a `401`.
+ *
+ * With `panneau.auth.email_verification`, the API refuses users whose address isn't verified
+ * with the `urn:panneau:problem:email-unverified` problem: they get the app's page, without the
+ * definition, and the app shows its verification page.
  */
 final class Authenticate
 {
@@ -29,6 +35,7 @@ final class Authenticate
         private readonly Gate $gate,
         private readonly Config $config,
         private readonly DefinitionBuilder $definition,
+        private readonly EmailVerification $verification,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -49,15 +56,20 @@ final class Authenticate
             $this->auth->shouldUse($guard);
         }
 
-        if ($this->gate->forUser($this->auth->guard($guard)->user())->denies('viewPanneau')) {
+        $user = $this->auth->guard($guard)->user();
+        if ($this->gate->forUser($user)->denies('viewPanneau')) {
             throw new AuthorizationException;
+        }
+        if ($this->verification->mustVerify($user) && ! $this->servesGuests($request)) {
+            throw new EmailUnverifiedException;
         }
 
         return $next($request);
     }
 
     /**
-     * Whether a guest gets the request: the app's page, in the `panneau` mode.
+     * Whether a guest, or a user whose address isn't verified, gets the request: the app's page,
+     * in the `panneau` mode.
      */
     private function servesGuests(Request $request): bool
     {

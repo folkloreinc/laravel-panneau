@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Password reset and email verification in the `panneau` auth mode (panneau-js decision 0048, decision 0016), off by default. `panneau.auth.password_reset` adds `POST auth/password/forgot` and `POST auth/password/reset`: the link is sent with `Panneau\Auth\Notifications\ResetPassword` to users that the `viewPanneau` gate allows in, opens the page of the app (`{path}/auth/reset-password`), and the new password is set by the Fortify action of `panneau.auth.reset_password_using` (`Panneau\Auth\ResetUserPassword` by default) on the broker of `panneau.auth.passwords`. `panneau.auth.email_verification` refuses users whose address isn't verified (`MustVerifyEmail`) with a `403` problem of type `urn:panneau:problem:email-unverified`, serves them the page of the app without the definition, and adds `POST auth/email/verification` (sends `Panneau\Auth\Notifications\VerifyEmail`, whose link opens `{path}/auth/verify-email`) and `POST auth/email/verify`. The site's own notifications, their URLs and Fortify's routes are left alone. Both are throttled by `panneau.auth.rate_limit` (#158).
+
 ## [5.0.0-alpha.9] - 2026-11-03
 
 Goes with `@panneau/*` `5.0.0-alpha.13`, which it needs: the pages and menus, the current context, the abilities of pages and fields, hidden columns, the calendar and the `country`, `region` and E.164 `tel` types are new in the protocol of that release.

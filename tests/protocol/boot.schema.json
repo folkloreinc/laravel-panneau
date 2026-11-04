@@ -315,6 +315,9 @@
                 "readOnly": {
                     "type": "boolean"
                 },
+                "abilities": {
+                    "$ref": "#/$defs/Abilities"
+                },
                 "createOnly": {
                     "type": "boolean"
                 },
@@ -416,6 +419,15 @@
                 "type"
             ],
             "additionalProperties": {}
+        },
+        "Abilities": {
+            "type": "object",
+            "propertyNames": {
+                "type": "string"
+            },
+            "additionalProperties": {
+                "type": "boolean"
+            }
         },
         "Rule": {
             "anyOf": [
@@ -1273,15 +1285,6 @@
                 }
             ]
         },
-        "Abilities": {
-            "type": "object",
-            "propertyNames": {
-                "type": "string"
-            },
-            "additionalProperties": {
-                "type": "boolean"
-            }
-        },
         "ResourceFeatures": {
             "type": "object",
             "properties": {
@@ -1349,6 +1352,9 @@
                         "type": "string",
                         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
                     }
+                },
+                "abilities": {
+                    "$ref": "#/$defs/Abilities"
                 }
             },
             "required": [
