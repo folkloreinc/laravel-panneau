@@ -3569,7 +3569,7 @@
                             "value"
                         ],
                         "additionalProperties": {},
-                        "description": "The providers an `embed` value may come from: the `provider_name` of their oEmbed (`YouTube`), compared without case (decision 0059)."
+                        "description": "The providers an `embed` value may come from: the `provider_name` of their oEmbed (`YouTube`), compared without case (decision 0058)."
                     },
                     {
                         "type": "object",
@@ -3597,7 +3597,7 @@
                         "description": "A rule added in a later version of the protocol. Clients that don't know it ignore it; the server still enforces it."
                     }
                 ],
-                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `providers` lists the providers of an `embed` value (decision 0059)."
+                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `providers` lists the providers of an `embed` value (decision 0058)."
             },
             "BlockType": {
                 "type": "object",

@@ -189,7 +189,7 @@ class ResourceItemTest extends HttpTestCase
             ->assertJsonValidationErrors(['details.rating', 'details.metadata', 'details.keywords', 'details.place.lat', 'details.contact', 'details.country', 'details.region']);
     }
 
-    public function test_values_of_the_types_of_decision_0059(): void
+    public function test_values_of_the_types_of_decision_0058(): void
     {
         $this->app->instance(EmbedResolver::class, new class implements EmbedResolver
         {

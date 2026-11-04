@@ -8,7 +8,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Added
 
-- Several countries, the providers of an embed, and color palettes (panneau-js decision 0059): `Country::multiple()`, a list of distinct allowed codes in their order (folkloreinc/panneau-js#213); `Embed::providers([...])`, the portable `providers` rule, which resolves the URL during validation and refuses one it can't resolve or whose provider isn't listed (folkloreinc/panneau-js#214); `Color::palette([...])`, the colors to pick from, whose values are the only ones accepted (folkloreinc/panneau-js#215).
+- Several countries, the providers of an embed, and color palettes (panneau-js decision 0058): `Country::multiple()`, a list of distinct allowed codes in their order (folkloreinc/panneau-js#213); `Embed::providers([...])`, the portable `providers` rule, which resolves the URL during validation and refuses one it can't resolve or whose provider isn't listed (folkloreinc/panneau-js#214); `Color::palette([...])`, the colors to pick from, whose values are the only ones accepted (folkloreinc/panneau-js#215).
 
 ## [5.0.0-alpha.10] - 2026-11-04
 
