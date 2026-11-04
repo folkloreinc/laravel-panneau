@@ -3318,9 +3318,37 @@
                                 "enum": [
                                     "email",
                                     "url",
-                                    "json",
-                                    "tel"
+                                    "json"
                                 ]
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "tel"
+                            },
+                            "extension": {
+                                "description": "The number can have an extension, after `;ext=` as in a `tel:` URI (RFC 3966): `+15145550199;ext=123`, 1 to 10 digits. Without it, a value with an extension fails.",
+                                "type": "boolean"
                             },
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
@@ -3657,6 +3685,41 @@
                         "type": "object",
                         "properties": {
                             "rule": {
+                                "type": "string",
+                                "const": "providers"
+                            },
+                            "value": {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule",
+                            "value"
+                        ],
+                        "additionalProperties": {},
+                        "description": "The providers an `embed` value may come from: the `provider_name` of their oEmbed (`YouTube`), compared without case (decision 0058)."
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
                                 "type": "string"
                             },
                             "message": {
@@ -3679,7 +3742,7 @@
                         "description": "A rule added in a later version of the protocol. Clients that don't know it ignore it; the server still enforces it."
                     }
                 ],
-                "description": "A portable validation rule. `min` and `max` apply to numbers, to the amount of `money` values (in minor units), and to the length of text and arrays. `daterange` and `money` are implied by their types, with the `open` bounds and the `currencies` of the field (decision 0053). `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `postalCode` checks a postal code against the format of its country, for the countries whose format Panneau knows: Canada and the United States (decision 0054)."
+                "description": "A portable validation rule. `min` and `max` apply to numbers, to the amount of `money` values (in minor units), and to the length of text and arrays. `daterange` and `money` are implied by their types, with the `open` bounds and the `currencies` of the field (decision 0053). `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `tel` checks an E.164 number, with an extension when `extension` is `true`. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `postalCode` checks a postal code against the format of its country, for the countries whose format Panneau knows: Canada and the United States (decision 0054). `providers` lists the providers of an `embed` value (decision 0058)."
             },
             "BlockType": {
                 "type": "object",
@@ -3765,7 +3828,7 @@
                         }
                     },
                     "multiple": {
-                        "description": "`select`, `relation`, `media`, `image`, `file`: the value is an array.",
+                        "description": "`select`, `relation`, `media`, `image`, `file`, `country`: the value is an array.",
                         "type": "boolean"
                     },
                     "resource": {

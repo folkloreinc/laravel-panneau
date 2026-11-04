@@ -526,6 +526,39 @@ class FormTest extends TestCase
         );
     }
 
+    public function test_tel_values_have_an_extension_when_the_field_allows_one(): void
+    {
+        $value = ['phone' => '+15145550123;ext=123'];
+
+        $this->assertArrayHasKey('phone', $this->errors([Tel::make('phone')], $value));
+        $this->assertArrayHasKey('phone', $this->errors([Tel::make('phone')->extension(false)], $value));
+
+        $fields = [Tel::make('phone')->extension()];
+        $this->assertSame($value, $this->validate($fields, $value));
+        $this->assertSame(['phone' => '+15145550123;ext=1234567890'], $this->validate($fields, ['phone' => '+15145550123;ext=1234567890']));
+        $this->assertSame(['phone' => '+15145550123'], $this->validate($fields, ['phone' => '+15145550123']));
+        foreach (['+15145550123;ext=', '+15145550123;ext=12345678901', '+15145550123;ext=12a', '+15145550123 ext. 123', '514 555;ext=12', ';ext=12'] as $phone) {
+            $this->assertArrayHasKey('phone', $this->errors($fields, ['phone' => $phone]), $phone);
+        }
+    }
+
+    public function test_a_tel_rule_of_the_field_replaces_the_one_its_type_implies(): void
+    {
+        $value = ['phone' => '+15145550123;ext=123'];
+        $tel = fn (array $extra): Tel => new class('phone', $extra) extends Tel
+        {
+            /** @param  array<string, mixed>  $extra */
+            public function __construct(string $name, array $extra)
+            {
+                parent::__construct($name);
+                $this->rule('tel', extra: $extra);
+            }
+        };
+
+        $this->assertSame($value, $this->validate([$tel(['extension' => true])], $value));
+        $this->assertArrayHasKey('phone', $this->errors([$tel([])->extension()], $value));
+    }
+
     public function test_countries_are_iso_codes(): void
     {
         $fields = [

@@ -653,8 +653,8 @@ abstract class Field
             'url' => ['url', 'url'],
             // An object or an array: what a JSON value decodes to
             'json' => ['array', 'array'],
-            // An international phone number in E.164
-            'tel' => ['regex', 'regex:'.Tel::E164],
+            // An international phone number in E.164, with an extension when the rule allows one
+            'tel' => ['regex', 'regex:'.(($rule['extension'] ?? false) === true ? Tel::E164_EXTENSION : Tel::E164)],
             'in' => is_array($value) ? ['in', LaravelRule::in($value)] : null,
             // A postal code of a country: a code, or another field of the form
             'postalCode' => match (true) {
