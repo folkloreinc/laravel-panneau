@@ -13,6 +13,7 @@ use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\TwoFactorAuthenticationProvider as FortifyTwoFactorProvider;
 use Panneau\Auth\Authorizer;
+use Panneau\Console\ConvertCreditsCommand;
 use Panneau\Console\ConvertPhonesCommand;
 use Panneau\Console\InstallCommand;
 use Panneau\Console\PruneUploadsCommand;
@@ -108,7 +109,7 @@ class ServiceProvider extends BaseServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, ConvertPhonesCommand::class]);
+            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, ConvertPhonesCommand::class, ConvertCreditsCommand::class]);
         }
     }
 

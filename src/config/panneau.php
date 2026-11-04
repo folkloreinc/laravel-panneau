@@ -287,6 +287,14 @@ return [
         'columns' => [],
     ],
 
+    // Credits (Panneau\Fields\Credits), kept in JSON: `[{ "person": { "id": "12" }, "roles": [...] }]`.
+    'credits' => [
+        // Where a project kept credits in another shape, for `panneau:convert-credits`:
+        // `table.column`, or `table.column:path.in.json` for a key of a JSON column
+        // (`projects.data:credits`).
+        'columns' => [],
+    ],
+
     // File fields (Panneau\Fields\File): files that belong to an item, stored on the field's
     // disk. Private files get temporary URLs.
     'files' => [
