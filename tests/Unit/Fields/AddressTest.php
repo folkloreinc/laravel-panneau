@@ -66,12 +66,15 @@ class AddressTest extends TestCase
         $fields = [Address::make('address')];
 
         $this->assertSame(['address' => null], $this->validate($fields, ['address' => ['street' => ' ', 'city' => null, 'unit' => '']]));
-        // A point fills an address, as clients count it
-        $this->assertSame(['address.street', 'address.city', 'address.country'], array_keys($this->errors($fields, ['address' => ['point' => ['lat' => 1, 'lng' => 2]]])));
+        // A country alone is no address, as clients count it: no errors of its parts, and null
+        $this->assertSame([], $this->errors($fields, ['address' => ['country' => 'ZZ', 'street' => '']]));
+        $this->assertSame(['address' => null], $this->validate($fields, ['address' => ['country' => 'CA']]));
+        $this->assertSame(['address' => null], $this->validate([Address::make('address')->country('CA')], ['address' => ['country' => 'US', 'unit' => ' ']]));
         $this->assertSame(['address' => null], $this->validate($fields, ['address' => null]));
         // The field's own required() requires an address
         $this->assertSame(['address'], array_keys($this->errors([Address::make('address')->required()], ['address' => ['street' => '']])));
         $this->assertSame(['address'], array_keys($this->errors([Address::make('address')->required()], [])));
+        $this->assertSame(['address'], array_keys($this->errors([Address::make('address')->required()->country('CA')], ['address' => ['country' => 'CA']])));
     }
 
     public function test_the_required_parts_of_a_filled_address(): void
@@ -80,11 +83,10 @@ class AddressTest extends TestCase
             ['address.street', 'address.city', 'address.country'],
             array_keys($this->errors([Address::make('address')], ['address' => ['unit' => 'App. 5']])),
         );
-        // A country alone fills an address, as clients count it
-        $this->assertSame(
-            ['address.street', 'address.city'],
-            array_keys($this->errors([Address::make('address')], ['address' => ['country' => 'CA']])),
-        );
+        // Each of the parts other than the country fills it
+        foreach (Address::FILLING_PARTS as $part) {
+            $this->assertNotSame([], $this->errors([Address::make('address')->requiredParts(['country'])], ['address' => [$part => 'A1A 1A1']]), $part);
+        }
         $this->assertSame(
             ['address.postalCode'],
             array_keys($this->errors([Address::make('address')->requiredParts(['postalCode'])], ['address' => ['city' => 'Laval']])),
@@ -130,6 +132,14 @@ class AddressTest extends TestCase
             $this->validate($fields, ['address' => $address + ['point' => ['lat' => 42.65, 'lng' => -73.75]]]),
         );
         $this->assertSame(['address' => $address], $this->validate($fields, ['address' => $address + ['point' => null]]));
+        // A point alone is kept, without its country nor errors of the parts
+        $this->assertSame(
+            ['address' => ['point' => ['lat' => 42.65, 'lng' => -73.75]]],
+            $this->validate([Address::make('address')->point()->country('US')], ['address' => ['country' => 'US', 'point' => ['lat' => 42.65, 'lng' => -73.75]]]),
+        );
+        $this->assertSame(['address.point.lat'], array_keys($this->errors($fields, ['address' => ['point' => ['lat' => 91, 'lng' => 0]]])));
+        // Not filled: the field's own required() refuses it
+        $this->assertSame(['address'], array_keys($this->errors([Address::make('address')->point()->required()], ['address' => ['point' => ['lat' => 1, 'lng' => 2]]])));
     }
 
     public function test_localized_and_nested_addresses_are_checked_on_their_paths(): void

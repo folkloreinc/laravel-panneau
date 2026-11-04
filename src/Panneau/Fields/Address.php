@@ -13,10 +13,11 @@ use Panneau\Rules\PostalCode;
 /**
  * A postal address (panneau-js decision 0053): `{ "street", "unit", "city", "region",
  * "postalCode", "country" }`, and `{ "lat", "lng" }` in `point` with `point()`. Empty parts are
- * left out, and an address without parts is `null`.
+ * left out. An address is filled by a street, a unit, a city, a region or a postal code: without
+ * one, it is `null`, or its point alone. A country alone is no address.
  *
- * - **Checks.** Once a part is filled, the parts of `requiredParts()` (`street`, `city` and
- *   `country` by default) are required, and the postal code must be one of the address's own
+ * - **Checks.** Once the address is filled, the parts of `requiredParts()` (`street`, `city`
+ *   and `country` by default) are required, and the postal code must be one of the address's own
  *   country (the `postalCode` rule, for Canada and the United States). Each error is keyed by
  *   the path of its part: `address.postalCode`. The field's own `required()` requires an
  *   address.
@@ -39,6 +40,12 @@ class Address extends Field
      * has.
      */
     public const DEFAULT_REQUIRED_PARTS = ['street', 'city', 'country'];
+
+    /**
+     * The parts that fill an address: a country alone, which the admin may set by itself, or a
+     * point alone, is no address.
+     */
+    public const FILLING_PARTS = ['street', 'unit', 'city', 'region', 'postalCode'];
 
     /**
      * The names of the parts in validation messages.
@@ -147,7 +154,8 @@ class Address extends Field
      * Normalizes an address as saving does: parts trimmed, empty ones left out, the country in
      * capitals (or `$country` for an address without one), the region of Canada and the United
      * States as its code, the postal code in the format of its country, and the point with
-     * `$point` only. Null for an address without parts.
+     * `$point` only. An address without a street, a unit, a city, a region or a postal code is
+     * its point alone, or null: a country alone is no address.
      *
      * @param  array<array-key, mixed>  $value
      * @return array<string, mixed>|null
@@ -163,13 +171,13 @@ class Address extends Field
             }
         }
         $place = $point ? self::pointOf($value['point'] ?? null) : null;
-        if ($parts === [] && $place === null) {
-            return null;
+        // Without a part that fills it, an address is its point, or nothing: never a country alone
+        if (array_intersect_key($parts, array_flip(self::FILLING_PARTS)) === []) {
+            return $place !== null ? ['point' => $place] : null;
         }
-        if (isset($parts['country'])) {
-            $parts['country'] = strtoupper($parts['country']);
-        } elseif ($country !== null && $parts !== []) {
-            $parts['country'] = $country;
+        $parts['country'] = isset($parts['country']) ? strtoupper($parts['country']) : $country;
+        if ($parts['country'] === null) {
+            unset($parts['country']);
         }
         $country = $parts['country'] ?? null;
         if (isset($parts['region'])) {
@@ -190,7 +198,7 @@ class Address extends Field
     {
         $rules = ['array'];
         if ($this->isRequired($context->mode)) {
-            // An address whose parts are all empty is no address
+            // An address with nothing but a country (or a point) is no address
             $rules[] = function (string $attribute, mixed $value, Closure $fail): void {
                 if (is_array($value) && ! self::isFilled($value)) {
                     $fail(__('The :attribute field is required.'));
@@ -203,7 +211,15 @@ class Address extends Field
 
     protected function collectNestedRules(RuleSet $rules, string $path, mixed $value, ValidationContext $context): void
     {
-        if (! is_array($value) || ! self::isFilled($value)) {
+        if (! is_array($value)) {
+            return;
+        }
+        if ($this->hasPoint() && ($value['point'] ?? null) !== null) {
+            $rules->add($path.'.point', ['array']);
+            $rules->add($path.'.point.lat', ['required', 'numeric', 'between:-90,90']);
+            $rules->add($path.'.point.lng', ['required', 'numeric', 'between:-180,180']);
+        }
+        if (! self::isFilled($value)) {
             return;
         }
         $required = $this->getRequiredParts();
@@ -226,11 +242,6 @@ class Address extends Field
             }
             $rules->attribute($path.'.'.$part, __(self::PART_NAMES[$part]));
             $rules->add($path.'.'.$part, $partRules);
-        }
-        if ($this->hasPoint() && ($value['point'] ?? null) !== null) {
-            $rules->add($path.'.point', ['array']);
-            $rules->add($path.'.point.lat', ['required', 'numeric', 'between:-90,90']);
-            $rules->add($path.'.point.lng', ['required', 'numeric', 'between:-180,180']);
         }
     }
 
@@ -261,13 +272,14 @@ class Address extends Field
     }
 
     /**
-     * Whether an address has a part, or a point, as clients count it.
+     * Whether an address is filled, as clients count it: a part of `FILLING_PARTS`. A country
+     * or a point alone doesn't fill it.
      *
      * @param  array<array-key, mixed>  $value
      */
     private static function isFilled(array $value): bool
     {
-        foreach ([...self::PARTS, 'point'] as $part) {
+        foreach (self::FILLING_PARTS as $part) {
             if (Values::filled($value[$part] ?? null)) {
                 return true;
             }

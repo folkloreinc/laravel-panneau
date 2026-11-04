@@ -51,8 +51,8 @@ class AddressAndLinkFieldsTest extends HttpTestCase
         $this->assertMatchesComponent($response->json('data.address'), 'AddressValue');
         $this->assertSame($address, Post::query()->findOrFail($post->id)->address);
 
-        // An address without parts is no address
-        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['address' => ['street' => '', 'city' => null]])
+        // An address without parts, or with its country alone, is no address
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['address' => ['street' => '', 'city' => null, 'country' => 'US']])
             ->assertOk()
             ->assertJsonPath('data.address', null);
     }

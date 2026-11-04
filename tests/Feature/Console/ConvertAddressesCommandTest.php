@@ -73,7 +73,8 @@ class ConvertAddressesCommandTest extends TestCase
         $paris = $this->venue(['address' => '1 rue de Rivoli', 'city' => 'Paris', 'postal_code' => '75001', 'country' => 'fr']);
         $laval = $this->venue(['address' => '1 Boulevard', 'city' => 'Laval', 'province' => 'Kebek', 'postal_code' => 'H7N', 'country' => 'CA']);
         $berlin = $this->venue(['address' => 'Unter den Linden 1', 'city' => 'Berlin', 'country' => 'Deutschlandd']);
-        $empty = $this->venue(['address' => '']);
+        // A country alone is no address
+        $empty = $this->venue(['address' => '', 'country' => 'Canada']);
 
         $this->artisan('panneau:convert-addresses', ['-v' => true])
             ->expectsOutputToContain('venues.location: 5 converted, 0 already an address, 1 without an address, 2 with parts kept as typed')
