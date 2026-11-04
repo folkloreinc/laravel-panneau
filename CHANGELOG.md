@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- The `Credits` field, the `credits` type of panneau-js decision 0053: a list of credits, each a person and their roles. `resource()` names the resource of the people, and a person is one of its items or a name (`names(false)` allows the items only); `roles()` the resource of the roles (`settings.roles`), without which roles are names in each locale; `featured()` shows the star of the credits to put forward; `fields()` adds the other fields of a credit (`person`, `roles` and `featured` are reserved). The server checks the shape and that the ids exist, keeps ids and names without labels, and items give the people and roles that are items as references with their label, found with one query per resource for an item or a page. `php artisan panneau:convert-credits` turns the credits a project kept in JSON in other shapes (references as `people://12`, a single `role`, credits grouped by role) into this one, in the columns of `panneau.credits.columns`, and `panneau:install --upgrade --check` and the Rector rules point the project's credit fields to `Credits` and to the command (folkloreinc/panneau-js#201).
+
 ## [5.0.0-alpha.10] - 2026-11-04
 
 Goes with `@panneau/*` `5.0.0-alpha.15`, which it needs: the pages of the app for password reset, email verification, two-factor authentication, the account and passkeys, and the buttons of OAuth providers, are new in that release.

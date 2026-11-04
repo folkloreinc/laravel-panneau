@@ -189,6 +189,7 @@ interface ResourceRepository
   - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
   - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types));
   - `Country`, `Region` (see [Countries, regions and phone numbers](#countries-regions-and-phone-numbers));
+  - `Credits` (see [Credits](#credits));
   - `Password`, a `text` field with `settings.secret` (see [Passwords](#passwords)).
 - **Common modifiers:**
   - `label()`, `help()`, `default()`;
@@ -204,7 +205,7 @@ interface ResourceRepository
   - fields hidden by `visibleWhen`, read-only fields, and `createOnly`/`updateOnly` fields outside their mode are neither validated nor saved;
   - a partial update (`PATCH`) only validates the fields it sends;
   - localized values are validated per locale (`title.fr`), and blocks per index and type (`blocks.2.image`), so errors use the protocol's dot paths.
-- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items, and `Media` values `{ "id", "transform" }`, with the media's `resource` when the field allows several libraries (see [The `media` field](#the-media-field)). Folklore repositories already handle these values: `data` JSON attributes, relations and media.
+- **Values.** Repositories receive validated values as an array, keyed by field name, as in v1. Values that no field declares are dropped, in groups and blocks too. `Relation` values are the ids of the related items, `Credits` values keep the ids of their people and roles (see [Credits](#credits)), and `Media` values `{ "id", "transform" }`, with the media's `resource` when the field allows several libraries (see [The `media` field](#the-media-field)). Folklore repositories already handle these values: `data` JSON attributes, relations and media.
 - **Saving.** Once the values are valid, and before the `creating` and `updating` hooks, each field prepares its value with `prepare()` (see [decisions/0008](decisions/0008-field-preparation.md)). Most fields keep it as is. A field that keeps something outside the item, like `File`, does that work there, and registers with the `SaveContext` what to do once the repository saved the item (`afterSave()`) or if the save fails (`afterFailure()`). Groups and blocks are saved whole: their fields without a value get `prepareAbsent()`, since their previous value is gone.
 - **Serialization.** Values are read from the item with `data_get()`, or `resolveUsing()`. Dates become ISO 8601 strings, related items become references (`{ "id": "12", "label": "Ada" }`), and media media references.
 - **Eloquent.** `EloquentRepository` sets each value as an attribute, so casts and mutators apply. `BelongsTo` and `BelongsToMany` relations declared with a return type receive the related ids (associate, sync). Persistence can be customized by extending `EloquentRepository` (`fill()`).
@@ -303,6 +304,42 @@ Tel::make('phone')->country('CA'),                      // the country of a new 
   - `PhoneNumber::format()` shows a number in the format of the project's country (`514 555-0199`), or with its calling code (`+33 6 12 34 56 78`), for emails, PDFs and pages; `PhoneNumber::nationalNumber()` gives its digits without the calling code, for exports.
   - No library of numbering plans: the admin checks numbers with the smallest metadata of `libphonenumber-js`, which mostly checks their lengths, and the table above does the same on the server for the numbers it converts.
 - **Phone numbers kept as typed** before (`514 555-0199`) are refused until they are converted to E.164, or retyped.
+
+### Credits
+
+Who did what, on films, shows, episodes and projects: a list of credits, each one a person and their roles ([panneau-js decision 0053](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0053-credits.md)).
+
+```php
+Credits::make('credits')
+    ->resource(PeopleResource::class)  // the people; without, every person is a name
+    ->roles(RolesResource::class)      // the roles (settings.roles); without, roles are localized names
+    ->featured()                       // the star of the credits to put forward (settings.featured)
+    ->fields([Textarea::make('description')->localized()]),
+```
+
+- **Values.** A list of credits, in order, or `null` when it is empty: `[{ "person": { "id": "12" }, "roles": [{ "id": "3" }], "featured": true, "description": { "fr", "en" } }]`.
+  - `person` is an item of `resource()`, sent as its id or `{ "id" }`, or a name, `{ "name": "Jane Doe" }`, the same in every locale. `names(false)` (`settings.names: false`) allows the items only; without `resource()`, every person is a name.
+  - `roles` is a list, empty or not: items of `roles()`, sent as ids or `{ "id" }`, or without `roles()` names in each locale, `{ "name": { "fr": "Musique", "en": "Music" } }`. A field doesn't mix them: the server refuses a name among the roles of a field with `roles()`, and a reference in one without.
+  - `featured` is `true` for the credits to put forward, and left out otherwise. It is kept without `featured()`, which only shows the star.
+  - The values of `fields()` sit next to them, validated as the fields of a repeater's blocks. `person`, `roles` and `featured` are reserved: `fields()` throws an `InvalidArgumentException` for them.
+- **Validation.** The ids must exist in their resource, within its scope, as for relations. A name is at most 255 characters, not blank; a role's name needs one in a locale of the definition. `min()` and `max()` count the credits, and `required()` needs one.
+- **Saving.** The repository receives ids as strings, names trimmed, roles' names in the locales of the definition, and no labels. With Eloquent, the attribute needs a JSON column with the `array` cast. A project that keeps credits in rows of a table, with a pivot of roles, reads and writes them in its repository.
+- **Items** give the people and the roles that are items as references with their label, `{ "id", "label" }`, from the `itemTitle` of their resource: the ids of all the credits of an item, or of a page of a list or of a search, are found with one `query()` per resource, within its scope. A person or a role that is gone keeps its `{ "id" }`, without a label; names stay as they are. Labels are added to the `credits` fields at the top of a resource; in groups and blocks, values keep their ids, as relations do, and the admin finds their labels.
+- **Credits of images** aren't this type: an image's credit is a line under the picture (`Photo: Jane Doe`). Give the media library a `text` field named `credit`, `Text::make('credit')->localized()` when the project is localized. A library that needs people and roles can still have a `credits` field.
+- **Credits kept in another shape.** `php artisan panneau:convert-credits` converts the credits a project kept in JSON, in the columns of `panneau.credits.columns`: `table.column`, or `table.column:path.in.json` for a key of a JSON column.
+
+  ```php
+  // config/panneau.php
+  'credits' => [
+      'columns' => ['films.credits', 'projects.data:credits'],
+  ],
+  ```
+
+  - **The person** is the value of `person`, of the `--person` keys, or of the only key of the credit that holds a reference, or else its `name` (or `firstName` and `lastName`). A reference kept as `people://12`, an id or an object with an `id` becomes `{ "id" }`; an object with a `name` becomes a name.
+  - **The roles** are `roles`, or a single `role`: a reference, an id or an object with an `id` becomes `{ "id" }`, a localized text `{ "fr", "en" }` a name, and a plain string, such as a key of a fixed list, a name in the locale of `--locale` (the app's by default).
+  - **A credit grouped by role**, a role (`title`, `role` or `roles`) with a list of `people`, becomes a credit per person, in the same order.
+  - `featured` stays when it is true, and the other keys stay, for the fields of the credit.
+  - A value with a credit it can't read (a person kept as a plain string, two keys that hold references) stays as it is, and `-v` lists its row id and why, never its content. `--dry-run` counts and lists without writing. It reads and writes rows by their `id`, without their models: their dates don't change. Running it again changes nothing.
 
 ### File
 
