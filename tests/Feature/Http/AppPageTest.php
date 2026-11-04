@@ -203,7 +203,7 @@ class AppPageTest extends HttpTestCase
 
         $boot = $this->bootConfig($response);
         $this->assertValidBootConfig($boot);
-        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null], $boot['auth']);
+        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null, 'account' => true], $boot['auth']);
         $this->assertArrayNotHasKey('loginUrl', $boot);
         // The definition is the user's: the app fetches it after the login
         $this->assertArrayNotHasKey('definition', $boot);
@@ -233,7 +233,7 @@ class AppPageTest extends HttpTestCase
         $boot = $this->bootConfig($this->get('/panneau')->assertOk());
 
         $this->assertValidBootConfig($boot);
-        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null], $boot['auth']);
+        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null, 'account' => true], $boot['auth']);
         $this->assertSame('1', $boot['definition']['user']['id']);
     }
 

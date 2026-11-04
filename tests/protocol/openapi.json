@@ -2324,6 +2324,7 @@
         "/account": {
             "get": {
                 "operationId": "getAccount",
+                "summary": "With `auth.account`: the current user.",
                 "responses": {
                     "200": {
                         "description": "The current user.",
@@ -2367,13 +2368,21 @@
             },
             "patch": {
                 "operationId": "updateAccount",
+                "summary": "Saves the name and the email of the current user. With `auth.emailVerification`, a new email is unverified, and gets a link.",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "additionalProperties": true
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                }
                             }
                         }
                     }
@@ -2419,6 +2428,84 @@
                     },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/password": {
+            "put": {
+                "operationId": "updatePassword",
+                "summary": "Changes the password of the current user, with the current one.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "currentPassword",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "currentPassword": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "The password was changed."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -4139,6 +4226,10 @@
                         "items": {
                             "$ref": "#/components/schemas/AuthProvider"
                         }
+                    },
+                    "account": {
+                        "description": "`panneau`: the account page of the user, on `/account`: their name and email, their password, their two-factor authentication.",
+                        "type": "boolean"
                     },
                     "passwordReset": {
                         "description": "`panneau`: a \"Forgot your password?\" link on the login page, through `POST /auth/password/forgot` and `POST /auth/password/reset`.",

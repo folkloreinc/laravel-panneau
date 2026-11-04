@@ -422,7 +422,7 @@ class DefinitionBuilderTest extends TestCase
 
         $definition = $this->definition();
 
-        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null], $definition['auth']);
+        $this->assertSame(['mode' => 'panneau', 'loginUrl' => null, 'logoutUrl' => null, 'account' => true], $definition['auth']);
         $this->assertValidDefinition($definition);
     }
 
