@@ -28,12 +28,15 @@ use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\EmailVerificationController;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\FieldCheckController;
+use Panneau\Http\Controllers\PasswordConfirmationController;
 use Panneau\Http\Controllers\PasswordResetController;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Controllers\SearchController;
+use Panneau\Http\Controllers\TwoFactorController;
 use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\RenderProblems;
+use Panneau\Http\Middleware\RequirePassword;
 use Panneau\Http\Middleware\ResolveContext;
 use Panneau\Navigation\Navigation;
 use Panneau\Repositories\RepositoryAdapters;
@@ -161,7 +164,10 @@ class Panneau implements PanneauContract
      * out, and those whose address isn't verified can verify it: none of them go through the
      * authentication of Panneau or the context.
      *
-     * @param  array{passwordReset?: bool, emailVerification?: bool}  $auth
+     * With two-factor authentication, its challenge is outside too, and the routes of the account's
+     * two-factor authentication are without the context; its changes need a recent password.
+     *
+     * @param  array{passwordReset?: bool, emailVerification?: bool, twoFactor?: bool}  $auth
      */
     private function registerAuthRoutes(Router $router, array $auth): void
     {
@@ -169,6 +175,19 @@ class Panneau implements PanneauContract
         $throttle = ThrottleRequests::using(PasswordResetController::RATE_LIMITER);
         $router->post('auth/login', [AuthController::class, 'login'])->withoutMiddleware($outside)->name('auth.login');
         $router->post('auth/logout', [AuthController::class, 'logout'])->withoutMiddleware($outside)->name('auth.logout');
+        $router->post('auth/password/confirm', PasswordConfirmationController::class)
+            ->withoutMiddleware($outside)->middleware($throttle)->name('auth.password.confirm');
+        if (($auth['twoFactor'] ?? false) === true) {
+            $router->post('auth/two-factor/challenge', [TwoFactorController::class, 'challenge'])
+                ->withoutMiddleware($outside)->middleware($throttle)->name('auth.two-factor.challenge');
+            $router->prefix('account/two-factor')->as('account.two-factor')->withoutMiddleware(ResolveContext::class)->group(function (Router $router): void {
+                $router->get('', [TwoFactorController::class, 'show']);
+                $router->post('', [TwoFactorController::class, 'enable'])->middleware(RequirePassword::class)->name('.enable');
+                $router->delete('', [TwoFactorController::class, 'disable'])->middleware(RequirePassword::class)->name('.disable');
+                $router->post('confirm', [TwoFactorController::class, 'confirm'])->middleware(RequirePassword::class)->name('.confirm');
+                $router->post('recovery-codes', [TwoFactorController::class, 'recoveryCodes'])->middleware(RequirePassword::class)->name('.recovery-codes');
+            });
+        }
         if (($auth['passwordReset'] ?? false) === true) {
             $router->post('auth/password/forgot', [PasswordResetController::class, 'forgot'])
                 ->withoutMiddleware($outside)->middleware($throttle)->name('auth.password.forgot');

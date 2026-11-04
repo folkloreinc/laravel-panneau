@@ -565,6 +565,9 @@ class UpgradeCommandTest extends TestCase
             'passwords' => null,
             'reset_password_using' => ResetUserPassword::class,
             'email_verification' => false,
+            'two_factor' => false,
+            'two_factor_required' => false,
+            'password_timeout' => null,
             'rate_limit' => 6,
         ], $config['auth']);
         $this->assertSame([], $config['resources']);

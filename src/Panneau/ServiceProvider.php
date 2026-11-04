@@ -6,9 +6,12 @@ use Illuminate\Cache\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
+use Laravel\Fortify\TwoFactorAuthenticationProvider as FortifyTwoFactorProvider;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\ConvertPhonesCommand;
 use Panneau\Console\InstallCommand;
@@ -33,6 +36,7 @@ use Panneau\Roles\DatabaseRoleStore;
 use Panneau\Roles\RoleManager;
 use Panneau\Uploads\S3UploadStorage;
 use Panneau\Uploads\Uploads;
+use PragmaRX\Google2FA\Google2FA;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -60,6 +64,8 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->singletonIf(UploadStorage::class, S3UploadStorage::class);
         $this->app->singleton(Uploads::class);
         $this->app->singletonIf(EmbedResolver::class, OEmbedResolver::class);
+        // Fortify's TOTP provider, when Fortify's own service provider isn't loaded
+        $this->app->singletonIf(TwoFactorAuthenticationProvider::class, fn ($app): FortifyTwoFactorProvider => new FortifyTwoFactorProvider($app->make(Google2FA::class), $app->make(CacheRepository::class)));
 
         // The roles module (decision 0014). Bound in any case; used only when it is on.
         $this->app->singletonIf(RoleStore::class, function ($app): RoleStore {

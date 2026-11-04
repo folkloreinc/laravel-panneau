@@ -2,10 +2,10 @@
 
 namespace Panneau\Http\Controllers;
 
+use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Contracts\Auth\Access\Gate;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +14,8 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use LogicException;
+use Panneau\Auth\PasswordConfirmation;
+use Panneau\Auth\TwoFactor;
 use Panneau\Definition\DefinitionBuilder;
 
 /**
@@ -21,8 +23,9 @@ use Panneau\Definition\DefinitionBuilder;
  * and a password on the guard of `panneau.auth.guard`, which must be a session guard. Only users
  * that the `viewPanneau` gate allows in can log in: the others get the error of wrong credentials.
  *
- * Two-factor, passkeys, password reset and OAuth providers come with the auth of the "App and
- * content" slice.
+ * With `panneau.auth.two_factor`, a user who has two-factor authentication isn't logged in yet:
+ * the login answers `202` and waits for `TwoFactorController::challenge()`. A login with the
+ * password confirms it (`PasswordConfirmation`).
  *
  * @internal
  */
@@ -39,6 +42,8 @@ final class AuthController
         private readonly Config $config,
         private readonly RateLimiter $limiter,
         private readonly DefinitionBuilder $definition,
+        private readonly TwoFactor $twoFactor,
+        private readonly PasswordConfirmation $confirmation,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -60,22 +65,30 @@ final class AuthController
 
         // A user the gate refuses isn't logged in
         $guard = $this->guard();
-        $loggedIn = $guard->attemptWhen(
-            ['email' => $email, 'password' => (string) $credentials['password']],
-            fn (Authenticatable $user): bool => $this->gate->forUser($user)->allows('viewPanneau'),
-            (bool) ($credentials['remember'] ?? false),
-        );
-        $user = $guard->user();
-        if (! $loggedIn || $user === null) {
+        $attempt = ['email' => $email, 'password' => (string) $credentials['password']];
+        $remember = (bool) ($credentials['remember'] ?? false);
+        $user = $guard->validate($attempt) ? $guard->getLastAttempted() : null;
+        if ($user === null || $this->gate->forUser($user)->denies('viewPanneau')) {
             $this->limiter->hit($key);
+            $guard->getDispatcher()?->dispatch(new Failed($this->guardName(), $guard->getLastAttempted(), $attempt));
 
             throw ValidationException::withMessages(['email' => trans('auth.failed')]);
         }
-
         $this->limiter->clear($key);
+        $guard->getProvider()->rehashPasswordIfRequired($user, $attempt);
+
+        // The login waits for its second factor (panneau-js decision 0049)
+        if ($this->twoFactor->enabled() && $this->twoFactor->status($user) === 'enabled') {
+            $request->session()->put(TwoFactorController::PENDING_LOGIN, ['id' => $user->getAuthIdentifier(), 'remember' => $remember]);
+
+            return new JsonResponse(['twoFactor' => true], 202);
+        }
+
+        $guard->login($user, $remember);
         if ($request->hasSession()) {
             $request->session()->regenerate();
         }
+        $this->confirmation->confirm($request);
 
         return new JsonResponse(['user' => $this->definition->user($user)]);
     }
@@ -92,6 +105,13 @@ final class AuthController
         }
 
         return new Response(status: 204);
+    }
+
+    private function guardName(): string
+    {
+        $name = $this->config->get('panneau.auth.guard') ?? $this->config->get('auth.defaults.guard');
+
+        return is_string($name) ? $name : 'web';
     }
 
     private function guard(): SessionGuard

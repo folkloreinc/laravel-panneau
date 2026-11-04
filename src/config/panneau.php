@@ -95,9 +95,25 @@ return [
         // the app ({path}/auth/verify-email). Its expiry is auth.verification.expire.
         'email_verification' => false,
 
-        // Requests per minute to each route of the password reset and the email verification,
-        // per user or IP address. Define the `panneau-auth` limiter with RateLimiter::for() to
-        // limit differently.
+        // "panneau" mode: two-factor authentication on Fortify, with its TwoFactorAuthenticatable
+        // trait on the user model and its two_factor_* columns (php artisan vendor:publish
+        // --tag=fortify-migrations). A password login asks for a code of the authenticator app
+        // or a recovery code, and users set it up from the app. It is on once confirmed with a
+        // code, whatever the site's Fortify features say.
+        'two_factor' => false,
+
+        // Who must have it: false, true for everyone, or a Gate ability that those who must have
+        // it are allowed. The roles of the roles module can require it too ('two_factor' => true).
+        // Until they set it up, the API refuses them and the app shows the setup.
+        'two_factor_required' => false,
+
+        // Seconds that a confirmed password lasts, for the changes that need it (two-factor
+        // authentication). Null: auth.password_timeout, 3 hours by default.
+        'password_timeout' => null,
+
+        // Requests per minute to each route of the password reset, the email verification, the
+        // two-factor challenge and the password confirmation, per user or IP address. Define the
+        // `panneau-auth` limiter with RateLimiter::for() to limit differently.
         'rate_limit' => 6,
     ],
 
@@ -247,7 +263,9 @@ return [
         // The database connection of the default store. Null: the default connection.
         'connection' => null,
         // The roles, by id: a label, permissions (`contests.update`, `contests.*`, `*`), and
-        // `owned` for a role that reaches only the items its users own (OwnedResource).
+        // `owned` for a role that reaches only the items its users own (OwnedResource), and
+        // `two_factor` for a role whose users must have two-factor authentication (with
+        // panneau.auth.two_factor).
         'roles' => [
             // 'admin' => ['label' => 'Admin', 'permissions' => ['*']],
             // 'client' => ['label' => 'Client', 'permissions' => ['contests.viewAny', 'contests.view'], 'owned' => true],

@@ -51,7 +51,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [x] What Eclair asked of the protocol: secret text fields, tones of options, lists paged with cursors, and the CSP nonce of Vite in the page of the app (folkloreinc/panneau-js#143, #144, #150, #152, panneau-js decision 0039) — unreleased — 5.0.0-alpha.8
 - [ ] Auth: password, reset, 2FA, passkeys, email verification (Fortify), OAuth providers (Socialite, [#34](https://github.com/folkloreinc/laravel-panneau/issues/34)), with a separate guard or the site's existing auth ([decisions/0005](decisions/0005-auth.md))
     - [x] Password reset and email verification, with Panneau's own emails to pages of the app ([#158](https://github.com/folkloreinc/laravel-panneau/issues/158), [decisions/0016](decisions/0016-password-reset-and-email-verification.md), panneau-js decision 0048) — unreleased
-    - [ ] Two-factor authentication, and requiring it for some users or roles
+    - [x] Two-factor authentication on Fortify, a password confirmation for its changes, and requiring it by config, ability or role ([#160](https://github.com/folkloreinc/laravel-panneau/issues/160), [decisions/0017](decisions/0017-two-factor-authentication.md), panneau-js decision 0049) — unreleased
     - [ ] The account page: name, email, password and two-factor
     - [ ] Passkeys
     - [ ] OAuth providers (Socialite, [#34](https://github.com/folkloreinc/laravel-panneau/issues/34))
