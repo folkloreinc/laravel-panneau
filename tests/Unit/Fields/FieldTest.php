@@ -403,4 +403,19 @@ class FieldTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Color::make('background')->palette($palette);
     }
+
+    public function test_sortable_fields(): void
+    {
+        foreach ([Text::make('a'), Number::make('a'), Range::make('a'), Money::make('a'), Date::make('a'), DateTime::make('a'), Time::make('a'), DateRange::make('a'), Duration::make('a'), Boolean::make('a'), Select::make('a'), Country::make('a'), Slug::make('a'), Tel::make('a')] as $field) {
+            $this->assertTrue($field->isSortable(), $field->type());
+        }
+        foreach ([Textarea::make('a'), RichText::make('a'), Color::make('a'), Json::make('a'), Relation::make('a'), Tags::make('a'), Group::make('a'), Repeater::make('a'), Location::make('a'), Embed::make('a')] as $field) {
+            $this->assertFalse($field->isSortable(), $field->type());
+        }
+        // Several values, one value per locale, or a value the item doesn't keep as it is
+        $this->assertFalse(Select::make('a')->multiple()->isSortable());
+        $this->assertFalse(Country::make('a')->multiple()->isSortable());
+        $this->assertFalse(Text::make('a')->localized()->isSortable());
+        $this->assertFalse(Text::make('a')->resolveUsing(fn (object $item): string => 'computed')->isSortable());
+    }
 }

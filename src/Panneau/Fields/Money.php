@@ -139,4 +139,9 @@ class Money extends Field
 
         return null;
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }

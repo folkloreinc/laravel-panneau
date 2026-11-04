@@ -193,4 +193,16 @@ class ResourceListTest extends HttpTestCase
 
         $this->getJson(self::API.'/resources/tags')->assertOk();
     }
+
+    public function test_a_list_without_sorts_sorts_by_its_columns(): void
+    {
+        // The authors' list declares no sorts: its name column sorts.
+        Author::query()->create(['name' => 'Grace']);
+        Author::query()->create(['name' => 'Ada']);
+        Author::query()->create(['name' => 'Linus']);
+
+        $names = fn (string $sort): array => array_column($this->getJson(self::API.'/resources/authors?sort='.$sort)->assertOk()->json('data'), 'name');
+        $this->assertSame(['Ada', 'Grace', 'Linus'], $names('name'));
+        $this->assertSame(['Linus', 'Grace', 'Ada'], $names('-name'));
+    }
 }

@@ -23,7 +23,11 @@ use Panneau\Contracts\Repositories\ChunkedQuery;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Contracts\Repositories\Searchable;
+use Panneau\Contracts\Repositories\SortsFields;
 use Panneau\Contracts\ResourceRepository;
+use Panneau\Fields\DateRange;
+use Panneau\Fields\Field;
+use Panneau\Fields\Money;
 use Panneau\Query\CursorPage;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
@@ -44,7 +48,8 @@ use UnexpectedValueException;
  *   `whereDate` for the bounds of a range). A `date-range` filter on an attribute with the
  *   `AsDateRange` cast keeps the ranges that overlap its days (see `applyRangeOverlap()`).
  * - Sorts are on the column named after the sort, or the start column of an `AsDateRange`
- *   attribute, the amount column of an `AsMoney` one.
+ *   attribute, the amount column of an `AsMoney` one. Lists that don't declare their sorts sort
+ *   by the attributes that have a column (see `sortsBy()`).
  * - Search is a `LIKE` on the search fields. A search with no search fields matches nothing.
  *   Models that use `Laravel\Scout\Searchable` are searched through Scout instead, within the
  *   same scope, ids, exclusions and filters (see `scoutSearch()`).
@@ -61,7 +66,7 @@ use UnexpectedValueException;
  *
  * @template TModel of Model
  */
-class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, ResourceRepository, Searchable
+class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, ResourceRepository, Searchable, SortsFields
 {
     /**
      * The parameter of a cursor with the number of its page, which no column can be named.
@@ -552,6 +557,30 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
                 $query->orWhereRaw($grammar->wrap($field).' '.$operator." ? escape '!'", [$pattern]);
             }
         });
+    }
+
+    /**
+     * Whether a list that doesn't declare its sorts can sort by a field: an attribute kept in the
+     * column of its name. Not an accessor or a relation, which have no column, and a range or an
+     * amount only with its cast (`AsDateRange`, `AsMoney`), which sorts by its start or its
+     * amount column. Override it for attributes kept elsewhere.
+     */
+    public function sortsBy(Field $field): bool
+    {
+        $model = $this->newModel();
+        $name = $field->name();
+        if ($model->hasGetMutator($name) || $model->hasAttributeGetMutator($name) || $this->relation($model, $name) !== null) {
+            return false;
+        }
+        $cast = $model->getCasts()[$name] ?? null;
+        if ($field instanceof DateRange) {
+            return AsDateRange::fromCast($cast) !== null;
+        }
+        if ($field instanceof Money) {
+            return AsMoney::fromCast($cast) !== null;
+        }
+
+        return true;
     }
 
     /**

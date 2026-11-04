@@ -44,6 +44,14 @@ final class Column
         return $this->field;
     }
 
+    /**
+     * Whether the column was made sortable, or not, with `sortable()`; null when it wasn't.
+     */
+    public function getSortable(): ?bool
+    {
+        return $this->sortable;
+    }
+
     public function label(string $label): self
     {
         $this->label = $label;
@@ -59,7 +67,9 @@ final class Column
     }
 
     /**
-     * Whether the column can be sorted. By default, columns of the list's sorts are.
+     * Whether the column can be sorted. By default, columns of the list's sorts are. A sortable
+     * column adds its field to the sorts of the list, and one that isn't leaves it out of the
+     * sorts a list has without `sorts()`.
      */
     public function sortable(bool $sortable = true): self
     {

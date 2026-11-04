@@ -27,4 +27,9 @@ class Number extends Field
     {
         return [$this->integer ? 'integer' : 'numeric'];
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }

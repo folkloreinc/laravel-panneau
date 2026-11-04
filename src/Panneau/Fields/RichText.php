@@ -94,4 +94,9 @@ class RichText extends Text
 
         return $this->settings(['links' => ['newTab' => $newTab]]);
     }
+
+    protected function sortsByValue(): bool
+    {
+        return false;
+    }
 }

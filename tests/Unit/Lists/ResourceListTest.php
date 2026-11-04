@@ -2,6 +2,10 @@
 
 namespace Panneau\Tests\Unit\Lists;
 
+use Panneau\Fields\Date;
+use Panneau\Fields\Select;
+use Panneau\Fields\Text;
+use Panneau\Fields\Textarea;
 use Panneau\Lists\Column;
 use Panneau\Lists\Filters\DateFilter;
 use Panneau\Lists\Filters\DateRangeFilter;
@@ -125,5 +129,47 @@ class ResourceListTest extends TestCase
         $this->assertSame([], $query(['published' => ['from' => 'yesterday']]));
         $this->assertSame([], $query(['published' => '2026-01-01']));
         $this->assertSame([], $query(['published' => ['2026-01-01', '2026-01-31']]));
+    }
+
+    public function test_default_sorts(): void
+    {
+        $fields = [Text::make('title'), Text::make('subtitle'), Date::make('published_at'), Select::make('status')];
+
+        // Without sorts nor columns: every sortable field, since the default columns are among them
+        $this->assertSame(['title', 'subtitle', 'published_at', 'status'], (new ResourceList)->sortableFields($fields)->getSorts());
+        // The sortable fields of the columns, but those of a column that isn't sortable
+        $list = (new ResourceList)->sortableFields([...$fields, Textarea::make('summary')])->columns([
+            'title',
+            Column::make('status')->sortable(false),
+            'published_at',
+            'summary',
+            Column::id('preview'),
+        ]);
+        $this->assertSame(['title', 'published_at'], $list->getSorts());
+        $this->assertSame([
+            ['field' => 'title', 'sortable' => true],
+            ['field' => 'status'],
+            ['field' => 'published_at', 'sortable' => true],
+            ['field' => 'summary'],
+            ['id' => 'preview'],
+        ], $list->toDefinition(searchable: false)['columns']);
+        $this->assertSame(['title', 'published_at'], $list->toDefinition(searchable: false)['sorts']);
+        $this->assertSame(['title', 'published_at'], $list->queryOptions(false, null, 20, 100)->sorts);
+
+        // Declared sorts win, and sorts([]) turns sorting off
+        $this->assertSame(['subtitle'], (new ResourceList)->sortableFields($fields)->columns(['title', 'subtitle'])->sorts(['subtitle'])->getSorts());
+        $off = (new ResourceList)->sortableFields($fields)->columns(['title'])->sorts([]);
+        $this->assertSame([], $off->getSorts());
+        $this->assertArrayNotHasKey('sorts', $off->toDefinition(searchable: false));
+        $this->assertSame([['field' => 'title']], $off->toDefinition(searchable: false)['columns']);
+    }
+
+    public function test_a_sortable_column_can_be_sorted(): void
+    {
+        // Its header sorts: the query accepts its sort too
+        $list = (new ResourceList)->columns(['title', Column::make('rank')->sortable()])->sorts(['title']);
+
+        $this->assertSame(['title', 'rank'], $list->getSorts());
+        $this->assertSame(['title', 'rank'], $list->queryOptions(false, null, 20, 100)->sorts);
     }
 }

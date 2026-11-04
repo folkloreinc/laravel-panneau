@@ -150,6 +150,25 @@ abstract class Field
     }
 
     /**
+     * Whether a list can sort by this field without declaring it in its sorts: a value kept as
+     * it is shown, that sorts in a meaningful order (text, numbers, dates, booleans, a choice),
+     * in one locale, and not computed by `resolveUsing()`.
+     */
+    public function isSortable(): bool
+    {
+        return $this->sortsByValue() && ! $this->localized && $this->resolveUsing === null;
+    }
+
+    /**
+     * Whether the values of the type sort in a meaningful order, as they are stored. Types that
+     * do return true: lists sort by them when they don't declare their sorts.
+     */
+    protected function sortsByValue(): bool
+    {
+        return false;
+    }
+
+    /**
      * Shown, never saved.
      */
     public function readOnly(bool $readOnly = true): static

@@ -65,4 +65,9 @@ class Text extends Field
     {
         return ['string'];
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }

@@ -115,4 +115,9 @@ class Select extends Field
             $rules->add($path.'.*', [LaravelRule::in($this->values())]);
         }
     }
+
+    protected function sortsByValue(): bool
+    {
+        return ! $this->multiple;
+    }
 }

@@ -24,4 +24,9 @@ class Time extends Field
     {
         return $value instanceof DateTimeInterface ? $value->format('H:i:s') : parent::serializeValue($value);
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }

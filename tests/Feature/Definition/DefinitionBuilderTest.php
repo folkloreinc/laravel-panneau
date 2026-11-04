@@ -198,8 +198,10 @@ class DefinitionBuilderTest extends TestCase
 
     public function test_default_columns(): void
     {
-        $this->assertSame([['field' => 'name']], $this->resource('authors')['list']['columns']);
-        $this->assertSame([['field' => 'name'], ['field' => 'slug']], $this->resource('tags')['list']['columns']);
+        // Without sorts, the list sorts by the fields its repository keeps in a column
+        $this->assertSame([['field' => 'name', 'sortable' => true]], $this->resource('authors')['list']['columns']);
+        $this->assertSame(['name'], $this->resource('authors')['list']['sorts']);
+        $this->assertSame([['field' => 'name', 'sortable' => true], ['field' => 'slug', 'sortable' => true]], $this->resource('tags')['list']['columns']);
         $this->assertFalse($this->resource('authors')['list']['search']);
 
         $addresses = new class extends TagsResource
@@ -211,7 +213,7 @@ class DefinitionBuilderTest extends TestCase
         };
         $this->assertSame(
             // An address is shown on one line, a link is content of the item
-            [['field' => 'name'], ['field' => 'country'], ['field' => 'address']],
+            [['field' => 'name', 'sortable' => true], ['field' => 'country', 'sortable' => true], ['field' => 'address']],
             $this->app->make(DefinitionBuilder::class)->resource($addresses)['list']['columns'],
         );
 
@@ -223,7 +225,8 @@ class DefinitionBuilderTest extends TestCase
             }
         };
         $this->assertSame(
-            [['field' => 'name'], ['field' => 'dates'], ['field' => 'price']],
+            // Without their casts on the model, the range and the amount have no column to sort by
+            [['field' => 'name', 'sortable' => true], ['field' => 'dates'], ['field' => 'price']],
             $this->app->make(DefinitionBuilder::class)->resource($events)['list']['columns'],
         );
     }

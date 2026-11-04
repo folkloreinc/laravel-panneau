@@ -8,4 +8,9 @@ class Textarea extends Text
     {
         return 'textarea';
     }
+
+    protected function sortsByValue(): bool
+    {
+        return false;
+    }
 }

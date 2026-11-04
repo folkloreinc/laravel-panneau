@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Feature\Repositories;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Pagination\Cursor;
@@ -9,6 +10,10 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use LogicException;
 use Panneau\Contracts\Repositories\Restorable;
+use Panneau\Fields\Date;
+use Panneau\Fields\DateRange;
+use Panneau\Fields\Money;
+use Panneau\Fields\Text;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
 use Panneau\Query\SortDirection;
@@ -421,5 +426,37 @@ class EloquentRepositoryTest extends TestCase
         }
 
         $this->assertSame('draft', Post::query()->find($post->id)?->status);
+    }
+
+    public function test_it_sorts_by_the_attributes_kept_in_a_column(): void
+    {
+        $this->assertTrue($this->posts->sortsBy(Text::make('title')));
+        $this->assertTrue($this->posts->sortsBy(Date::make('published_at')));
+        // A range and an amount by their cast: its start, its amount
+        $this->assertTrue($this->posts->sortsBy(DateRange::make('dates')));
+        $this->assertTrue($this->posts->sortsBy(Money::make('price')));
+        $this->assertFalse($this->posts->sortsBy(Money::make('cost')));
+        $this->assertFalse($this->posts->sortsBy(DateRange::make('period')));
+        // A relation has no column of its name
+        $this->assertFalse($this->posts->sortsBy(Text::make('author')));
+
+        $withAccessors = new class extends Post
+        {
+            protected $table = 'posts';
+
+            public function getHeadlineAttribute(): string
+            {
+                return strtoupper((string) $this->title);
+            }
+
+            protected function teaser(): Attribute
+            {
+                return Attribute::get(fn (): string => (string) $this->title);
+            }
+        };
+        $repository = new EloquentRepository($withAccessors::class);
+        $this->assertFalse($repository->sortsBy(Text::make('headline')));
+        $this->assertFalse($repository->sortsBy(Text::make('teaser')));
+        $this->assertTrue($repository->sortsBy(Text::make('title')));
     }
 }

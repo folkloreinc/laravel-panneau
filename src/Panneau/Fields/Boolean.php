@@ -25,4 +25,9 @@ class Boolean extends Field
     {
         return $value === null ? null : filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
+
+    protected function sortsByValue(): bool
+    {
+        return true;
+    }
 }
