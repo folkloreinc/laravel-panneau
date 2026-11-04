@@ -485,9 +485,34 @@
                             "enum": [
                                 "email",
                                 "url",
-                                "json",
-                                "tel"
+                                "json"
                             ]
+                        },
+                        "message": {
+                            "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "rule"
+                    ],
+                    "additionalProperties": {}
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "rule": {
+                            "type": "string",
+                            "const": "tel"
+                        },
+                        "extension": {
+                            "type": "boolean"
                         },
                         "message": {
                             "type": "string"
