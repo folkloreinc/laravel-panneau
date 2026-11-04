@@ -10,7 +10,7 @@ use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
 
 /**
- * Who did what: a list of credits, each one a person and their roles (panneau-js decision 0053).
+ * Who did what: a list of credits, each one a person and their roles (panneau-js decision 0056).
  *
  * ```php
  * Credits::make('credits')

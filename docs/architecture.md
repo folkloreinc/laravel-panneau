@@ -307,7 +307,7 @@ Tel::make('phone')->country('CA'),                      // the country of a new 
 
 ### Credits
 
-Who did what, on films, shows, episodes and projects: a list of credits, each one a person and their roles ([panneau-js decision 0053](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0053-credits.md)).
+Who did what, on films, shows, episodes and projects: a list of credits, each one a person and their roles ([panneau-js decision 0056](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0056-credits.md)).
 
 ```php
 Credits::make('credits')

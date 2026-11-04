@@ -255,7 +255,7 @@ final class V1
     public const CREDIT_BASES = ['Panneau\\Fields\\Items', 'Panneau\\Fields\\Fields', 'Panneau\\Fields\\Item'];
 
     /**
-     * What a project's own list of credits becomes (panneau-js decision 0053).
+     * What a project's own list of credits becomes (panneau-js decision 0056).
      */
     public const CREDITS_TARGET = 'manual: Credits, the credits type: the people with resource(), the roles with roles(), featured(), and the other keys of a credit with fields(). List the columns of its values in panneau.credits.columns, then run panneau:convert-credits';
 

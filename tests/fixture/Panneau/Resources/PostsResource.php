@@ -86,7 +86,7 @@ class PostsResource extends Resource
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),
                 BlockType::make('image', 'Image', [Media::make('image')->accept('image/*')->required()]),
             ]),
-            // People among the authors, or names; roles among the tags (panneau-js decision 0053)
+            // People among the authors, or names; roles among the tags (panneau-js decision 0056)
             Credits::make('credits')
                 ->resource(AuthorsResource::class)
                 ->roles(TagsResource::class)

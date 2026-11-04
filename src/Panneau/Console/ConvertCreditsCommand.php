@@ -9,7 +9,7 @@ use UnexpectedValueException;
 
 /**
  * Turns the credits that a project kept in JSON into the value of the `Credits` field (decision
- * 0053 of panneau-js): `[{ "person": { "id" } | { "name" }, "roles": [{ "id" } | { "name" }],
+ * 0056 of panneau-js): `[{ "person": { "id" } | { "name" }, "roles": [{ "id" } | { "name" }],
  * "featured": true }]`. Its columns are those of `panneau.credits.columns`, or its arguments:
  * `table.column` for a column, `table.column:path.in.json` for a key of a JSON column.
  *
