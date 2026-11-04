@@ -14,6 +14,7 @@ use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\TwoFactorAuthenticationProvider as FortifyTwoFactorProvider;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\ConvertAddressesCommand;
+use Panneau\Console\ConvertMoneyCommand;
 use Panneau\Console\ConvertPhonesCommand;
 use Panneau\Console\InstallCommand;
 use Panneau\Console\PruneUploadsCommand;
@@ -109,7 +110,7 @@ class ServiceProvider extends BaseServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, ConvertPhonesCommand::class, ConvertAddressesCommand::class]);
+            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, ConvertPhonesCommand::class, ConvertMoneyCommand::class, ConvertAddressesCommand::class]);
         }
     }
 

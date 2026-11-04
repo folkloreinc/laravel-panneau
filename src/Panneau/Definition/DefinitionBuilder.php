@@ -33,7 +33,7 @@ final class DefinitionBuilder
     /**
      * Field types shown as columns when a list declares none.
      */
-    private const DEFAULT_COLUMN_TYPES = ['text', 'email', 'url', 'slug', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'tel', 'range', 'duration', 'tags', 'country', 'region', 'address'];
+    private const DEFAULT_COLUMN_TYPES = ['text', 'email', 'url', 'slug', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'tel', 'range', 'duration', 'tags', 'country', 'region', 'daterange', 'money', 'address'];
 
     public function __construct(
         private readonly ResourceRegistry $resources,

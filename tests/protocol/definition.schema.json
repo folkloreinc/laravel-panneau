@@ -510,6 +510,67 @@
                     "properties": {
                         "rule": {
                             "type": "string",
+                            "const": "daterange"
+                        },
+                        "open": {
+                            "type": "string",
+                            "enum": [
+                                "start",
+                                "end",
+                                "both"
+                            ]
+                        },
+                        "message": {
+                            "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "rule"
+                    ],
+                    "additionalProperties": {}
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "rule": {
+                            "type": "string",
+                            "const": "money"
+                        },
+                        "currencies": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                            }
+                        },
+                        "message": {
+                            "type": "string"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "create",
+                                "update"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "rule"
+                    ],
+                    "additionalProperties": {}
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "rule": {
+                            "type": "string",
                             "const": "in"
                         },
                         "value": {

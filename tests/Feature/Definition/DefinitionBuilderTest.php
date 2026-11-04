@@ -11,8 +11,11 @@ use LogicException;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Fields\Address;
 use Panneau\Fields\Country;
+use Panneau\Fields\DateRange;
 use Panneau\Fields\Json;
 use Panneau\Fields\Link;
+use Panneau\Fields\Money;
+use Panneau\Fields\Sessions;
 use Panneau\Fields\Text;
 use Panneau\Resources\Duplication;
 use Panneau\Resources\Resource;
@@ -119,7 +122,7 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame(['singular' => 'post', 'plural' => 'posts'], $posts['label']);
         $this->assertSame('title', $posts['itemTitle']);
         $this->assertSame(
-            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'author', 'tags', 'seo', 'details', 'address', 'link', 'blocks', 'preview_password'],
+            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'dates', 'price', 'author', 'tags', 'seo', 'details', 'address', 'link', 'blocks', 'preview_password'],
             array_column($posts['fields'], 'name'),
         );
         $this->assertSame(['search' => true], $posts['features']);
@@ -185,10 +188,10 @@ class DefinitionBuilderTest extends TestCase
             ['field' => 'status'],
             ['field' => 'published_at', 'sortable' => true],
         ], $list['columns']);
-        $this->assertSame(['status', 'featured', 'author_id', 'published_at'], array_column($list['filters'], 'id'));
+        $this->assertSame(['status', 'featured', 'author_id', 'published_at', 'dates'], array_column($list['filters'], 'id'));
         $this->assertSame('authors', $list['filters'][2]['resource']);
         $this->assertSame(['id' => 'published_at', 'type' => 'date-range'], $list['filters'][3]);
-        $this->assertSame(['title', 'published_at'], $list['sorts']);
+        $this->assertSame(['title', 'published_at', 'dates', 'price'], $list['sorts']);
         $this->assertSame('-published_at', $list['defaultSort']);
         $this->assertTrue($list['search']);
     }
@@ -210,6 +213,18 @@ class DefinitionBuilderTest extends TestCase
             // An address is shown on one line, a link is content of the item
             [['field' => 'name'], ['field' => 'country'], ['field' => 'address']],
             $this->app->make(DefinitionBuilder::class)->resource($addresses)['list']['columns'],
+        );
+
+        $events = new class extends TagsResource
+        {
+            public function fields(): array
+            {
+                return [Text::make('name'), Sessions::make('sessions'), DateRange::make('dates'), Money::make('price')];
+            }
+        };
+        $this->assertSame(
+            [['field' => 'name'], ['field' => 'dates'], ['field' => 'price']],
+            $this->app->make(DefinitionBuilder::class)->resource($events)['list']['columns'],
         );
     }
 

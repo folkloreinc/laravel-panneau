@@ -3345,6 +3345,74 @@
                         "properties": {
                             "rule": {
                                 "type": "string",
+                                "const": "daterange"
+                            },
+                            "open": {
+                                "type": "string",
+                                "enum": [
+                                    "start",
+                                    "end",
+                                    "both"
+                                ],
+                                "description": "Which bounds of the range can be `null`: `start`, `end` or `both`."
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "money"
+                            },
+                            "currencies": {
+                                "description": "The currencies allowed. Without them, any ISO 4217 currency.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$",
+                                    "description": "An ISO 4217 currency code, in capitals: `CAD`."
+                                }
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
                                 "const": "in"
                             },
                             "value": {
@@ -3611,7 +3679,7 @@
                         "description": "A rule added in a later version of the protocol. Clients that don't know it ignore it; the server still enforces it."
                     }
                 ],
-                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `postalCode` checks a postal code against the format of its country, for the countries whose format Panneau knows: Canada and the United States (decision 0054)."
+                "description": "A portable validation rule. `min` and `max` apply to numbers, to the amount of `money` values (in minor units), and to the length of text and arrays. `daterange` and `money` are implied by their types, with the `open` bounds and the `currencies` of the field (decision 0053). `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `postalCode` checks a postal code against the format of its country, for the countries whose format Panneau knows: Canada and the United States (decision 0054)."
             },
             "BlockType": {
                 "type": "object",
@@ -4004,6 +4072,61 @@
                 },
                 "additionalProperties": {},
                 "description": "The `settings` of an `address` field. Its value is `{ \"street\", \"unit\", \"city\", \"region\", \"postalCode\", \"country\", \"point\" }` (`AddressValue`)."
+            },
+            "DateRangeSettings": {
+                "type": "object",
+                "properties": {
+                    "time": {
+                        "description": "The bounds are date-times, with an offset (`2026-11-04T23:30:00Z`). Without it, they are days (`2026-11-04`), both inclusive.",
+                        "type": "boolean"
+                    },
+                    "allDay": {
+                        "description": "With `time`: an \"All day\" switch. An all-day value has days as bounds, and `\"allDay\": true`.",
+                        "type": "boolean"
+                    },
+                    "open": {
+                        "type": "string",
+                        "enum": [
+                            "start",
+                            "end",
+                            "both"
+                        ],
+                        "description": "Which bounds of the range can be `null`: `start`, `end` or `both`."
+                    },
+                    "timeZone": {
+                        "description": "The IANA time zone the date-times are shown and typed in (`America/Toronto`), when the value has none. Without it, the browser's.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "chooseTimeZone": {
+                        "description": "With `time`: the field has a menu of time zones, and keeps the choice in the value (`timeZone`).",
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `daterange` field: days or date-times, an \"All day\" switch, open bounds and the time zone of its date-times."
+            },
+            "MoneySettings": {
+                "type": "object",
+                "properties": {
+                    "currency": {
+                        "description": "The currency of every amount: the field shows it and cannot change it.",
+                        "type": "string",
+                        "pattern": "^[A-Z]{3}$"
+                    },
+                    "currencies": {
+                        "description": "The currencies the user picks from, the first one for a new amount. Without `currency` or `currencies`, every currency.",
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$",
+                            "description": "An ISO 4217 currency code, in capitals: `CAD`."
+                        }
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `money` field: its currency, or the currencies to pick from. `min` and `max` rules apply to the amount, in minor units."
             },
             "LayoutNode": {
                 "type": "object",
@@ -7034,6 +7157,61 @@
                 ],
                 "additionalProperties": {},
                 "description": "The value of a `link` field (decision 0055)."
+            },
+            "DateRangeValue": {
+                "type": "object",
+                "properties": {
+                    "start": {
+                        "description": "The first day (`2026-11-04`) or the start (`2026-11-04T23:30:00Z`), or `null` when the range is open at its start.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "end": {
+                        "description": "The last day, included, or the end, or `null` when the range is open at its end. On or after the start.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "allDay": {
+                        "description": "The range takes whole days: its bounds are days.",
+                        "type": "boolean"
+                    },
+                    "timeZone": {
+                        "description": "The IANA time zone the date-times are shown and typed in (`America/Toronto`), when the field lets the user choose it.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "start",
+                    "end"
+                ],
+                "additionalProperties": {},
+                "description": "The value of a `daterange` field: a start and an end, days or date-times (decision 0053)."
+            },
+            "MoneyValue": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "The amount in the minor unit of the currency, its ISO 4217 exponent: `1250` is 12.50 CAD, `1250` is 1,250 JPY."
+                    },
+                    "currency": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{3}$",
+                        "description": "An ISO 4217 currency code, in capitals: `CAD`."
+                    }
+                },
+                "required": [
+                    "amount",
+                    "currency"
+                ],
+                "additionalProperties": {},
+                "description": "The value of a `money` field: an amount and its currency (decision 0053)."
             }
         },
         "parameters": {

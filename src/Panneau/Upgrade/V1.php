@@ -30,6 +30,24 @@ final class V1
 
     public const COMPOSERS = ['Panneau\\Composers\\AppComposer', 'Panneau\\Composers\\PanneauComposer'];
 
+    /**
+     * Words of the names of the date fields that start and end a range (`starts_at` and
+     * `ends_at`, `date_start` and `date_end`): `--check` suggests a `DateRange` for such a pair.
+     */
+    public const RANGE_STARTS = ['start', 'starts', 'begin', 'begins', 'from'];
+
+    public const RANGE_ENDS = ['end', 'ends', 'until', 'to'];
+
+    public const DATE_RANGE_TARGET = 'DateRange (one value, { start, end }) with the AsDateRange cast on the same two columns: not automatic, the two fields become one (panneau-js decision 0053)';
+
+    /**
+     * A currency in the strings of a `Number` field (its suffix, prefix or label): `--check`
+     * suggests a `Money`.
+     */
+    public const CURRENCY_MARKER = '/[$€£¥]|\b(CAD|USD|EUR|GBP|CHF|JPY|AUD)\b/u';
+
+    public const MONEY_TARGET = 'Money with the AsMoney cast, in minor units: not automatic, convert the amounts with panneau:convert-money (panneau-js decision 0053)';
+
     public const GROUP_BUILT_IN = 'built-in';
 
     public const GROUP_ITEMS = 'Items';

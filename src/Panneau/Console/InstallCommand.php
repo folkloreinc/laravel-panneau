@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Panneau\Casts\AsDateRange;
+use Panneau\Casts\AsMoney;
+use Panneau\Fields\DateRange;
+use Panneau\Fields\Money;
 use Panneau\Upgrade\Upgrader;
 use Throwable;
 
@@ -202,9 +206,17 @@ final class InstallCommand extends Command
         $fields = [];
         $imports = [];
         $text = [];
+        [$casted, $covered] = $this->castFields($model, $columns);
         foreach ($columns as $column) {
             $name = (string) $column['name'];
-            if ($name === $model->getKeyName() || in_array($name, self::SKIPPED_COLUMNS, true)
+            if (isset($casted[$name])) {
+                [$attribute, $code, $fieldClass] = $casted[$name];
+                $fields[$attribute] = $code;
+                $imports[$fieldClass] = $fieldClass;
+
+                continue;
+            }
+            if (in_array($name, $covered, true) || $name === $model->getKeyName() || in_array($name, self::SKIPPED_COLUMNS, true)
                 || in_array($name, $model->getHidden(), true)
                 || str_ends_with($name, '_id') || str_ends_with($name, '_token')) {
                 continue;
@@ -237,6 +249,44 @@ final class InstallCommand extends Command
         sort($imports);
 
         return [$fields, $imports, $text];
+    }
+
+    /**
+     * The fields of the attributes that the `AsDateRange` and `AsMoney` casts keep in several
+     * columns, keyed by their first column (the start, the amount), and the other columns they
+     * cover.
+     *
+     * @param  list<array<string, mixed>>  $columns
+     * @return array{array<string, array{string, string, class-string}>, list<string>}
+     */
+    private function castFields(Model $model, array $columns): array
+    {
+        $types = [];
+        foreach ($columns as $column) {
+            $types[(string) $column['name']] = strtolower((string) $column['type_name']);
+        }
+        $fields = [];
+        $covered = [];
+        foreach ($model->getCasts() as $attribute => $cast) {
+            $range = AsDateRange::fromCast($cast);
+            if ($range !== null && isset($types[$range->start])) {
+                $code = 'DateRange::make('.var_export($attribute, true).')'
+                    .($types[$range->start] !== 'date' ? '->time()' : '')
+                    .($range->allDay !== null ? '->allDay()' : '')
+                    .($range->timeZone !== null ? '->chooseTimeZone()' : '');
+                $fields[$range->start] = [$attribute, $code, DateRange::class];
+                $covered = [...$covered, $range->end, ...array_filter([$range->timeZone, $range->allDay])];
+            }
+            $money = AsMoney::fromCast($cast);
+            if ($money !== null && isset($types[$money->amount])) {
+                $code = 'Money::make('.var_export($attribute, true).')'
+                    .($money->currency !== null ? '->currency('.var_export($money->currency, true).')' : '');
+                $fields[$money->amount] = [$attribute, $code, Money::class];
+                $covered = [...$covered, ...array_filter([$money->currencyColumn])];
+            }
+        }
+
+        return [$fields, $covered];
     }
 
     /**
