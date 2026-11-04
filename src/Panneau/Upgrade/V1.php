@@ -249,6 +249,22 @@ final class V1
     ];
 
     /**
+     * The 1.x classes that the projects' own credit fields extend: a list of credits, a credit,
+     * or the person of a credit.
+     */
+    public const CREDIT_BASES = ['Panneau\\Fields\\Items', 'Panneau\\Fields\\Fields', 'Panneau\\Fields\\Item'];
+
+    /**
+     * What a project's own list of credits becomes (panneau-js decision 0053).
+     */
+    public const CREDITS_TARGET = 'manual: Credits, the credits type: the people with resource(), the roles with roles(), featured(), and the other keys of a credit with fields(). List the columns of its values in panneau.credits.columns, then run panneau:convert-credits';
+
+    /**
+     * What a project's own credit, or person of a credit, becomes.
+     */
+    public const CREDIT_TARGET = 'manual: a credit of the Credits type, which has its person, roles and featured: its other fields go to Credits->fields(), then delete it';
+
+    /**
      * Keys of 1.x configs that 5.x configs don't have, to tell them apart.
      */
     public const CONFIG_KEYS = ['routes', 'intl', 'only_declared_fields'];
@@ -261,5 +277,22 @@ final class V1
     public static function field(string $class): ?array
     {
         return self::FIELDS[ltrim($class, '\\')] ?? null;
+    }
+
+    /**
+     * What a field class of the project becomes when it is a credit field, which the built-in
+     * `Credits` type replaces: a class named `Credits` (or `Credit`, `CreditsField`) that extends
+     * `Items`, `Fields` or `Item` of 1.x. Null for the others.
+     *
+     * @param  string  $class  The class of the project.
+     * @param  string  $base  The nearest 1.x field class it extends.
+     */
+    public static function creditTarget(string $class, string $base): ?string
+    {
+        if (preg_match('/^Credits?(Field)?$/', class_basename($class)) !== 1 || ! in_array($base, self::CREDIT_BASES, true)) {
+            return null;
+        }
+
+        return $base === 'Panneau\\Fields\\Items' ? self::CREDITS_TARGET : self::CREDIT_TARGET;
     }
 }

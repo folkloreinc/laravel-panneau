@@ -37,7 +37,7 @@ final class ClassesToMoveByHandRector extends AbstractRector
                 ? 'a 1.x resource type: a BlockType of the Repeater of the blocks (BlockTypes::register() of laravel-folklore 2), then delete it'
                 : 'a 1.x resource type: resource types are not built yet in 5.x',
             $this->classes->isA($parent, [V1::RESOURCE_CONTROLLER]) => 'a 1.x resource controller: move its methods to hooks (creating(), updating(), saved()…) and actions of the resource, then delete it',
-            default => $this->fieldTodo($parent),
+            default => $this->fieldTodo($parent, (string) $this->getName($node)),
         };
         if ($todo === null) {
             return null;
@@ -47,13 +47,18 @@ final class ClassesToMoveByHandRector extends AbstractRector
         return $node;
     }
 
-    private function fieldTodo(string $parent): ?string
+    private function fieldTodo(string $parent, string $class): ?string
     {
         $base = $this->classes->nearest($parent, array_keys(V1::FIELDS));
         if ($base === null) {
             return null;
         }
-        [, $target] = V1::FIELDS[$base];
+        // The project's own credit fields: the built-in Credits type replaces them
+        $credit = V1::creditTarget($class, $base);
+        if ($credit !== null) {
+            return sprintf('a 1.x credit field that extends %s: %s', class_basename($base), substr($credit, 8));
+        }
+        $target = V1::FIELDS[$base][1];
 
         return sprintf(
             'a 1.x field that extends %s: %s. 5.x fields are configured with methods: move field(), fields(), attributes() and component() there, or make it a field type with a JS plugin',

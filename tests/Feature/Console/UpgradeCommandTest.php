@@ -180,8 +180,12 @@ class UpgradeCommandTest extends TestCase
     {
         $this->project('v1.4');
 
-        $this->assertSame('Repeater', $this->finding('fields', 'Credits extends Items (items)')->target);
-        $this->assertSame('Group', $this->finding('fields', 'Credit extends Fields (fields)')->target);
+        // The project's credit fields become the built-in Credits type, and their values are converted
+        $credits = $this->finding('fields', 'Credits extends Items (items)');
+        $this->assertTrue($credits->isManual());
+        $this->assertStringStartsWith('manual: Credits, the credits type', $credits->target);
+        $this->assertStringContainsString('panneau:convert-credits', $credits->target);
+        $this->assertStringStartsWith('manual: a credit of the Credits type', $this->finding('fields', 'Credit extends Fields (fields)')->target);
         $this->assertSame('Relation', $this->finding('fields', 'Client extends ResourceItem (resource-item)')->target);
         $this->assertSame('Relation->multiple()', $this->finding('fields', 'Projects extends ResourceItems (items)')->target);
         $this->assertSame('RichText->localized()', $this->finding('fields', 'HtmlLocalized extends LocalizedField (localized)')->target);

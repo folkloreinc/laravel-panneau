@@ -9,7 +9,7 @@ use Panneau\Support\LocalizedField;
 use Panneau\Support\ResourceType;
 use Panneau\Http\Controllers\ResourceController;
 
-// TODO(panneau-5): a 1.x field that extends Items: Repeater. 5.x fields are configured with methods: move field(), fields(), attributes() and component() there, or make it a field type with a JS plugin
+// TODO(panneau-5): a 1.x credit field that extends Items: Credits, the credits type: the people with resource(), the roles with roles(), featured(), and the other keys of a credit with fields(). List the columns of its values in panneau.credits.columns, then run panneau:convert-credits
 class Credits extends Items
 {
     public function field(): ?string
@@ -18,7 +18,7 @@ class Credits extends Items
     }
 }
 
-// TODO(panneau-5): a 1.x field that extends Fields: Group. 5.x fields are configured with methods: move field(), fields(), attributes() and component() there, or make it a field type with a JS plugin
+// TODO(panneau-5): a 1.x credit field that extends Fields: a credit of the Credits type, which has its person, roles and featured: its other fields go to Credits->fields(), then delete it
 class Credit extends Fields
 {
     public function fields(): array

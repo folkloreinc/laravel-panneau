@@ -876,6 +876,8 @@ final class Audit
             } elseif ($ownComponent !== null && $ownComponent !== $component && ! in_array($ownComponent, ['fields', 'item', 'items'], true)) {
                 $target = 'manual: '.preg_replace('/ \\(.*\\)$/', '', $target)."; its component {$ownComponent} needs a JS plugin";
             }
+            // The project's own credit fields: the built-in Credits type replaces them
+            $target = V1::creditTarget($class->name, $base) ?? $target;
             $groups[$group][] = [$class, $base, $ownComponent ?? $component, $target];
         }
 
