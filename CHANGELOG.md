@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.11] - 2026-11-04
+
+Goes with `@panneau/*` `5.0.0-alpha.16`, which it needs: the `daterange`, `money`, `address` and `link` types, the `postalCode` and `providers` rules, and the new settings of `duration`, `tel`, `country` and `color` are new in that release.
+
+New field types and better versions of existing ones, all additive: date ranges and money, addresses and links, durations in a declared unit, phone extensions, several countries, the providers of an embed and color palettes.
+
 ### Added
 
 - `DateRange` and `Money` fields, the `daterange` and `money` types of the protocol (panneau-js decision 0053, folkloreinc/panneau-js#198, folkloreinc/panneau-js#200). A range is `{ start, end }`, days or with `time()` date-times, with `allDay()`, `open('start'|'end'|'both')`, `timeZone()` and `chooseTimeZone()`; an amount is `{ amount, currency }`, an integer in the minor unit of an ISO 4217 currency, with `currency()` or `currencies()`. The types imply the `daterange` and `money` rules, which the server enforces with a message for each failure (a missing start or end, an end before the start, an amount that isn't an integer, a currency that isn't allowed); `min()` and `max()` of a `Money` apply to the amount, in minor units.
@@ -221,7 +227,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.10...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.11...v5.x
+[5.0.0-alpha.11]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.11
 [5.0.0-alpha.10]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.10
 [5.0.0-alpha.9]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.9
 [5.0.0-alpha.8]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.8

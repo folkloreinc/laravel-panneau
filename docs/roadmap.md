@@ -35,7 +35,8 @@ Index: [#35](https://github.com/folkloreinc/laravel-panneau/issues/35). Each ite
 - [x] Slugs that check their value ([decisions/0011](decisions/0011-slug-checks.md), #99) — 5.0.0-alpha.4
 - [x] More field types: `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` ([decisions/0012](decisions/0012-embeds-and-more-field-types.md), #100) — 5.0.0-alpha.5
 - [x] `RichText` settings for the rich text field of `@panneau/editor`: toolbar, headings, block styles, links in a new tab (folkloreinc/panneau-js#128, #120) — 5.0.0-alpha.6
-- [x] `DateRange` and `Money`, with the `AsDateRange` and `AsMoney` casts, the `Money` value object, the `Sessions` preset, ranges in `date-range` filters and calendars, and `panneau:convert-money` (folkloreinc/panneau-js#198, folkloreinc/panneau-js#200, panneau-js decision 0053) — unreleased
+- [x] `DateRange` and `Money`, with the `AsDateRange` and `AsMoney` casts, the `Money` value object, the `Sessions` preset, ranges in `date-range` filters and calendars, and `panneau:convert-money` (folkloreinc/panneau-js#198, folkloreinc/panneau-js#200, panneau-js decision 0053) — unreleased — 5.0.0-alpha.11
+- [x] `Address` and `Link`, the `postalCode` rule and `panneau:convert-addresses` (folkloreinc/panneau-js#199, folkloreinc/panneau-js#202, panneau-js decisions 0054 and 0055), and durations in a declared unit, phone extensions, several countries, the providers of an embed and color palettes (folkloreinc/panneau-js#211 to #215, panneau-js decisions 0056 to 0058) — unreleased — 5.0.0-alpha.11
 
 ## Media (next)
 
