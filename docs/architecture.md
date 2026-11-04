@@ -199,7 +199,33 @@ interface ResourceRepository
   - `createOnly()`, `updateOnly()`.
 - **Abilities of a field** ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)). `canSee($ability)` shows a field only to the users who have an ability, and `canUpdate($ability)` lets only them edit it: a Gate ability (`'contests.budget.view'`), or a closure that receives the user. For the others, the definition gives the field `"abilities": { "view": false }` or `{ "update": false }`, items leave out the value of a field they can't see, and saving ignores the values of the fields they can't see or edit, as it ignores read-only ones. For the fields at the top of a resource.
 - **Secrets.** `Text::secret()` writes `"settings": { "secret": true }`: clients type the value in a password input that a button reveals, keep the browser from filling it in, and show it as dots in lists and details. The backend still decides whether it sends the value back. A secret the project keeps encrypted (an access key) is usually write-only, `->secret()->writeOnly()`: items have `null` for it, and an update that leaves it out, or sends it empty, keeps the stored value, since the form starts without it. Only for fields at the top of a resource; a resource with its own `toItem()` leaves the value out there.
-- **Options** of `Select`, `Tags` and `SelectFilter` are a backed enum class, a list of options (`['value' => …, 'label' => …, 'description' => …, 'disabled' => …, 'tone' => …]`), or labels keyed by value. `tone` colors the option where it shows as a badge, in lists and details: `neutral` (the default), `accent`, `success`, `warning`, `danger`, `info`, or a tone of the theme (`panneau.theme.tones`). An enum case gives its label with a `label()` method, and its tone with a `tone()` method (null for the default).
+- **Options** of `Select`, `Tags` and `SelectFilter` are a backed enum class, a list of options (`['value' => …, 'label' => …, 'description' => …, 'disabled' => …, 'tone' => …]`), or labels keyed by value. `tone` colors the option where it shows as a badge, in lists and details: `neutral` (the default), `info`, `success`, `warning`, `danger`, `muted`, or a tone of the theme (`panneau.theme.tones`). An enum case gives its label with a `label()` method, and its tone with a `tone()` method (null for the default).
+    - Each tone means one thing, the same in every admin ([the tones of the protocol](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/protocol.md#tones)): `neutral` not started, waiting or a category (Draft, Pending); `info` in progress or coming (Scheduled); `success` done, live (Published, Paid); `warning` needs attention soon (Expires soon); `danger` a problem to fix now (Failed, Overdue); `muted` over, no longer active (Archived, Cancelled). `accent` is never a state. Most states stay `neutral`: color is for what needs a look. Panneau 4's `dark` is `muted`.
+
+        ```php
+        enum PostStatus: string
+        {
+            case Draft = 'draft';
+            case Scheduled = 'scheduled';
+            case Published = 'published';
+            case Archived = 'archived';
+
+            public function label(): string
+            {
+                return __('posts.statuses.'.$this->value);
+            }
+
+            public function tone(): ?string
+            {
+                return match ($this) {
+                    self::Draft => null, // neutral: not started
+                    self::Scheduled => 'info', // coming
+                    self::Published => 'success', // live
+                    self::Archived => 'muted', // over
+                };
+            }
+        }
+        ```
 - **Portable rules** (`required()`, `min()`, `max()`, `pattern()`, `in()`, `accept()`, `maxSize()`, `crop()`, `postalCode()`…) go into the definition and become Laravel rules. Server-only rules are added with `rules([...])`.
 - **Rules limited to a mode** ([panneau-js#165](https://github.com/folkloreinc/panneau-js/pull/165)). `required()`, `min()`, `max()`, `pattern()`, `in()`, `before()` and `after()` take a `mode`: `Text::make('code')->required(mode: FormMode::Create)` sends `{ "rule": "required", "mode": "create" }`, and the rule applies only when the item is created, in the admin and on the server. In the other mode, the field accepts no value, `null` or `""`. A rule replaces the rule of the same name that applies in the same modes: `required()` replaces both, `required(mode: …)` only the one of its mode. `isRequired(FormMode::Create)` says whether a field is required in a mode, `isRequired()` in every mode. Admins before `@panneau/*` 5.0.0-alpha.10 ignore `mode`: they apply the rule in both modes.
 - **Validation.** Rules are built for the submitted values, so they follow the form:
