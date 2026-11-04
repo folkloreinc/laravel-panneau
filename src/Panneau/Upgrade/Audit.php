@@ -57,6 +57,25 @@ final class Audit
      * Methods of 1.x resources that 5.x resources don't have: left on a 5.x resource, they are
      * never called.
      */
+    /**
+     * The names of the fields of a 1.x group that make a link: its URL, its label, and a toggle to
+     * open it in a new tab.
+     */
+    private const LINK_URL = '/^(url|href|link|link_?url)$/i';
+
+    private const LINK_LABEL = '/^(label|text|title|link_?label|link_?text|button_?label|button_?text)$/i';
+
+    private const LINK_NEW_TAB = '/^(external|is_?external|new_?tab|open_?in_?new_?tab|target_?blank|blank)$/i';
+
+    /**
+     * The names of the fields of a 1.x group that make a postal address.
+     */
+    private const ADDRESS_STREET = '/^(street|street_?address|address|address_?1|address_?line_?1)$/i';
+
+    private const ADDRESS_CITY = '/^(city|town|ville)$/i';
+
+    private const ADDRESS_POSTAL_CODE = '/^(postal_?code|post_?code|zip|zip_?code|code_?postal)$/i';
+
     private const RESOURCE_1X_METHODS = ['index', 'name', 'translationsNamespace', 'authorize', 'attributes', 'components', 'forms', 'makeRepository', 'makeJsonResource', 'makeJsonCollection', 'onlyDeclaredFields', 'indexIsPaginated'];
 
     private const ROUTE_VERBS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'any', 'match'];
@@ -866,7 +885,14 @@ final class Audit
             }
             [$component, $target, $group] = V1::FIELDS[$base];
             $ownComponent = $this->fieldComponent($class->name);
-            if ($base === V1::LOCALIZED_FIELD) {
+            $builtIn = match ($base) {
+                'Panneau\\Fields\\Fields', 'Panneau\\Fields\\Item' => $this->groupTarget($class),
+                'Panneau\\Fields\\Url', 'Panneau\\Fields\\UrlLocalized' => $this->urlTarget($class, $base),
+                default => null,
+            };
+            if ($builtIn !== null) {
+                $target = $builtIn;
+            } elseif ($base === V1::LOCALIZED_FIELD) {
                 $target = $this->localizedTarget($class);
                 if ($ownComponent !== null && $ownComponent !== 'localized' && ! str_starts_with($target, 'manual')) {
                     $target = "manual: {$target}; its component {$ownComponent} needs a JS plugin";
@@ -950,6 +976,98 @@ final class Audit
                 );
             }
         }
+    }
+
+    /**
+     * The 5.x type of a 1.x group (`Fields`, or an `Item` with fields) whose fields make a link
+     * (a URL and a label, and maybe a new tab toggle) or a postal address (a street, a city and a
+     * postal code). Null for the others, which become a `Group`.
+     */
+    private function groupTarget(PhpClass $class): ?string
+    {
+        $fields = $this->declaredFields($class);
+        $find = fn (string $pattern): ?string => array_values(array_filter(array_keys($fields), fn (string $name): bool => preg_match($pattern, $name) === 1))[0] ?? null;
+
+        $url = $find(self::LINK_URL);
+        $label = $find(self::LINK_LABEL);
+        if ($url !== null && $label !== null) {
+            $newTab = $find(self::LINK_NEW_TAB);
+            $localized = str_contains($fields[$url], 'Localized');
+
+            return sprintf(
+                'manual: Link%s, a built-in type: convert the values to { type: "url", url, label%s }%s',
+                $localized ? '->localized()' : '',
+                $newTab !== null ? ', newTab' : '',
+                $localized ? '; a URL per locale makes a localized link, whose label is a string' : ', the label a string per locale',
+            ).sprintf(' (from %s)', implode(', ', array_filter([$label, $url, $newTab])));
+        }
+
+        $street = $find(self::ADDRESS_STREET);
+        $city = $find(self::ADDRESS_CITY);
+        $postalCode = $find(self::ADDRESS_POSTAL_CODE);
+        if ($street !== null && $city !== null && $postalCode !== null) {
+            return sprintf(
+                'manual: Address, a built-in type: its value is { street, unit, city, region, postalCode, country } (from %s); convert the values with panneau:convert-addresses, a source column:path.in.json for each part',
+                implode(', ', [$street, $city, $postalCode]),
+            );
+        }
+
+        return null;
+    }
+
+    /**
+     * The 5.x type of a subclass of the 1.x `Url` that accepts `mailto:` links, or turns off
+     * the `url` rule: a `Link` with the `email` type. Null for the others.
+     */
+    private function urlTarget(PhpClass $class, string $base): ?string
+    {
+        $mailto = false;
+        foreach ($class->find(String_::class) as $string) {
+            $mailto = $mailto || str_contains(strtolower($string->value), 'mailto');
+        }
+        $rules = $class->method('rules');
+        $checksUrls = $rules === null || (new NodeFinder)->findFirst(
+            $rules->stmts ?? [],
+            fn (Node $node): bool => $node instanceof String_ && preg_match('/(^|\|)url(:|\||$)/', $node->value) === 1,
+        ) !== null;
+        if (! $mailto && $checksUrls) {
+            return null;
+        }
+
+        return "manual: Link->types(['url', 'email']), a built-in type: mailto: links are email links, checked as such. Convert the values to { type: \"url\" or \"email\", url }"
+            .($base === 'Panneau\\Fields\\UrlLocalized' ? '; a URL per locale makes a localized link' : '');
+    }
+
+    /**
+     * The fields that the `fields()` of a class of the project, or of its nearest ancestor that
+     * declares one, makes: their class, by name.
+     *
+     * @return array<string, string>
+     */
+    private function declaredFields(PhpClass $class): array
+    {
+        foreach ([$class->name, ...$this->code->ancestors($class->name)] as $name) {
+            $method = $this->code->class($name)?->method('fields');
+            if ($method === null) {
+                continue;
+            }
+            $fields = [];
+            $calls = (new NodeFinder)->find($method->stmts ?? [], fn (Node $node): bool => ($node instanceof Expr\New_ && $node->class instanceof Node\Name)
+                || ($node instanceof Expr\StaticCall && $node->class instanceof Node\Name && $node->name instanceof Node\Identifier && $node->name->toString() === 'make'));
+            foreach ($calls as $call) {
+                if (! $call instanceof Expr\New_ && ! $call instanceof Expr\StaticCall) {
+                    continue;
+                }
+                $field = $call->getArgs()[0]->value ?? null;
+                if ($field instanceof String_ && $call->class instanceof Node\Name) {
+                    $fields[$field->value] = $call->class->toString();
+                }
+            }
+
+            return $fields;
+        }
+
+        return [];
     }
 
     /**

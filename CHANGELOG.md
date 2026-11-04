@@ -6,6 +6,14 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- The `Address` field, the `address` type of panneau-js decision 0053: `{ street, unit, city, region, postalCode, country }`, and `point` with `point()`, with `country()`, `countries()`, `preferred()` and `requiredParts()`. Once a part is filled, the backend checks the required parts, the country and a postal code of the address's country, each on the path of its part (`address.postalCode`), and saving normalizes the parts (the country in capitals, the regions of Canada and the United States as codes, the postal code in the format of its country) (folkloreinc/panneau-js#199).
+- The protocol's `postalCode` rule (`Panneau\Rules\PostalCode`, `Text::postalCode()`), with a country code or another field of the form: Canadian and US postal codes, once normalized (panneau-js decision 0053).
+- `php artisan panneau:convert-addresses` turns the parts of addresses kept in separate columns (`panneau.addresses.columns`, `panneau.addresses.country`) into address values in a JSON column, and the upgrade from 1.x points the groups of a street, a city and a postal code to `Address` (panneau-js decision 0053).
+- The `Link` field, the `link` type of panneau-js decision 0054: `url`, `page`, `email`, `tel`, `file` and a site's types (`types()`), with `pages()`, `libraries()`, `newTab()`, `linkLabel()` and `resolvePageUrlUsing()`. The backend checks the parts of the type on their paths (`link.url`, `link.page`), keeps only those, sets `newTab`, and items give the reference and the URL of the page or the file of the links at the top of a resource. The upgrade from 1.x points the groups of a label, a URL and a new tab toggle, and the `Url` fields that accepted `mailto:`, to it (folkloreinc/panneau-js#202).
+- Lists without columns show `address` fields, with the other simple types.
+
 ## [5.0.0-alpha.10] - 2026-11-04
 
 Goes with `@panneau/*` `5.0.0-alpha.15`, which it needs: the pages of the app for password reset, email verification, two-factor authentication, the account and passkeys, and the buttons of OAuth providers, are new in that release.
