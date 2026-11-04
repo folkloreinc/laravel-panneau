@@ -284,6 +284,9 @@ return [
         'country' => null,
         // Where a project kept numbers as typed, for `panneau:convert-phones`: `table.column`,
         // or `table.column:path.in.json` for a key of a JSON column (`orders.data:contact.phone`).
+        // For a `Tel` field with `extension()`, `'contacts.phone' => ['extension' => true]` keeps
+        // the extension typed after a number (`ext. 123`), and `['extension' => 'phone_ext']`
+        // also merges the one kept in another column of the table (`column:path.in.json` too).
         'columns' => [],
     ],
 

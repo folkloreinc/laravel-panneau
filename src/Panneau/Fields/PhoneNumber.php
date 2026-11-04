@@ -9,11 +9,27 @@ namespace Panneau\Fields;
  * A number typed with its calling code (`+33 6…`, `0033 6…`, `011 33 6…`) converts for any
  * country. A number typed without one converts for the countries of `COUNTRIES`, whose national
  * numbers have known lengths: `514 555-0199` in Canada, `06 12 34 56 78` in France. Anything else
- * (a name, an extension, a digit too many or too few) can't become E.164 without guessing.
+ * (a name, a digit too many or too few) can't become E.164 without guessing.
+ *
+ * An extension follows the number after `;ext=`, as in a `tel:` URI (RFC 3966):
+ * `+15145550199;ext=123`, for `Tel` fields with `extension()` (decision 0058 of panneau-js). Methods
+ * read and keep extensions only when asked: by default, a number with an extension is not E.164.
  */
 final class PhoneNumber
 {
     public const E164 = '/^\+[1-9]\d{6,14}$/';
+
+    /** A number in E.164, with an optional extension of 1 to 10 digits: `+15145550199;ext=123`. */
+    public const E164_EXTENSION = '/^\+[1-9]\d{6,14}(?:;ext=\d{1,10})?$/';
+
+    /** The longest extension, in digits. */
+    public const MAX_EXTENSION_LENGTH = 10;
+
+    /**
+     * An extension typed after a number, as people write it: `ext. 123`, `ext:123`, `x123`,
+     * `poste 123`, `;ext=123`. The number ends with a digit or a parenthesis.
+     */
+    private const TYPED_EXTENSION = '/^(.*?[\d)])[\s,;]*(?:extension|ext|poste|x)\s*[.:=#]?\s*(\d{1,10})$/isu';
 
     /**
      * National numbers that convert without their calling code: the calling code, the trunk
@@ -35,18 +51,75 @@ final class PhoneNumber
     /** The prefix dialed before a calling code: `00`, or `011` from North America. */
     private const EXIT = ['1' => '011'];
 
-    public static function isE164(mixed $value): bool
+    /**
+     * Whether a value is a number in E.164: `+15145550199`, or `+15145550199;ext=123` with
+     * `$extension`.
+     */
+    public static function isE164(mixed $value, bool $extension = false): bool
     {
-        return is_string($value) && preg_match(self::E164, $value) === 1;
+        return is_string($value) && preg_match($extension ? self::E164_EXTENSION : self::E164, $value) === 1;
     }
 
     /**
      * The number in E.164, or `null` when it doesn't read as one. `$country` is the country of a
      * number typed without its calling code (`CA`).
+     *
+     * With `$extension`, an extension typed after the number (`514 555-0199 ext. 123`, `x123`,
+     * `poste 123`) is kept after `;ext=`: `+15145550199;ext=123`. Without it, a number with an
+     * extension doesn't read as one.
      */
-    public static function toE164(?string $value, string $country): ?string
+    public static function toE164(?string $value, string $country, bool $extension = false): ?string
     {
         $value = trim((string) $value);
+        if ($extension && preg_match(self::TYPED_EXTENSION, $value, $match) === 1) {
+            $number = self::number(trim($match[1]), $country);
+
+            return $number !== null ? $number.';ext='.$match[2] : null;
+        }
+
+        return self::number($value, $country);
+    }
+
+    /**
+     * The number and the extension of a value: `+15145550199;ext=123` gives `['+15145550199',
+     * '123']`. A value without `;ext=` is a number without an extension.
+     *
+     * @return array{0: string|null, 1: string|null}
+     */
+    public static function splitExtension(?string $value): array
+    {
+        if ($value !== null && preg_match('/^(.*);ext=(\d{1,10})$/s', $value, $match) === 1) {
+            return [$match[1] !== '' ? $match[1] : null, $match[2]];
+        }
+
+        return [$value !== '' ? $value : null, null];
+    }
+
+    /**
+     * The number of a value without its extension, for a service that has none, such as SMS:
+     * `+15145550199;ext=123` gives `+15145550199`.
+     */
+    public static function withoutExtension(?string $value): ?string
+    {
+        return self::splitExtension($value)[0];
+    }
+
+    /**
+     * The digits of an extension, written alone (`123`) or with its label (`ext. 123`, `x123`,
+     * `poste 123`), or `null` when it doesn't read as one.
+     */
+    public static function extension(string|int|null $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return preg_match('/^(?:(?:extension|ext|poste|x)\s*[.:=#]?\s*)?(\d{1,10})$/iu', $value, $match) === 1
+            ? $match[1]
+            : null;
+    }
+
+    /** A number without an extension, in E.164. */
+    private static function number(string $value, string $country): ?string
+    {
         // Digits, spaces and the punctuation of phone numbers only: no names, no extensions
         if ($value === '' || preg_match('/[^\d\s().\/+-]/', $value) === 1) {
             return null;

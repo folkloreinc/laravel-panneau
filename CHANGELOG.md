@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Phone extensions (folkloreinc/panneau-js#212, panneau-js decision 0058): `Tel::extension()` allows an extension after `;ext=`, `+15145550199;ext=123`, and the `tel` rule with `extension` accepts it. `PhoneNumber::toE164()` keeps the extension typed after a number when asked (`ext. 123`, `x123`, `poste 123`), and `splitExtension()`, `withoutExtension()` and `extension()` read them. In `panneau.phones.columns`, `'table.column' => ['extension' => true]` makes `panneau:convert-phones` keep those extensions, and `['extension' => 'its_column']` merges an extension kept in another column.
+
 ## [5.0.0-alpha.10] - 2026-11-04
 
 Goes with `@panneau/*` `5.0.0-alpha.15`, which it needs: the pages of the app for password reset, email verification, two-factor authentication, the account and passkeys, and the buttons of OAuth providers, are new in that release.

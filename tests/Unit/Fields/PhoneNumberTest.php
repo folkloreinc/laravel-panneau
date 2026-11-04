@@ -51,6 +51,58 @@ class PhoneNumberTest extends TestCase
         $this->assertSame($expected, PhoneNumber::toE164($typed, $country));
     }
 
+    /**
+     * @return array<string, array{string|null, string, string|null}>
+     */
+    public static function extensions(): array
+    {
+        return [
+            'ext.' => ['514 555-0199 ext. 123', 'CA', '+15145550199;ext=123'],
+            'ext:' => ['514-555-0199 ext:1234', 'CA', '+15145550199;ext=1234'],
+            'x' => ['(514) 555-0199 x123', 'CA', '+15145550199;ext=123'],
+            'x, without a space' => ['514-555-0199x123', 'CA', '+15145550199;ext=123'],
+            'poste' => ['514 555-0199, poste 123', 'CA', '+15145550199;ext=123'],
+            'Extension' => ['+33 6 12 34 56 78 Extension 45', 'CA', '+33612345678;ext=45'],
+            'RFC 3966' => ['+15145550199;ext=123', 'FR', '+15145550199;ext=123'],
+            'without an extension' => ['514 555-0199', 'CA', '+15145550199'],
+            'a number that does not read' => ['514 555 ext. 123', 'CA', null],
+            'an extension too long' => ['514 555-0199 x12345678901', 'CA', null],
+            'a name' => ['Tremblay x12', 'CA', null],
+        ];
+    }
+
+    #[DataProvider('extensions')]
+    public function test_numbers_keep_their_extensions_when_asked(?string $typed, string $country, ?string $expected): void
+    {
+        $this->assertSame($expected, PhoneNumber::toE164($typed, $country, extension: true));
+    }
+
+    public function test_numbers_with_an_extension_are_not_e164_unless_asked(): void
+    {
+        $this->assertNull(PhoneNumber::toE164('514 555-0199 ext. 123', 'CA'));
+        $this->assertNull(PhoneNumber::toE164('+15145550199;ext=123', 'CA'));
+        $this->assertFalse(PhoneNumber::isE164('+15145550199;ext=123'));
+        $this->assertTrue(PhoneNumber::isE164('+15145550199;ext=123', extension: true));
+        $this->assertTrue(PhoneNumber::isE164('+15145550199', extension: true));
+        $this->assertFalse(PhoneNumber::isE164('+15145550199;ext=', extension: true));
+    }
+
+    public function test_the_number_and_the_extension_of_a_value(): void
+    {
+        $this->assertSame(['+15145550199', '123'], PhoneNumber::splitExtension('+15145550199;ext=123'));
+        $this->assertSame(['+15145550199', null], PhoneNumber::splitExtension('+15145550199'));
+        $this->assertSame([null, null], PhoneNumber::splitExtension(null));
+        $this->assertSame('+15145550199', PhoneNumber::withoutExtension('+15145550199;ext=123'));
+        $this->assertSame('+15145550199', PhoneNumber::withoutExtension('+15145550199'));
+        $this->assertSame('123', PhoneNumber::extension('123'));
+        $this->assertSame('123', PhoneNumber::extension(123));
+        $this->assertSame('123', PhoneNumber::extension(' ext. 123 '));
+        $this->assertSame('123', PhoneNumber::extension('poste 123'));
+        $this->assertNull(PhoneNumber::extension('12-3'));
+        $this->assertNull(PhoneNumber::extension('reception'));
+        $this->assertNull(PhoneNumber::extension(''));
+    }
+
     public function test_numbers_show_in_the_format_of_the_country_or_with_their_calling_code(): void
     {
         $this->assertSame('514 555-0199', PhoneNumber::format('+15145550199', 'CA'));

@@ -277,12 +277,14 @@ The types of [panneau-js decision 0047](https://github.com/folkloreinc/panneau-j
 Country::make('country')->preferred(['CA', 'US']),     // countries(['CA', 'US']) to allow only those
 Region::make('province')->from('country')->country('CA'),
 Tel::make('phone')->country('CA'),                      // the country of a new number
+Tel::make('office')->extension(),                       // +15145550199;ext=123
 ```
 
 - **Values:**
   - `country` is an ISO 3166-1 alpha-2 code in capitals (`CA`), or `XK` for Kosovo (`Country::CODES`). The server refuses other codes, and those outside `countries()` when the field has them;
   - `region` is a string: the code of the region without its country (`QC` for `CA-QC`) for the countries the admin knows the regions of, the text as typed for the others. The server only checks that it is a string;
-  - `tel` is an international number in E.164, `+15145550199`. The type implies the protocol's `tel` rule, as `json` implies `json`: the server refuses any other value, such as a number without its country code or the text of a number not typed in full. `pattern()` still applies on top of it.
+  - `tel` is an international number in E.164, `+15145550199`. The type implies the protocol's `tel` rule, as `json` implies `json`: the server refuses any other value, such as a number without its country code or the text of a number not typed in full. `pattern()` still applies on top of it;
+  - with `extension()`, a `tel` value can have an extension after `;ext=`, as in a `tel:` URI: `+15145550199;ext=123`, 1 to 10 digits ([panneau-js decision 0058](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0058-phone-extensions.md)). The admin shows an input for it after the number, and the type implies the `tel` rule with `extension`. Without it, the server refuses a value with an extension. Code that sends a number to a service without extensions, such as SMS, takes `PhoneNumber::withoutExtension($value)`.
 - **The country of a region** is the value of the field of the same object that `from()` names, or `country()` when it has no `from()` or that field is empty.
 - **Codes.** `countries()`, `preferred()` and `country()` take codes in capitals, and throw an `InvalidArgumentException` for any other.
 - **Lists.** Without columns, a list shows `country` and `region` fields with the other simple types.
@@ -298,7 +300,16 @@ Tel::make('phone')->country('CA'),                      // the country of a new 
   ```
 
   - A number with its calling code (`+33 6…`, `0033 6…`, `011 33 6…`) converts for any country. A number without one converts for the countries whose national numbers `PhoneNumber::COUNTRIES` knows (Canada and the United States, France, Belgium and Switzerland), in the country of the config (`--country` to use another).
-  - Anything else (a name, an extension, a digit too many or too few) stays as typed, and `-v` lists it by its shape (`999-9999`, an `a` for each letter), never its value. `--dry-run` counts and lists without writing.
+  - Extensions, for `Tel` fields with `extension()`: `'contacts.phone' => ['extension' => true]` keeps the extension typed after a number (`514 555-0199 ext. 123`, `x123`, `poste 123`) as `+15145550199;ext=123`, and `'contacts.phone' => ['extension' => 'phone_extension']` also merges the extension kept in another column of the table (`column:path.in.json` for a key of a JSON column). A row whose extension column isn't digits, or differs from the one typed after its number, stays as typed. The extension's own column doesn't change: drop it once the numbers are converted.
+
+    ```php
+    'columns' => [
+        'users.phone',
+        'contacts.phone' => ['extension' => 'phone_extension'],
+    ],
+    ```
+
+  - Anything else (a name, an extension without `extension`, a digit too many or too few) stays as typed, and `-v` lists it by its shape (`999-9999`, an `a` for each letter), never its value. `--dry-run` counts and lists without writing.
   - It reads and writes rows by their `id`, without their models: their dates don't change, and deleted rows convert too. Running it again changes nothing, so a deployment can run it every time.
   - `PhoneNumber::format()` shows a number in the format of the project's country (`514 555-0199`), or with its calling code (`+33 6 12 34 56 78`), for emails, PDFs and pages; `PhoneNumber::nationalNumber()` gives its digits without the calling code, for exports.
   - No library of numbering plans: the admin checks numbers with the smallest metadata of `libphonenumber-js`, which mostly checks their lengths, and the table above does the same on the server for the numbers it converts.

@@ -18,4 +18,15 @@ class TelCountryTest extends TestCase
             Tel::make('phone')->country('CA')->toDefinition(),
         );
     }
+
+    public function test_phone_numbers_can_have_an_extension(): void
+    {
+        $this->assertSame(
+            ['name' => 'phone', 'type' => 'tel', 'settings' => ['extension' => true]],
+            Tel::make('phone')->extension()->toDefinition(),
+        );
+        $this->assertTrue(Tel::make('phone')->extension()->allowsExtension());
+        $this->assertFalse(Tel::make('phone')->extension(false)->allowsExtension());
+        $this->assertFalse(Tel::make('phone')->allowsExtension());
+    }
 }
