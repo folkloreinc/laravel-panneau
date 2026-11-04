@@ -29,6 +29,8 @@ return new class extends Migration
             $table->json('blocks')->nullable();
             $table->json('seo')->nullable();
             $table->json('details')->nullable();
+            // The credits of the post: PostsResource
+            $table->json('credits')->nullable();
             $table->dateTime('published_at')->nullable();
             $table->string('title');
             $table->string('status')->default('draft');

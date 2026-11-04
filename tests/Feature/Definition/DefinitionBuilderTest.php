@@ -118,7 +118,7 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame(['singular' => 'post', 'plural' => 'posts'], $posts['label']);
         $this->assertSame('title', $posts['itemTitle']);
         $this->assertSame(
-            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'author', 'tags', 'seo', 'details', 'blocks', 'preview_password'],
+            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'author', 'tags', 'seo', 'details', 'blocks', 'credits', 'preview_password'],
             array_column($posts['fields'], 'name'),
         );
         $this->assertSame(['search' => true], $posts['features']);
@@ -149,6 +149,14 @@ class DefinitionBuilderTest extends TestCase
             ['name' => 'image', 'type' => 'media', 'rules' => [['rule' => 'accept', 'value' => ['image/*']], ['rule' => 'required']], 'accept' => ['image/*']],
             $fields['blocks']['types'][1]['fields'][0],
         );
+        // The resources of the people and of the roles are ids
+        $this->assertSame([
+            'name' => 'credits',
+            'type' => 'credits',
+            'resource' => 'authors',
+            'fields' => [['name' => 'description', 'type' => 'textarea', 'localized' => true]],
+            'settings' => ['roles' => 'tags', 'featured' => true],
+        ], $fields['credits']);
     }
 
     public function test_the_form_layout(): void

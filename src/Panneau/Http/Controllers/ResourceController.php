@@ -21,6 +21,7 @@ use Panneau\Forms\SaveContext;
 use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Media\MediaReferences;
 use Panneau\Query\ResourceQuery;
+use Panneau\Resources\CreditReferences;
 use Panneau\Resources\FieldChecks;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
@@ -80,10 +81,12 @@ final class ResourceController
         }
         $references = $this->mediaReferences($request);
         $references->preload($resource, $items);
+        $credits = new CreditReferences($this->resources, $request);
+        $credits->preload($resource, $items);
 
         return new JsonResponse([
             'data' => array_map(
-                fn (object $item): array => $this->item($request, $resource, $item, $query->fields, $references),
+                fn (object $item): array => $this->item($request, $resource, $item, $query->fields, $references, $credits),
                 $items,
             ),
             'meta' => $meta,
@@ -254,7 +257,7 @@ final class ResourceController
      * @param  list<string>|null  $fields
      * @return array<string, mixed>
      */
-    private function item(Request $request, Resource $resource, object $item, ?array $fields = null, ?MediaReferences $references = null): array
+    private function item(Request $request, Resource $resource, object $item, ?array $fields = null, ?MediaReferences $references = null, ?CreditReferences $credits = null): array
     {
         return $this->serializer->serialize(
             $resource,
@@ -263,6 +266,7 @@ final class ResourceController
             $this->authorizer->itemAbilities($request->user(), $resource, $item),
             $references ?? $this->mediaReferences($request),
             $this->authorizer->hiddenFields($request->user(), $resource),
+            $credits,
         );
     }
 

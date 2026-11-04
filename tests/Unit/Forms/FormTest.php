@@ -8,6 +8,7 @@ use Panneau\Contracts\EmbedResolver;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Country;
+use Panneau\Fields\Credits;
 use Panneau\Fields\Date;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Email;
@@ -418,6 +419,106 @@ class FormTest extends TestCase
             array_keys($this->errors($fields, ['author' => 'missing', 'tags' => ['a', 'missing']], $context)),
         );
         $this->assertSame(['author'], array_keys($this->errors($fields, ['author' => ['label' => 'No id']], $context)));
+    }
+
+    public function test_credits_of_people_and_roles_that_are_items(): void
+    {
+        $fields = [Credits::make('credits')->resource('people')->roles('roles')->fields([Textarea::make('description')->localized()])];
+        $asked = [];
+        $context = new ValidationContext(locales: ['fr', 'en'], relationExists: function (string $resource, string $id) use (&$asked): bool {
+            $asked[] = $resource.':'.$id;
+
+            return $id !== '404';
+        });
+
+        $this->assertSame(
+            ['credits' => [
+                ['person' => ['id' => '12'], 'roles' => [['id' => '3'], ['id' => '4']], 'featured' => true, 'description' => ['fr' => 'Une note', 'en' => 'A note']],
+                ['person' => ['name' => 'Jane Doe'], 'roles' => []],
+                ['person' => ['id' => '13'], 'roles' => []],
+            ]],
+            $this->validate($fields, ['credits' => [
+                // Labels and unknown keys are dropped, ids are strings
+                ['person' => ['id' => 12, 'label' => 'Ada'], 'roles' => ['3', ['id' => 4, 'label' => 'Director']], 'featured' => true, 'description' => ['fr' => 'Une note', 'en' => 'A note', 'de' => 'Eine Notiz'], 'secret' => 'x'],
+                ['person' => ['name' => '  Jane Doe '], 'featured' => false],
+                ['person' => '13', 'roles' => null],
+            ]], $context),
+        );
+        $this->assertEqualsCanonicalizing(['people:12', 'roles:3', 'roles:4', 'people:13'], $asked);
+
+        $this->assertEqualsCanonicalizing(
+            ['credits.0.person', 'credits.1.roles.0', 'credits.2.roles.0', 'credits.3.person', 'credits.4.featured', 'credits.5', 'credits.6.person', 'credits.7.roles'],
+            array_keys($this->errors($fields, ['credits' => [
+                ['person' => '404'],
+                ['person' => '12', 'roles' => ['404']],
+                // A field with a resource of roles has no names among its roles
+                ['person' => '12', 'roles' => [['name' => ['fr' => 'Musique']]]],
+                ['person' => ['name' => '   ']],
+                ['person' => '12', 'featured' => 'maybe'],
+                'Jane Doe',
+                ['roles' => ['3']],
+                ['person' => '12', 'roles' => '3'],
+            ]], $context)),
+        );
+        $this->assertSame(['credits'], array_keys($this->errors($fields, ['credits' => ['a' => ['person' => '12']]], $context)));
+        $this->assertSame(['credits' => null], $this->validate($fields, ['credits' => []], $context));
+        $this->assertSame(['credits' => null], $this->validate($fields, ['credits' => null], $context));
+    }
+
+    public function test_credits_without_names_or_without_resources(): void
+    {
+        $exists = new ValidationContext(locales: ['fr', 'en'], relationExists: fn (): bool => true);
+
+        // names(false): every person is an item
+        $items = [Credits::make('credits')->resource('people')->names(false)];
+        $this->assertSame(['credits.0.person'], array_keys($this->errors($items, ['credits' => [['person' => ['name' => 'Jane Doe']]]], $exists)));
+        $this->assertSame(['credits' => [['person' => ['id' => '12'], 'roles' => []]]], $this->validate($items, ['credits' => [['person' => 12]]], $exists));
+
+        // Without a resource: every person is a name, and roles are names in each locale
+        $names = [Credits::make('credits')];
+        $this->assertSame(
+            ['credits' => [['person' => ['name' => 'Jane Doe'], 'roles' => [['name' => ['fr' => 'Musique', 'en' => 'Music']], ['name' => ['fr' => 'Montage']]]]]],
+            $this->validate($names, ['credits' => [[
+                'person' => ['name' => 'Jane Doe'],
+                // Locales outside the definition and empty ones are dropped
+                'roles' => [['name' => ['fr' => ' Musique ', 'en' => 'Music', 'de' => 'Musik']], ['name' => ['fr' => 'Montage', 'en' => '']]],
+            ]]], $exists),
+        );
+        $this->assertEqualsCanonicalizing(
+            ['credits.0.person', 'credits.1.roles.0', 'credits.1.roles.1', 'credits.1.roles.2', 'credits.1.roles.3', 'credits.2.person'],
+            array_keys($this->errors($names, ['credits' => [
+                ['person' => '12'],
+                ['person' => ['name' => 'Jane Doe'], 'roles' => [
+                    // A reference, a name without a locale of the definition, a list, a name that isn't text
+                    ['id' => '3'],
+                    ['name' => ['de' => 'Musik']],
+                    ['name' => ['Musique']],
+                    ['name' => 'Music'],
+                ]],
+                ['person' => ['name' => str_repeat('a', Credits::MAX_NAME_LENGTH + 1)]],
+            ]], $exists)),
+        );
+    }
+
+    public function test_credits_count_with_min_max_and_required(): void
+    {
+        $fields = [Credits::make('credits')->required()->min(2)->max(3)];
+        $credit = ['person' => ['name' => 'Jane Doe']];
+
+        $this->assertSame(['credits'], array_keys($this->errors($fields, ['credits' => []])));
+        $this->assertSame(['credits'], array_keys($this->errors($fields, ['credits' => [$credit]])));
+        $this->assertSame(['credits'], array_keys($this->errors($fields, ['credits' => [$credit, $credit, $credit, $credit]])));
+        $this->assertCount(2, $this->validate($fields, ['credits' => [$credit, $credit]])['credits']);
+    }
+
+    public function test_the_fields_of_credits_are_validated(): void
+    {
+        $fields = [Credits::make('credits')->fields([Text::make('note')->max(5)])];
+
+        $this->assertSame(
+            ['credits.0.note'],
+            array_keys($this->errors($fields, ['credits' => [['person' => ['name' => 'Jane Doe'], 'note' => 'Too long']]])),
+        );
     }
 
     public function test_prepare_hands_each_validated_value_to_its_field(): void

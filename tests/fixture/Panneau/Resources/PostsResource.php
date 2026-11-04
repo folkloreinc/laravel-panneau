@@ -9,6 +9,7 @@ use Panneau\Actions\LinkAction;
 use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Country;
+use Panneau\Fields\Credits;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
 use Panneau\Fields\Embed;
@@ -85,6 +86,12 @@ class PostsResource extends Resource
                 BlockType::make('quote', 'Quote', [Textarea::make('text')->required(), Text::make('author')]),
                 BlockType::make('image', 'Image', [Media::make('image')->accept('image/*')->required()]),
             ]),
+            // People among the authors, or names; roles among the tags (panneau-js decision 0053)
+            Credits::make('credits')
+                ->resource(AuthorsResource::class)
+                ->roles(TagsResource::class)
+                ->featured()
+                ->fields([Textarea::make('description')->localized()]),
             // Required to create a post only (conformance: update.create-rules)
             Password::make('preview_password'),
         ];
@@ -99,6 +106,7 @@ class PostsResource extends Resource
                     Field::make('subtitle'),
                     Field::make('body'),
                     Field::make('blocks'),
+                    Field::make('credits'),
                 ]),
                 Tab::make('Sharing', [Section::make('SEO', [Field::make('seo')])->collapsible()]),
                 Tab::make('Details', [Field::make('details')]),

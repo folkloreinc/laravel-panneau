@@ -22,6 +22,7 @@ class Post extends Model
             'blocks' => 'array',
             'seo' => 'array',
             'details' => 'array',
+            'credits' => 'array',
             'published_at' => 'datetime',
         ];
     }

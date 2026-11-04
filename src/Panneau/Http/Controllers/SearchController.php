@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Panneau\Auth\Authorizer;
 use Panneau\Media\MediaReferences;
 use Panneau\Query\ResourceQuery;
+use Panneau\Resources\CreditReferences;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
@@ -62,6 +63,8 @@ final class SearchController
             }
             $left -= count($items);
             $references->preload($resource, $items);
+            $credits = new CreditReferences($this->resources, $request);
+            $credits->preload($resource, $items);
             $data[] = [
                 'resource' => $id,
                 'items' => array_map(fn (object $item): array => $this->serializer->serialize(
@@ -71,6 +74,7 @@ final class SearchController
                     $this->authorizer->itemAbilities($user, $resource, $item),
                     $references,
                     $this->authorizer->hiddenFields($user, $resource),
+                    $credits,
                 ), $items),
                 'total' => max($page->total(), count($items)),
             ];

@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Color;
 use Panneau\Fields\Country;
+use Panneau\Fields\Credits;
 use Panneau\Fields\Date;
 use Panneau\Fields\DateTime;
 use Panneau\Fields\Duration;
@@ -42,14 +43,14 @@ class FieldTest extends TestCase
         $this->assertSame(
             [
                 'text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'slug', 'relation', 'group', 'repeater',
-                'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location', 'country', 'region',
+                'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location', 'country', 'region', 'credits',
             ],
             array_map(fn ($field) => $field->type(), [
                 Text::make('a'), Textarea::make('a'), RichText::make('a'), Number::make('a'), Boolean::make('a'),
                 Date::make('a'), DateTime::make('a'), Time::make('a'), Select::make('a'), Color::make('a'),
                 Slug::make('a'), Relation::make('a'), Group::make('a'), Repeater::make('a'),
                 Tel::make('a'), Range::make('a'), Duration::make('a'), Json::make('a'), Tags::make('a'), Embed::make('a'), Location::make('a'),
-                Country::make('a'), Region::make('a'),
+                Country::make('a'), Region::make('a'), Credits::make('a'),
             ]),
         );
     }
@@ -191,6 +192,67 @@ class FieldTest extends TestCase
             ['name' => 'phone', 'type' => 'tel', 'settings' => ['country' => 'CA']],
             Tel::make('phone')->country('CA')->toDefinition(),
         );
+    }
+
+    public function test_credits(): void
+    {
+        $this->assertSame(['name' => 'credits', 'type' => 'credits'], Credits::make('credits')->toDefinition());
+        $this->assertSame(
+            [
+                'name' => 'credits',
+                'type' => 'credits',
+                'rules' => [['rule' => 'max', 'value' => 10]],
+                'resource' => 'people',
+                'fields' => [['name' => 'description', 'type' => 'textarea', 'localized' => true]],
+                'settings' => ['roles' => 'roles', 'names' => false, 'featured' => true],
+            ],
+            Credits::make('credits')
+                ->resource('people')
+                ->roles('roles')
+                ->names(false)
+                ->featured()
+                ->max(10)
+                ->fields([Textarea::make('description')->localized()])
+                ->toDefinition(),
+        );
+        // The defaults are left out
+        $this->assertSame(
+            ['name' => 'credits', 'type' => 'credits', 'resource' => 'people'],
+            Credits::make('credits')->resource('people')->names(false)->names()->featured()->featured(false)->toDefinition(),
+        );
+        $this->assertTrue(Credits::make('credits')->names(false)->allowsNames(), 'Without a resource, every person is a name.');
+        $this->assertFalse(Credits::make('credits')->resource('people')->names(false)->allowsNames());
+    }
+
+    public function test_credit_fields_cant_have_the_reserved_names(): void
+    {
+        foreach (Credits::RESERVED as $name) {
+            try {
+                Credits::make('credits')->fields([Text::make('note'), Text::make($name)]);
+                $this->fail('No exception for '.$name);
+            } catch (InvalidArgumentException $exception) {
+                $this->assertStringContainsString('"'.$name.'"', $exception->getMessage());
+            }
+        }
+    }
+
+    public function test_credits_read_from_an_item_have_their_shape_without_labels(): void
+    {
+        $field = Credits::make('credits')->resource('people')->fields([Text::make('description')->localized()]);
+        $item = (object) ['credits' => [
+            ['person' => ['id' => 12, 'label' => 'Kept by mistake'], 'roles' => [['id' => '3'], 5], 'featured' => true, 'description' => ['fr' => 'Note'], 'other' => 'dropped'],
+            ['person' => ['name' => 'Jane Doe'], 'roles' => [['name' => ['fr' => 'Musique', 'en' => 'Music']]], 'featured' => false],
+            (object) ['person' => (object) ['id' => '7']],
+            'not a credit',
+        ]];
+
+        $this->assertSame([
+            ['person' => ['id' => '12'], 'roles' => [['id' => '3'], ['id' => '5']], 'featured' => true, 'description' => ['fr' => 'Note']],
+            ['person' => ['name' => 'Jane Doe'], 'roles' => [['name' => ['fr' => 'Musique', 'en' => 'Music']]], 'description' => null],
+            ['person' => ['id' => '7'], 'roles' => [], 'description' => null],
+        ], $field->resolve($item));
+        $this->assertNull($field->resolve((object) ['credits' => []]));
+        $this->assertNull($field->resolve((object) ['credits' => null]));
     }
 
     public function test_the_country_codes(): void

@@ -3,12 +3,14 @@
 namespace Panneau\Tests\Feature\Http;
 
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Panneau\Http\Problem;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
+use TestApp\Models\Tag;
 use TestApp\Panneau\Resources\PostsWithSecretResource;
 use TestApp\Policies\PostPolicy;
 
@@ -184,6 +186,79 @@ class ResourceItemTest extends HttpTestCase
         ]])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['details.rating', 'details.metadata', 'details.keywords', 'details.place.lat', 'details.contact', 'details.country', 'details.region']);
+    }
+
+    public function test_credits_keep_ids_and_names_and_items_give_their_labels(): void
+    {
+        $ada = Author::query()->create(['name' => 'Ada']);
+        $grace = Author::query()->create(['name' => 'Grace']);
+        // Tags are found by their slug
+        $direction = Tag::query()->create(['name' => 'Direction', 'slug' => 'direction']);
+        $music = Tag::query()->create(['name' => 'Music', 'slug' => 'music']);
+
+        $response = $this->postJson(self::API.'/resources/posts', [
+            'title' => 'Credited',
+            'status' => 'draft',
+            'preview_password' => 'preview-123',
+            'credits' => [
+                ['person' => ['id' => (string) $ada->id, 'label' => 'Not kept'], 'roles' => [['id' => $direction->slug]], 'featured' => true, 'description' => ['fr' => 'Une note', 'en' => 'A note']],
+                ['person' => ['name' => 'Jane Doe'], 'roles' => [$music->slug, $direction->slug]],
+                ['person' => (string) $grace->id],
+            ],
+        ])->assertCreated();
+
+        // The item keeps ids and names, without labels
+        $post = Post::query()->findOrFail($response->json('data.id'));
+        $this->assertSame([
+            ['person' => ['id' => (string) $ada->id], 'roles' => [['id' => $direction->slug]], 'featured' => true, 'description' => ['fr' => 'Une note', 'en' => 'A note']],
+            ['person' => ['name' => 'Jane Doe'], 'roles' => [['id' => $music->slug], ['id' => $direction->slug]]],
+            ['person' => ['id' => (string) $grace->id], 'roles' => []],
+        ], $post->credits);
+
+        $expected = [
+            ['person' => ['id' => (string) $ada->id, 'label' => 'Ada'], 'roles' => [['id' => $direction->slug, 'label' => 'Direction']], 'featured' => true, 'description' => ['fr' => 'Une note', 'en' => 'A note']],
+            ['person' => ['name' => 'Jane Doe'], 'roles' => [['id' => $music->slug, 'label' => 'Music'], ['id' => $direction->slug, 'label' => 'Direction']], 'description' => null],
+            ['person' => ['id' => (string) $grace->id, 'label' => 'Grace'], 'roles' => [], 'description' => null],
+        ];
+        $response->assertJsonPath('data.credits', $expected);
+
+        // One query for the people and one for the roles, whatever the number of credits
+        DB::enableQueryLog();
+        $this->getJson(self::API.'/resources/posts/'.$post->id)->assertOk()->assertJsonPath('data.credits', $expected);
+        $queries = array_column(DB::getQueryLog(), 'query');
+        $this->assertCount(1, array_filter($queries, fn (string $query): bool => str_starts_with($query, 'select * from "authors"')));
+        $this->assertCount(1, array_filter($queries, fn (string $query): bool => str_starts_with($query, 'select * from "tags"')));
+
+        // A person or a role that is gone keeps its id
+        $grace->delete();
+        $music->delete();
+        $this->getJson(self::API.'/resources/posts/'.$post->id)
+            ->assertOk()
+            ->assertJsonPath('data.credits.1.roles.0', ['id' => $music->slug])
+            ->assertJsonPath('data.credits.2.person', ['id' => (string) $grace->id]);
+    }
+
+    public function test_credits_refuse_unknown_people_and_roles(): void
+    {
+        $ada = Author::query()->create(['name' => 'Ada']);
+
+        $this->postJson(self::API.'/resources/posts', [
+            'title' => 'Credited',
+            'status' => 'draft',
+            'preview_password' => 'preview-123',
+            'credits' => [
+                ['person' => '999'],
+                // The field has a resource of roles: a name isn't a role
+                ['person' => (string) $ada->id, 'roles' => ['999', ['name' => ['fr' => 'Musique']]]],
+                ['person' => (string) $ada->id, 'featured' => 'yes'],
+            ],
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['credits.0.person', 'credits.1.roles.0', 'credits.1.roles.1', 'credits.2.featured']);
+
+        $this->patchJson(self::API.'/resources/posts/'.$this->createPost()->id, ['credits' => []])
+            ->assertOk()
+            ->assertJsonPath('data.credits', null);
     }
 
     public function test_update_needs_the_update_ability(): void

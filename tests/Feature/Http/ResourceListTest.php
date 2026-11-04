@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Feature\Http;
 
+use Illuminate\Support\Facades\DB;
 use Panneau\Http\Problem;
 use Panneau\Support\Facade;
 use TestApp\Models\Author;
@@ -21,6 +22,32 @@ class ResourceListTest extends HttpTestCase
         $response->assertJsonPath('meta', ['page' => 2, 'perPage' => 2, 'total' => 5, 'lastPage' => 3]);
         // Default sort: -published_at
         $this->assertSame(['Post 3', 'Post 2'], array_column($response->json('data'), 'title'));
+    }
+
+    public function test_lists_find_the_people_and_roles_of_credits_at_once(): void
+    {
+        $authors = array_map(fn (string $name): Author => Author::query()->create(['name' => $name]), ['Ada', 'Grace', 'Edsger']);
+        $role = Tag::query()->create(['name' => 'Direction', 'slug' => 'direction']);
+        foreach ($authors as $index => $author) {
+            $this->createPost(['title' => 'Post '.$index, 'credits' => [
+                ['person' => ['id' => (string) $author->id], 'roles' => [['id' => $role->slug]]],
+                ['person' => ['id' => (string) $authors[($index + 1) % 3]->id], 'roles' => []],
+                ['person' => ['name' => 'Jane Doe'], 'roles' => []],
+            ]]);
+        }
+
+        DB::enableQueryLog();
+        $response = $this->getJson(self::API.'/resources/posts')->assertOk();
+        $queries = array_column(DB::getQueryLog(), 'query');
+
+        $this->assertCount(3, $response->json('data'));
+        foreach ($response->json('data') as $item) {
+            $this->assertIsString($item['credits'][0]['person']['label']);
+            $this->assertSame([['id' => $role->slug, 'label' => 'Direction']], $item['credits'][0]['roles']);
+            $this->assertSame(['name' => 'Jane Doe'], $item['credits'][2]['person']);
+        }
+        $this->assertCount(1, array_filter($queries, fn (string $query): bool => str_starts_with($query, 'select * from "authors"')));
+        $this->assertCount(1, array_filter($queries, fn (string $query): bool => str_starts_with($query, 'select * from "tags"')));
     }
 
     public function test_items_have_an_id_a_version_and_abilities(): void
