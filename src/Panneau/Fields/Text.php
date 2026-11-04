@@ -2,6 +2,7 @@
 
 namespace Panneau\Fields;
 
+use Panneau\Forms\FormMode;
 use Panneau\Forms\ValidationContext;
 
 class Text extends Field
@@ -37,6 +38,17 @@ class Text extends Field
         $this->writeOnly = $writeOnly;
 
         return $this;
+    }
+
+    /**
+     * The protocol's `postalCode` rule: a postal code in the format of its country, for the
+     * countries whose format is known (Canada and the United States). The country is a code
+     * (`postalCode('CA')`), or the value of another field of the form, as for `before()`
+     * (`postalCode(field: 'country')`). Postal codes of other countries pass.
+     */
+    public function postalCode(?string $country = null, ?string $field = null, ?string $message = null, ?FormMode $mode = null): static
+    {
+        return $this->rule('postalCode', $field !== null ? ['field' => $field] : ($country !== null ? Country::code($country) : null), $message, mode: $mode);
     }
 
     public function resolve(object $item): mixed

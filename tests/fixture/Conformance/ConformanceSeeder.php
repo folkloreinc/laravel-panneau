@@ -21,6 +21,9 @@ class ConformanceSeeder extends Seeder
                 'status' => 'published',
                 'author_id' => $author->id,
                 'published_at' => now()->subDays($index),
+                // A range (open at its end for the last one) and an amount (decision 0053)
+                'dates' => ['start' => now()->addDays($index)->toAtomString(), 'end' => $index < 2 ? now()->addDays($index + 2)->toAtomString() : null],
+                'price' => ['amount' => 1250 * ($index + 1), 'currency' => 'CAD'],
             ]);
         }
         // A post the user can't update or delete (PostPolicy), for the checks of item abilities

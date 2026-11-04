@@ -3318,9 +3318,105 @@
                                 "enum": [
                                     "email",
                                     "url",
-                                    "json",
-                                    "tel"
+                                    "json"
                                 ]
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "tel"
+                            },
+                            "extension": {
+                                "description": "The number can have an extension, after `;ext=` as in a `tel:` URI (RFC 3966): `+15145550199;ext=123`, 1 to 10 digits. Without it, a value with an extension fails.",
+                                "type": "boolean"
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "daterange"
+                            },
+                            "open": {
+                                "type": "string",
+                                "enum": [
+                                    "start",
+                                    "end",
+                                    "both"
+                                ],
+                                "description": "Which bounds of the range can be `null`: `start`, `end` or `both`."
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "const": "money"
+                            },
+                            "currencies": {
+                                "description": "The currencies allowed. Without them, any ISO 4217 currency.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$",
+                                    "description": "An ISO 4217 currency code, in capitals: `CAD`."
+                                }
                             },
                             "message": {
                                 "description": "Message shown when the rule fails, instead of the default one.",
@@ -3496,6 +3592,55 @@
                         "properties": {
                             "rule": {
                                 "type": "string",
+                                "const": "postalCode"
+                            },
+                            "value": {
+                                "description": "The country of the postal code. Without it, or without a country, any postal code passes. An `address` value has its own country.",
+                                "anyOf": [
+                                    {
+                                        "type": "string",
+                                        "pattern": "^[A-Z]{2}$",
+                                        "description": "An ISO 3166-1 alpha-2 code, in capitals: `CA`."
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        },
+                                        "required": [
+                                            "field"
+                                        ],
+                                        "additionalProperties": {},
+                                        "description": "Another field of the form, which holds the country."
+                                    }
+                                ]
+                            },
+                            "message": {
+                                "description": "Message shown when the rule fails, instead of the default one.",
+                                "type": "string"
+                            },
+                            "mode": {
+                                "description": "The rule only applies when the item is created (`create`) or updated (`update`): a password required to create a user, optional to edit one. Without it, the rule applies in both modes.",
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "update"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "rule"
+                        ],
+                        "additionalProperties": {}
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
                                 "const": "crop"
                             },
                             "value": {
@@ -3597,7 +3742,7 @@
                         "description": "A rule added in a later version of the protocol. Clients that don't know it ignore it; the server still enforces it."
                     }
                 ],
-                "description": "A portable validation rule. `min` and `max` apply to numbers, and to the length of text and arrays. `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `providers` lists the providers of an `embed` value (decision 0058)."
+                "description": "A portable validation rule. `min` and `max` apply to numbers, to the amount of `money` values (in minor units), and to the length of text and arrays. `daterange` and `money` are implied by their types, with the `open` bounds and the `currencies` of the field (decision 0053). `accept` lists MIME types (`image/*`). `maxSize` is in bytes. `tel` checks an E.164 number, with an extension when `extension` is `true`. `crop` checks the transform of each image of an `image` or `media` value (decision 0031). `postalCode` checks a postal code against the format of its country, for the countries whose format Panneau knows: Canada and the United States (decision 0054). `providers` lists the providers of an `embed` value (decision 0058)."
             },
             "BlockType": {
                 "type": "object",
@@ -3687,7 +3832,7 @@
                         "type": "boolean"
                     },
                     "resource": {
-                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027).",
+                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027). `link`: the resources of its `page` links (decision 0055).",
                         "anyOf": [
                             {
                                 "type": "string",
@@ -3859,6 +4004,229 @@
                 },
                 "additionalProperties": {},
                 "description": "The `settings` of a `richtext` field. Its value is HTML. The toolbar only limits what users add: content that the field stores keeps its elements and attributes."
+            },
+            "LinkTypeSetting": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The id of the type, in the `type` of values: `anchor`."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "The name of the type, in the field."
+                    },
+                    "pattern": {
+                        "description": "The pattern that the `url` of its links matches: `^#[\\w-]+$`.",
+                        "type": "string"
+                    },
+                    "placeholder": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label"
+                ],
+                "additionalProperties": {},
+                "description": "A type of link that a site adds: its `url` is the text typed, checked against its `pattern`."
+            },
+            "LinkSettings": {
+                "type": "object",
+                "properties": {
+                    "types": {
+                        "description": "The types the field offers, in order: `url`, `page`, `email`, `tel`, `file`, and the types of the site. Defaults to `url`, `email` and `tel`, after `page` when the field has a `resource`.",
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "url",
+                                        "page",
+                                        "email",
+                                        "tel",
+                                        "file"
+                                    ]
+                                },
+                                {
+                                    "$ref": "#/components/schemas/LinkTypeSetting"
+                                }
+                            ]
+                        }
+                    },
+                    "newTab": {
+                        "description": "Which links open in a new tab: as the user chooses (the default), by their type (`url` and `file` links), or none.",
+                        "type": "string",
+                        "enum": [
+                            "choose",
+                            "external",
+                            "never"
+                        ]
+                    },
+                    "label": {
+                        "description": "Whether links have a label: optional (the default), required, or none.",
+                        "type": "string",
+                        "enum": [
+                            "optional",
+                            "required",
+                            "none"
+                        ]
+                    },
+                    "libraries": {
+                        "description": "The media libraries of `file` links. Defaults to every library of the definition.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `link` field. Its value is `{ \"type\", \"url\", \"page\", \"file\", \"label\", \"newTab\" }` (`LinkValue`)."
+            },
+            "AddressSettings": {
+                "type": "object",
+                "properties": {
+                    "country": {
+                        "description": "The country of a new address. The field sets it once a part is typed.",
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$"
+                    },
+                    "countries": {
+                        "description": "The countries the field allows. With one, the field doesn't show the country, and sets it.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{2}$",
+                            "description": "An ISO 3166-1 alpha-2 code, in capitals: `CA`."
+                        }
+                    },
+                    "preferred": {
+                        "description": "The countries shown first.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{2}$",
+                            "description": "An ISO 3166-1 alpha-2 code, in capitals: `CA`."
+                        }
+                    },
+                    "required": {
+                        "description": "The parts a filled address must have. Defaults to `street`, `city` and `country`.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "country",
+                                "street",
+                                "unit",
+                                "city",
+                                "region",
+                                "postalCode"
+                            ]
+                        }
+                    },
+                    "point": {
+                        "description": "Adds a map, and the point of the address to the value.",
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of an `address` field. Its value is `{ \"street\", \"unit\", \"city\", \"region\", \"postalCode\", \"country\", \"point\" }` (`AddressValue`)."
+            },
+            "DateRangeSettings": {
+                "type": "object",
+                "properties": {
+                    "time": {
+                        "description": "The bounds are date-times, with an offset (`2026-11-04T23:30:00Z`). Without it, they are days (`2026-11-04`), both inclusive.",
+                        "type": "boolean"
+                    },
+                    "allDay": {
+                        "description": "With `time`: an \"All day\" switch. An all-day value has days as bounds, and `\"allDay\": true`.",
+                        "type": "boolean"
+                    },
+                    "open": {
+                        "type": "string",
+                        "enum": [
+                            "start",
+                            "end",
+                            "both"
+                        ],
+                        "description": "Which bounds of the range can be `null`: `start`, `end` or `both`."
+                    },
+                    "timeZone": {
+                        "description": "The IANA time zone the date-times are shown and typed in (`America/Toronto`), when the value has none. Without it, the browser's.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "chooseTimeZone": {
+                        "description": "With `time`: the field has a menu of time zones, and keeps the choice in the value (`timeZone`).",
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `daterange` field: days or date-times, an \"All day\" switch, open bounds and the time zone of its date-times."
+            },
+            "MoneySettings": {
+                "type": "object",
+                "properties": {
+                    "currency": {
+                        "description": "The currency of every amount: the field shows it and cannot change it.",
+                        "type": "string",
+                        "pattern": "^[A-Z]{3}$"
+                    },
+                    "currencies": {
+                        "description": "The currencies the user picks from, the first one for a new amount. Without `currency` or `currencies`, every currency.",
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$",
+                            "description": "An ISO 4217 currency code, in capitals: `CAD`."
+                        }
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `money` field: its currency, or the currencies to pick from. `min` and `max` rules apply to the amount, in minor units."
+            },
+            "DurationSettings": {
+                "type": "object",
+                "properties": {
+                    "unit": {
+                        "description": "The unit of the value, a whole number: `seconds` (the default), `minutes`, `hours` or `days`. The `min` and `max` rules are in it too.",
+                        "type": "string",
+                        "enum": [
+                            "seconds",
+                            "minutes",
+                            "hours",
+                            "days"
+                        ]
+                    },
+                    "precision": {
+                        "description": "The smallest part the input shows. Defaults to `unit`; a precision finer than `unit` is raised to it.",
+                        "type": "string",
+                        "enum": [
+                            "seconds",
+                            "minutes",
+                            "hours",
+                            "days"
+                        ]
+                    },
+                    "largestUnit": {
+                        "description": "The largest part the input shows, which has no upper bound: `days` shows days, and hours from 0 to 23. Defaults to the larger of `hours` and `precision`; a largest unit smaller than `precision` is raised to it.",
+                        "type": "string",
+                        "enum": [
+                            "seconds",
+                            "minutes",
+                            "hours",
+                            "days"
+                        ]
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `duration` field. Its value is a whole number of `unit`, zero or more. A day is 24 hours."
             },
             "LayoutNode": {
                 "type": "object",
@@ -6741,6 +7109,209 @@
                 ],
                 "additionalProperties": {},
                 "description": "The value of a `location` field: a point, and its address."
+            },
+            "AddressValue": {
+                "type": "object",
+                "properties": {
+                    "street": {
+                        "description": "The number and the street.",
+                        "type": "string"
+                    },
+                    "unit": {
+                        "description": "An apartment, a suite or a floor.",
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "region": {
+                        "description": "A value of the `region` type for the country: the code of the region without its country (`QC`) for the countries Panneau knows the regions of, the text as typed for the others.",
+                        "type": "string"
+                    },
+                    "postalCode": {
+                        "description": "Normalized for its country: `H2X 1Y4`, `12345-6789`.",
+                        "type": "string"
+                    },
+                    "country": {
+                        "description": "An ISO 3166-1 alpha-2 code: `CA`.",
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$"
+                    },
+                    "point": {
+                        "description": "The place of the address on a map, with `settings.point`.",
+                        "type": "object",
+                        "properties": {
+                            "lat": {
+                                "type": "number",
+                                "minimum": -90,
+                                "maximum": 90
+                            },
+                            "lng": {
+                                "type": "number",
+                                "minimum": -180,
+                                "maximum": 180
+                            }
+                        },
+                        "required": [
+                            "lat",
+                            "lng"
+                        ],
+                        "additionalProperties": {}
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The value of an `address` field (decision 0054): the parts of a postal address, the empty ones left out."
+            },
+            "LinkValue": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The type of the link: `url`, `page`, `email`, `tel`, `file`, or a type of the site."
+                    },
+                    "url": {
+                        "description": "The `href` of the link: `https://…`, `mailto:…`, `tel:+…`, or the text of a type of the site. For `page` and `file` links, the URL the backend resolved, in items only.",
+                        "type": "string"
+                    },
+                    "page": {
+                        "description": "`page` links: the item, `{ \"id\", \"resource\", \"label\" }` in items, its id or `{ \"id\", \"resource\" }` in requests.",
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "resource": {
+                                        "type": "string"
+                                    },
+                                    "label": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ],
+                                "additionalProperties": {}
+                            }
+                        ]
+                    },
+                    "file": {
+                        "description": "`file` links: the media, as a `media` value.",
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ],
+                                "additionalProperties": {}
+                            }
+                        ]
+                    },
+                    "label": {
+                        "description": "The words of the link, per locale; a string in a `localized` link field.",
+                        "anyOf": [
+                            {
+                                "anyOf": [
+                                    {
+                                        "type": "string"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "propertyNames": {
+                                            "type": "string"
+                                        },
+                                        "additionalProperties": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "newTab": {
+                        "description": "The link opens in a new tab.",
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "type"
+                ],
+                "additionalProperties": {},
+                "description": "The value of a `link` field (decision 0055)."
+            },
+            "DateRangeValue": {
+                "type": "object",
+                "properties": {
+                    "start": {
+                        "description": "The first day (`2026-11-04`) or the start (`2026-11-04T23:30:00Z`), or `null` when the range is open at its start.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "end": {
+                        "description": "The last day, included, or the end, or `null` when the range is open at its end. On or after the start.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "allDay": {
+                        "description": "The range takes whole days: its bounds are days.",
+                        "type": "boolean"
+                    },
+                    "timeZone": {
+                        "description": "The IANA time zone the date-times are shown and typed in (`America/Toronto`), when the field lets the user choose it.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "start",
+                    "end"
+                ],
+                "additionalProperties": {},
+                "description": "The value of a `daterange` field: a start and an end, days or date-times (decision 0053)."
+            },
+            "MoneyValue": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "The amount in the minor unit of the currency, its ISO 4217 exponent: `1250` is 12.50 CAD, `1250` is 1,250 JPY."
+                    },
+                    "currency": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{3}$",
+                        "description": "An ISO 4217 currency code, in capitals: `CAD`."
+                    }
+                },
+                "required": [
+                    "amount",
+                    "currency"
+                ],
+                "additionalProperties": {},
+                "description": "The value of a `money` field: an amount and its currency (decision 0053)."
             }
         },
         "parameters": {

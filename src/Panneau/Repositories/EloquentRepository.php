@@ -17,6 +17,8 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Scout\Builder as ScoutBuilder;
 use LogicException;
+use Panneau\Casts\AsDateRange;
+use Panneau\Casts\AsMoney;
 use Panneau\Contracts\Repositories\ChunkedQuery;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
@@ -39,7 +41,10 @@ use UnexpectedValueException;
  * - Values are set as attributes, except for `BelongsTo` and `BelongsToMany` relations
  *   (methods with a declared return type), which receive the public ids of related items.
  * - Filters are `where` clauses on the column named after the filter (`whereIn` for a list,
- *   `whereDate` for the bounds of a range).
+ *   `whereDate` for the bounds of a range). A `date-range` filter on an attribute with the
+ *   `AsDateRange` cast keeps the ranges that overlap its days (see `applyRangeOverlap()`).
+ * - Sorts are on the column named after the sort, or the start column of an `AsDateRange`
+ *   attribute, the amount column of an `AsMoney` one.
  * - Search is a `LIKE` on the search fields. A search with no search fields matches nothing.
  *   Models that use `Laravel\Scout\Searchable` are searched through Scout instead, within the
  *   same scope, ids, exclusions and filters (see `scoutSearch()`).
@@ -493,7 +498,10 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
      */
     protected function applyFilter(Builder $builder, string $filter, mixed $value): void
     {
-        if (is_array($value) && ! array_is_list($value)) {
+        $range = AsDateRange::fromCast($builder->getModel()->getCasts()[$filter] ?? null);
+        if ($range !== null && is_array($value) && ! array_is_list($value)) {
+            $this->applyRangeOverlap($builder, $range, $value);
+        } elseif (is_array($value) && ! array_is_list($value)) {
             // The bounds of a range, both inclusive: `to` includes the whole day
             if (isset($value['from']) && is_string($value['from'])) {
                 $builder->whereDate($filter, '>=', $value['from']);
@@ -505,6 +513,27 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
             $builder->whereIn($filter, $value);
         } else {
             $builder->where($filter, $value);
+        }
+    }
+
+    /**
+     * The items whose range, kept in two columns by the `AsDateRange` cast, overlaps the days of a
+     * `date-range` filter: they start on or before `to`, and end on or after `from`. A null bound
+     * never limits the overlap, and items without a range are left out.
+     *
+     * @param  Builder<TModel>  $builder
+     * @param  array<array-key, mixed>  $value
+     */
+    protected function applyRangeOverlap(Builder $builder, AsDateRange $range, array $value): void
+    {
+        $builder->where(fn (Builder $query) => $query->whereNotNull($range->start)->orWhereNotNull($range->end));
+        if (isset($value['to']) && is_string($value['to'])) {
+            $to = $value['to'];
+            $builder->where(fn (Builder $query) => $query->whereNull($range->start)->orWhereDate($range->start, '<=', $to));
+        }
+        if (isset($value['from']) && is_string($value['from'])) {
+            $from = $value['from'];
+            $builder->where(fn (Builder $query) => $query->whereNull($range->end)->orWhereDate($range->end, '>=', $from));
         }
     }
 
@@ -530,7 +559,10 @@ class EloquentRepository implements ChunkedQuery, CursorPaginated, Duplicable, R
      */
     protected function applySort(Builder $builder, Sort $sort): void
     {
-        $builder->orderBy($sort->field, $sort->direction->value);
+        // A range sorts by its start, an amount by its amount
+        $cast = $builder->getModel()->getCasts()[$sort->field] ?? null;
+        $column = AsDateRange::fromCast($cast)->start ?? AsMoney::fromCast($cast)->amount ?? $sort->field;
+        $builder->orderBy($column, $sort->direction->value);
     }
 
     /**

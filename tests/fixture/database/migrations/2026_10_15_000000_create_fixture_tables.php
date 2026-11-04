@@ -29,7 +29,16 @@ return new class extends Migration
             $table->json('blocks')->nullable();
             $table->json('seo')->nullable();
             $table->json('details')->nullable();
+            $table->json('address')->nullable();
+            $table->json('link')->nullable();
             $table->dateTime('published_at')->nullable();
+            // A DateRange with the AsDateRange cast, and a Money with the AsMoney cast
+            $table->dateTime('starts_at')->nullable();
+            $table->dateTime('ends_at')->nullable();
+            $table->string('time_zone')->nullable();
+            $table->boolean('all_day')->default(false);
+            $table->bigInteger('price_cents')->nullable();
+            $table->char('currency', 3)->nullable();
             $table->string('title');
             $table->string('status')->default('draft');
             $table->text('body')->nullable();
@@ -85,6 +94,7 @@ return new class extends Migration
             $table->json('gallery')->nullable();
             $table->string('attachment')->nullable();
             $table->json('blocks')->nullable();
+            $table->json('download')->nullable();
             $table->timestamps();
         });
 
