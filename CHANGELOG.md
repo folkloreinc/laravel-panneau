@@ -8,6 +8,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Added
 
+- The dashboard of the home page (panneau-js decision 0064, #178): `Panneau::dashboard()` declares its widgets, per user, with `Widget::stat()`, `Widget::series()`, `Widget::list()` and `Widget::make()` for the widgets of plugins. A `stat` or a `list` can read the list of a resource (`resource()`, checked when the definition is built); the others get their data from a `WidgetData` class or a closure (`using()`), at `GET {path}/api/dashboard/widgets/{id}`, which answers the widgets of the user's dashboard only, checks the shape of their data (a `500` that names the wrong keys in the log), and keeps it for `cache($seconds)` per user, locale and context. With widgets, the home page is the dashboard. Needs `@panneau/*` with the dashboard widgets.
 - Undo instead of a confirmation (folkloreinc/panneau-js#230, #179). `delete` on a model with `SoftDeletes` is declared `undoable`: the app runs it without a confirmation, and its result carries `"undo": { "action": "restore", "items": [...] }` with the ids it deleted, which the new built-in `restore` (`RestoreAction`) puts back. `undoneBy('unarchive')` (or `$undoneBy`) declares the inverse of an action, run on the items that succeeded, and `hidden()` offers that inverse nowhere. A run on more than 100 items (`Action::UNDO_LIMIT`) carries no `undo`. Needs `@panneau/*` with undo; earlier versions ignore `undoable` and `undo`, and keep confirming.
 
 ### Changed

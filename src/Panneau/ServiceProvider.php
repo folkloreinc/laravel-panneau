@@ -23,6 +23,7 @@ use Panneau\Context\Context;
 use Panneau\Context\ContextRegistry;
 use Panneau\Contracts\EmbedResolver;
 use Panneau\Contracts\UploadStorage;
+use Panneau\Dashboard\Dashboard;
 use Panneau\Embeds\OEmbedResolver;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\PasswordResetController;
@@ -58,6 +59,7 @@ class ServiceProvider extends BaseServiceProvider
             return $registry;
         });
         $this->app->singleton(Navigation::class);
+        $this->app->singleton(Dashboard::class);
         $this->app->singleton(ContextRegistry::class);
         // The values of the current request, filled by the ResolveContext middleware
         $this->app->scoped(Context::class, fn (): Context => new Context);

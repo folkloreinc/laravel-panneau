@@ -10,6 +10,7 @@ use Panneau\Panneau;
  * @method static \Panneau\Resources\Resource|null resource(string $id)
  * @method static \Panneau\Contracts\Panneau pages(array|\Closure $pages)
  * @method static \Panneau\Contracts\Panneau menu(string $name, array|\Closure $items)
+ * @method static \Panneau\Contracts\Panneau dashboard(array|\Closure $widgets)
  * @method static \Panneau\Contracts\Panneau context(array|\Closure $params)
  * @method static \Panneau\Contracts\Panneau repositoryAdapter(string $contract, string|\Closure $adapter)
  * @method static \Panneau\Contracts\Panneau allowWithoutPolicies(bool $allow = true)

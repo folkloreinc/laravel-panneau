@@ -11,6 +11,7 @@ use Panneau\Actions\DeleteAction;
 use Panneau\Auth\Authorizer;
 use Panneau\Context\ContextResolver;
 use Panneau\Contracts\ActionDeclaration;
+use Panneau\Dashboard\Dashboard;
 use Panneau\Fields\Field;
 use Panneau\Fields\Group;
 use Panneau\Fields\Relation;
@@ -43,6 +44,7 @@ final class DefinitionBuilder
         private readonly Application $app,
         private readonly Navigation $navigation,
         private readonly ContextResolver $context,
+        private readonly Dashboard $dashboard,
     ) {}
 
     /**
@@ -63,12 +65,20 @@ final class DefinitionBuilder
         ];
         // Left out when there are none, so that definitions stay as they were
         $pages = $this->navigation->pages($user);
+        $widgets = $this->dashboard->definition($user);
+        // With widgets, the home page is the dashboard, unless the project declares its own
+        if ($widgets !== [] && ! isset($pages['home'])) {
+            $pages['home'] = ['component' => 'dashboard'];
+        }
         if ($pages !== []) {
             $definition['pages'] = $pages;
         }
         $menus = $this->menus($user, $pages);
         if ($menus !== []) {
             $definition['menus'] = $menus;
+        }
+        if ($widgets !== []) {
+            $definition['dashboard'] = ['widgets' => $widgets];
         }
         $definition['auth'] = $this->auth();
         // Without it, the app doesn't call GET /search, which doesn't exist

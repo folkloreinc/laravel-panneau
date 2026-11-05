@@ -3063,14 +3063,28 @@
             ],
             "get": {
                 "operationId": "getWidgetData",
+                "description": "The data of a widget of the dashboard of the user, read as the user (decision 0064). The built-in `stat` and `list` on a resource (`settings.resource`) have none: clients read the list of the resource. A widget that is not in the dashboard of the user is a `404`; a `403` hides the widget.",
                 "responses": {
                     "200": {
-                        "description": "The widget's data. Its shape depends on the widget type.",
+                        "description": "The widget's data, in the shape of its type: `StatWidgetData`, `SeriesWidgetData` and `ListWidgetData` for the built-in types, the plugin's own object for others.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": true
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/StatWidgetData"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/SeriesWidgetData"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ListWidgetData"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -3097,6 +3111,16 @@
                     },
                     "404": {
                         "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error, such as a widget whose data does not have the shape of its type.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -5094,32 +5118,70 @@
                 ],
                 "additionalProperties": {}
             },
+            "WidgetSettings": {
+                "type": "object",
+                "properties": {
+                    "resource": {
+                        "description": "Built-in `stat` and `list`: the resource whose list feeds the widget. The client reads `GET /resources/{resource}` with `query`: a `stat` counts its items (`meta.total`), a `list` shows its first items. Such a widget has no data at `GET /dashboard/widgets/{widget}`.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "query": {
+                        "description": "With `resource`: the query of the list, as its query parameters (`{ \"filter[status]\": \"to-judge\", \"sort\": \"-created_at\" }`), and of the link to the list. The client sets `page`, `perPage` and `cursor`.",
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "anyOf": [
+                                {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": [
+                                            "string",
+                                            "number",
+                                            "boolean"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The settings of a widget: `resource` and `query` for the built-in `stat` and `list` on a resource, anything else for widgets of plugins."
+            },
             "Widget": {
                 "type": "object",
                 "properties": {
                     "id": {
                         "type": "string",
-                        "minLength": 1
+                        "minLength": 1,
+                        "description": "Unique in the dashboard: the `{widget}` of its route."
                     },
                     "type": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Built-in: `stat`, `chart`, `recent-items`, `shortcuts`, `welcome`."
+                        "description": "Built-in: `stat` (a number), `series` (a line over days, weeks or months) and `list` (a few items). Other types are widgets of plugins."
                     },
                     "label": {
                         "type": "string"
                     },
                     "width": {
+                        "description": "Columns of a grid of 12. Defaults to 3 for a `stat`, 6 for others. One column on a phone.",
                         "type": "integer",
                         "minimum": 1,
                         "maximum": 12
                     },
                     "settings": {
-                        "type": "object",
-                        "propertyNames": {
-                            "type": "string"
-                        },
-                        "additionalProperties": {}
+                        "$ref": "#/components/schemas/WidgetSettings"
                     }
                 },
                 "required": [
@@ -5745,6 +5807,7 @@
                         "$ref": "#/components/schemas/Auth"
                     },
                     "dashboard": {
+                        "description": "The widgets of the home page for the user, in order, when `pages.home` is the `dashboard` (decision 0064).",
                         "type": "object",
                         "properties": {
                             "widgets": {
@@ -7349,6 +7412,188 @@
                 ],
                 "additionalProperties": {},
                 "description": "The value of a `money` field: an amount and its currency (decision 0053)."
+            },
+            "WidgetBadge": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "tone": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
+                    }
+                },
+                "required": [
+                    "label"
+                ],
+                "additionalProperties": {},
+                "description": "A badge: a word, in a tone of the theme."
+            },
+            "StatWidgetData": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "description": "The number, in large type."
+                    },
+                    "help": {
+                        "description": "A line under the number, translated: `3 more than last week`.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tone": {
+                        "description": "A tone of the theme, only when the number calls for attention (`warning`, `danger`): neutral otherwise, and at 0.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^[a-z0-9-]+$"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "url": {
+                        "description": "Where the widget links: the list of what it counts.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "value"
+                ],
+                "additionalProperties": {},
+                "description": "The data of a `stat` widget: a number (decision 0064)."
+            },
+            "SeriesPoint": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                        "description": "The first day of the period: `2026-10-05`."
+                    },
+                    "value": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "date",
+                    "value"
+                ],
+                "additionalProperties": {}
+            },
+            "SeriesWidgetData": {
+                "type": "object",
+                "properties": {
+                    "period": {
+                        "type": "string",
+                        "enum": [
+                            "day",
+                            "week",
+                            "month"
+                        ],
+                        "description": "The period of each point."
+                    },
+                    "points": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SeriesPoint"
+                        },
+                        "description": "One point per period, the dates going up. Periods without a value are points at 0."
+                    },
+                    "total": {
+                        "description": "The total over the points, shown with the line.",
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "period",
+                    "points"
+                ],
+                "additionalProperties": {},
+                "description": "The data of a `series` widget: a line of values per period (decision 0064)."
+            },
+            "ListWidgetItem": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "meta": {
+                        "description": "A short fact at the end of the item: `12 answers`.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "badge": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetBadge"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "title"
+                ],
+                "additionalProperties": {}
+            },
+            "ListWidgetData": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "maxItems": 5,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ListWidgetItem"
+                        },
+                        "description": "At most 5 items, the most useful first."
+                    },
+                    "empty": {
+                        "description": "The message without items, translated: `No open contests.`",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "url": {
+                        "description": "Where \"See all\" links, under the items.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "items"
+                ],
+                "additionalProperties": {},
+                "description": "The data of a `list` widget: a few items (decision 0064)."
             }
         },
         "parameters": {

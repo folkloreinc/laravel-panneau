@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Container\Container;
 use Panneau\Context\ContextParam;
+use Panneau\Dashboard\Widget;
 use Panneau\Navigation\MenuItem;
 use Panneau\Navigation\Page;
 use Panneau\Resources\Resource;
@@ -44,6 +45,17 @@ interface Panneau
      * @param  list<MenuItem|array<string, mixed>>|Closure  $items
      */
     public function menu(string $name, array|Closure $items): static;
+
+    /**
+     * Declares the widgets of the dashboard of the home page, in order (panneau-js decision
+     * 0064): `Panneau\Dashboard\Widget` builders, or a closure that returns them, called each
+     * time the definition is built (in the request's locale), through the container, with the
+     * user as `$user`, so that each role gets its own. Replaces the widgets declared before.
+     * With widgets, the home page is the dashboard, unless a page `home` is declared.
+     *
+     * @param  list<Widget>|Closure  $widgets
+     */
+    public function dashboard(array|Closure $widgets): static;
 
     /**
      * Declares the params of the current context, in order, such as a client then a contest
