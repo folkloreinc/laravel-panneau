@@ -17,6 +17,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 - The image of the items of a media library (`MediaResource::itemImage()`) is their `media`: its list offers the gallery, and the table shows their thumbnails, with the clients that don't default to it yet (panneau-js decision 0061, folkloreinc/panneau-js#231). A library can return another field.
 
+### Fixed
+
+- `panneau:install --upgrade --check` and the Rector rules no longer crash on a project that uses first-class callables (`foo(...)`, PHP 8.1): they read no arguments from them (#184).
+
 ## [5.0.0-alpha.12] - 2026-11-04
 
 Goes with `@panneau/*` `5.0.0-alpha.17` (`5.0.0-alpha.16` works too: the sortable column headers are already in it).

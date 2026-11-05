@@ -207,7 +207,7 @@ final class ResourceIndexRector extends AbstractRector
             while ($field instanceof Expr\MethodCall) {
                 $field = $field->var;
             }
-            if (($field instanceof Expr\StaticCall || $field instanceof Expr\New_) && ($name = Php::value($field->getArgs()[0]->value ?? null)) && is_string($name)) {
+            if (($field instanceof Expr\StaticCall || $field instanceof Expr\New_) && ($name = Php::value(Php::args($field)[0]->value ?? null)) && is_string($name)) {
                 $names[] = $name;
             }
         }

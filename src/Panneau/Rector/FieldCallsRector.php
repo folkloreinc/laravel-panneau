@@ -2,6 +2,7 @@
 
 namespace Panneau\Rector;
 
+use Panneau\Upgrade\Php;
 use Panneau\Upgrade\V1;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
@@ -200,7 +201,7 @@ final class FieldCallsRector extends AbstractRector
             $todos[] = $name.' is '.self::CLASSES[$class][2];
         }
 
-        $args = $root->getArgs();
+        $args = Php::args($root);
         $label = $args[1] ?? null;
         $changed = $root instanceof Expr\New_ || $target !== $class || $extras !== [] || $label !== null;
         // The calls are changed in place, so that the chain keeps its layout
@@ -246,7 +247,7 @@ final class FieldCallsRector extends AbstractRector
             }
             $call->name = new Node\Identifier($new);
             if (in_array($method, ['withTransLabel', 'withTransHelpText'], true)) {
-                $call->args = [new Arg($this->nodeFactory->createFuncCall('__', $call->getArgs()))];
+                $call->args = [new Arg($this->nodeFactory->createFuncCall('__', Php::args($call)))];
             } elseif ($method === 'isRequired' && $call->args !== []) {
                 $todos[] = "{$name} was required in some locales (isRequired([...])): 5.x requires every locale";
                 $call->args = [];
@@ -299,7 +300,7 @@ final class FieldCallsRector extends AbstractRector
      */
     private function fieldName(Expr\StaticCall|Expr\New_ $root): string
     {
-        $name = $root->getArgs()[0]->value ?? null;
+        $name = Php::args($root)[0]->value ?? null;
 
         return $name instanceof Node\Scalar\String_ ? "'{$name->value}'" : 'The field';
     }
