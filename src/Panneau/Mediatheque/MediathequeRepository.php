@@ -6,6 +6,7 @@ use Closure;
 use Folklore\Mediatheque\Contracts\Mediatheque;
 use Folklore\Mediatheque\Contracts\Models\Media as MediaContract;
 use Folklore\Mediatheque\Exceptions\FileRejected;
+use Folklore\Mediatheque\Exceptions\MediaInUse;
 use Folklore\Mediatheque\Ingest\Source;
 use Folklore\Mediatheque\Support\Models;
 use Folklore\Mediatheque\Testing\Models\FakeMedia;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use LogicException;
+use Panneau\Exceptions\ItemInUseException;
 use Panneau\Repositories\SoftDeletingEloquentRepository;
 use Panneau\Resources\Duplication;
 use Panneau\Resources\MediaResource;
@@ -36,6 +38,8 @@ use WeakMap;
  *   files as they were. The original sent back as the item gave it is kept.
  * - Lists, filters (`type`), search, scope, trash and restore are those of the Eloquent model.
  *   Media can't be duplicated.
+ * - **A media in use** (attached to a model, `MediaInUse`) isn't deleted: `delete()` throws
+ *   `ItemInUseException`, so `delete` skips it with the reason `in_use`.
  * - **Tests** ingest for real, on a fake disk and with `Bus::fake()`: the media of
  *   `Mediatheque::fake()` live in memory, and are refused.
  *
@@ -153,6 +157,18 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
             }
 
             throw $exception;
+        }
+    }
+
+    /**
+     * Refuses a media that a model uses, as the mediatheque does, with `ItemInUseException`.
+     */
+    public function delete(object $item): void
+    {
+        try {
+            parent::delete($item);
+        } catch (MediaInUse $exception) {
+            throw new ItemInUseException($item, $exception->getMessage(), $exception);
         }
     }
 

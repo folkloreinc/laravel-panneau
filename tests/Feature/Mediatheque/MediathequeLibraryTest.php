@@ -6,6 +6,7 @@ use Folklore\Image\ImageServiceProvider;
 use Folklore\Mediatheque\Contracts\Mediatheque;
 use Folklore\Mediatheque\Contracts\Models\Media as MediaContract;
 use Folklore\Mediatheque\Events\MediaCreated;
+use Folklore\Mediatheque\Exceptions\MediaInUse;
 use Folklore\Mediatheque\Facades\Mediatheque as MediathequeFacade;
 use Folklore\Mediatheque\Ingest\Source;
 use Folklore\Mediatheque\Jobs\ProbeMedia;
@@ -18,12 +19,14 @@ use Folklore\Mediatheque\Support\Models;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use LogicException;
+use Panneau\Exceptions\ItemInUseException;
 use Panneau\Fields\File;
 use Panneau\Fields\Image;
 use Panneau\Fields\Media as MediaField;
@@ -488,6 +491,63 @@ class MediathequeLibraryTest extends HttpTestCase
         $this->deleteJson(self::API.'/resources/media-library/'.$image)->assertNoContent();
         $this->assertSame([$document], $ids());
         $this->assertSoftDeleted(Media::query()->withTrashed()->where('uid', $image)->firstOrFail());
+    }
+
+    /**
+     * A model uses the media, as `HasMedias` records it.
+     */
+    private function use(string $uid): Media
+    {
+        $media = Media::query()->where('uid', $uid)->firstOrFail();
+        DB::table(Models::table('medias_pivot'))->insert([
+            'media_id' => $media->getKey(),
+            'morphable_type' => Article::class,
+            'morphable_id' => 1,
+            'handle' => 'cover',
+            'order' => 0,
+        ]);
+
+        return $media;
+    }
+
+    public function test_the_repository_refuses_a_media_in_use_as_an_item_in_use(): void
+    {
+        $media = $this->use($this->create(['file' => ['upload' => $this->upload('essai.png', self::png(), 'image/png')]])->json('data.id'));
+
+        try {
+            (new MediathequeRepository)->delete($media);
+            $this->fail('The media in use was deleted.');
+        } catch (ItemInUseException $exception) {
+            $this->assertSame($media, $exception->item);
+            $this->assertInstanceOf(MediaInUse::class, $exception->getPrevious());
+        }
+        $this->assertNotSoftDeleted($media);
+    }
+
+    public function test_delete_skips_a_media_in_use_and_deletes_the_others(): void
+    {
+        $upload = fn (string $name): string => $this->create(['file' => ['upload' => $this->upload($name, self::png(), 'image/png')]])->json('data.id');
+        $first = $upload('a.png');
+        $used = $upload('essai.png');
+        $last = $upload('c.png');
+        $this->use($used);
+
+        // Alone: nothing is deleted, and there is nothing to undo
+        $this->postJson(self::API.'/resources/media-library/actions/delete', ['selection' => ['ids' => [$used]]])
+            ->assertOk()
+            ->assertJsonPath('summary', ['succeeded' => 0, 'failed' => 0, 'skipped' => 1])
+            ->assertJsonPath('results', [['id' => $used, 'status' => 'skipped', 'reason' => 'in_use']])
+            ->assertJsonMissingPath('undo');
+
+        // With others: they are deleted, and the undo puts back only those
+        $this->postJson(self::API.'/resources/media-library/actions/delete', ['selection' => ['ids' => [$first, $used, $last]]])
+            ->assertOk()
+            ->assertJsonPath('summary', ['succeeded' => 2, 'failed' => 0, 'skipped' => 1])
+            ->assertJsonPath('results', [['id' => $used, 'status' => 'skipped', 'reason' => 'in_use']])
+            ->assertJsonPath('undo', ['action' => 'restore', 'items' => [$first, $last]]);
+
+        $this->assertSame([$used], Media::query()->pluck('uid')->all());
+        $this->deleteJson(self::API.'/resources/media-library/'.$used)->assertStatus(409);
     }
 
     public function test_media_fields_reference_media_of_the_mediatheque(): void

@@ -6154,7 +6154,7 @@
                         "type": "string"
                     },
                     "reason": {
-                        "description": "`skipped`: `forbidden`, `not_found` or `unchanged`.",
+                        "description": "`skipped`: `forbidden`, `not_found`, `unchanged`, or `in_use` (something else uses the item, so it can’t be deleted).",
                         "type": "string"
                     }
                 },

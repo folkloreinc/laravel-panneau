@@ -10,6 +10,7 @@ use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Panneau\Exceptions\ContextRefusedException;
 use Panneau\Exceptions\EmailUnverifiedException;
+use Panneau\Exceptions\ItemInUseException;
 use Panneau\Exceptions\PasswordConfirmationRequiredException;
 use Panneau\Exceptions\TwoFactorRequiredException;
 use Panneau\Exceptions\VersionConflictException;
@@ -96,6 +97,10 @@ final class Problem
                 __('The item was changed since it was loaded.'),
                 self::VERSION_CONFLICT,
                 extra: ['current' => $exception->current],
+            ),
+            $exception instanceof ItemInUseException => self::response(
+                409,
+                __('This item is in use elsewhere: remove it from where it is used, then try again.'),
             ),
             $exception instanceof ContextRefusedException => self::response(
                 403,
