@@ -14,6 +14,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 - Compound fields (panneau-js decision 0065, #187): a subclass of `Group` or `Repeater` whose `type()` isn't built in describes a type of a plugin with its `fields` (and `multiple` for a repeater), validated and saved as the group or the repeater it is. `Credits` is one: a person (`people()`, with `name` for a person who isn't in the resource, unless `names(false)`), roles (text, or a relation with `roles()`), `featured`, and `append()`. `Layout\Component` takes children, which the app gives to the component, and `Layout\Publication` frames the publication fields with the `publication` component of `@panneau/forms`. Needs `@panneau/*` with compound fields.
 
+### Fixed
+
+- Deleting an item that something else uses no longer answers a `500` (#189). A repository that can't delete an item because it is in use throws the new `Panneau\Exceptions\ItemInUseException`: `delete` skips that item with the reason `in_use` (folkloreinc/panneau-js#240) and deletes the others, whose `undo` lists only them, and a `DELETE` of the item answers a `409` problem. `MediathequeRepository` throws it for a media that a model uses (`MediaInUse`). `@panneau/*` with the `in_use` reason names the item in its toast; earlier versions count it as skipped.
+
 ## [5.0.0-alpha.13] - 2026-11-05
 
 Goes with `@panneau/*` `5.0.0-alpha.18`, which it needs: the dashboard widgets, undo, the `muted` tone and the thumbnails of media libraries are new in that release.

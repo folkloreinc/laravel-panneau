@@ -3852,7 +3852,7 @@
                         }
                     },
                     "multiple": {
-                        "description": "`select`, `relation`, `media`, `image`, `file`, `country`: the value is an array.",
+                        "description": "`select`, `relation`, `media`, `image`, `file`, `country`, and compound fields: the value is an array.",
                         "type": "boolean"
                     },
                     "resource": {
@@ -3918,7 +3918,7 @@
                         "type": "string"
                     },
                     "fields": {
-                        "description": "`group` and `repeater`: the nested fields.",
+                        "description": "`group` and `repeater`: the nested fields. On a type that isn't built in, they make it a compound field (decision 0065): its value is an object of them, or a list of objects with `multiple`, and a client without the type's plugin renders it as a `group` or a `repeater`.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Field"
@@ -6154,7 +6154,7 @@
                         "type": "string"
                     },
                     "reason": {
-                        "description": "`skipped`: `forbidden`, `not_found` or `unchanged`.",
+                        "description": "`skipped`: `forbidden`, `not_found`, `unchanged`, or `in_use` (something else uses the item, so it can’t be deleted).",
                         "type": "string"
                     }
                 },

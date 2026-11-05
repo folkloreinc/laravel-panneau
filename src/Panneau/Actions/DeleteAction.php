@@ -4,6 +4,7 @@ namespace Panneau\Actions;
 
 use Illuminate\Support\Collection;
 use Panneau\Contracts\Repositories\Restorable;
+use Panneau\Exceptions\ItemInUseException;
 
 /**
  * The built-in `delete` action, on items and selections, which every resource has without
@@ -14,6 +15,10 @@ use Panneau\Contracts\Repositories\Restorable;
  * undoable: the definition declares it `undoable`, the app runs it without a confirmation, and its
  * result carries `"undo": { "action": "restore", "items": [...] }` with the ids it deleted
  * (panneau-js decision 0063). Without a trash, it keeps its confirmation.
+ *
+ * An item that the repository can't delete because something else uses it (it throws
+ * `ItemInUseException`) is skipped with the reason `in_use`: the others are deleted, and the undo
+ * covers only those. Its `deleted` hook isn't called.
  */
 class DeleteAction extends Action
 {
@@ -62,7 +67,13 @@ class DeleteAction extends Action
         $context = $this->context();
         foreach ($items as $item) {
             $context->resource->deleting($item);
-            $context->repository->delete($item);
+            try {
+                $context->repository->delete($item);
+            } catch (ItemInUseException) {
+                $result->skipped($item, 'in_use');
+
+                continue;
+            }
             $context->resource->deleted($item);
         }
 
