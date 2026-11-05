@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.14] - 2026-11-05
+
+Goes with `@panneau/*` `5.0.0-alpha.19`, which it needs: compound fields and the `in_use` reason of skipped items are new in that release.
+
+Compound fields (`Credits`, `Sessions` as a type, `Layout\Publication`), and deleting an item that something else uses no longer answers a `500`.
+
 ### Breaking changes
 
 - `Sessions` describes `"type": "sessions"` with `multiple`, instead of `"type": "repeater"` (panneau-js decision 0065, #187). Values and validation don't change. Without the `sessions` plugin of `@panneau/fields`, the app shows the same repeater; `@panneau/*` before compound fields shows a placeholder instead.
@@ -277,7 +283,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.13...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.14...v5.x
+[5.0.0-alpha.14]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.14
 [5.0.0-alpha.13]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.13
 [5.0.0-alpha.12]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.12
 [5.0.0-alpha.11]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.11
