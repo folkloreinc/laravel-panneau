@@ -88,7 +88,7 @@ class SearchEndpointTest extends HttpTestCase
         $item = $this->search(['q' => 'lock'])[0]['items'][0];
 
         $this->assertSame($this->getJson(self::API.'/resources/posts?q=lock')->json('data.0'), $item);
-        $this->assertSame(['view' => true, 'update' => false, 'delete' => false, 'duplicate' => true, 'publish-posts' => true, 'archive-posts' => false], $item['abilities']);
+        $this->assertSame(['view' => true, 'update' => false, 'delete' => false, 'duplicate' => true, 'publish-posts' => true, 'archive-posts' => false, 'feature-posts' => false, 'unfeature-posts' => false], $item['abilities']);
         $this->assertArrayNotHasKey('secret', $item);
     }
 

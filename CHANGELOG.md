@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Undo instead of a confirmation (folkloreinc/panneau-js#230, #179). `delete` on a model with `SoftDeletes` is declared `undoable`: the app runs it without a confirmation, and its result carries `"undo": { "action": "restore", "items": [...] }` with the ids it deleted, which the new built-in `restore` (`RestoreAction`) puts back. `undoneBy('unarchive')` (or `$undoneBy`) declares the inverse of an action, run on the items that succeeded, and `hidden()` offers that inverse nowhere. A run on more than 100 items (`Action::UNDO_LIMIT`) carries no `undo`. Needs `@panneau/*` with undo; earlier versions ignore `undoable` and `undo`, and keep confirming.
+
 ### Changed
 
 - The image of the items of a media library (`MediaResource::itemImage()`) is their `media`: its list offers the gallery, and the table shows their thumbnails, with the clients that don't default to it yet (panneau-js decision 0061, folkloreinc/panneau-js#231). A library can return another field.

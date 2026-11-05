@@ -49,7 +49,9 @@ use Panneau\Resources\Resource;
 use TestApp\Models\Post;
 use TestApp\Models\PostStatus;
 use TestApp\Panneau\Actions\ArchivePosts;
+use TestApp\Panneau\Actions\FeaturePosts;
 use TestApp\Panneau\Actions\PublishPosts;
+use TestApp\Panneau\Actions\UnfeaturePosts;
 
 class PostsResource extends Resource
 {
@@ -150,6 +152,8 @@ class PostsResource extends Resource
         return [
             PublishPosts::class,
             ArchivePosts::class,
+            FeaturePosts::class,
+            UnfeaturePosts::class,
             LinkAction::make('preview')->url('/posts/{id}/preview')->placement([ActionPlacement::Form]),
             ClientAction::make('copy-link')->component('copy-link'),
         ];

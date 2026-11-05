@@ -40,6 +40,11 @@ final class ActionResult
     private ?array $download = null;
 
     /**
+     * @var array{action: string, params: array<string, mixed>}|null
+     */
+    private ?array $undo = null;
+
+    /**
      * @param  Closure(object): string  $idOf  Gives the public id of an item.
      */
     public function __construct(private Closure $idOf) {}
@@ -134,6 +139,20 @@ final class ActionResult
     }
 
     /**
+     * Says how to undo the run: the action of the same resource to run on the items that
+     * succeeded, with its parameters. Left out of the result when no item succeeded, or when more
+     * than `Action::UNDO_LIMIT` did.
+     *
+     * @param  array<string, mixed>  $params
+     */
+    public function undo(string $action, array $params = []): self
+    {
+        $this->undo = ['action' => $action, 'params' => $params];
+
+        return $this;
+    }
+
+    /**
      * The result in the protocol's form.
      *
      * @param  list<string>  $ids  The ids of the items the action ran on: those not reported
@@ -149,6 +168,14 @@ final class ActionResult
             }
         }
         $statuses = array_count_values(array_map(fn (array $result): string => $result['status'], $this->results));
+        $undoItems = array_map(strval(...), array_keys($succeeded));
+        $undo = $this->undo !== null && count($undoItems) > 0 && count($undoItems) <= Action::UNDO_LIMIT
+            ? array_filter([
+                'action' => $this->undo['action'],
+                'items' => $undoItems,
+                'params' => $this->undo['params'] !== [] ? $this->undo['params'] : null,
+            ], fn (mixed $value): bool => $value !== null)
+            : null;
 
         return array_filter([
             'message' => $this->message,
@@ -161,6 +188,7 @@ final class ActionResult
             'refresh' => $this->refresh?->value,
             'redirect' => $this->redirect,
             'download' => $this->download,
+            'undo' => $undo,
         ], fn (mixed $value): bool => $value !== null);
     }
 

@@ -9,6 +9,7 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
 use Panneau\Actions\DeleteAction;
+use Panneau\Actions\RestoreAction;
 use Panneau\Fields\Field;
 use Panneau\Http\Controllers\ResourceController;
 use Panneau\Resources\Resource;
@@ -95,6 +96,12 @@ final class Authorizer
         if ($action instanceof DeleteAction) {
             // The ability the app shows the built-in delete by
             return $this->allowsItem($user, $resource, 'delete', $item);
+        }
+        if ($action instanceof RestoreAction) {
+            // The undo of delete: the policy's `restore`, or whoever could delete the item
+            $policy = $this->hasPolicy($resource, $item) ? $this->gate->getPolicyFor($item) : null;
+
+            return $this->allowsItem($user, $resource, is_object($policy) && method_exists($policy, 'restore') ? 'restore' : 'delete', $item);
         }
         if (! $this->hasPolicy($resource, $item)) {
             return $this->allowWithoutPolicies;

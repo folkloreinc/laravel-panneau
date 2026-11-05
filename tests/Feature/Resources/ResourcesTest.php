@@ -136,7 +136,7 @@ class ResourcesTest extends TestCase
         $ids = fn (string $resource): array => array_map(fn (ActionDeclaration $action): string => $action->id(), $registry->actions($registry->find($resource)));
 
         $this->assertSame([], $ids('tags'));
-        $this->assertSame(['publish-posts', 'archive-posts', 'preview', 'copy-link'], $ids('posts'));
+        $this->assertSame(['publish-posts', 'archive-posts', 'feature-posts', 'unfeature-posts', 'preview', 'copy-link'], $ids('posts'));
     }
 
     public function test_every_resource_has_the_built_in_delete(): void
