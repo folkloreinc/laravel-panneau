@@ -142,7 +142,7 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame([
             ['value' => 'draft', 'label' => 'Draft'],
             ['value' => 'published', 'label' => 'Published', 'tone' => 'success'],
-            ['value' => 'archived', 'label' => 'Archived', 'tone' => 'warning'],
+            ['value' => 'archived', 'label' => 'Archived', 'tone' => 'muted'],
         ], $fields['status']['options']);
         $this->assertSame('draft', $fields['status']['default']);
         $this->assertSame(['name' => 'author', 'type' => 'relation', 'resource' => 'authors'], $fields['author']);

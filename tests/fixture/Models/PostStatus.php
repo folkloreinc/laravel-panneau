@@ -14,14 +14,15 @@ enum PostStatus: string
     }
 
     /**
-     * Drafts have the default tone.
+     * The tones of panneau-js's docs/protocol.md: a draft hasn't started (the default, neutral),
+     * what is published is live, and what is archived is over.
      */
     public function tone(): ?string
     {
         return match ($this) {
             self::Draft => null,
             self::Published => 'success',
-            self::Archived => 'warning',
+            self::Archived => 'muted',
         };
     }
 }
