@@ -12,6 +12,8 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Changed
 
+- The docs of the options' `tone` give what each tone means for a state, with the new `muted` for what is over (Archived, Cancelled), which needs `@panneau/*` with that tone (folkloreinc/panneau-js#226).
+
 - The image of the items of a media library (`MediaResource::itemImage()`) is their `media`: its list offers the gallery, and the table shows their thumbnails, with the clients that don't default to it yet (panneau-js decision 0061, folkloreinc/panneau-js#231). A library can return another field.
 
 ## [5.0.0-alpha.12] - 2026-11-04
