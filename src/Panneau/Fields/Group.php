@@ -9,6 +9,9 @@ use Panneau\Forms\ValidationContext;
 
 /**
  * A nested object, with its own fields.
+ *
+ * A subclass whose `type()` isn't `group` is a compound field (panneau-js decision 0065): a type
+ * of a plugin, with `fields`, that clients without the plugin render as a group.
  */
 class Group extends Field
 {

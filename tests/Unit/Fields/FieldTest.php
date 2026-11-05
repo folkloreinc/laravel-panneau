@@ -46,7 +46,7 @@ class FieldTest extends TestCase
             [
                 'text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'slug', 'relation', 'group', 'repeater',
                 'tel', 'range', 'duration', 'json', 'tags', 'embed', 'location', 'country', 'region',
-                'daterange', 'money', 'repeater',
+                'daterange', 'money', 'sessions',
             ],
             array_map(fn ($field) => $field->type(), [
                 Text::make('a'), Textarea::make('a'), RichText::make('a'), Number::make('a'), Boolean::make('a'),

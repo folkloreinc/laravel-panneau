@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The `daterange` and `money` types, and the sessions preset (panneau-js decision 0053).
+ * The `daterange` and `money` types, and the sessions (panneau-js decisions 0053 and 0065).
  */
 class DateRangeMoneyTest extends TestCase
 {
@@ -125,24 +125,25 @@ class DateRangeMoneyTest extends TestCase
         );
     }
 
-    public function test_sessions_are_a_repeater_of_a_range_and_a_venue(): void
+    public function test_sessions_are_a_compound_field_of_a_range_and_a_venue(): void
     {
         $this->assertSame(
             [
                 'name' => 'sessions',
-                'type' => 'repeater',
+                'type' => 'sessions',
                 'fields' => [
                     ['name' => 'dates', 'type' => 'daterange', 'settings' => ['time' => true]],
                     ['name' => 'venue', 'type' => 'relation', 'resource' => 'venues'],
                     ['name' => 'tickets', 'type' => 'text'],
                 ],
+                'multiple' => true,
             ],
             Sessions::make('sessions')->append([Text::make('tickets')])->venues('venues')->toDefinition(),
         );
         $this->assertSame(
-            ['name' => 'sessions', 'type' => 'repeater', 'fields' => [
+            ['name' => 'sessions', 'type' => 'sessions', 'fields' => [
                 ['name' => 'dates', 'type' => 'daterange', 'settings' => ['time' => true, 'allDay' => true, 'timeZone' => 'America/Toronto']],
-            ]],
+            ], 'multiple' => true],
             Sessions::make('sessions')->dates(fn (DateRange $dates) => $dates->allDay()->timeZone('America/Toronto'))->toDefinition(),
         );
         // venues() again replaces the venue

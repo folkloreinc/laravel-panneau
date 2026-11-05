@@ -189,7 +189,8 @@ interface ResourceRepository
   - `Media`, `Image`, `File`, `Relation`, `Group`, `Repeater`, `Slug`;
   - `Tel`, `Range`, `Duration`, `Json`, `Tags`, `Embed`, `Location` (see [More field types](#more-field-types));
   - `Country`, `Region` (see [Countries, regions and phone numbers](#countries-regions-and-phone-numbers));
-  - `DateRange`, `Money`, and the `Sessions` preset (see [Date ranges and money](#date-ranges-and-money));
+  - `DateRange`, `Money` (see [Date ranges and money](#date-ranges-and-money));
+  - the compound fields `Credits` and `Sessions` (see [Compound fields](#compound-fields));
   - `Address`, `Link` (see [Addresses](#addresses) and [Links](#links));
   - `Password`, a `text` field with `settings.secret` (see [Passwords](#passwords)).
 - **Common modifiers:**
@@ -392,7 +393,7 @@ Sessions::make('sessions')->venues(VenuesResource::class)->append([Money::make('
   - In a group, a repeater or a JSON column, both are kept as their JSON values.
 - **`Money`** is a value object: `Money::of(1250, 'CAD')`, `Money::fromDecimal('12.5', 'CAD')` (rounded half away from zero to the digits of the currency, without the errors of floating point: `1.005` is 101 cents), `toDecimal()` (`'12.50'`), `format('fr_CA')` (`1 250,00 $`, with `ext-intl`; the amount and the code without it), `equals()`, and `toArray()` and JSON as the protocol's value. `Money` fields serialize it.
 - **Lists.** Without columns, a list shows `daterange` and `money` fields with the other simple types. On an attribute with the `AsDateRange` cast, `EloquentRepository` reads a `date-range` filter as an overlap: the items whose range starts on or before `to` and ends on or after `from`, where a null bound never limits it and items without a range are left out; a sort on it sorts by its start column. A sort on an `AsMoney` attribute sorts by its amount column, whatever the currency. `calendar()` takes a `daterange` field: the calendar asks for each month through that same filter.
-- **Sessions** of a performance or a screening are a `Repeater` (decision 0053), not a type: `Sessions::make('sessions')` has `dates`, a `DateRange` with `time()` (`dates(fn (DateRange $dates) => …)` to change it), `venues()` adds `venue`, a `Relation` to the resource of the venues, and `append()` other fields. They are kept as the value of the repeater (a JSON column with the `array` cast), or in rows of their own by the project's repository.
+- **Sessions** of a performance or a screening are a compound field (decisions 0053 and 0065), `"type": "sessions"` with `multiple`: `Sessions::make('sessions')` has `dates`, a `DateRange` with `time()` (`dates(fn (DateRange $dates) => …)` to change it), `venues()` adds `venue`, a `Relation` to the resource of the venues, and `append()` other fields. They are kept as the value of the repeater (a JSON column with the `array` cast), or in rows of their own by the project's repository.
 - **Amounts kept in major units.** `php artisan panneau:convert-money` turns the floats, decimals and numeric strings of `panneau.money.columns` into minor units, in the currency of `panneau.money.currency` (`--currency` to use another):
 
   ```php
@@ -407,6 +408,18 @@ Sessions::make('sessions')->venues(VenuesResource::class)->append([Money::make('
   - `table.column:path.in.json` otherwise: the number at that key of the JSON column becomes a money value, `{ "amount", "currency" }`, in place.
   - What doesn't read as a number stays as it is, and `-v` lists it by its shape (`99,99 $`, an `a` for each letter), never its value. `--dry-run` counts and lists without writing. Rows are read and written by their `id`, without their models; running it again changes nothing.
 - **From 1.x.** `--check` lists two date fields of a file named as a start and an end (`starts_at` and `ends_at`), and `Number` fields with a currency in their strings (a `$` suffix): neither change is automatic (see the [migration guide](migration.md)).
+
+### Compound fields
+
+A compound field ([panneau-js decision 0065](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0065-compound-fields.md)) is a type of a plugin made of sub-fields. In PHP, it is a subclass of `Group` or `Repeater` whose `type()` isn't built in: the definition gives that type, its `fields`, and `multiple` for a repeater, and the field validates, saves and serializes as the group or the repeater it is. The app lays it out with the type's plugin, or shows a group or a repeater without it.
+
+```php
+Credits::make('credits')->people(PeopleResource::class)->roles(RolesResource::class)->append([Textarea::make('note')]),
+```
+
+- **`Credits`**: `name`, the name of the person as text; with `people()`, `person`, a `Relation` to the resource of the people, and `name` for a person who isn't in it (shown when `person` is empty, `names(false)` removes it); `roles`, text, or a multiple `Relation` with `roles()`; `featured`; then the fields of `append()`. The `credits` plugin of `@panneau/fields` lays them out, and lists show `Ada Lovelace (Director), Jane Doe`.
+- **`Sessions`**, above.
+- **The publication** isn't a field: its fields stay at the top of the resource, where lists filter and sort them. `Layout\Publication::make([Field::make('published'), Field::make('published_at')])` frames them with the `publication` component of `@panneau/forms`, under the state of the item; `fields(published:, publishedAt:, status:)` names other fields. A `Layout\Component` takes children too, which the app shows without the component's plugin.
 
 ### Addresses
 

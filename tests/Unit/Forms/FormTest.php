@@ -9,6 +9,7 @@ use Panneau\Fields\BlockType;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Color;
 use Panneau\Fields\Country;
+use Panneau\Fields\Credits;
 use Panneau\Fields\Date;
 use Panneau\Fields\DateRange;
 use Panneau\Fields\Duration;
@@ -685,6 +686,14 @@ class FormTest extends TestCase
         $this->assertSame(['sessions.1.dates'], array_keys($this->errors($sessions, ['sessions' => [
             ['dates' => ['start' => '2026-11-04T19:30:00Z', 'end' => '2026-11-04T21:30:00Z']],
             ['dates' => ['start' => '2026-11-05T21:30:00Z', 'end' => '2026-11-05T19:30:00Z']],
+        ]])));
+    }
+
+    public function test_credits_are_validated_as_a_list_of_their_fields(): void
+    {
+        $credits = [Credits::make('credits')->append([Text::make('note')->rules(['max:5'])])];
+        $this->assertSame(['credits.0.note'], array_keys($this->errors($credits, ['credits' => [
+            ['name' => 'Ada', 'note' => 'Too long'],
         ]])));
     }
 
