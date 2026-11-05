@@ -555,7 +555,7 @@ final class Audit
                     || $this->callName($call) !== 'resources') {
                     continue;
                 }
-                foreach (Php::items($call->getArgs()[0]->value ?? null) as $resource) {
+                foreach (Php::items(Php::args($call)[0]->value ?? null) as $resource) {
                     $class = Php::className($resource);
                     if ($class !== null && ! in_array($class, $this->resources, true)) {
                         $this->resources[] = $class;
@@ -955,7 +955,7 @@ final class Audit
             $dates = [];
             foreach ($this->code->find($file, Expr\StaticCall::class) as $call) {
                 $class = $call->class instanceof Node\Name ? class_basename($call->class->toString()) : null;
-                $name = Php::value($call->getArgs()[0]->value ?? null);
+                $name = Php::value(Php::args($call)[0]->value ?? null);
                 if (in_array($class, ['Date', 'DateTime'], true) && $call->name instanceof Node\Identifier
                     && $call->name->toString() === 'make' && is_string($name)) {
                     $dates[$name] = [$class, $call->getStartLine()];
@@ -976,7 +976,7 @@ final class Audit
                 $root = $call;
                 $strings = [];
                 while ($root instanceof Expr\MethodCall) {
-                    foreach ($root->getArgs() as $arg) {
+                    foreach (Php::args($root) as $arg) {
                         foreach ((new NodeFinder)->findInstanceOf($arg->value, String_::class) as $string) {
                             $strings[] = $string->value;
                         }
@@ -990,7 +990,7 @@ final class Audit
                 }
                 if (preg_grep(V1::CURRENCY_MARKER, $strings) !== []) {
                     $uses->add(
-                        sprintf('Number::make(%s) with a currency', Php::describe($root->getArgs()[0]->value ?? null, 30)),
+                        sprintf('Number::make(%s) with a currency', Php::describe(Php::args($root)[0]->value ?? null, 30)),
                         V1::MONEY_TARGET,
                         $file.':'.$root->getStartLine(),
                     );
@@ -1063,7 +1063,7 @@ final class Audit
                     || isset($hashed[spl_object_id($call)])) {
                     continue;
                 }
-                $name = Php::describe($call->getArgs()[0]->value ?? null, 30);
+                $name = Php::describe(Php::args($call)[0]->value ?? null, 30);
                 $uses->add(
                     ($make ? "Password::make({$name})" : "new Password({$name})").' without hashed()',
                     '->hashed(false) when the repository hashes the password, as in 1.x; ->hashed() when the field does',
@@ -1153,7 +1153,7 @@ final class Audit
                 if (! $call instanceof Expr\New_ && ! $call instanceof Expr\StaticCall) {
                     continue;
                 }
-                $field = $call->getArgs()[0]->value ?? null;
+                $field = Php::args($call)[0]->value ?? null;
                 if ($field instanceof String_ && $call->class instanceof Node\Name) {
                     $fields[$field->value] = $call->class->toString();
                 }
@@ -1284,7 +1284,7 @@ final class Audit
                 $section->add('Panneau::router()->resources()', 'Panneau::routes()', self::ROUTES.':'.$call->getStartLine());
             }
             if ($name === 'middleware') {
-                foreach ($call->getArgs() as $arg) {
+                foreach (Php::args($call) as $arg) {
                     foreach ($this->middlewareNames($arg->value) as $middleware) {
                         $this->auditMiddleware($section, $middleware, self::ROUTES.':'.$call->getStartLine());
                     }
@@ -1354,7 +1354,7 @@ final class Audit
     private function auditRoute(Section $section, Expr\CallLike $call): void
     {
         $name = (string) $this->callName($call);
-        $args = array_map(fn (Arg $arg): Expr => $arg->value, $call->getArgs());
+        $args = array_map(fn (Arg $arg): Expr => $arg->value, Php::args($call));
         if ($name === 'match') {
             array_shift($args);
         }
@@ -1407,7 +1407,7 @@ final class Audit
                     || ($function === 'to_route' && ! $call instanceof Expr\FuncCall)) {
                     continue;
                 }
-                $name = $call->getArgs()[0]->value ?? null;
+                $name = Php::args($call)[0]->value ?? null;
                 $value = $name instanceof String_ ? $name->value : ($name instanceof Expr\BinaryOp\Concat ? Php::value($name->left) : null);
                 if (is_string($value) && str_starts_with($value, $prefix.'.')) {
                     $section->add("{$function}('{$value}')", $target, $file.':'.$call->getStartLine());
@@ -1440,7 +1440,7 @@ final class Audit
                     // resources() and routes() are 5.x's too: a 5.x provider calls them
                     $findings[] = ["Panneau::{$method}()", $method === 'serving' ? "nothing: 5.x has no serving event; Panneau's routes are named panneau.*" : 'manual: Panneau::resources() and Panneau::routes()', $location];
                 } elseif ($method === 'policy' && in_array($name, ['Gate', 'Illuminate\\Support\\Facades\\Gate'], true)
-                    && Php::className($call->getArgs()[0]->value ?? null) === 'Panneau\\Panneau') {
+                    && Php::className(Php::args($call)[0]->value ?? null) === 'Panneau\\Panneau') {
                     $findings[] = ['Gate::policy(Panneau::class, …)', "the viewPanneau gate (Gate::define('viewPanneau', …))", $location];
                 } elseif ((str_starts_with($name, 'Panneau\\Support\\') || str_starts_with($name, 'Panneau\\Fields\\') || str_starts_with($name, 'Folklore\\Panneau\\'))
                     && str_starts_with($method, 'set')) {
@@ -1448,7 +1448,7 @@ final class Audit
                 }
             }
             foreach ($class->find(Expr\MethodCall::class) as $call) {
-                $first = $call->getArgs()[0]->value ?? null;
+                $first = Php::args($call)[0]->value ?? null;
                 if ($this->callName($call) === 'composer' && $first instanceof String_ && str_starts_with($first->value, 'panneau::')) {
                     $findings[] = ["view composer of {$first->value}", 'nothing: the package builds the boot config of the page', $class->file.':'.$call->getStartLine()];
                 }

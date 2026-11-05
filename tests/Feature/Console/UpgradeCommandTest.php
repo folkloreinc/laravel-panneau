@@ -560,6 +560,42 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('app/Http/Fields.php:15', $this->finding('field-uses', "new Password('secret') without hashed()")->location);
     }
 
+    public function test_the_check_reads_first_class_callables(): void
+    {
+        // A first-class callable (`foo(...)`, PHP 8.1) has no arguments to read: getArgs() failed
+        // on it, with an assertion or an undefined property (#184)
+        $this->project('v1.4');
+        file_put_contents($this->project.'/app/Http/Callables.php', <<<'PHP'
+            <?php
+
+            namespace App\Http;
+
+            use Illuminate\Support\Str;
+            use Panneau\Fields\Number;
+            use Panneau\Fields\Text;
+
+            class Callables
+            {
+                public function all(): array
+                {
+                    $lower = array_map(Str::lower(...), ['A']);
+                    $names = collect(['A'])->map($this->format(...));
+                    $make = Text::make(...);
+
+                    return [$make('name'), Number::make('price')->withAttributes(['append' => '$']), strlen(...)];
+                }
+
+                private function format(string $name): string
+                {
+                    return $name;
+                }
+            }
+            PHP);
+
+        $this->assertNotNull($this->audit()->section('field-uses'));
+        $this->panneau(['--upgrade' => true, '--check' => true]);
+    }
+
     public function test_the_check_suggests_date_ranges_and_money(): void
     {
         $this->project('v1.4');

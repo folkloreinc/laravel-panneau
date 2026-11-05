@@ -3,7 +3,9 @@
 namespace Panneau\Upgrade;
 
 use PhpParser\Node;
+use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\CallLike;
 use PhpParser\Node\Scalar;
 
 /**
@@ -13,6 +15,18 @@ use PhpParser\Node\Scalar;
  */
 final class Php
 {
+    /**
+     * The arguments of a call, or none for a first-class callable (`foo(...)`, PHP 8.1), whose
+     * `getArgs()` fails: an assertion with `zend.assertions=1`, a `VariadicPlaceholder` without
+     * a `value` otherwise (#184).
+     *
+     * @return list<Arg>
+     */
+    public static function args(CallLike $call): array
+    {
+        return $call->isFirstClassCallable() ? [] : array_values($call->getArgs());
+    }
+
     /**
      * The value of a literal expression: a scalar, a class name, or an array of them.
      * Expressions that can't be read without running code give Unknown::Value, also inside
