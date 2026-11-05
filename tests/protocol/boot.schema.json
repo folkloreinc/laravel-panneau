@@ -1285,6 +1285,9 @@
                 "dryRun": {
                     "type": "boolean"
                 },
+                "undoable": {
+                    "type": "boolean"
+                },
                 "url": {
                     "type": "string"
                 },

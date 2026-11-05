@@ -590,6 +590,7 @@ final class PublishPages extends Action
     ```
 
   - **`delete`** is the action `delete`, which answers for every resource (`POST /resources/{resource}/actions/delete`, with selections and dry runs), authorized by the policy's `delete`. It isn't in the definition: declare a `DeleteAction` (or a subclass) to change its label or confirmation, and the declared one replaces it.
+    - **With a trash** (a `Restorable` repository: a model with `SoftDeletes`), it is undoable ([panneau-js decision 0063](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0063-undo-instead-of-a-confirmation.md)): the definition declares `{ "id": "delete", "undoable": true }`, the app runs it without a confirmation, and its result carries `"undo": { "action": "restore", "items": [...] }` with the ids it deleted. "Undo" in its toast runs the built-in `restore` (`RestoreAction`), which finds the items among the deleted ones by their ids, and is authorized by the policy's `restore`, or `delete` without one. It is offered nowhere. A declared `DeleteAction` subclass keeps its own confirmation. A model without `SoftDeletes` keeps the confirmation.
   - **`duplicate`** is off until the resource opts in: only it knows what a copy needs (its blocks, its media, its children), and a copy that leaves them out is worse than none. `duplication()` returns what a copy includes; the repository has to be `Duplicable` too (`EloquentRepository` is).
 
     ```php
@@ -632,14 +633,32 @@ final class PublishPages extends Action
   - a message;
   - what to refresh;
   - an optional redirect;
-  - an optional download, served through a temporary signed URL.
+  - an optional download, served through a temporary signed URL;
+  - how to undo it (`undo()`), which the controller sets for an action with an inverse.
+- **Undo** ([panneau-js decision 0063](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0063-undo-instead-of-a-confirmation.md)). An action declares the action that undoes it, of the same resource: `undoneBy('unarchive')` on an instance, or `protected ?string $undoneBy = 'unarchive';` in its class (`inverse()` reads it). The definition then declares it `"undoable": true`: the app runs it without a confirmation, unless it sets one, and the result of a run carries `"undo": { "action": "unarchive", "items": [...], "params": {...} }` with the items that succeeded (not those it skipped or failed), and the parameters given to `undoneBy()`.
+
+    ```php
+    class ArchivePages extends Action
+    {
+        protected ?string $undoneBy = 'unarchive-pages';
+        // handle(): skip the pages already archived, so that the undo leaves them alone
+    }
+
+    class UnarchivePages extends Action
+    {
+        protected bool $hidden = true; // offered nowhere: "placement": [], or ->hidden()
+    }
+    ```
+
+  - The inverse is a normal action of the resource, checked by the same policies. `hidden()` (or `$hidden`) offers it nowhere; it still runs as an undo.
+  - Only for an action whose inverse doesn't depend on each item's previous value: "Change the status" of items that each had their own is not undoable.
+  - **The limit of the protocol:** a run on more than `Action::UNDO_LIMIT` items (100) carries no `undo`, nor one where nothing succeeded. The app confirms such runs before they start.
 - **Queued actions** (**not built yet**: today a selection above the limit is refused, see [Action requests](#http-layer)):
   - An action that implements `ShouldQueue` runs on the queue. It does the same when the selection is larger than `config('panneau.actions.sync_limit')` (500 by default).
   - Items are processed in chunks (`chunkSize()`), through a job batch. This needs a repository with the `ChunkedQuery` capability.
   - Progress and results are stored in a `panneau_action_runs` table, and `ActionRunFinished` is dispatched at the end.
   - An action that can't be queued refuses selections above the limit with a `422`.
-- **Built-in actions:** the item actions above (`delete`, which answers dry runs, and `duplicate`, for the resources that opt in); the others are **not built yet**.
-  - `RestoreAction`: for repositories that are `Restorable`.
+- **Built-in actions:** the item actions above (`delete`, which answers dry runs, and `duplicate`, for the resources that opt in), and `restore` (`RestoreAction`), the undo of `delete` on repositories that are `Restorable`; the others are **not built yet**.
   - `ExportAction`: CSV, or XLSX with an optional dependency; queued.
   - `ImportAction`: file field and column mapping; validates each row with the resource's rules; queued.
 

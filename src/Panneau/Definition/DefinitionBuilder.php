@@ -7,6 +7,7 @@ use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Foundation\Application;
 use LogicException;
 use Panneau\Actions\Action;
+use Panneau\Actions\DeleteAction;
 use Panneau\Auth\Authorizer;
 use Panneau\Context\ContextResolver;
 use Panneau\Contracts\ActionDeclaration;
@@ -379,6 +380,20 @@ final class DefinitionBuilder
                 $actions[] = ['id' => 'delete', 'kind' => 'server', 'scope' => ['item', 'selection'], 'abilities' => ['run' => false]];
             } else {
                 $actions[$declared]['abilities'] = ['run' => false];
+            }
+        }
+        // A resource with a trash: its delete is undone by `restore`, so the app runs it without
+        // a confirmation, unless it declares one (panneau-js decision 0063).
+        if (in_array('delete', $itemActions ?? Resource::ITEM_ACTIONS, true) && $this->resources->hasTrash($resource)) {
+            $declared = array_search('delete', array_column($actions, 'id'), true);
+            if ($declared === false) {
+                $actions[] = ['id' => 'delete', 'kind' => 'server', 'scope' => ['item', 'selection'], 'undoable' => true];
+            } else {
+                $actions[$declared]['undoable'] = true;
+                // The confirmation of the built-in delete class, not one the resource chose
+                if (($actions[$declared]['confirm'] ?? null) === true && $this->resources->action($resource, 'delete')::class === DeleteAction::class) {
+                    unset($actions[$declared]['confirm']);
+                }
             }
         }
         if (count($actions) > 0) {

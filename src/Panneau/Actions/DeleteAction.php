@@ -3,11 +3,17 @@
 namespace Panneau\Actions;
 
 use Illuminate\Support\Collection;
+use Panneau\Contracts\Repositories\Restorable;
 
 /**
  * The built-in `delete` action, on items and selections, which every resource has without
  * declaring it: declare it, or a subclass, to change its label or confirmation. Authorized by
  * the policy's `delete` method. Runs the resource's `deleting` hook before each deletion. Answers dry runs.
+ *
+ * On a resource with a trash (a `Restorable` repository: a model with `SoftDeletes`), it is
+ * undoable: the definition declares it `undoable`, the app runs it without a confirmation, and its
+ * result carries `"undo": { "action": "restore", "items": [...] }` with the ids it deleted
+ * (panneau-js decision 0063). Without a trash, it keeps its confirmation.
  */
 class DeleteAction extends Action
 {
@@ -39,6 +45,16 @@ class DeleteAction extends Action
     public function supportsDryRun(): bool
     {
         return true;
+    }
+
+    /**
+     * `restore` while it runs on a repository with a trash.
+     */
+    public function inverse(): ?string
+    {
+        return parent::inverse() ?? (
+            $this->running() && $this->context()->repository instanceof Restorable ? 'restore' : null
+        );
     }
 
     public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult

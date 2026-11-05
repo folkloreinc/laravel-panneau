@@ -236,7 +236,7 @@ class DefinitionBuilderTest extends TestCase
         $actions = array_column($this->resource('posts')['actions'], null, 'id');
 
         // The built-in item actions aren't declared
-        $this->assertSame(['publish-posts', 'archive-posts', 'preview', 'copy-link'], array_keys($actions));
+        $this->assertSame(['publish-posts', 'archive-posts', 'feature-posts', 'unfeature-posts', 'preview', 'copy-link'], array_keys($actions));
 
         $this->assertSame([
             'id' => 'publish-posts',

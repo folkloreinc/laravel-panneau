@@ -7,9 +7,11 @@ use InvalidArgumentException;
 use LogicException;
 use Panneau\Actions\BuiltInLink;
 use Panneau\Actions\DeleteAction;
+use Panneau\Actions\RestoreAction;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
+use Panneau\Contracts\Repositories\Restorable;
 use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\Repositories\SortsFields;
 use Panneau\Contracts\ResourceRepository;
@@ -286,8 +288,9 @@ final class ResourceRegistry
     }
 
     /**
-     * An action of a resource: one it declares, or the built-in `delete`, which every resource
-     * has (the app shows it by the `delete` ability of each item).
+     * An action of a resource: one it declares, the built-in `delete`, which every resource
+     * has (the app shows it by the `delete` ability of each item), or the built-in `restore`,
+     * which a resource with a trash has (a `Restorable` repository), as the undo of `delete`.
      */
     public function action(Resource $resource, string $id): ?ActionDeclaration
     {
@@ -297,7 +300,20 @@ final class ResourceRegistry
             }
         }
 
-        return $id === 'delete' ? $this->container->make(DeleteAction::class) : null;
+        return match (true) {
+            $id === 'delete' => $this->container->make(DeleteAction::class),
+            $id === 'restore' && $this->hasTrash($resource) => $this->container->make(RestoreAction::class),
+            default => null,
+        };
+    }
+
+    /**
+     * Whether the deleted items of a resource can be restored: its repository is `Restorable`,
+     * as for a model with `SoftDeletes`. Its `delete` is then undoable.
+     */
+    public function hasTrash(Resource $resource): bool
+    {
+        return $this->repository($resource) instanceof Restorable;
     }
 
     private function makeRepository(Resource $resource): ResourceRepository

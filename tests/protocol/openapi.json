@@ -4609,6 +4609,10 @@
                         "description": "The backend answers dry runs of this action (`dryRun` in the request): lists ask it how many items of a query selection will be skipped. Without it, the UI never sends `dryRun`, since a backend that ignores it would run the action.",
                         "type": "boolean"
                     },
+                    "undoable": {
+                        "description": "Its runs can be undone: the client runs it without a confirmation (unless it sets `confirm`), and shows \"Undo\" when its result has an `undo`. Above `UNDO_LIMIT` items (100), and for queued runs, the client confirms it first (decision 0063). The `delete` of a resource with a trash declares it, undone by `restore`.",
+                        "type": "boolean"
+                    },
                     "url": {
                         "description": "`link`: URL template, with `{id}` for the item.",
                         "type": "string"
@@ -6248,6 +6252,39 @@
                                 "type": "null"
                             }
                         ]
+                    },
+                    "undo": {
+                        "description": "How to undo the run, for an `undoable` action (decision 0063): the client runs it as any action, through the action endpoint, when the user presses \"Undo\" in the toast of the result. Without it, the run can not be undone.",
+                        "type": "object",
+                        "properties": {
+                            "action": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "An action of the same resource that undoes this run: `restore` after a `delete` with a trash, or the inverse a project declares (`unarchive`)."
+                            },
+                            "items": {
+                                "minItems": 1,
+                                "maxItems": 100,
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Id"
+                                },
+                                "description": "The items the run changed, to run the undo on: not those it skipped or failed. At most `UNDO_LIMIT` (100): a larger run has no `undo`."
+                            },
+                            "params": {
+                                "description": "The `values` of the request that runs the undo.",
+                                "type": "object",
+                                "propertyNames": {
+                                    "type": "string"
+                                },
+                                "additionalProperties": {}
+                            }
+                        },
+                        "required": [
+                            "action",
+                            "items"
+                        ],
+                        "additionalProperties": {}
                     }
                 },
                 "additionalProperties": {}

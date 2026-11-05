@@ -21,7 +21,31 @@ abstract class Action implements ActionDeclaration
 {
     use SerializesDeclaration;
 
+    /**
+     * A run on more items than this carries no `undo`: the app confirms such runs before they
+     * start (panneau-js decision 0063).
+     */
+    public const UNDO_LIMIT = 100;
+
     private ?ActionContext $context = null;
+
+    /**
+     * The action that undoes this one, set by `undoneBy()` or declared by a subclass.
+     */
+    protected ?string $undoneBy = null;
+
+    /**
+     * The parameters of the action that undoes this one.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $undoParams = [];
+
+    /**
+     * Whether the action is offered nowhere (`"placement": []`), but can still be run, as the
+     * undo of another action.
+     */
+    protected bool $hidden = false;
 
     /**
      * Runs the action. `$items` holds the items the user may run it on (none for a `resource`
@@ -114,6 +138,60 @@ abstract class Action implements ActionDeclaration
     }
 
     /**
+     * Declares the action that undoes this one: an action of the same resource, run on the items
+     * that succeeded, with these parameters. The action is then `undoable`: the app runs it
+     * without a confirmation (unless it sets one), and its result carries the `undo`, up to
+     * `UNDO_LIMIT` items. Only for an action whose inverse doesn't depend on each item's previous
+     * value: "Archive" and "Unarchive", not "Change the status".
+     *
+     * @param  array<string, mixed>  $params
+     */
+    public function undoneBy(string $action, array $params = []): static
+    {
+        $this->undoneBy = $action;
+        $this->undoParams = $params;
+
+        return $this;
+    }
+
+    /**
+     * The id of the action that undoes this one, or null when it can't be undone.
+     */
+    public function inverse(): ?string
+    {
+        return $this->undoneBy;
+    }
+
+    /**
+     * The parameters of the action that undoes this one.
+     *
+     * @return array<string, mixed>
+     */
+    public function inverseParams(): array
+    {
+        return $this->undoParams;
+    }
+
+    /**
+     * Offers the action nowhere (`"placement": []`): it can still be run, as the undo of another
+     * action, by the same abilities.
+     */
+    public function hidden(bool $hidden = true): static
+    {
+        $this->hidden = $hidden;
+
+        return $this;
+    }
+
+    /**
+     * Whether the action finds its items in the trash of the repository (`restore`).
+     */
+    public function findsDeletedItems(): bool
+    {
+        return false;
+    }
+
+    /**
      * Whether the user may run the action on an item. Null (the default) asks the item's
      * policy: the method named after the action (`publishPages`), or `update`.
      */
@@ -161,6 +239,14 @@ abstract class Action implements ActionDeclaration
     }
 
     /**
+     * Whether the action is running: its context is set.
+     */
+    protected function running(): bool
+    {
+        return $this->context !== null;
+    }
+
+    /**
      * @internal
      */
     public function setContext(ActionContext $context): void
@@ -175,12 +261,15 @@ abstract class Action implements ActionDeclaration
             $this->label(),
             $this->icon(),
             $this->scope(),
-            $this->placement(),
+            $this->hidden ? [] : $this->placement(),
             $this->destructive(),
             $this->confirm(),
         );
         if ($this->supportsDryRun()) {
             $definition['dryRun'] = true;
+        }
+        if ($this->inverse() !== null) {
+            $definition['undoable'] = true;
         }
         $fields = $this->fields();
         if (count($fields) > 0) {

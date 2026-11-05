@@ -13,6 +13,7 @@ use Panneau\Actions\ActionContext;
 use Panneau\Actions\ActionResult;
 use Panneau\Actions\ActionValues;
 use Panneau\Auth\Authorizer;
+use Panneau\Contracts\Repositories\Restorable;
 use Panneau\Contracts\ResourceRepository;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Forms\Form;
@@ -91,6 +92,12 @@ final class ActionController
         $action->setContext(new ActionContext($resource, $repository, $scope, $request, $user));
         $values = new ActionValues($values, $uploads);
         $result = $action->handle(collect($items), $values, $result);
+        // What can be undone says how: the inverse action, on the items that succeeded, up to
+        // Action::UNDO_LIMIT of them (panneau-js decision 0063).
+        $inverse = $action->inverse();
+        if ($inverse !== null) {
+            $result->undo($inverse, $action->inverseParams());
+        }
 
         return new JsonResponse($result->toArray($ids));
     }
@@ -167,7 +174,9 @@ final class ActionController
             $this->ensureWithinLimit(count($ids), $limit);
             $single = count($ids) === 1;
             foreach ($ids as $id) {
-                $item = $repository->find($id, $scope);
+                $item = $action->findsDeletedItems() && $repository instanceof Restorable
+                    ? $repository->findDeleted($id, $scope)
+                    : $repository->find($id, $scope);
                 if ($item === null) {
                     if ($single) {
                         throw new NotFoundHttpException;
@@ -188,6 +197,11 @@ final class ActionController
             }
 
             return $items;
+        }
+
+        // The trash has no list query: items are restored by their ids.
+        if ($action->findsDeletedItems()) {
+            throw ValidationException::withMessages(['selection' => [__('The selection needs ids.')]]);
         }
 
         $query = is_array($selection['query'] ?? null) ? $selection['query'] : [];
