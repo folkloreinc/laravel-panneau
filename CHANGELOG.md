@@ -6,6 +6,16 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.13] - 2026-11-05
+
+Goes with `@panneau/*` `5.0.0-alpha.18`, which it needs: the dashboard widgets, undo, the `muted` tone and the thumbnails of media libraries are new in that release.
+
+The dashboard of the home page, undo instead of a confirmation, thumbnails in the lists of media libraries, and a fix of the upgrade audit on first-class callables.
+
+### Breaking changes
+
+- `delete` on a model with `SoftDeletes` no longer asks for a confirmation: it runs, and the toast offers to undo it with the new `restore` action. A run on more than 100 items still asks.
+
 ### Added
 
 - The dashboard of the home page (panneau-js decision 0064, #178): `Panneau::dashboard()` declares its widgets, per user, with `Widget::stat()`, `Widget::series()`, `Widget::list()` and `Widget::make()` for the widgets of plugins. A `stat` or a `list` can read the list of a resource (`resource()`, checked when the definition is built); the others get their data from a `WidgetData` class or a closure (`using()`), at `GET {path}/api/dashboard/widgets/{id}`, which answers the widgets of the user's dashboard only, checks the shape of their data (a `500` that names the wrong keys in the log), and keeps it for `cache($seconds)` per user, locale and context. With widgets, the home page is the dashboard. Needs `@panneau/*` with the dashboard widgets.
@@ -14,7 +24,6 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 ### Changed
 
 - The docs of the options' `tone` give what each tone means for a state, with the new `muted` for what is over (Archived, Cancelled), which needs `@panneau/*` with that tone (folkloreinc/panneau-js#226).
-
 - The image of the items of a media library (`MediaResource::itemImage()`) is their `media`: its list offers the gallery, and the table shows their thumbnails, with the clients that don't default to it yet (panneau-js decision 0061, folkloreinc/panneau-js#231). A library can return another field.
 
 ### Fixed
@@ -256,7 +265,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.12...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.13...v5.x
+[5.0.0-alpha.13]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.13
 [5.0.0-alpha.12]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.12
 [5.0.0-alpha.11]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.11
 [5.0.0-alpha.10]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.10
