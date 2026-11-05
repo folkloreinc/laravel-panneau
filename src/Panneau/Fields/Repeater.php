@@ -11,6 +11,10 @@ use Panneau\Forms\ValidationContext;
 /**
  * A list of blocks: with `fields()`, each block has the same fields; with `types()`, each
  * block has a `type` and the fields of that type.
+ *
+ * A subclass whose `type()` isn't `repeater` is a compound field (panneau-js decision 0065): a
+ * type of a plugin, with `fields` and `multiple`, that clients without the plugin render as a
+ * repeater. `Credits` and `Sessions` are two.
  */
 class Repeater extends Field
 {
@@ -55,7 +59,12 @@ class Repeater extends Field
             return ['types' => array_map(fn (BlockType $type): array => $type->toDefinition(), $this->types)];
         }
 
-        return ['fields' => array_map(fn (Field $field): array => $field->toDefinition(), $this->fields)];
+        $definition = ['fields' => array_map(fn (Field $field): array => $field->toDefinition(), $this->fields)];
+        if ($this->type() !== 'repeater') {
+            $definition['multiple'] = true;
+        }
+
+        return $definition;
     }
 
     protected function valueRules(ValidationContext $context): array

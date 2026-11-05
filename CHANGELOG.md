@@ -6,6 +6,14 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Breaking changes
+
+- `Sessions` describes `"type": "sessions"` with `multiple`, instead of `"type": "repeater"` (panneau-js decision 0065, #187). Values and validation don't change. Without the `sessions` plugin of `@panneau/fields`, the app shows the same repeater; `@panneau/*` before compound fields shows a placeholder instead.
+
+### Added
+
+- Compound fields (panneau-js decision 0065, #187): a subclass of `Group` or `Repeater` whose `type()` isn't built in describes a type of a plugin with its `fields` (and `multiple` for a repeater), validated and saved as the group or the repeater it is. `Credits` is one: a person (`people()`, with `name` for a person who isn't in the resource, unless `names(false)`), roles (text, or a relation with `roles()`), `featured`, and `append()`. `Layout\Component` takes children, which the app gives to the component, and `Layout\Publication` frames the publication fields with the `publication` component of `@panneau/forms`. Needs `@panneau/*` with compound fields.
+
 ## [5.0.0-alpha.13] - 2026-11-05
 
 Goes with `@panneau/*` `5.0.0-alpha.18`, which it needs: the dashboard widgets, undo, the `muted` tone and the thumbnails of media libraries are new in that release.

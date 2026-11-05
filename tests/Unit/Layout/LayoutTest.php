@@ -5,6 +5,7 @@ namespace Panneau\Tests\Unit\Layout;
 use Panneau\Layout\Column;
 use Panneau\Layout\Component;
 use Panneau\Layout\Field;
+use Panneau\Layout\Publication;
 use Panneau\Layout\Row;
 use Panneau\Layout\Section;
 use Panneau\Layout\Sidebar;
@@ -51,5 +52,26 @@ class LayoutTest extends TestCase
         );
         $this->assertSame(['type' => 'sidebar', 'children' => [['type' => 'field', 'name' => 'a']]], Sidebar::make([Field::make('a')])->toDefinition());
         $this->assertSame(12, Field::make('a')->width(20)->toDefinition()['width']);
+    }
+
+    public function test_components_with_children_and_the_publication(): void
+    {
+        $this->assertSame(
+            ['type' => 'component', 'component' => 'card', 'children' => [['type' => 'field', 'name' => 'credit']]],
+            Component::make('card', [], [Field::make('credit')])->toDefinition(),
+        );
+        $this->assertSame(['credit'], Component::make('card', [], [Field::make('credit')])->fieldNames());
+        $this->assertSame(
+            [
+                'type' => 'component',
+                'component' => 'publication',
+                'children' => [['type' => 'field', 'name' => 'published'], ['type' => 'field', 'name' => 'published_at']],
+            ],
+            Publication::make([Field::make('published'), Field::make('published_at')])->toDefinition(),
+        );
+        $this->assertSame(
+            ['type' => 'component', 'component' => 'publication', 'props' => ['publishedAt' => 'date', 'status' => 'state'], 'children' => [['type' => 'field', 'name' => 'state']]],
+            Publication::make([Field::make('state')])->fields(publishedAt: 'date', status: 'state')->toDefinition(),
+        );
     }
 }
