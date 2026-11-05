@@ -140,7 +140,7 @@ class FieldTest extends TestCase
         $tones = [
             ['value' => 'draft', 'label' => 'Draft'],
             ['value' => 'published', 'label' => 'Published', 'tone' => 'success'],
-            ['value' => 'archived', 'label' => 'Archived', 'tone' => 'warning'],
+            ['value' => 'archived', 'label' => 'Archived', 'tone' => 'muted'],
         ];
 
         $this->assertSame($tones, Select::make('status')->options(PostStatus::class)->toDefinition()['options']);
