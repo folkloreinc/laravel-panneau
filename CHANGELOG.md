@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- The dashboard of the home page (panneau-js decision 0064, #178): `Panneau::dashboard()` declares its widgets, per user, with `Widget::stat()`, `Widget::series()`, `Widget::list()` and `Widget::make()` for the widgets of plugins. A `stat` or a `list` can read the list of a resource (`resource()`, checked when the definition is built); the others get their data from a `WidgetData` class or a closure (`using()`), at `GET {path}/api/dashboard/widgets/{id}`, which answers the widgets of the user's dashboard only, checks the shape of their data (a `500` that names the wrong keys in the log), and keeps it for `cache($seconds)` per user, locale and context. With widgets, the home page is the dashboard. Needs `@panneau/*` with the dashboard widgets.
+
 ### Changed
 
 - The image of the items of a media library (`MediaResource::itemImage()`) is their `media`: its list offers the gallery, and the table shows their thumbnails, with the clients that don't default to it yet (panneau-js decision 0061, folkloreinc/panneau-js#231). A library can return another field.
