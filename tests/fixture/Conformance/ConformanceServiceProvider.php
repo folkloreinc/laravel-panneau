@@ -8,9 +8,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Panneau\Context\ContextParam;
+use Panneau\Dashboard\Widget;
 use Panneau\Navigation\MenuItem;
 use Panneau\Navigation\Page;
 use Panneau\Support\Facade as Panneau;
+use TestApp\Dashboard\OverdueWidget;
 use TestApp\Models\Asset;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
@@ -24,7 +26,7 @@ use TestApp\Policies\PostPolicy;
 
 /**
  * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
- * direct uploads, a page and a main menu, a context with an optional param, the password reset
+ * direct uploads, a page and a main menu, a dashboard, a context with an optional param, the password reset
  * and the email verification of the `panneau` auth mode, behind a bearer token (`Authorization:
  * Bearer conformance`).
  */
@@ -89,6 +91,22 @@ class ConformanceServiceProvider extends ServiceProvider
             MenuItem::resources(),
             MenuItem::separator(),
             MenuItem::group('More', [MenuItem::page('reports'), MenuItem::link('Site', '/')->external()]),
+        ]);
+        // The dashboard (panneau-js decision 0064): the kit checks the data of the widgets with
+        // data of their own, the lists of those on a resource, and a widget that isn't on it
+        Panneau::dashboard([
+            Widget::stat('drafts')->label('Drafts')->resource(ConformancePostsResource::class, ['filter[status]' => 'draft']),
+            Widget::list('latest')->label('Latest posts')->resource(ConformancePostsResource::class, ['sort' => '-published_at']),
+            Widget::stat('overdue')->label('Overdue')->using(OverdueWidget::class),
+            Widget::series('per-day')->label('Posts per day')->cache(60)->using(fn (): array => [
+                'period' => 'day',
+                'points' => [['date' => '2026-10-05', 'value' => 4], ['date' => '2026-10-06', 'value' => 8]],
+                'total' => 12,
+            ]),
+            Widget::list('contests')->label('Open contests')->using(fn (): array => [
+                'items' => [['title' => 'Spring contest', 'meta' => '12 entries', 'badge' => ['label' => 'Open', 'tone' => 'success']]],
+            ]),
+            Widget::make('weather', 'weather')->settings(['city' => 'Montréal'])->using(fn (): array => ['sky' => 'clear']),
         ]);
         // The resources don't read it: the kit checks its choices, a definition built for a
         // value, and a value that doesn't exist refused

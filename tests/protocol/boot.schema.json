@@ -1671,17 +1671,50 @@
                     "maximum": 12
                 },
                 "settings": {
-                    "type": "object",
-                    "propertyNames": {
-                        "type": "string"
-                    },
-                    "additionalProperties": {}
+                    "$ref": "#/$defs/WidgetSettings"
                 }
             },
             "required": [
                 "id",
                 "type"
             ],
+            "additionalProperties": {}
+        },
+        "WidgetSettings": {
+            "type": "object",
+            "properties": {
+                "resource": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "query": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string"
+                    },
+                    "additionalProperties": {
+                        "anyOf": [
+                            {
+                                "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                ]
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
             "additionalProperties": {}
         },
         "Uploads": {

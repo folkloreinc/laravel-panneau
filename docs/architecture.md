@@ -792,7 +792,8 @@ Panneau::menu('main', fn (Context $context): array => [
 - **Generic controllers implement the protocol:**
   - definition, resources, field checks, actions and action runs;
   - uploads (media are resources) and search;
-  - **not built yet:** auth, account, dashboard widgets, preview.
+  - dashboard widgets;
+  - **not built yet:** auth, account, preview.
 - **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
 - **Query.** Filters, sorts and search only accept what the resource's list declares. The query string can't reach arbitrary columns.
@@ -1086,7 +1087,42 @@ See [decisions/0010](decisions/0010-global-search.md) and the [shared decision](
   - the `database` and `collection` engines run that callback before paginating, so pages and totals are exact. Engines with their own index (Meilisearch, Algolia, Typesense) run it only on the items of the page they found. The scope is also given to the engine as `where` clauses (`whereIn` for a list), so **the scope's columns must be filterable attributes of the index**. The callback still keeps the items outside the scope out. Filters, ids and exclusions can make such pages shorter, and the order is the engine's;
   - override `scoutSearch()` to give the engine more of the query, and `searchesWithScout()` to keep `LIKE` queries for a searchable model;
   - in a list paged with cursors, Scout pages by number behind the cursors, since it has none.
-- **Dashboard widgets** (**not built yet**, 5.x) are classes that declare their type and options, and return their data. They are registered per role in the service provider.
+- **Dashboard widgets.** See [Dashboard](#dashboard).
+
+## Dashboard
+
+The home page is a dashboard of widgets (#178, [panneau-js decision 0064](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0064-dashboard-widgets.md)): numbers, lines and short lists that the app draws, and widgets of JS plugins.
+
+```php
+use Illuminate\Contracts\Auth\Authenticatable;
+use Panneau\Dashboard\Widget;
+
+// In a service provider
+Panneau::dashboard(fn (?Authenticatable $user): array => [
+    // On the list of a resource: no endpoint, no cache, as fresh as the list
+    Widget::stat('to-judge')->label(__('Entries to judge'))
+        ->resource(EntriesResource::class, ['filter[status]' => 'to-judge']),
+    Widget::list('latest')->label(__('Latest entries'))->width(4)
+        ->resource(EntriesResource::class, ['sort' => '-created_at']),
+    // Data of its own, from a class or a closure
+    Widget::stat('revenue')->label(__('Revenue'))->using(RevenueWidget::class)->cache(300),
+    Widget::series('per-day')->label(__('Entries per day'))->width(8)->using(EntriesPerDay::class),
+    Widget::make('weather', 'weather')->settings(['city' => 'Montréal'])->using(WeatherWidget::class), // a plugin's
+    ...($user?->is_admin ? [Widget::stat('overdue')->using(OverdueWidget::class)] : []), // by role
+]);
+```
+
+- **Types.** `Widget::stat()`, a number with a line of help; `Widget::series()`, a line of values per day, week or month, with its total; `Widget::list()`, at most 5 items, the most useful first; `Widget::make($id, $type)`, a type that a JS plugin draws, with its `settings()`. `label()` and `width()` (columns of a grid of 12: 3 for a `stat` and 6 for the others by default) go with each.
+- **On a resource.** A `stat` or a `list` can read the list of a resource (a class or an id), with a query written as its query parameters. The app reads the list itself, as the user: a `stat` shows its total, a `list` its first items with their title and the badge of their first `select` column, and both link to the list with that query. The definition checks that the resource is registered, that the filters of the query are filters of its list, and that a `stat` doesn't count a list paged with cursors, which has no total. `page`, `perPage` and `cursor` are the app's.
+- **Data of its own.** `using()` takes a class that implements `Panneau\Contracts\WidgetData`, built from the container for each request (its constructor can ask for the request or the context), or a closure called through the container with the user as `$user`. It returns the data in the shape of the type, with its texts translated:
+  - `stat`: `['value' => 12, 'help' => __('3 more than last week'), 'tone' => 'warning', 'url' => '…']`. A `tone` only when the number calls for attention, never at 0;
+  - `series`: `['period' => 'day', 'points' => [['date' => '2026-10-05', 'value' => 4], …], 'total' => 12]`, the first day of each period, going up, one point per period;
+  - `list`: `['items' => [['title' => '…', 'description' => null, 'meta' => __('12 answers'), 'url' => '…', 'badge' => ['label' => __('Open'), 'tone' => 'success']]], 'empty' => __('No open contests.'), 'url' => '…']`.
+- **`GET {path}/api/dashboard/widgets/{id}`** answers a widget of the user's dashboard only, as the user: a widget that isn't on it, or that reads a resource, is a `404`. An `AuthorizationException` is a `403`, and the app hides the widget. Data that doesn't have the shape of its type is a `500` problem: the `WidgetDataException` reported in the log names the wrong keys, and the data is never sent.
+- **Per user.** The closure of `Panneau::dashboard()` builds the widgets of each user, as for menus, and `can()` keeps a widget for the users who have a Gate ability, or a closure that gets the user. The others don't get it in the definition, and its data is a `404`.
+- **Home page.** With widgets, the definition has `dashboard.widgets`, and `pages.home` is the built-in `dashboard`, unless the project declares a page `home`. A user without widgets gets the cards of the resources.
+- **Cache.** `cache($seconds)` keeps a successful answer per widget, user, locale and context, in the app's cache: for widgets that call another service or compute something heavy. Errors are never kept. **Don't cache a widget about the resource's own items**: the user expects to see them as soon as they change. A widget on a resource has nothing to cache.
+- The tests check a definition with widgets against `definition.schema.json` and the endpoint against `openapi.json`, and the conformance app has a dashboard.
 
 ## laravel-folklore
 

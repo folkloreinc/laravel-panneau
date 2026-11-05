@@ -18,6 +18,7 @@ use Panneau\Context\ContextParam;
 use Panneau\Context\ContextRegistry;
 use Panneau\Context\ContextResolver;
 use Panneau\Contracts\Panneau as PanneauContract;
+use Panneau\Dashboard\Dashboard;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\ContextRefusedException;
 use Panneau\Http\Controllers\AccountController;
@@ -25,6 +26,7 @@ use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\AuthController;
 use Panneau\Http\Controllers\ContextOptionsController;
+use Panneau\Http\Controllers\DashboardWidgetController;
 use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\EmailVerificationController;
 use Panneau\Http\Controllers\EmbedController;
@@ -82,6 +84,13 @@ class Panneau implements PanneauContract
         return $this;
     }
 
+    public function dashboard(array|Closure $widgets): static
+    {
+        $this->container->make(Dashboard::class)->setWidgets($widgets);
+
+        return $this;
+    }
+
     /**
      * @param  list<ContextParam>|Closure  $params
      */
@@ -135,6 +144,7 @@ class Panneau implements PanneauContract
                 }
                 $router->get('definition', DefinitionController::class)->name('definition');
                 $router->get('context/{param}/options', ContextOptionsController::class)->name('context.options');
+                $router->get('dashboard/widgets/{widget}', DashboardWidgetController::class)->name('dashboard.widgets.show');
                 if ($search) {
                     $router->get('search', SearchController::class)
                         ->middleware(ThrottleRequests::using(SearchController::RATE_LIMITER))

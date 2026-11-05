@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- The dashboard of the home page (panneau-js decision 0064, #178): `Panneau::dashboard()` declares its widgets, per user, with `Widget::stat()`, `Widget::series()`, `Widget::list()` and `Widget::make()` for the widgets of plugins. A `stat` or a `list` can read the list of a resource (`resource()`, checked when the definition is built); the others get their data from a `WidgetData` class or a closure (`using()`), at `GET {path}/api/dashboard/widgets/{id}`, which answers the widgets of the user's dashboard only, checks the shape of their data (a `500` that names the wrong keys in the log), and keeps it for `cache($seconds)` per user, locale and context. With widgets, the home page is the dashboard. Needs `@panneau/*` with the dashboard widgets.
+
 ### Changed
 
 - The docs of the options' `tone` give what each tone means for a state, with the new `muted` for what is over (Archived, Cancelled), which needs `@panneau/*` with that tone (folkloreinc/panneau-js#226).
