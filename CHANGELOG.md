@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.15] - 2026-11-06
+
+Goes with `@panneau/*` `5.0.0-alpha.27`, whose file field shows the thumbnail this release sends.
+
+The file of a mediatheque media gives its thumbnail.
+
 ### Added
 
 - The `file` of a mediatheque media gives the media's thumbnail (`thumbnailUrl`: the image, or the poster or first thumbnail of other types), which the file field of `@panneau/fields` shows on the edit form.
@@ -287,7 +293,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.14...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.15...v5.x
+[5.0.0-alpha.15]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.15
 [5.0.0-alpha.14]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.14
 [5.0.0-alpha.13]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.13
 [5.0.0-alpha.12]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.12
