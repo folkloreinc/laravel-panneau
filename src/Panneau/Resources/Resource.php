@@ -98,6 +98,15 @@ abstract class Resource
     }
 
     /**
+     * The field shown under the title of an item, in search results, pickers and the card of a
+     * selected relation (panneau-js decision 0067), such as the URL of a page. Its value is text.
+     */
+    public function itemSubtitle(): ?string
+    {
+        return null;
+    }
+
+    /**
      * The field shown as the image of an item, in the gallery of its list, search results and
      * pickers: a media or image field, or a URL (panneau-js decision 0044).
      */
