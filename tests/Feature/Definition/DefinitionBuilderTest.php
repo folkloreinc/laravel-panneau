@@ -298,6 +298,20 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame('cover', $this->app->make(DefinitionBuilder::class)->resource($resource)['itemImage'] ?? null);
     }
 
+    public function test_the_subtitle_of_items(): void
+    {
+        $this->assertArrayNotHasKey('itemSubtitle', $this->resource('tags'));
+        $resource = new class extends TagsResource
+        {
+            public function itemSubtitle(): string
+            {
+                return 'slug';
+            }
+        };
+
+        $this->assertSame('slug', $this->app->make(DefinitionBuilder::class)->resource($resource)['itemSubtitle'] ?? null);
+    }
+
     /**
      * @return iterable<string, array{resource, string}>
      */

@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- `Resource::itemSubtitle()`: the field shown under the title of an item. Definitions give it, and references to related items give its value as `description`, which the card of a selected relation shows (panneau-js decision 0067).
+
 ## [5.0.0-alpha.14] - 2026-11-05
 
 Goes with `@panneau/*` `5.0.0-alpha.19`, which it needs: compound fields and the `in_use` reason of skipped items are new in that release.

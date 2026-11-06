@@ -244,6 +244,22 @@ class ResourcesTest extends TestCase
         $this->assertArrayNotHasKey('created_at', $item);
     }
 
+    public function test_a_reference_has_the_subtitle_of_the_related_item(): void
+    {
+        $tag = Tag::query()->create(['slug' => 'news', 'name' => 'News']);
+        $tags = new class extends TagsResource
+        {
+            public function itemSubtitle(): string
+            {
+                return 'slug';
+            }
+        };
+        $serializer = $this->app->make(ItemSerializer::class);
+
+        $this->assertSame(['id' => 'news', 'label' => 'News', 'description' => 'news'], $serializer->reference($tags, $tag));
+        $this->assertSame(['id' => 'news', 'label' => 'News'], $serializer->reference(new TagsResource, $tag));
+    }
+
     public function test_items_can_be_restricted_to_some_fields(): void
     {
         $registry = $this->registry();
