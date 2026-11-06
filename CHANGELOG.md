@@ -10,7 +10,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 Goes with `@panneau/*` `5.0.0-alpha.27`, whose file field shows the thumbnail this release sends.
 
-The file of a mediatheque media gives its thumbnail.
+The subtitle of items (`itemSubtitle()`), shown on the card of a selected relation, and the thumbnail of a mediatheque media's file.
 
 ### Added
 
