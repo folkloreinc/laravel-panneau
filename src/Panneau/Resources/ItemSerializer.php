@@ -63,9 +63,10 @@ final class ItemSerializer
     }
 
     /**
-     * A reference to a related item: its id and its title.
+     * A reference to a related item: its id, its title, and its subtitle (`itemSubtitle`) as
+     * `description`, which the card of a selected relation shows.
      *
-     * @return array{id: string, label?: mixed}|null
+     * @return array{id: string, label?: mixed, description?: string}|null
      */
     public function reference(?Resource $related, object $item): ?array
     {
@@ -79,6 +80,12 @@ final class ItemSerializer
         $titleField = $title !== null ? $related->field($title) : null;
         if ($titleField !== null) {
             $reference['label'] = $titleField->resolve($item);
+        }
+        $subtitle = $related->itemSubtitle();
+        $subtitleField = $subtitle !== null ? $related->field($subtitle) : null;
+        $description = $subtitleField?->resolve($item);
+        if (is_string($description) && $description !== '') {
+            $reference['description'] = $description;
         }
 
         return $reference;
