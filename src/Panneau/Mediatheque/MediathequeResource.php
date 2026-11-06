@@ -74,7 +74,8 @@ abstract class MediathequeResource extends MediaResource
      */
     protected function newFileField(): File
     {
-        return MediathequeFile::make(self::FILE);
+        return MediathequeFile::make(self::FILE)
+            ->thumbnailUsing(fn (MediaContract $media): ?string => $this->thumbnailUrl($media));
     }
 
     /**

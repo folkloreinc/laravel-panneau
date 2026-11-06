@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- The `file` of a mediatheque media gives the media's thumbnail (`thumbnailUrl`: the image, or the poster or first thumbnail of other types), which the file field of `@panneau/fields` shows on the edit form.
+
 ## [5.0.0-alpha.14] - 2026-11-05
 
 Goes with `@panneau/*` `5.0.0-alpha.19`, which it needs: compound fields and the `in_use` reason of skipped items are new in that release.
