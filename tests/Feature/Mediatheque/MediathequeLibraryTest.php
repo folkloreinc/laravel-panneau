@@ -200,7 +200,7 @@ class MediathequeLibraryTest extends HttpTestCase
         $url = Storage::disk('media')->url((string) $original->path());
         $response
             ->assertJsonPath('data.name', 'Portrait')
-            ->assertJsonPath('data.file', ['name' => 'portrait.png', 'url' => $url, 'mime' => 'image/png', 'size' => strlen(self::png())])
+            ->assertJsonPath('data.file', ['name' => 'portrait.png', 'url' => $url, 'mime' => 'image/png', 'size' => strlen(self::png()), 'thumbnailUrl' => $url])
             ->assertJsonPath('data.media.type', 'image')
             ->assertJsonPath('data.media.mime', 'image/png')
             ->assertJsonPath('data.media.url', $url)
