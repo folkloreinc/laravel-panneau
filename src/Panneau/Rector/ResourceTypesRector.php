@@ -17,7 +17,7 @@ use Rector\Rector\AbstractRector;
  * Converts the 1.x resource types (subclasses of `Panneau\Support\ResourceType`) to 5.x types
  * (panneau-js decision 0077): a type that extends the 1.x class extends
  * `Panneau\Resources\ResourceType`, `name()` becomes `label()`, `canCreate` of `$settings`
- * becomes `canCreate()`, and a type without `id()` gets one that returns its 1.x id, which its
+ * becomes `canCreate()`, `$jsonResource` becomes `toItem()`, and a type without `id()` gets one that returns its 1.x id, which its
  * items store. Block types are left to `ClassesToMoveByHandRector`: they become the `BlockType`s
  * of a repeater.
  *
@@ -92,9 +92,36 @@ final class ResourceTypesRector extends AbstractRector
 
                 continue;
             }
+            // The JsonResource of a type serializes its items, in place of the resource's: the
+            // toItem() of the type
+            $class = $value instanceof Expr\ClassConstFetch && $value->class instanceof Node\Name && $this->isName($value->name, 'class')
+                ? $this->getName($value->class) : null;
+            if ($property === 'jsonResource' && $class !== null && $node->getMethod('toItem') === null) {
+                $factory = new BuilderFactory;
+                $stmts[] = $factory->method('toItem')->makePublic()
+                    ->addParam($factory->param('item')->setType('object'))
+                    ->addParam($factory->param('values')->setType('array'))
+                    ->setReturnType('array')
+                    ->addStmt(new Stmt\Return_(new Expr\MethodCall(
+                        new Expr\StaticCall(new FullyQualified($class), 'make', [new Node\Arg(new Expr\Variable('item'))]),
+                        'resolve',
+                    )))
+                    ->getNode();
+                $changed = true;
+
+                continue;
+            }
+            // Lists serialize each item like a single item
+            if ($property === 'jsonCollection') {
+                $changed = true;
+
+                continue;
+            }
             $stmts[] = $stmt;
-            if (in_array($property, ['repository', 'jsonResource', 'jsonCollection'], true)) {
-                $changed = Todo::add($stmt, [sprintf('the 1.x $%s of a type: the toItem() and repository() of its resource serve every type', $property)]) || $changed;
+            if (in_array($property, ['repository', 'jsonResource'], true)) {
+                $changed = Todo::add($stmt, [$property === 'repository'
+                    ? 'the 1.x $repository of a type: the repository() of its resource serves every type'
+                    : 'the 1.x $jsonResource of a type: move it to its toItem(), which gets the values of the resource']) || $changed;
             }
         }
         $node->stmts = $stmts;

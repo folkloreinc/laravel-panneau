@@ -141,6 +141,8 @@ class ResourceTypesTest extends HttpTestCase
         $data = $this->getJson(self::API.'/resources/entries/'.$event->id)->assertOk()->json('data');
         $this->assertSame('event', $data['type']);
         $this->assertSame('2026-12-01', $data['starts_on']);
+        // What the toItem() of the type adds
+        $this->assertSame('On 2026-12-01', $data['when']);
         $this->assertSame('concert', $data['slug']);
         $this->assertArrayNotHasKey('summary', $data);
 
@@ -149,8 +151,9 @@ class ResourceTypesTest extends HttpTestCase
         $this->assertSame('A summary', $data['summary']);
         // A relation of the type is a reference
         $this->assertSame(['id' => (string) $author->id, 'label' => 'Ada'], $data['author']);
-        // A field of the type the user can't see
+        // A field of the type the user can't see, even when its toItem() gives it
         $this->assertArrayNotHasKey('secret', $data);
+        $this->assertArrayNotHasKey('when', $data);
         $this->assertArrayNotHasKey('starts_on', $data);
     }
 
@@ -198,7 +201,8 @@ class ResourceTypesTest extends HttpTestCase
         $this->getJson(self::API.'/resources/entries?fields=title')
             ->assertOk()
             ->assertJsonPath('data.0.type', 'event')
-            ->assertJsonMissingPath('data.0.starts_on');
+            ->assertJsonMissingPath('data.0.starts_on')
+            ->assertJsonMissingPath('data.0.when');
     }
 
     public function test_an_item_without_a_type_has_the_fields_of_the_resource(): void

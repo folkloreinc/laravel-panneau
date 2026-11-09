@@ -10,6 +10,14 @@ use TestApp\Panneau\Resources\AuthorsResource;
 
 class ArticleType extends ResourceType
 {
+    /**
+     * A value of a field the user can't see: it stays hidden.
+     */
+    public function toItem(object $item, array $values): array
+    {
+        return [...$values, 'secret' => 'Not for the user'];
+    }
+
     public function fields(): array
     {
         return [

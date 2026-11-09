@@ -63,6 +63,19 @@ abstract class ResourceType
     }
 
     /**
+     * The values of an item of this type: those of the resource's `toItem()`, which has the
+     * type's fields, with what the type adds or changes, such as a value computed from them.
+     * Values the user can't see, and those a list didn't ask for, are left out after.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    public function toItem(object $item, array $values): array
+    {
+        return $values;
+    }
+
+    /**
      * Whether a user can create items of this type, on top of the resource's `create` ability.
      * False for a singleton, such as the home page: the app doesn't offer it, and the API
      * refuses to create one. Its items can still be edited.

@@ -100,7 +100,9 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | | No `id()` | `id()` returning the 1.x id (`eventType` for `EventType`), which items store, when the 5.x one differs (`event`) |
 | | `name()` | `label()` |
 | | `$settings['canCreate']` false | `canCreate()` returning false; other settings become TODOs |
-| | `$jsonResource`, `$repository`, a constructor or `$this->resource` | A TODO: the resource serializes and saves every type, and types don't get their resource |
+| | `$jsonResource` | `toItem()` of the type, which resolves the `JsonResource` |
+| | `$jsonCollection` | Removed: lists serialize each item like a single item |
+| | `$repository`, a constructor or `$this->resource` | A TODO: the resource saves every type, and types don't get their resource |
 | `ClassesToMoveByHandRector` | Block types (subclasses of `ResourceType` named `*Block*`, or of `BlockWithBlocks`), subclasses of 1.x fields, and of `ResourceController` | A TODO on the class: they keep their 1.x parent until they're moved by hand |
 
 The field rules apply to chains that make a 1.x field, or a field of the project that extends one; a method that the project's field class declares itself is kept. On a 1.x field class that becomes a 5.x class, a method the 5.x class doesn't have (`withFieldAttributes()`, `asItem()`, `isMultiple()`…) is removed with a TODO, since it would throw. Where a rule can't convert, it leaves a `// TODO(panneau-5): …` comment, and `--check` lists them under "Left by the Rector rules".
@@ -130,7 +132,7 @@ The field rules apply to chains that make a 1.x field, or a field of the project
   - A type's fields are named apart from the resource's, and none is named `type`: 1.x merged both lists, so a field declared in both now throws when the admin loads. Keep it in one place. `onlyForTypes()` and `exceptForTypes()` stay as they are, with the 1.x ids that the converted types keep; a class name works too. A field for some types keeps its place in the forms, as in 1.x.
   - A type that extends another (`Home extends Page`) stays a subclass: it inherits `canCreate()` and the rest as in 1.x, and `[...parent::fields(), …]` adds its fields to those of its parent.
   - The resource gets a `type` field and filter on its own: remove a 1.x `type` column of `index()`, or declare the field yourself, with `notInForm()`.
-  - The `$jsonResource` of a type goes to the `toItem()` of the resource, which can read `typeOf($item)`. The default `toItem()` reads the fields of the item's type.
+  - The `$jsonResource` of a type becomes its `toItem()`, which replaces the values of the resource, as in 1.x. To keep them, return `[...$values, ...]` instead.
   - Creating asks for the type first in the app (`/resources/{resource}/create/{type}`), and a type whose `canCreate()` is false, such as the home page, is only edited.
 - **Custom controllers** become hooks and `Action` classes: exports and imports `ExportAction` and `ImportAction`, other operations on items custom actions.
 - **Custom routes** of `routes/panneau.php` (kept in its backup) become actions or plugin pages.

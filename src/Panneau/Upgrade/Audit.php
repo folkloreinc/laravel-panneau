@@ -871,8 +871,13 @@ final class Audit
                 $finding->add("\$settings['{$key}'] = {$this->describe($setting)}", $key === 'canCreate' ? ($isBlock ? 'the create ability of the policy' : 'canCreate() of the type') : 'manual: settings()');
             }
             foreach (array_diff($class->staticProperties(), ['settings']) as $property) {
-                $finding->add("\${$property}", in_array($property, ['jsonResource', 'jsonCollection'], true)
-                    ? 'toItem() of the resource' : 'manual: not a 1.x property');
+                $finding->add("\${$property}", match (true) {
+                    $isBlock && in_array($property, ['jsonResource', 'jsonCollection'], true) => 'toItem() of the resource',
+                    $property === 'jsonResource' => 'toItem() of the type',
+                    $property === 'jsonCollection' => 'nothing: lists serialize each item like a single item',
+                    $property === 'repository' => 'manual: the repository() of the resource serves every type',
+                    default => 'manual: not a 1.x property',
+                });
             }
         }
     }

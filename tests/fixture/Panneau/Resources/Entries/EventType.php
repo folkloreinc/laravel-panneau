@@ -18,6 +18,14 @@ class EventType extends ResourceType
         return 'calendar';
     }
 
+    /**
+     * A value computed from the fields of the type.
+     */
+    public function toItem(object $item, array $values): array
+    {
+        return [...$values, 'when' => is_string($values['starts_on'] ?? null) ? 'On '.$values['starts_on'] : null];
+    }
+
     public function fields(): array
     {
         return [

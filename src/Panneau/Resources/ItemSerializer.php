@@ -8,9 +8,9 @@ use Panneau\Fields\Relation;
 use Panneau\Media\MediaReferences;
 
 /**
- * Turns an item into its protocol form: its values, from `toItem()`, with `id`, `version` and
- * `abilities`, and `type` in a resource with types. Related items become references (`{ "id": "12", "label": "Ada" }`), and the
- * values of `media` fields media references (`{ "id", "label", "media", "transform" }`). The
+ * Turns an item into its protocol form: its values, from `toItem()` (then the `toItem()` of its
+ * type, in a resource with types), with `id`, `version`, `abilities` and `type`. Related items
+ * become references (`{ "id": "12", "label": "Ada" }`), and the values of `media` fields media references (`{ "id", "label", "media", "transform" }`). The
  * pages and files of `link` fields become references too, with their URL. The items of a media
  * library also get their `media`.
  */
@@ -31,6 +31,9 @@ final class ItemSerializer
     {
         $repository = $this->resources->repository($resource);
         $values = $resource->toItem($item);
+        // The type of the item adds its own values, before what the user can't see is left out
+        $type = $resource->hasTypes() ? $resource->typeOf($item) : null;
+        $values = $resource->resourceType($type)?->toItem($item, $values) ?? $values;
         if ($fields !== null) {
             $values = array_intersect_key($values, array_flip($fields));
         }
@@ -40,7 +43,6 @@ final class ItemSerializer
         if ($resource->hasTypes()) {
             // Like its id, an item says its type, whatever the fields asked for (panneau-js
             // decision 0077): none when it has none
-            $type = $resource->typeOf($item);
             unset($values[Resource::ITEM_TYPE]);
             if ($type !== null && ! in_array(Resource::ITEM_TYPE, $hidden, true)) {
                 $values[Resource::ITEM_TYPE] = $type;

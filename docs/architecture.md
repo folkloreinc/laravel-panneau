@@ -216,6 +216,12 @@ class EventType extends ResourceType // id "event", label "Event"
     {
         return [Date::make('starts_on')->required(), Text::make('location')];
     }
+
+    // The values of its items: those of the resource's toItem(), with what the type adds
+    public function toItem(object $item, array $values): array
+    {
+        return [...$values, 'when' => $item->starts_on?->isoFormat('LL')];
+    }
 }
 
 // A type that extends another has its fields, and the resource's fields for it
@@ -250,6 +256,7 @@ class HomeType extends ResourceType
 - **Fields for some types.** `onlyForTypes()` and `exceptForTypes()` on a field of the resource name types by id, or by class: a class includes the types that extend it. The definition gives the field to those types (in their `fields`, before their own), not to the resource, so the items of the other types don't have it. Forms show it where `fields()` declares it: without a `layout()`, the definition has one with the resource's fields in their order, which the app prunes for each type. The type's own fields come at the end. The item panel shows the fields of the resource, then those of the type. A list column can't name it, as for any field of a type.
 - **Types that extend others.** A type is a class: one that extends another inherits its fields (with `parent::fields()`), label, icon and `canCreate()`, and has its own id. An abstract base type, listed by no resource, holds what several types share; `onlyForTypes(BaseType::class)` gives a field of the resource to all of them.
 - **The item's type.** `typeOf($item)` reads it, the `type` attribute by default. Items say it (`"type": "event"`), and have the fields of the resource, then those of their type: `toItem()`, validation, saving, hidden fields, references and field checks all use them. An item without a type, or with one the resource doesn't have, has the resource's fields alone.
+- **Serializing.** The `toItem()` of the item's type gets the values of the resource's `toItem()` (with the type's fields, by default) and returns them, changed or with more: a value computed from the type's fields, or what a 1.x `$jsonResource` of the type gave. It runs even when the resource has its own `toItem()`. The values of fields the user can't see, and those a list didn't ask for, are left out after it.
 - **Creating.** `POST /resources/{resource}` needs `type`: none, or one the resource doesn't have, is a `422` with `errors.type`; a type whose `canCreate()` is false is a `403`. The type is in the values that `creating()` and the repository get, as `type`. To store it elsewhere, map it in `creating()` and override `typeOf()`.
 - **Updating** never changes the type: the request's `type` is ignored. Changing the type of an item is an action of the resource.
 - **Duplicating** an item of a type that can't be created is refused.
