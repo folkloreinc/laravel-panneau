@@ -6,6 +6,13 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+Needs `@panneau/*` with resource types (panneau-js decision 0077) to create items of a resource with types: earlier versions don't send the type, which the API now requires.
+
+### Added
+
+- Resource types (#138, [decisions/0021](docs/decisions/0021-resource-types.md), panneau-js decision 0077): `Resource::types()` lists subclasses of `ResourceType`, each with `fields()` of its own, `label()`, `description()`, `icon()` and `canCreate()`. Items have a `type` (`typeOf()`, the `type` attribute by default) and the fields of their type, which validation, saving, serialization, references and field checks use. A create needs a `type` of the resource (`422` with `errors.type` otherwise), a type that can't be created is a `403`, and updates ignore it. A resource with types gets a `select` field `type` (`notInForm`) and a `select` filter `type`, unless it declares them. `Field::isNotInForm()` reads `notInForm()`.
+- The upgrade from 1.x converts resource types: the `ResourceTypesRector` rule makes subclasses of `Panneau\Support\ResourceType` 5.x types (their 1.x id, `label()`, `canCreate()`), `$types` becomes `types()` without a TODO, and `panneau:install --upgrade --check` no longer reports them as manual. A TODO that earlier rules left on types is removed.
+
 ## [5.0.0-alpha.16] - 2026-11-09
 
 Goes with `@panneau/*` `5.0.0-alpha.28`, which it needs: `notInForm` and the `filter[ids][]` of lists are new in that release.

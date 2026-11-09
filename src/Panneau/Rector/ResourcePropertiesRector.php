@@ -49,10 +49,15 @@ final class ResourcePropertiesRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         $parent = $node->extends !== null ? (string) $this->getName($node->extends) : null;
-        if ($parent === null || ! $this->classes->isA($parent, [V1::RESOURCE])) {
+        if ($parent === null) {
             return null;
         }
-        $changed = false;
+        // The TODO of earlier releases of the rules on types(), on resources converted then:
+        // ResourceTypesRector now converts the types
+        $changed = $this->removeOldTypesTodo($node);
+        if (! $this->classes->isA($parent, [V1::RESOURCE])) {
+            return $changed ? $node : null;
+        }
         if ($parent === V1::RESOURCE) {
             $node->extends = new FullyQualified(self::RESOURCE);
             $changed = true;
@@ -198,7 +203,7 @@ final class ResourcePropertiesRector extends AbstractRector
                 '%s becomes hooks (creating(), updating(), saved()…) and actions: php artisan panneau:install --upgrade --check lists its methods',
                 $this->classConstant($value) ?? Php::describe($value),
             ))],
-            'types' => $this->method($class, 'types', [], 'array', $value, 'resource types are not built yet in 5.x: block types become BlockTypes of a Repeater'),
+            'types' => $this->method($class, 'types', [], 'array', $value, $this->typesTodo($value)),
             'settings' => $this->convertSettings($class, $value),
             'index', 'components', 'forms', 'attributes' => [$this->todo(sprintf(
                 'the 1.x $%s (%s): %s',
@@ -208,6 +213,45 @@ final class ResourcePropertiesRector extends AbstractRector
             ))],
             default => null,
         };
+    }
+
+    /**
+     * Removes the TODO that earlier releases of the rules left on `types()`, and puts the one
+     * its types still need, if any.
+     */
+    private function removeOldTypesTodo(Stmt\Class_ $class): bool
+    {
+        $types = $class->getMethod('types');
+        if ($types === null || ! Todo::remove($types, ResourceTypesRector::OLD_TODO)) {
+            return false;
+        }
+        $returned = (new NodeFinder)->findFirstInstanceOf($types->stmts ?? [], Stmt\Return_::class)?->expr;
+        $todo = $this->typesTodo($returned ?? new Expr\Array_);
+        if ($todo !== null) {
+            Todo::add($types, [$todo]);
+        }
+
+        return true;
+    }
+
+    /**
+     * What to do by hand with the `$types` of a resource: nothing for a list of type classes,
+     * which `ResourceTypesRector` converts.
+     */
+    private function typesTodo(Expr $types): ?string
+    {
+        $items = $types instanceof Expr\Array_ ? $types->items : [];
+        $classes = array_map(fn (Expr\ArrayItem $item): ?string => $this->classConstant($item->value), $items);
+        if (! $types instanceof Expr\Array_ || in_array(null, $classes, true)) {
+            return 'each type becomes a subclass of Panneau\\Resources\\ResourceType, listed here';
+        }
+        foreach ($classes as $type) {
+            if (ResourceTypesRector::isBlockType((string) $type, null, $this->classes)) {
+                return 'block types become BlockTypes of a Repeater, not resource types';
+            }
+        }
+
+        return null;
     }
 
     /**

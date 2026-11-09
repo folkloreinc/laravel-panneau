@@ -29,7 +29,7 @@ It writes nothing, and works at every step of the migration. It lists what the p
 | Packages | `folklore/laravel-panneau` and `laravel-folklore` in `composer.json`; the `@panneau/*` 4 packages in `package.json`, which `@panneau/app` 5 replaces, and the files of `resources/js` or `resources/assets/js` that import them: the site's bundle stops building once `@panneau/app` is 5, until the JS codemods move them. Once `package.json` has only `@panneau/*` 5, only the files that still import 4.x modules (`@panneau/core/contexts`, `@panneau/element-*`…) are listed. The project's JS directory, when it is `resources/assets/js` |
 | Config | Each key of `config/panneau.php`: `name`, `intl.locales` → `locales`, `routes.prefix` → `path`, `routes.middleware` → `middleware`; keys 5.x drops (`intl.translations`, `routes.map`, `only_declared_fields`…); keys that aren't 1.x keys, kept |
 | Resources | Those of the config, and other subclasses of `Panneau\Support\Resource`: their static properties (`$repository` → `repository()`, `$jsonResource` → `toItem()`, which resolves it (`jsonResource()` is not built yet), `$types`, `$settings`…), their methods, and their `index()`: columns, sorts, filters and actions → `list()` and `actions()`. The 1.x id is camel case (`jobListings`), the 5.x id kebab case (`job-listings`): keep the 1.x one with `id()` if URLs or fields name it. On a resource that already extends a 5.x resource (by hand or by the Rector rules), only what is left of 1.x is listed: its static properties, and the 1.x methods that 5.x never calls (`index()`, `makeRepository()`…) |
-| Resource types | Subclasses of `Panneau\Support\ResourceType`, with the resources that list them: block types become `BlockType`s of a `Repeater`; other types wait for `types()`. A concrete base of other types (shared fields, a placements resolver) is listed as a 1.x base class |
+| Resource types | Subclasses of `Panneau\Support\ResourceType`, with the resources that list them: block types become `BlockType`s of a `Repeater`; other types become subclasses of `Panneau\Resources\ResourceType`, which the Rector rules convert. A concrete base of other types (shared fields, a placements resolver) is listed as a 1.x base class |
 | Field classes | The project's fields, grouped by the 1.x class they extend, with the component they send to the JS: `Items` → `Repeater`, `Fields` → `Group`, `ResourceItem(s)` → `Relation`, `*Localized` → `->localized()`, built-in fields, the fields of `laravel-folklore` 1.1. A group whose fields are a URL and a label (and a new tab toggle) → `Link`, one whose fields are a street, a city and a postal code → `Address`, and a subclass of `Url` that accepts `mailto:` or turns off its `url` rule → `Link` with the `email` type: `manual`, since their values change shape (see [Links and addresses](#6-move-the-rest-by-hand)). A direct subclass of `Field`, or a component that only the project's JS knows, is `manual`: a built-in type, or a field type with a JS plugin |
 | Fields used | How many times each 1.x field class is used, and what it becomes. Classes that 5.x has under the same name (`Text`, `Select`, `Image`…) are left out |
 | Resource controllers | Subclasses of `ResourceController`, the resources that use them, and their methods: `getIndexQueryFromRequest()` → `scope()` or list filters, `getStoreDataFromRequest()` → `creating()`, other public methods → actions or plugin pages |
@@ -74,7 +74,7 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | `ResourcePropertiesRector` | `extends Panneau\Support\Resource` | `extends Panneau\Resources\Resource` |
 | | `$repository` | `repository()` |
 | | `$jsonResource` | `toItem()`, which resolves the `JsonResource` |
-| | `$types` | `types()`, with a TODO: resource types are not built yet |
+| | `$types` | `types()`; a TODO when it lists block types, or types that aren't classes |
 | | `$settings` | Defaults removed; `canCreate` false and `hideInNavbar` true become TODOs; other keys go to `settings()` |
 | | `$controller`, `$index`, `$attributes`, `$components`, `$forms` | TODOs |
 | | A property that `makeRepository()`, `makeJsonResource()` or `makeJsonCollection()` overrides, or that the class reads (`static::$repository`) | Kept next to the 5.x method, with a TODO on both and on the override: 5.x never calls the override |
@@ -92,9 +92,15 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | | `make('name', 'Label')`, `new Text('name')` | `Text::make('name')->label('Label')` |
 | | `withTransLabel()`, `withLabel()`, `withTransHelpText()`, `withHelpText()` | `label(__())`, `label()`, `help(__())`, `help()` |
 | | `isRequired()`, `isDisabled()`, `withFields()`, `withDefaultValue()`, `withOptions()`, `withRules()`, `withSettings()`, `withResource()` | `required()`, `readOnly()`, `fields()`, `default()`, `options()`, `rules()`, `settings()`, `resource()` |
-| | `hideInForm()`, `onlyForTypes()`, `exceptForTypes()`, `onlyTypes()`, `exceptTypes()`, `withAttributes()`, `withComponents()`, `withSiblingFields()`, `withQuery()`, `withTypes()`, `withoutType()`, `isRequired([...])` with locales | Removed, with a TODO |
+| | `onlyForTypes()`, `exceptForTypes()`, `onlyTypes()`, `exceptTypes()` | Removed, with a TODO: move the field to the `fields()` of those types |
+| | `hideInForm()`, `withAttributes()`, `withComponents()`, `withSiblingFields()`, `withQuery()`, `withTypes()`, `withoutType()`, `isRequired([...])` with locales | Removed, with a TODO |
 | | `withButton()`, `withoutReset()`, `uploadOnly()`, `withEndpoint()`, `isNullable()`, `isEnabled()`, `isText()`, `showInForm()` | Removed: they only changed the 1.x UI, or were defaults |
-| `ClassesToMoveByHandRector` | Subclasses of `ResourceType`, of 1.x fields, and of `ResourceController` | A TODO on the class: they keep their 1.x parent until they're moved by hand |
+| `ResourceTypesRector` | `extends Panneau\Support\ResourceType` (not a block type) | `extends Panneau\Resources\ResourceType` |
+| | No `id()` | `id()` returning the 1.x id (`eventType` for `EventType`), which items store, when the 5.x one differs (`event`) |
+| | `name()` | `label()` |
+| | `$settings['canCreate']` false | `canCreate()` returning false; other settings become TODOs |
+| | `$jsonResource`, `$repository`, a constructor or `$this->resource` | A TODO: the resource serializes and saves every type, and types don't get their resource |
+| `ClassesToMoveByHandRector` | Block types (subclasses of `ResourceType` named `*Block*`, or of `BlockWithBlocks`), subclasses of 1.x fields, and of `ResourceController` | A TODO on the class: they keep their 1.x parent until they're moved by hand |
 
 The field rules apply to chains that make a 1.x field, or a field of the project that extends one; a method that the project's field class declares itself is kept. On a 1.x field class that becomes a 5.x class, a method the 5.x class doesn't have (`withFieldAttributes()`, `asItem()`, `isMultiple()`…) is removed with a TODO, since it would throw. Where a rule can't convert, it leaves a `// TODO(panneau-5): …` comment, and `--check` lists them under "Left by the Rector rules".
 
@@ -118,6 +124,12 @@ The field rules apply to chains that make a 1.x field, or a field of the project
   }
   ```
 
+- **Resource types** ([Resource types](architecture.md#resource-types)). The Rector rules convert the 1.x types: check what 5.x does differently.
+  - Items read their type from their `type` attribute (`typeOf()`). A model that implemented `HasResourceType::resourceType()` on another column: override `typeOf()`, and map `type` to that column in `creating()`.
+  - A type's fields are named apart from the resource's, and none is named `type`: 1.x merged both lists, so a field declared in both now throws when the admin loads. Keep it in one place. A resource field with `onlyTypes()` or `exceptTypes()` moves to the `fields()` of those types.
+  - The resource gets a `type` field and filter on its own: remove a 1.x `type` column of `index()`, or declare the field yourself, with `notInForm()`.
+  - The `$jsonResource` of a type goes to the `toItem()` of the resource, which can read `typeOf($item)`. The default `toItem()` reads the fields of the item's type.
+  - Creating asks for the type first in the app (`/resources/{resource}/create/{type}`), and a type whose `canCreate()` is false, such as the home page, is only edited.
 - **Custom controllers** become hooks and `Action` classes: exports and imports `ExportAction` and `ImportAction`, other operations on items custom actions.
 - **Custom routes** of `routes/panneau.php` (kept in its backup) become actions or plugin pages.
 - **The gate.** Port the `view()` of the 1.x `PanneauPolicy` to the `viewPanneau` gate of the new provider.

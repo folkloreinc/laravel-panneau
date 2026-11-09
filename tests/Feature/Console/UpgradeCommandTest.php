@@ -139,7 +139,8 @@ class UpgradeCommandTest extends TestCase
         $this->assertSame('app/Panneau/Resources/Pages.php:15', $pages->location);
         $this->assertSame('repository()', $pages->detail('$repository = App\\Contracts\\Repositories\\Pages')?->target);
         $this->assertSame('toItem(), which resolves the JsonResource', $pages->detail('$jsonResource = App\\Http\\Resources\\PageResource')?->target);
-        $this->assertStringStartsWith('manual: types()', (string) $pages->detail('$types: 2 types')?->target);
+        $this->assertSame('types(), whose ResourceTypes the Rector rules convert', $pages->detail('$types: 2 types')?->target);
+        $this->assertSame('manual: block types become BlockTypes of a Repeater', $this->finding('resources', 'Blocks (blocks)')->detail('$types: 1 type')?->target);
         $this->assertSame('nothing: the default', $pages->detail("\$settings['hideInNavbar'] = false")?->target);
 
         $index = $pages->detail('index()');
@@ -170,9 +171,14 @@ class UpgradeCommandTest extends TestCase
         $this->assertTrue((bool) $jobs->detail("\$settings['hideInNavbar'] = true")?->isManual());
 
         $this->assertStringStartsWith('manual: a BlockType', $this->finding('types', 'TextBlock (text) of Blocks')->target);
-        $this->assertTrue($this->finding('types', 'Page (page) of Pages')->isManual(), 'A type that other types extend is still a type when a resource lists it.');
+        $this->assertSame(
+            'a subclass of Panneau\\Resources\\ResourceType: the Rector rules convert it',
+            $this->finding('types', 'Page (page) of Pages')->target,
+            'A type that other types extend is still a type when a resource lists it.',
+        );
         $home = $this->finding('types', 'Home (home) of Pages');
-        $this->assertSame('the create ability of the policy', $home->detail("\$settings['canCreate'] = false")?->target);
+        $this->assertFalse($home->isManual());
+        $this->assertSame('canCreate() of the type', $home->detail("\$settings['canCreate'] = false")?->target);
         $this->assertNull($this->audit()->section('types')->find('Block'), 'Abstract types are left out.');
     }
 

@@ -9,6 +9,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
@@ -103,11 +104,12 @@ final class ResourceController
     {
         $resource = $this->findResource($this->routeParameter($request, 'resource'));
         $this->authorizeResource($request, $resource, 'create');
+        $type = $this->creatableType($request, $resource);
 
         $uploads = $this->uploadResolver($request);
         $references = $this->mediaReferences($request);
         // The values of fields the user can't see or edit are ignored (panneau-js decision 0046)
-        $fields = $this->authorizer->writableFields($request->user(), $resource);
+        $fields = $this->authorizer->writableFields($request->user(), $resource, $type);
         $values = Form::validate(
             $this->validator,
             $fields,
@@ -117,12 +119,15 @@ final class ResourceController
                 FormMode::Create,
                 uploads: $uploads,
                 media: $references,
-                valueExists: $this->checks->lookup($resource, $request, null, $request->all(), $references),
+                valueExists: $this->checks->lookup($resource, $request, null, $request->all(), $references, $type),
             ),
         );
         $saving = new SaveContext(FormMode::Create, null, $uploads);
         try {
             $values = Form::prepare($fields, $values, $saving);
+            if ($type !== null) {
+                $values[Resource::ITEM_TYPE] = $type;
+            }
             $values = $resource->creating($values, $request);
             $item = $this->resources->repository($resource)->create($values, $resource->repositoryScope($request));
         } catch (Throwable $exception) {
@@ -151,7 +156,10 @@ final class ResourceController
 
         $uploads = $this->uploadResolver($request);
         $references = $this->mediaReferences($request);
-        $fields = $this->authorizer->writableFields($request->user(), $resource);
+        // The fields of the item's type, which never changes: the `type` field is left out of
+        // forms, so its value is ignored
+        $type = $resource->typeOf($item);
+        $fields = $this->authorizer->writableFields($request->user(), $resource, $type);
         $values = Form::validate(
             $this->validator,
             $fields,
@@ -163,7 +171,7 @@ final class ResourceController
                 item: $item,
                 uploads: $uploads,
                 media: $references,
-                valueExists: $this->checks->lookup($resource, $request, $item, $request->all(), $references),
+                valueExists: $this->checks->lookup($resource, $request, $item, $request->all(), $references, $type),
             ),
         );
         $saving = new SaveContext(FormMode::Update, $item, $uploads);
@@ -181,6 +189,30 @@ final class ResourceController
         $resource->saved($item, $values, $request);
 
         return $this->itemResponse($request, $resource, $item, references: $references);
+    }
+
+    /**
+     * The type of a new item, in a resource with types (panneau-js decision 0077): the `type` of
+     * the body, one of the resource's types, that the user can create. Null for a resource
+     * without types.
+     */
+    private function creatableType(Request $request, Resource $resource): ?string
+    {
+        if (! $resource->hasTypes()) {
+            return null;
+        }
+        $id = $request->input(Resource::ITEM_TYPE);
+        $type = is_string($id) ? $resource->resourceType($id) : null;
+        if ($type === null) {
+            throw ValidationException::withMessages([
+                Resource::ITEM_TYPE => [__('The type is not a type of this resource.')],
+            ]);
+        }
+        if (! $type->canCreate($request->user())) {
+            throw new AuthorizationException(__('Items of this type can\'t be created.'));
+        }
+
+        return $type->id();
     }
 
     /**
@@ -225,7 +257,7 @@ final class ResourceController
     {
         $exists = $this->checks->lookup($resource, $request, $item, [], $this->mediaReferences($request));
         $values = [];
-        foreach ($resource->allFields() as $field) {
+        foreach ($resource->itemFields($item) as $field) {
             if ($field instanceof Slug && $field->isUnique()) {
                 $values[$field->name()] = $field->copyValue(
                     $field->resolve($item),
@@ -262,7 +294,7 @@ final class ResourceController
             $fields,
             $this->authorizer->itemAbilities($request->user(), $resource, $item),
             $references ?? $this->mediaReferences($request),
-            $this->authorizer->hiddenFields($request->user(), $resource),
+            $this->authorizer->hiddenFields($request->user(), $resource, $resource->typeOf($item)),
         );
     }
 

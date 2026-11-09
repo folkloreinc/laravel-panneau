@@ -27,14 +27,15 @@ final class FieldChecks
     ) {}
 
     /**
-     * Answers the check of a value of a field at the top of a resource.
+     * Answers the check of a value of a field at the top of a resource, or of one of its types.
      *
      * @param  array<array-key, mixed>  $input  The form's values the client sent.
+     * @param  string|null  $type  The type of the item, in a resource with types.
      * @return array<string, mixed>
      */
-    public function check(Field $field, Resource $resource, Request $request, string $value, ?string $locale, ?object $item, array $input): array
+    public function check(Field $field, Resource $resource, Request $request, string $value, ?string $locale, ?object $item, array $input, ?string $type = null): array
     {
-        $values = $this->formValues($resource, $item, $input, new MediaReferences($this->resources, $request));
+        $values = $this->formValues($resource, $item, $input, new MediaReferences($this->resources, $request), $type);
         $scope = $resource->repositoryScope($request);
         $id = $item !== null ? $this->resources->repository($resource)->id($item) : null;
 
@@ -53,14 +54,15 @@ final class FieldChecks
      * is first looked up.
      *
      * @param  array<array-key, mixed>  $input  The values of the request.
+     * @param  string|null  $type  The type of the item, in a resource with types.
      * @return Closure(string, string, ?string, ?Closure): bool
      */
-    public function lookup(Resource $resource, Request $request, ?object $item, array $input, MediaReferences $references): Closure
+    public function lookup(Resource $resource, Request $request, ?object $item, array $input, MediaReferences $references, ?string $type = null): Closure
     {
         $values = null;
 
-        return function (string $field, string $value, ?string $locale, ?Closure $constrain) use ($resource, $request, $item, $input, $references, &$values): bool {
-            $values ??= $this->formValues($resource, $item, $input, $references);
+        return function (string $field, string $value, ?string $locale, ?Closure $constrain) use ($resource, $request, $item, $input, $references, $type, &$values): bool {
+            $values ??= $this->formValues($resource, $item, $input, $references, $type);
             $id = $item !== null ? $this->resources->repository($resource)->id($item) : null;
 
             return $this->exists($resource, $field, $value, $locale, $id, $resource->repositoryScope($request), $values, $constrain);
@@ -98,19 +100,22 @@ final class FieldChecks
     }
 
     /**
-     * The form's values, keyed by the fields at the top of the resource, as they would be
-     * saved: the values sent, over those of the item being edited (an update sends only what
-     * changed). Relations are ids. Values are not validated.
+     * The form's values, keyed by the fields at the top of the resource and of the item's type,
+     * as they would be saved: the values sent, over those of the item being edited (an update
+     * sends only what changed). Relations are ids. Values are not validated.
      *
      * @param  array<array-key, mixed>  $input
+     * @param  string|null  $type  The type of the item, in a resource with types: by default, the
+     *                             type of the item being edited.
      * @return array<string, mixed>
      */
-    public function formValues(Resource $resource, ?object $item, array $input, MediaReferences $references): array
+    public function formValues(Resource $resource, ?object $item, array $input, MediaReferences $references, ?string $type = null): array
     {
         $current = $item !== null ? $this->serializer->serialize($resource, $item, references: $references) : [];
         $context = new ValidationContext;
         $values = [];
-        foreach ($resource->allFields() as $field) {
+        $type ??= $item !== null ? $resource->typeOf($item) : null;
+        foreach ($resource->typeFields($type) as $field) {
             $name = $field->name();
             if (array_key_exists($name, $input)) {
                 $value = $input[$name];

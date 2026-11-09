@@ -8,7 +8,7 @@ use PhpParser\Node\Stmt;
 use Rector\Rector\AbstractRector;
 
 /**
- * Puts a `// TODO(panneau-5)` comment on the 1.x classes that only a person can move: resource
+ * Puts a `// TODO(panneau-5)` comment on the 1.x classes that only a person can move: block
  * types, field classes and resource controllers. Their 5.x counterparts are configured
  * differently, so they keep their 1.x parent until then.
  *
@@ -33,9 +33,10 @@ final class ClassesToMoveByHandRector extends AbstractRector
             return null;
         }
         $todo = match (true) {
-            $this->classes->isA($parent, [V1::RESOURCE_TYPE, 'Folklore\\Panneau\\Resources\\BlockWithBlocks']) => str_contains((string) $this->getName($node), 'Block')
+            // Other resource types are converted by ResourceTypesRector
+            $this->classes->isA($parent, [V1::RESOURCE_TYPE, 'Folklore\\Panneau\\Resources\\BlockWithBlocks']) => ResourceTypesRector::isBlockType((string) $this->getName($node), $parent, $this->classes)
                 ? 'a 1.x resource type: a BlockType of the Repeater of the blocks (BlockTypes::register() of laravel-folklore 2), then delete it'
-                : 'a 1.x resource type: resource types are not built yet in 5.x',
+                : null,
             $this->classes->isA($parent, [V1::RESOURCE_CONTROLLER]) => 'a 1.x resource controller: move its methods to hooks (creating(), updating(), saved()…) and actions of the resource, then delete it',
             default => $this->fieldTodo($parent),
         };

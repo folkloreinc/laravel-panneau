@@ -1,0 +1,28 @@
+# 0021: Resource types are classes the resource lists, and the item's type picks its fields
+
+- Status: proposed
+- Date: 2026-11-09
+- Issue: [#138](https://github.com/folkloreinc/laravel-panneau/issues/138), [panneau-js decision 0077](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0077-resource-types.md)
+
+## Context
+
+[panneau-js decision 0077](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0077-resource-types.md) gives a resource `types`: items of one table told apart by their `type`, each type with fields of its own, after those of the resource. An item says its type, a create sends it (`422` without one, `403` for a type that can't be created), and updates ignore it. The backend declares a `select` field `type`, left out of forms, and a `select` filter `type`.
+
+1.x sites declare them as subclasses of `Panneau\Support\ResourceType` listed in the resource's `$types`, with their own `fields()`, `name()` and `$settings['canCreate']`. One audited site has 12 page types over three resources, in its `pages` table. Items are any object, behind a repository ([0003](0003-resources.md)).
+
+## Decision
+
+- **A type is a class.** `Panneau\Resources\ResourceType` is configured by overriding methods, like a resource: `fields()`, `id()` (from the class name: `EventType` gives `event`), `label()`, `description()`, `icon()` and `canCreate(?Authenticatable $user)`. `Resource::types()` lists classes, resolved from the container, or instances. A 1.x type keeps its shape, and the Rector rules convert it.
+- **The item's type picks its fields.** `Resource::typeOf($item)` reads the type of an item, its `type` attribute by default. Every place that reads the fields of an item reads those of its type: `toItem()`, serialization and hidden fields, validation and saving, media and relation references, slug copies, and field checks. The definition, lists and sorts read the resource's fields.
+- **The type is saved as a value.** A create gets the type of the body, checks it, and gives it to `creating()` and the repository in the values, as `type`. A resource that stores it elsewhere maps it in `creating()` and overrides `typeOf()`. An update never changes it: the `type` field is `notInForm`, so its value is ignored.
+- **The `type` field and filter are automatic.** A resource with types gets a `select` field `type` after its fields, and a `select` filter `type` first in its list, with the types as options, unless it declares them. A field `type` it declares must be `notInForm()`.
+- **Checked when the admin loads.** Type ids are unique, type fields are named apart from the resource's and unique, none is named `type`: a mistake throws when the definition is built, not on a save.
+- **A type that can't be created can't be duplicated.** A copy is a create: the item's `duplicate` ability is false for it.
+- **Media libraries have no types**: the `type` of their items is their media type. `MediaResource::types()` is final.
+
+## Consequences
+
+- Shared field names across types are allowed, as the protocol allows them: the fields of an item come from its type, never from the union of the types.
+- A list column names a field of the resource only, as in the protocol: a type's field has no column.
+- An item without a type, or with a type the resource doesn't have, has the fields of the resource alone, and no `type`.
+- The `type` of the definition's field and filter is translated with `__('Type')`.

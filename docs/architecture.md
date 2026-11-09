@@ -178,7 +178,67 @@ interface ResourceRepository
   - **`deleteAny($user)`**, when the policy has it, says whether the user can delete items of the resource at all. When it refuses, the definition declares the built-in `delete` with `"abilities": { "run": false }`, so the app offers no "Delete" and no checkboxes for it, and `POST /resources/{resource}/actions/delete` answers `403` ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)).
   - **`runAction($user, ?object $item, string $action)`**, when the policy has it, answers every action of its resource: on an item (the item's ability), and on the resource (`null`, the action's `abilities.run`). Without it, an action is checked by the policy method named after it (`publishPages`), or `update`.
 - **Hooks.** `creating`, `created`, `updating`, `updated`, `deleting`, `deleted` and `saved` receive the values and the item. They replace most of the custom controllers of v1.
-- **Types.** Variants of a resource with their own fields, such as page types, are declared with `types()`.
+- **Types** ([decisions/0021](decisions/0021-resource-types.md), [panneau-js decision 0077](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0077-resource-types.md)). Items of one table told apart by their `type`, each type with fields of its own, such as page types. See [Resource types](#resource-types).
+
+### Resource types
+
+`types()` lists subclasses of `ResourceType` (resolved from the container) or instances. A type has `fields()`, after those of the resource, and `id()`, `label()`, `description()`, `icon()` and `canCreate()` to override:
+
+```php
+class PagesResource extends Resource
+{
+    public function fields(): array
+    {
+        return [Text::make('title')->localized()->required(), Slug::make('slug')->from('title')];
+    }
+
+    public function types(): array
+    {
+        return [PageType::class, EventType::class, HomeType::class];
+    }
+}
+
+class EventType extends ResourceType // id "event", label "Event"
+{
+    public function icon(): ?string
+    {
+        return 'calendar';
+    }
+
+    public function fields(): array
+    {
+        return [Date::make('starts_on')->required(), Text::make('location')];
+    }
+}
+
+class HomeType extends ResourceType
+{
+    public function label(): string
+    {
+        return __('Home page');
+    }
+
+    public function fields(): array
+    {
+        return [Text::make('tagline')->localized()];
+    }
+
+    // A singleton: never created from the admin, still edited
+    public function canCreate(?Authenticatable $user): bool
+    {
+        return false;
+    }
+}
+```
+
+- **The item's type.** `typeOf($item)` reads it, the `type` attribute by default. Items say it (`"type": "event"`), and have the fields of the resource, then those of their type: `toItem()`, validation, saving, hidden fields, references and field checks all use them. An item without a type, or with one the resource doesn't have, has the resource's fields alone.
+- **Creating.** `POST /resources/{resource}` needs `type`: none, or one the resource doesn't have, is a `422` with `errors.type`; a type whose `canCreate()` is false is a `403`. The type is in the values that `creating()` and the repository get, as `type`. To store it elsewhere, map it in `creating()` and override `typeOf()`.
+- **Updating** never changes the type: the request's `type` is ignored. Changing the type of an item is an action of the resource.
+- **Duplicating** an item of a type that can't be created is refused.
+- **Showing and filtering.** A resource with types gets a `select` field `type`, left out of forms (`notInForm()`), and a `select` filter `type` first in its list, with the types as options. Declare your own to change them: a field `type` must be `notInForm()`.
+- **One layout.** The resource's `layout()` can name the fields of every type: the form of a type leaves out those of the others, and adds the type's fields the layout doesn't name at the end.
+- **Checks.** Type ids are unique, and type fields are named apart from those of the resource, unique in their type, and never `type`. Two types can have fields of the same name. A mistake throws when the admin loads.
+- Media libraries have no types: their items' `type` is their media type.
 
 ## Fields
 

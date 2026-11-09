@@ -170,13 +170,14 @@ final class Authorizer
 
     /**
      * The names of the fields of the resource the user can't see: items leave their values out.
+     * In a resource with types, those of the items of a type.
      *
      * @return list<string>
      */
-    public function hiddenFields(?Authenticatable $user, Resource $resource): array
+    public function hiddenFields(?Authenticatable $user, Resource $resource, ?string $type = null): array
     {
         $hidden = [];
-        foreach ($resource->allFields() as $field) {
+        foreach ($resource->typeFields($type) as $field) {
             if (! $this->canSeeField($user, $field)) {
                 $hidden[] = $field->name();
             }
@@ -187,14 +188,15 @@ final class Authorizer
 
     /**
      * The fields of the resource whose values the user can save: those they can see and edit.
-     * Saving ignores the values of the others, as it ignores read-only fields.
+     * Saving ignores the values of the others, as it ignores read-only fields. In a resource with
+     * types, those of the items of a type.
      *
      * @return list<Field>
      */
-    public function writableFields(?Authenticatable $user, Resource $resource): array
+    public function writableFields(?Authenticatable $user, Resource $resource, ?string $type = null): array
     {
         return array_values(array_filter(
-            $resource->allFields(),
+            $resource->typeFields($type),
             fn (Field $field): bool => $this->canUpdateField($user, $field),
         ));
     }
@@ -227,11 +229,15 @@ final class Authorizer
     /**
      * `allowsDuplicate()`, with the `view` ability already checked. False when the app has no
      * route to duplicate the resource's items (`resourceRoutes(only: [...])` without
-     * `duplicate`).
+     * `duplicate`), and for an item of a type the user can't create, such as a singleton.
      */
     private function allowsDuplicateWhenViewed(?Authenticatable $user, Resource $resource, object $item, bool $canView): bool
     {
         if (! $canView || ! $this->resources->duplicable($resource) || ! $this->duplicateRouted($resource)) {
+            return false;
+        }
+        $type = $resource->resourceType($resource->typeOf($item));
+        if ($type !== null && ! $type->canCreate($user)) {
             return false;
         }
         if (! $this->hasPolicy($resource, $item)) {

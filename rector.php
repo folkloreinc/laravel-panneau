@@ -4,6 +4,7 @@ use Panneau\Rector\ClassesToMoveByHandRector;
 use Panneau\Rector\FieldCallsRector;
 use Panneau\Rector\ResourceIndexRector;
 use Panneau\Rector\ResourcePropertiesRector;
+use Panneau\Rector\ResourceTypesRector;
 use Rector\Config\RectorConfig;
 
 // The Rector rules of the upgrade from laravel-panneau 1.3 and 1.4. In the project:
@@ -30,6 +31,7 @@ return RectorConfig::configure()
         ResourcePropertiesRector::class,
         ResourceIndexRector::class,
         FieldCallsRector::class,
+        ResourceTypesRector::class,
         ClassesToMoveByHandRector::class,
     ])
     ->withImportNames(importShortClasses: false, removeUnusedImports: true)

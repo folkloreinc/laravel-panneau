@@ -20,6 +20,7 @@ use Panneau\Layout\Node;
 use Panneau\Navigation\Navigation;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Resources\ResourceType;
 use ReflectionMethod;
 
 /**
@@ -350,6 +351,10 @@ final class DefinitionBuilder
         // admin loads, rather than on a click
         $this->resources->duplication($resource);
         $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $fields);
+        $types = $resource->resourceTypes();
+        if (count($types) > 0) {
+            $definition['types'] = array_map(fn (ResourceType $type): array => $this->resourceType($type, $user), $types);
+        }
 
         $layout = $resource->layout();
         if (count($layout) > 0) {
@@ -408,6 +413,28 @@ final class DefinitionBuilder
         $settings = $resource->settings();
         if (count($settings) > 0) {
             $definition['settings'] = $settings;
+        }
+
+        return $definition;
+    }
+
+    /**
+     * A type of a resource in the definition (panneau-js decision 0077), with what the user
+     * can't do: `create: false` when they can't create items of the type.
+     *
+     * @return array<string, mixed>
+     */
+    private function resourceType(ResourceType $type, ?Authenticatable $user): array
+    {
+        $definition = ['id' => $type->id(), 'label' => $type->label()];
+        foreach (['description' => $type->description(), 'icon' => $type->icon()] as $key => $value) {
+            if ($value !== null) {
+                $definition[$key] = $value;
+            }
+        }
+        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $type->fields());
+        if (! $type->canCreate($user)) {
+            $definition['abilities'] = ['create' => false];
         }
 
         return $definition;

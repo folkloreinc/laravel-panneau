@@ -9,7 +9,7 @@ use Panneau\Media\MediaReferences;
 
 /**
  * Turns an item into its protocol form: its values, from `toItem()`, with `id`, `version` and
- * `abilities`. Related items become references (`{ "id": "12", "label": "Ada" }`), and the
+ * `abilities`, and `type` in a resource with types. Related items become references (`{ "id": "12", "label": "Ada" }`), and the
  * values of `media` fields media references (`{ "id", "label", "media", "transform" }`). The
  * pages and files of `link` fields become references too, with their URL. The items of a media
  * library also get their `media`.
@@ -37,7 +37,16 @@ final class ItemSerializer
         if ($hidden !== []) {
             $values = array_diff_key($values, array_flip($hidden));
         }
-        foreach ($resource->allFields() as $field) {
+        if ($resource->hasTypes()) {
+            // Like its id, an item says its type, whatever the fields asked for (panneau-js
+            // decision 0077): none when it has none
+            $type = $resource->typeOf($item);
+            unset($values[Resource::ITEM_TYPE]);
+            if ($type !== null && ! in_array(Resource::ITEM_TYPE, $hidden, true)) {
+                $values[Resource::ITEM_TYPE] = $type;
+            }
+        }
+        foreach ($resource->itemFields($item) as $field) {
             if ($field instanceof Relation && array_key_exists($field->name(), $values)) {
                 $values[$field->name()] = $this->references($field, $values[$field->name()]);
             }

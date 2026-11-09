@@ -261,6 +261,11 @@ abstract class Field
         return $this;
     }
 
+    public function isNotInForm(): bool
+    {
+        return $this->notInForm;
+    }
+
     /**
      * Shows the field only when a condition on the other values is true. Hidden fields are
      * neither validated nor saved.

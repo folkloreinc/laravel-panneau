@@ -6,13 +6,17 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Actions\BuiltInLink;
 use Panneau\Context\Context;
 use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
+use Panneau\Fields\Select;
 use Panneau\Fields\Text;
 use Panneau\Layout\Node;
+use Panneau\Lists\Filters\SelectFilter;
 use Panneau\Lists\ResourceList;
 use Panneau\Roles\RoleManager;
 
@@ -34,6 +38,12 @@ abstract class Resource
      * What an item's title can open: `open()`.
      */
     public const OPENS = ['panel', 'edit'];
+
+    /**
+     * The key of an item, and of the body of a create, that holds its type, in a resource with
+     * `types()`.
+     */
+    public const ITEM_TYPE = 'type';
 
     /**
      * The fields of an item.
@@ -238,7 +248,175 @@ abstract class Resource
      */
     public function allFields(): array
     {
-        return $this->fields();
+        return $this->withTypeField($this->fields());
+    }
+
+    /**
+     * The types of the items (panneau-js decision 0077): `ResourceType` classes, resolved from the
+     * container, or instances. Every item has one, among their ids, set when it is created and
+     * stored in its `type` (see `typeOf()`); its fields are those of the resource, then those of
+     * its type. The definition then has a `select` field `type`, left out of forms, and the list
+     * a `select` filter `type`, unless the resource declares them.
+     *
+     * @return list<class-string<ResourceType>|ResourceType>
+     */
+    public function types(): array
+    {
+        return [];
+    }
+
+    /**
+     * The type of an item, in a resource with `types()`: its `type` attribute. Override it, with
+     * `creating()`, to store the type elsewhere: a new item's values have its type in `type`.
+     */
+    public function typeOf(object $item): ?string
+    {
+        $type = data_get($item, self::ITEM_TYPE);
+
+        return is_scalar($type) && (string) $type !== '' ? (string) $type : null;
+    }
+
+    /**
+     * Whether the resource has types.
+     *
+     * @internal Declare them in `types()`.
+     */
+    public function hasTypes(): bool
+    {
+        return count($this->types()) > 0;
+    }
+
+    /**
+     * The types of `types()`, resolved and checked: their ids are unique, and their fields are
+     * named apart from those of the resource, unique, and never `type`.
+     *
+     * @internal Declare them in `types()`.
+     *
+     * @return list<ResourceType>
+     */
+    public function resourceTypes(): array
+    {
+        $types = $this->types();
+        if (count($types) === 0) {
+            return [];
+        }
+        $names = array_map(fn (Field $field): string => $field->name(), $this->fields());
+        $resolved = [];
+        foreach ($types as $type) {
+            $instance = is_string($type) ? Container::getInstance()->make($type) : $type;
+            if (! $instance instanceof ResourceType) {
+                throw new InvalidArgumentException(sprintf('%s is not a resource type.', get_debug_type($instance)));
+            }
+            $id = $instance->id();
+            if ($id === '' || isset($resolved[$id])) {
+                throw new LogicException(sprintf('The resource "%s" has %s type id "%s".', $this->id(), $id === '' ? 'an empty' : 'a duplicate', $id));
+            }
+            $own = [];
+            foreach ($instance->fields() as $field) {
+                $name = $field->name();
+                $problem = match (true) {
+                    $name === self::ITEM_TYPE => 'it holds the type of the item',
+                    in_array($name, $names, true) => 'the resource has a field of that name',
+                    isset($own[$name]) => 'the type has two fields of that name',
+                    default => null,
+                };
+                if ($problem !== null) {
+                    throw new LogicException(sprintf('The type "%s" of the resource "%s" has a field "%s": %s.', $id, $this->id(), $name, $problem));
+                }
+                $own[$name] = true;
+            }
+            $resolved[$id] = $instance;
+        }
+
+        return array_values($resolved);
+    }
+
+    /**
+     * A type of the resource by id, or null for one it doesn't have.
+     *
+     * @internal
+     */
+    public function resourceType(?string $id): ?ResourceType
+    {
+        if ($id === null) {
+            return null;
+        }
+        foreach ($this->resourceTypes() as $type) {
+            if ($type->id() === $id) {
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The fields of the items of a type: those of `allFields()`, then those of the type. Only
+     * those of `allFields()` without a type, or for one the resource doesn't have.
+     *
+     * @internal Declare fields in `fields()` and in the `fields()` of the types.
+     *
+     * @return list<Field>
+     */
+    public function typeFields(?string $type): array
+    {
+        $fields = $this->allFields();
+        $found = $this->resourceType($type);
+
+        return $found !== null ? [...$fields, ...$found->fields()] : $fields;
+    }
+
+    /**
+     * The fields of an item: those of its type, in a resource with types.
+     *
+     * @internal
+     *
+     * @return list<Field>
+     */
+    public function itemFields(object $item): array
+    {
+        return $this->hasTypes() ? $this->typeFields($this->typeOf($item)) : $this->allFields();
+    }
+
+    /**
+     * The fields, with the `select` field `type` of a resource with types, unless they have it.
+     * A field `type` they declare is left out of forms (`notInForm()`): the type of an item is
+     * set when it is created.
+     *
+     * @internal
+     *
+     * @param  list<Field>  $fields
+     * @return list<Field>
+     */
+    protected function withTypeField(array $fields): array
+    {
+        if (! $this->hasTypes()) {
+            return $fields;
+        }
+        foreach ($fields as $field) {
+            if ($field->name() === self::ITEM_TYPE) {
+                if (! $field->isNotInForm()) {
+                    throw new LogicException(sprintf('The field "type" of the resource "%s" holds the type of the item, set when it is created: make it notInForm().', $this->id()));
+                }
+
+                return $fields;
+            }
+        }
+
+        return [...$fields, Select::make(self::ITEM_TYPE)->label(__('Type'))->options($this->typeOptions())->notInForm()];
+    }
+
+    /**
+     * The types as the options of a `select`.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    private function typeOptions(): array
+    {
+        return array_map(
+            fn (ResourceType $type): array => ['value' => $type->id(), 'label' => $type->label()],
+            $this->resourceTypes(),
+        );
     }
 
     /**
@@ -282,20 +460,38 @@ abstract class Resource
      */
     public function makeList(): ResourceList
     {
-        return $this->list(new ResourceList);
+        $list = $this->list(new ResourceList);
+        if (! $this->hasTypes()) {
+            return $list;
+        }
+        foreach ($list->getFilters() as $filter) {
+            if ($filter->id() === self::ITEM_TYPE) {
+                return $list;
+            }
+        }
+
+        // A resource with types: a `type` filter first, unless the list declares one
+        return $list->filters([
+            SelectFilter::make(self::ITEM_TYPE)->label(__('Type'))->options($this->typeOptions())->multiple(),
+            ...$list->getFilters(),
+        ]);
     }
 
     /**
      * The values of an item, keyed by field name. Panneau adds `id`, `version` and
-     * `abilities`. By default, the declared fields are read from the item, and nothing else.
+     * `abilities`, and `type` in a resource with types. By default, the declared fields are read
+     * from the item, with those of its type, and nothing else.
      *
      * @return array<string, mixed>
      */
     public function toItem(object $item): array
     {
         $values = [];
-        foreach ($this->allFields() as $field) {
+        foreach ($this->itemFields($item) as $field) {
             $values[$field->name()] = $field->resolve($item);
+        }
+        if ($this->hasTypes()) {
+            $values[self::ITEM_TYPE] = $this->typeOf($item);
         }
 
         return $values;
