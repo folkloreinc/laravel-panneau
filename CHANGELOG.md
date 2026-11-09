@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.16] - 2026-11-09
+
+Goes with `@panneau/*` `5.0.0-alpha.28`, which it needs: `notInForm` and the `filter[ids][]` of lists are new in that release.
+
+Fields that items give but forms leave out (`notInForm()`), and lists filtered by ids.
+
 ### Added
 
 - `Field::notInForm()`: a field that items give, but that forms leave out, even when the layout names it, such as the URL of a page used as `itemSubtitle()`. The definition gives it `"notInForm": true`, and the field is never validated nor saved from a request (panneau-js decision 0071, #199). Needs `@panneau/*` with `notInForm`; earlier versions show the field in the form.
@@ -299,7 +305,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.15...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.16...v5.x
+[5.0.0-alpha.16]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.16
 [5.0.0-alpha.15]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.15
 [5.0.0-alpha.14]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.14
 [5.0.0-alpha.13]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.13
