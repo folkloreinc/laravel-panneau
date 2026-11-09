@@ -111,6 +111,19 @@ class ResourceItemTest extends HttpTestCase
         $this->assertNull($post->refresh()->secret);
     }
 
+    public function test_a_field_out_of_forms_is_given_but_never_saved(): void
+    {
+        $post = $this->createPost(['title' => 'Old']);
+        $url = 'https://example.com/posts/'.$post->id;
+
+        $this->getJson(self::API.'/resources/posts/'.$post->id)->assertOk()->assertJsonPath('data.url', $url);
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['title' => 'New', 'url' => 'https://example.com/other'])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'New')
+            ->assertJsonPath('data.url', $url);
+        $this->patchJson(self::API.'/resources/posts/'.$post->id, ['url' => ['not', 'a', 'string']])->assertOk();
+    }
+
     public function test_a_write_only_secret_is_never_sent_back(): void
     {
         Panneau::resources([PostsWithSecretResource::class]);

@@ -250,6 +250,19 @@ class FormTest extends TestCase
         $this->assertSame(['reason' => 'Fix'], $this->validate($fields, $input, new ValidationContext(FormMode::Update)));
     }
 
+    public function test_fields_out_of_forms_are_neither_validated_nor_kept(): void
+    {
+        $fields = [
+            Text::make('title'),
+            Text::make('url')->required()->max(3)->notInForm(),
+        ];
+        $input = ['title' => 'About', 'url' => 'https://example.com/about'];
+
+        $this->assertSame(['title' => 'About'], $this->validate($fields, $input));
+        $this->assertSame(['title' => 'About'], $this->validate($fields, $input, new ValidationContext(FormMode::Update)));
+        $this->assertSame([], $this->validate($fields, ['url' => '/about'], new ValidationContext(FormMode::Update, partial: true)));
+    }
+
     public function test_hidden_fields_are_neither_validated_nor_kept(): void
     {
         $fields = [

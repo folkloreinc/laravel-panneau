@@ -70,6 +70,7 @@ class FieldTest extends TestCase
             ->readOnly()
             ->createOnly()
             ->updateOnly()
+            ->notInForm()
             ->visibleWhen(Condition::field('type')->equals('page'))
             ->display('bold')
             ->settings(['rows' => 2]);
@@ -86,6 +87,7 @@ class FieldTest extends TestCase
             'readOnly' => true,
             'createOnly' => true,
             'updateOnly' => true,
+            'notInForm' => true,
             'visibleWhen' => ['field' => 'type', 'equals' => 'page'],
             'settings' => ['rows' => 2],
         ], $field->toDefinition());

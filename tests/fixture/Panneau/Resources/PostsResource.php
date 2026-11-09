@@ -110,6 +110,9 @@ class PostsResource extends Resource
             ]),
             // Required to create a post only (conformance: update.create-rules)
             Password::make('preview_password'),
+            // Given by items, out of forms (conformance: update.not-in-form)
+            Text::make('url')->notInForm()
+                ->resolveUsing(fn (Post $post): string => 'https://example.com/posts/'.$post->getKey()),
         ];
     }
 

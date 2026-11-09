@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- `Field::notInForm()`: a field that items give, but that forms leave out, even when the layout names it, such as the URL of a page used as `itemSubtitle()`. The definition gives it `"notInForm": true`, and the field is never validated nor saved from a request (panneau-js decision 0071). Needs `@panneau/*` with `notInForm`; earlier versions show the field in the form.
+
 ## [5.0.0-alpha.15] - 2026-11-06
 
 Goes with `@panneau/*` `5.0.0-alpha.27`, whose file field shows the thumbnail this release sends.

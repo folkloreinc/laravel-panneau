@@ -3835,6 +3835,10 @@
                     "updateOnly": {
                         "type": "boolean"
                     },
+                    "notInForm": {
+                        "description": "Forms leave the field out, even when their layout names it, and never add it at the end. Items still give its value, which lists, details, item panels and references read: the URL of a page, shown under its title (decision 0071). The backend ignores its value on create and update, as it ignores `readOnly` fields, and the field is not edited inline. For the fields at the top of a resource and of its types.",
+                        "type": "boolean"
+                    },
                     "rules": {
                         "type": "array",
                         "items": {
@@ -4369,7 +4373,8 @@
                     "id": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Sent as `filter[id]`."
+                        "pattern": "^(?!ids$)",
+                        "description": "Sent as `filter[id]`. `ids` is reserved: every list has a filter on the ids of its items, `filter[ids][]` (decision 0069)."
                     },
                     "type": {
                         "type": "string",
@@ -6498,6 +6503,13 @@
                                 "type": "null"
                             }
                         ]
+                    },
+                    "thumbnailUrl": {
+                        "description": "The URL of a preview image, such as the poster of a video or the first page of a PDF. Without one, clients show an image (its `url`, when browsers show its type) or the icon of its type.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -7166,6 +7178,11 @@
                     },
                     "height": {
                         "type": "number"
+                    },
+                    "duration": {
+                        "description": "How long the video or the sound lasts, in seconds, when its provider says (Vimeo’s oEmbed does).",
+                        "type": "number",
+                        "minimum": 0
                     }
                 },
                 "required": [
