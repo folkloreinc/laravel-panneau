@@ -28,7 +28,6 @@ use App\Panneau\Fields\Credits;
 use App\Panneau\Fields\Image;
 use App\Panneau\Fields\Sites;
 
-// TODO(panneau-5): a 1.x resource type: resource types are not built yet in 5.x
 class Landing extends Home
 {
     public function fields(): array

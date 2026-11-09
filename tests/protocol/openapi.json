@@ -4270,7 +4270,7 @@
                         "minLength": 1
                     },
                     "label": {
-                        "description": "`section`, `tab`: the title.",
+                        "description": "`section`, `tab`, `sidebar`: the title.",
                         "type": "string"
                     },
                     "description": {
@@ -4283,6 +4283,11 @@
                     "component": {
                         "description": "`component`: a component provided by a plugin.",
                         "type": "string"
+                    },
+                    "panel": {
+                        "description": "`sidebar`: the panel it is, by name: a built-in panel (`save`, `errors`, `publication`, `actions`) or one provided by a plugin. Without its component, the node renders its children.",
+                        "type": "string",
+                        "minLength": 1
                     },
                     "props": {
                         "type": "object",
@@ -4786,6 +4791,45 @@
                 },
                 "additionalProperties": {}
             },
+            "ResourceType": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The `type` of the items of this type, which the client sends on create."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "The name of the type: the title of its create form and of its choice when creating."
+                    },
+                    "description": {
+                        "description": "A line under the label, in the choice of a type.",
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Field"
+                        },
+                        "description": "The type's own fields, after those of the resource. The resource's `form.layout` can name them: forms of the other types leave them out."
+                    },
+                    "abilities": {
+                        "description": "`create: false`: the type is not offered when creating, and the backend refuses to create one (a singleton such as the home page). Its items can still be edited.",
+                        "$ref": "#/components/schemas/Abilities"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "fields"
+                ],
+                "additionalProperties": {},
+                "description": "A type of the items of a resource (decision 0077): the items of a type have the fields of the resource and its own."
+            },
             "Resource": {
                 "type": "object",
                 "properties": {
@@ -4890,10 +4934,10 @@
                         "$ref": "#/components/schemas/ResourceFeatures"
                     },
                     "types": {
-                        "description": "Variants of the resource, each with its own extra fields.",
+                        "description": "The types of the resource's items, each with fields of its own (decision 0077). Each item has a `type`, set when it is created, among their ids.",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/BlockType"
+                            "$ref": "#/components/schemas/ResourceType"
                         }
                     },
                     "settings": {
@@ -5717,6 +5761,14 @@
                             "auto"
                         ]
                     },
+                    "navigation": {
+                        "description": "Where the app shows the `main` menu: `sidebar` (the default), a column on the left, or `dock`, a dock at the bottom of the window (decision 0076).",
+                        "type": "string",
+                        "enum": [
+                            "sidebar",
+                            "dock"
+                        ]
+                    },
                     "extends": {
                         "description": "Themes registered by plugins, by id, that this theme builds on, in order: its own values override theirs.",
                         "anyOf": [
@@ -5885,6 +5937,11 @@
                     },
                     "abilities": {
                         "$ref": "#/components/schemas/Abilities"
+                    },
+                    "type": {
+                        "description": "In a resource with `types`: the id of the item's type (decision 0077). Set when the item is created; updates ignore it.",
+                        "type": "string",
+                        "minLength": 1
                     }
                 },
                 "required": [
@@ -6879,6 +6936,11 @@
                     },
                     "abilities": {
                         "$ref": "#/components/schemas/Abilities"
+                    },
+                    "type": {
+                        "description": "In a resource with `types`: the id of the item's type (decision 0077). Set when the item is created; updates ignore it.",
+                        "type": "string",
+                        "minLength": 1
                     },
                     "media": {
                         "$ref": "#/components/schemas/MediaInfo"

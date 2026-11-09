@@ -41,6 +41,25 @@ final class Todo
         return $added;
     }
 
+    /**
+     * Removes the comments of a TODO that contains a text, such as one an earlier release of the
+     * rules left and that the rules now convert.
+     */
+    public static function remove(Node $node, string $text): bool
+    {
+        $comments = $node->getComments();
+        $kept = array_values(array_filter(
+            $comments,
+            fn (Comment $comment): bool => ! (str_contains($comment->getText(), self::MARKER) && str_contains($comment->getText(), $text)),
+        ));
+        if (count($kept) === count($comments)) {
+            return false;
+        }
+        $node->setAttribute('comments', $kept);
+
+        return true;
+    }
+
     public static function has(Node $node): bool
     {
         foreach ($node->getComments() as $comment) {

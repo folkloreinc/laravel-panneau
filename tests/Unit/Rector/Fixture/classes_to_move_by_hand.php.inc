@@ -111,8 +111,7 @@ class TextBlock extends ResourceType
 {
 }
 
-// TODO(panneau-5): a 1.x resource type: resource types are not built yet in 5.x
-class Article extends ResourceType
+class Article extends \Panneau\Resources\ResourceType
 {
 }
 

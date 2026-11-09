@@ -144,6 +144,14 @@ abstract class MediaResource extends Resource
     }
 
     /**
+     * A media library has no resource types: the `type` of its items is their media type.
+     */
+    final public function types(): array
+    {
+        return [];
+    }
+
+    /**
      * `scope()`, the media types under the `type` key, and the items the user owns.
      *
      * @internal Override `scope()`.

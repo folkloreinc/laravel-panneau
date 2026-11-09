@@ -90,7 +90,6 @@ class Pages extends Resource
     {
         return PageResource::make($item)->resolve();
     }
-    // TODO(panneau-5): resource types are not built yet in 5.x: block types become BlockTypes of a Repeater
     public function types(): array
     {
         return [

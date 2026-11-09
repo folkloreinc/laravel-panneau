@@ -59,6 +59,22 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Items of several types (EntriesResource): the fields of each type are columns
+        Schema::create('entries', function (Blueprint $table) {
+            $table->id();
+            $table->string('type')->nullable();
+            $table->string('title');
+            $table->string('location')->nullable();
+            $table->text('intro')->nullable();
+            $table->date('starts_on')->nullable();
+            $table->string('venue')->nullable();
+            $table->string('slug')->nullable();
+            $table->text('summary')->nullable();
+            $table->foreignId('author_id')->nullable();
+            $table->string('secret')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('post_tag', function (Blueprint $table) {
             $table->foreignId('post_id');
             $table->foreignId('tag_id');
@@ -127,6 +143,7 @@ return new class extends Migration
         Schema::dropIfExists('assets');
         Schema::dropIfExists('documents');
         Schema::dropIfExists('post_tag');
+        Schema::dropIfExists('entries');
         Schema::dropIfExists('pages');
         Schema::dropIfExists('posts');
         Schema::dropIfExists('tags');

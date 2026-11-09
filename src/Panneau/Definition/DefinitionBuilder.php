@@ -20,6 +20,7 @@ use Panneau\Layout\Node;
 use Panneau\Navigation\Navigation;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
+use Panneau\Resources\ResourceType;
 use ReflectionMethod;
 
 /**
@@ -350,8 +351,12 @@ final class DefinitionBuilder
         // admin loads, rather than on a click
         $this->resources->duplication($resource);
         $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $fields);
+        $types = $resource->resourceTypes();
+        if (count($types) > 0) {
+            $definition['types'] = array_map(fn (ResourceType $type): array => $this->resourceType($resource, $type, $user), $types);
+        }
 
-        $layout = $resource->layout();
+        $layout = $resource->formLayout();
         if (count($layout) > 0) {
             $definition['form'] = ['layout' => array_map(fn (Node $node): array => $node->toDefinition(), $layout)];
         }
@@ -408,6 +413,29 @@ final class DefinitionBuilder
         $settings = $resource->settings();
         if (count($settings) > 0) {
             $definition['settings'] = $settings;
+        }
+
+        return $definition;
+    }
+
+    /**
+     * A type of a resource in the definition (panneau-js decision 0077): its fields are those of
+     * the resource for that type only, then its own. With what the user can't do: `create:
+     * false` when they can't create items of the type.
+     *
+     * @return array<string, mixed>
+     */
+    private function resourceType(Resource $resource, ResourceType $type, ?Authenticatable $user): array
+    {
+        $definition = ['id' => $type->id(), 'label' => $type->label()];
+        foreach (['description' => $type->description(), 'icon' => $type->icon()] as $key => $value) {
+            if ($value !== null) {
+                $definition[$key] = $value;
+            }
+        }
+        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $resource->fieldsOfType($type));
+        if (! $type->canCreate($user)) {
+            $definition['abilities'] = ['create' => false];
         }
 
         return $definition;

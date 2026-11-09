@@ -645,8 +645,14 @@ final class Audit
             return;
         }
         if ($property === 'types') {
-            $count = count(Php::items($value));
-            $finding->add("\$types: {$count} ".Str::plural('type', $count), $target);
+            $types = Php::items($value);
+            $count = count($types);
+            $classes = array_map(fn (Expr $type): ?string => Php::className($type), $types);
+            $finding->add("\$types: {$count} ".Str::plural('type', $count), match (true) {
+                in_array(null, $classes, true) => 'manual: types(), with a subclass of Panneau\\Resources\\ResourceType for each type',
+                count(array_filter($classes, fn (?string $class): bool => $this->isBlockType((string) $class))) > 0 => 'manual: block types become BlockTypes of a Repeater',
+                default => $target,
+            });
 
             return;
         }
@@ -851,10 +857,10 @@ final class Audit
             $this->listedFiles[] = $class->file;
             $id = Php::value($class->returned('id'));
             $resources = $usedBy[$class->name] ?? [];
-            $isBlock = str_contains($class->name, 'Block');
+            $isBlock = $this->isBlockType($class->name);
             $finding = $section->add(
                 $class->shortName().(is_string($id) ? " ({$id})" : '').($resources !== [] ? ' of '.implode(', ', $resources) : ''),
-                $isBlock ? 'manual: a BlockType of the Repeater of the blocks (BlockTypes::register() of laravel-folklore 2)' : 'manual: resource types are not built yet in 5.x',
+                $isBlock ? 'manual: a BlockType of the Repeater of the blocks (BlockTypes::register() of laravel-folklore 2)' : 'a subclass of Panneau\\Resources\\ResourceType: the Rector rules convert it',
                 $class->location(),
             );
             $fields = $class->returned('fields');
@@ -862,13 +868,27 @@ final class Audit
                 $finding->add(count($fields->items).' '.Str::plural('field', count($fields->items)), 'fields of the type');
             }
             foreach (Php::items($class->staticProperty('settings')) as $key => $setting) {
-                $finding->add("\$settings['{$key}'] = {$this->describe($setting)}", $key === 'canCreate' ? 'the create ability of the policy' : 'manual: settings()');
+                $finding->add("\$settings['{$key}'] = {$this->describe($setting)}", $key === 'canCreate' ? ($isBlock ? 'the create ability of the policy' : 'canCreate() of the type') : 'manual: settings()');
             }
             foreach (array_diff($class->staticProperties(), ['settings']) as $property) {
-                $finding->add("\${$property}", in_array($property, ['jsonResource', 'jsonCollection'], true)
-                    ? 'toItem() of the resource' : 'manual: not a 1.x property');
+                $finding->add("\${$property}", match (true) {
+                    $isBlock && in_array($property, ['jsonResource', 'jsonCollection'], true) => 'toItem() of the resource',
+                    $property === 'jsonResource' => 'toItem() of the type',
+                    $property === 'jsonCollection' => 'nothing: lists serialize each item like a single item',
+                    $property === 'repository' => 'manual: the repository() of the resource serves every type',
+                    default => 'manual: not a 1.x property',
+                });
             }
         }
+    }
+
+    /**
+     * Whether a 1.x type is a block type, which becomes a `BlockType` of a repeater rather than a
+     * resource type, as `ResourceTypesRector` tells them apart.
+     */
+    private function isBlockType(string $class): bool
+    {
+        return str_contains($class, 'Block') || $this->code->isA($class, ['Folklore\\Panneau\\Resources\\BlockWithBlocks']);
     }
 
     // Fields

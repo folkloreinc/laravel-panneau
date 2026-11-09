@@ -24,3 +24,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0018](0018-account-endpoints.md) | The account is saved by Fortify's profile and password actions | Proposed |
 | [0019](0019-passkeys.md) | Passkeys on laravel/passkeys | Proposed |
 | [0020](0020-oauth-providers.md) | OAuth providers with Socialite, linked to users by their verified email | Proposed |
+| [0021](0021-resource-types.md) | Resource types are classes the resource lists, and the item's type picks its fields | Proposed |

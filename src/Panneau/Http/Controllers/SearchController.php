@@ -70,7 +70,7 @@ final class SearchController
                     null,
                     $this->authorizer->itemAbilities($user, $resource, $item),
                     $references,
-                    $this->authorizer->hiddenFields($user, $resource),
+                    $this->authorizer->hiddenFields($user, $resource, $resource->typeOf($item)),
                 ), $items),
                 'total' => max($page->total(), count($items)),
             ];

@@ -62,17 +62,22 @@ final class MediaReferences
      */
     public function preload(Resource $resource, iterable $items): void
     {
-        $fields = array_filter($resource->allFields(), fn ($field): bool => $field instanceof Media);
-        if (count($fields) === 0) {
-            return;
-        }
-        $libraries = array_map(fn (Media $field): array => $this->libraries($field), $fields);
+        $typed = $resource->hasTypes();
+        // The fields of each type, in a resource with types
+        $fieldsOf = [];
+        $librariesOf = [];
         $ids = [];
         foreach ($items as $item) {
-            foreach ($fields as $key => $field) {
+            $type = $typed ? $resource->typeOf($item) : null;
+            $key = $type ?? '';
+            if (! isset($fieldsOf[$key])) {
+                $fieldsOf[$key] = array_values(array_filter($resource->typeFields($type), fn ($field): bool => $field instanceof Media));
+                $librariesOf[$key] = array_map(fn (Media $field): array => $this->libraries($field), $fieldsOf[$key]);
+            }
+            foreach ($fieldsOf[$key] as $index => $field) {
                 foreach (self::entries($field, $field->resolve($item)) as $entry) {
                     $id = is_array($entry) ? Media::idOf($entry) : null;
-                    $library = is_array($entry) ? self::libraryOf($libraries[$key], $entry) : null;
+                    $library = is_array($entry) ? self::libraryOf($librariesOf[$key][$index], $entry) : null;
                     if ($id !== null && $library !== null) {
                         $ids[$library->id()][] = $id;
                     }

@@ -9,8 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Panneau\Auth\Authorizer;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Fields\Field;
 use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Resources\FieldChecks;
+use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Uploads\Uploads;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -39,9 +41,9 @@ final class FieldCheckController
     {
         $resource = $this->findResource($this->routeParameter($request, 'resource'));
         $field = $this->routeParameter($request, 'field');
-        // Only the fields at the top of the resource
-        $checked = $resource->field($field);
-        if ($checked === null || ! $checked->hasCheck()) {
+        // Only the fields at the top of the resource, or of one of its types
+        $types = $this->typesWithField($resource, $field);
+        if ($this->checkedField($resource, $field, null) === null && $types === []) {
             throw new NotFoundHttpException(sprintf('No field "%s" with a check.', $field));
         }
 
@@ -66,6 +68,18 @@ final class FieldCheckController
             $this->authorizeResource($request, $resource, 'create');
         }
 
+        // The field of the item's type, or of the type of the new item
+        $values = is_array($payload['values'] ?? null) ? $payload['values'] : [];
+        $type = $item !== null ? $resource->typeOf($item) : null;
+        if ($item === null && $types !== []) {
+            $sent = $values[Resource::ITEM_TYPE] ?? null;
+            $type = is_string($sent) && in_array($sent, $types, true) ? $sent : $types[0];
+        }
+        $checked = $this->checkedField($resource, $field, $type);
+        if ($checked === null) {
+            throw new NotFoundHttpException(sprintf('No field "%s" with a check.', $field));
+        }
+
         // A localized value is checked in its locale, the default one when none is given
         $locale = null;
         if ($checked->isLocalized()) {
@@ -79,7 +93,42 @@ final class FieldCheckController
             is_string($payload['value']) ? $payload['value'] : '',
             $locale,
             $item,
-            is_array($payload['values'] ?? null) ? $payload['values'] : [],
+            $values,
+            $type,
         ));
+    }
+
+    /**
+     * A field with a check of the items of a type, or of the resource without a type.
+     */
+    private function checkedField(Resource $resource, string $name, ?string $type): ?Field
+    {
+        foreach ($resource->typeFields($type) as $field) {
+            if ($field->name() === $name) {
+                return $field->hasCheck() ? $field : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The types of a resource with a field of that name, with a check, after those of the
+     * resource: their own, or one of the resource for some types only.
+     *
+     * @return list<string>
+     */
+    private function typesWithField(Resource $resource, string $name): array
+    {
+        $types = [];
+        foreach ($resource->resourceTypes() as $type) {
+            foreach ($resource->fieldsOfType($type) as $field) {
+                if ($field->name() === $name && $field->hasCheck()) {
+                    $types[] = $type->id();
+                }
+            }
+        }
+
+        return $types;
     }
 }
