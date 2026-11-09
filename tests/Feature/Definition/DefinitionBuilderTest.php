@@ -122,9 +122,10 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame(['singular' => 'post', 'plural' => 'posts'], $posts['label']);
         $this->assertSame('title', $posts['itemTitle']);
         $this->assertSame(
-            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'dates', 'price', 'author', 'tags', 'seo', 'details', 'address', 'link', 'blocks', 'preview_password'],
+            ['title', 'slug', 'subtitle', 'body', 'status', 'featured', 'published_at', 'dates', 'price', 'author', 'tags', 'seo', 'details', 'address', 'link', 'blocks', 'preview_password', 'url'],
             array_column($posts['fields'], 'name'),
         );
+        $this->assertTrue(array_column($posts['fields'], null, 'name')['url']['notInForm']);
         $this->assertSame(['search' => true], $posts['features']);
     }
 

@@ -23,6 +23,19 @@ class ResourceListTest extends HttpTestCase
         $this->assertSame(['Post 3', 'Post 2'], array_column($response->json('data'), 'title'));
     }
 
+    public function test_a_list_filtered_on_the_ids_of_items(): void
+    {
+        $first = $this->createPost(['title' => 'First', 'status' => 'draft']);
+        $second = $this->createPost(['title' => 'Second', 'status' => 'published']);
+        $this->createPost(['title' => 'Third']);
+
+        $titles = fn (string $query): array => array_column($this->getJson(self::API.'/resources/posts?'.$query)->assertOk()->json('data'), 'title');
+
+        $this->assertEqualsCanonicalizing(['First', 'Second'], $titles('filter[ids][]='.$second->id.'&filter[ids][]='.$first->id.'&filter[ids][]=missing'));
+        // With the other filters
+        $this->assertSame(['Second'], $titles('filter[ids][]='.$first->id.'&filter[ids][]='.$second->id.'&filter[status]=published'));
+    }
+
     public function test_items_have_an_id_a_version_and_abilities(): void
     {
         $post = $this->createPost(['title' => 'Locked', 'secret' => 'hidden']);

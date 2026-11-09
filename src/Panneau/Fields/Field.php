@@ -45,6 +45,8 @@ abstract class Field
 
     protected bool $updateOnly = false;
 
+    protected bool $notInForm = false;
+
     protected ?Condition $visibleWhen = null;
 
     /**
@@ -242,6 +244,19 @@ abstract class Field
     public function updateOnly(bool $updateOnly = true): static
     {
         $this->updateOnly = $updateOnly;
+
+        return $this;
+    }
+
+    /**
+     * Left out of forms, even when the layout names it: items still give its value, which lists,
+     * details and references read, like the URL of a page used as `itemSubtitle()`. Never
+     * validated or saved from a request (panneau-js decision 0071). For the fields at the top of a
+     * resource.
+     */
+    public function notInForm(bool $notInForm = true): static
+    {
+        $this->notInForm = $notInForm;
 
         return $this;
     }
@@ -445,6 +460,7 @@ abstract class Field
     public function isEditable(FormMode $mode): bool
     {
         return ! $this->readOnly
+            && ! $this->notInForm
             && ! ($mode === FormMode::Create && $this->updateOnly)
             && ! ($mode === FormMode::Update && $this->createOnly);
     }
@@ -522,7 +538,7 @@ abstract class Field
         if ($this->hasDefault) {
             $definition['default'] = $this->default;
         }
-        foreach (['localized', 'readOnly', 'createOnly', 'updateOnly'] as $property) {
+        foreach (['localized', 'readOnly', 'createOnly', 'updateOnly', 'notInForm'] as $property) {
             if ($this->{$property} === true) {
                 $definition[$property] = true;
             }
