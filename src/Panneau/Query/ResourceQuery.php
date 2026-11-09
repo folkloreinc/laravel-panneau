@@ -46,11 +46,17 @@ final readonly class ResourceQuery
      * Parses the protocol's list query string (`page`, `perPage`, `sort`, `filter[...]`, `q`,
      * `fields`, and `cursor` instead of `page` in a list paged with cursors). Filters, sorts and
      * fields that the options don't declare are ignored, and so are invalid values. A cursor is
-     * read by the repository.
+     * read by the repository. `filter[ids][]`, a filter of every list, keeps the items with
+     * those ids (panneau-js decision 0069).
      *
      * @param  array<array-key, mixed>  $parameters  The query string, as parsed by PHP.
      * @param  array<string, mixed>  $scope
      */
+    /**
+     * The most ids that `filter[ids][]` keeps.
+     */
+    public const MAX_IDS = 100;
+
     public static function fromParameters(
         array $parameters,
         QueryOptions $options,
@@ -68,8 +74,27 @@ final readonly class ResourceQuery
             searchFields: $options->searchFields,
             fields: self::parseFields($parameters['fields'] ?? null, $options),
             scope: $scope,
+            ids: self::parseIds($parameters['filter'] ?? null),
             cursor: is_string($cursor) && $cursor !== '' ? $cursor : null,
         );
+    }
+
+    /**
+     * The ids of `filter[ids][]`, at most 100, or null without it.
+     *
+     * @return list<string>|null
+     */
+    private static function parseIds(mixed $filter): ?array
+    {
+        if (! is_array($filter) || ! array_key_exists('ids', $filter)) {
+            return null;
+        }
+        $ids = array_filter(
+            is_array($filter['ids']) ? $filter['ids'] : [$filter['ids']],
+            fn (mixed $id): bool => (is_string($id) || is_int($id)) && $id !== '',
+        );
+
+        return array_slice(array_values(array_unique(array_map(strval(...), $ids))), 0, self::MAX_IDS);
     }
 
     /**

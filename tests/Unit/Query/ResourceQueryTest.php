@@ -48,6 +48,16 @@ class ResourceQueryTest extends TestCase
         $this->assertSame([], $query->except);
     }
 
+    public function test_the_filter_on_ids_of_every_list(): void
+    {
+        $query = ResourceQuery::fromParameters(['filter' => ['ids' => ['12', 13, '12', '', ['x']], 'status' => 'draft']], $this->options());
+
+        $this->assertSame(['12', '13'], $query->ids);
+        $this->assertSame(['status' => 'draft'], $query->filters);
+        $this->assertSame(['7'], ResourceQuery::fromParameters(['filter' => ['ids' => '7']], $this->options())->ids);
+        $this->assertCount(100, ResourceQuery::fromParameters(['filter' => ['ids' => range(1, 150)]], $this->options())->ids);
+    }
+
     public function test_page_and_per_page(): void
     {
         $query = ResourceQuery::fromParameters(['page' => '3', 'perPage' => '10'], $this->options());
