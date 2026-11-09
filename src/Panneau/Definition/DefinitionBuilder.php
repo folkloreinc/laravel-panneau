@@ -356,7 +356,7 @@ final class DefinitionBuilder
             $definition['types'] = array_map(fn (ResourceType $type): array => $this->resourceType($resource, $type, $user), $types);
         }
 
-        $layout = $resource->layout();
+        $layout = $resource->formLayout();
         if (count($layout) > 0) {
             $definition['form'] = ['layout' => array_map(fn (Node $node): array => $node->toDefinition(), $layout)];
         }

@@ -7,6 +7,7 @@ use Panneau\Fields\Field;
 use Panneau\Fields\Select;
 use Panneau\Fields\Text;
 use Panneau\Http\Problem;
+use Panneau\Layout\Field as LayoutField;
 use Panneau\Lists\Filters\SelectFilter;
 use Panneau\Lists\ResourceList;
 use Panneau\Resources\ResourceType;
@@ -93,6 +94,13 @@ class ResourceTypesTest extends HttpTestCase
         ], $entries['types']);
         // The fields for some types only aren't the resource's
         $this->assertSame(['title', 'type'], array_column($entries['fields'], 'name'));
+        // Without a layout, forms show them where fields() declares them: the app leaves out
+        // those of the other types, and adds the type's own fields at the end
+        $this->assertSame([
+            ['type' => 'field', 'name' => 'title'],
+            ['type' => 'field', 'name' => 'location'],
+            ['type' => 'field', 'name' => 'intro'],
+        ], $entries['form']['layout']);
     }
 
     public function test_a_type_field_and_filter_show_and_filter_by_type(): void
@@ -333,6 +341,11 @@ class ResourceTypesTest extends HttpTestCase
                 ];
             }
 
+            public function layout(): array
+            {
+                return [LayoutField::make('intro'), LayoutField::make('title')];
+            }
+
             public function list(ResourceList $list): ResourceList
             {
                 return $list->filters([SelectFilter::make('type')->label('Kind')->options(['event' => 'Event'])]);
@@ -343,6 +356,8 @@ class ResourceTypesTest extends HttpTestCase
         $this->assertSame('Kind', collect($entries['fields'])->firstWhere('name', 'type')['label']);
         $this->assertSame(['type'], array_column($entries['list']['filters'], 'id'));
         $this->assertSame('Kind', $entries['list']['filters'][0]['label']);
+        // A declared layout is kept
+        $this->assertSame(['intro', 'title'], array_column($entries['form']['layout'], 'name'));
     }
 
     /**
@@ -492,7 +507,10 @@ class ResourceTypesTest extends HttpTestCase
             }
         }]);
 
-        $this->assertSame(['create' => false], $this->definition('restricted-entries')['types'][0]['abilities']);
+        $definition = $this->definition('restricted-entries');
+        $this->assertSame(['create' => false], $definition['types'][0]['abilities']);
+        // No field for some types only: no layout
+        $this->assertArrayNotHasKey('form', $definition);
         $this->postJson(self::API.'/resources/restricted-entries', ['type' => 'restricted', 'title' => 'New'])->assertForbidden();
     }
 }

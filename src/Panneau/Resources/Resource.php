@@ -15,6 +15,7 @@ use Panneau\Contracts\ActionDeclaration;
 use Panneau\Fields\Field;
 use Panneau\Fields\Select;
 use Panneau\Fields\Text;
+use Panneau\Layout\Field as LayoutField;
 use Panneau\Layout\Node;
 use Panneau\Lists\Filters\SelectFilter;
 use Panneau\Lists\ResourceList;
@@ -165,6 +166,30 @@ abstract class Resource
     public function layout(): array
     {
         return [];
+    }
+
+    /**
+     * The layout of the forms: `layout()`, or in a resource with fields for some types only
+     * (`onlyForTypes()`, `exceptForTypes()`) and no layout, its fields in the order of
+     * `fields()`. Forms then show a field for some types where it is declared, rather than after
+     * the resource's other fields; each type's own fields come at the end.
+     *
+     * @internal Override `layout()`.
+     *
+     * @return list<Node>
+     */
+    public function formLayout(): array
+    {
+        $layout = $this->layout();
+        if (count($layout) > 0) {
+            return $layout;
+        }
+        $fields = $this->fields();
+        if (count(array_filter($fields, self::isForSomeTypes(...))) === 0) {
+            return [];
+        }
+
+        return array_map(fn (Field $field): Node => LayoutField::make($field->name()), $fields);
     }
 
     /**

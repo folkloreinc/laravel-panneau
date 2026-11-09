@@ -127,7 +127,7 @@ The field rules apply to chains that make a 1.x field, or a field of the project
 
 - **Resource types** ([Resource types](architecture.md#resource-types)). The Rector rules convert the 1.x types: check what 5.x does differently.
   - Items read their type from their `type` attribute (`typeOf()`). A model that implemented `HasResourceType::resourceType()` on another column: override `typeOf()`, and map `type` to that column in `creating()`.
-  - A type's fields are named apart from the resource's, and none is named `type`: 1.x merged both lists, so a field declared in both now throws when the admin loads. Keep it in one place. `onlyForTypes()` and `exceptForTypes()` stay as they are, with the 1.x ids that the converted types keep; a class name works too. A field for some types now comes after the resource's other fields in their forms, unless `layout()` places it.
+  - A type's fields are named apart from the resource's, and none is named `type`: 1.x merged both lists, so a field declared in both now throws when the admin loads. Keep it in one place. `onlyForTypes()` and `exceptForTypes()` stay as they are, with the 1.x ids that the converted types keep; a class name works too. A field for some types keeps its place in the forms, as in 1.x.
   - A type that extends another (`Home extends Page`) stays a subclass: it inherits `canCreate()` and the rest as in 1.x, and `[...parent::fields(), …]` adds its fields to those of its parent.
   - The resource gets a `type` field and filter on its own: remove a 1.x `type` column of `index()`, or declare the field yourself, with `notInForm()`.
   - The `$jsonResource` of a type goes to the `toItem()` of the resource, which can read `typeOf($item)`. The default `toItem()` reads the fields of the item's type.

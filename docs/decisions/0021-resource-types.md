@@ -24,7 +24,7 @@
 
 ## Consequences
 
-- A field for some types comes after the resource's fields in the form of a type, wherever it is declared, unless the resource's `layout()` places it: one layout names the fields of every type (panneau-js decision 0077). A list column can't name it.
+- A field for some types keeps its place in forms: a resource with such fields and no `layout()` gets a layout of its fields in the order of `fields()`, which the app prunes for each type, since one layout names the fields of every type (panneau-js decision 0077). The type's own fields come at the end. The item panel ignores layouts: it shows such a field after the resource's. A list column can't name it.
 - Shared field names across types are allowed, as the protocol allows them: the fields of an item come from its type, never from the union of the types.
 - A list column names a field of the resource only, as in the protocol: a type's field has no column.
 - An item without a type, or with a type the resource doesn't have, has the fields of the resource alone, and no `type`.
