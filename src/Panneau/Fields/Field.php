@@ -50,6 +50,21 @@ abstract class Field
     protected ?Condition $visibleWhen = null;
 
     /**
+     * The types whose items have the field, in a resource with types: ids or `ResourceType`
+     * classes. Null: every type.
+     *
+     * @var list<string>|null
+     */
+    protected ?array $onlyForTypes = null;
+
+    /**
+     * The types whose items don't have the field, as `$onlyForTypes`.
+     *
+     * @var list<string>|null
+     */
+    protected ?array $exceptForTypes = null;
+
+    /**
      * The ability the user needs to see the field: a Gate ability, or a closure that receives
      * the user. Null: everyone who sees the resource.
      *
@@ -264,6 +279,63 @@ abstract class Field
     public function isNotInForm(): bool
     {
         return $this->notInForm;
+    }
+
+    /**
+     * Only in the items of some types, in a resource with types (panneau-js decision 0077): their
+     * ids, or their `ResourceType` classes, which include the types that extend them. The
+     * definition gives the field to those types, after the fields of the resource, and the items
+     * of the other types don't have it. For the fields at the top of a resource.
+     *
+     * @param  string|list<string>  ...$types
+     */
+    public function onlyForTypes(string|array ...$types): static
+    {
+        $this->onlyForTypes = [...$this->onlyForTypes ?? [], ...self::typeList($types)];
+
+        return $this;
+    }
+
+    /**
+     * In the items of every type but some, as `onlyForTypes()`.
+     *
+     * @param  string|list<string>  ...$types
+     */
+    public function exceptForTypes(string|array ...$types): static
+    {
+        $this->exceptForTypes = [...$this->exceptForTypes ?? [], ...self::typeList($types)];
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getOnlyForTypes(): ?array
+    {
+        return $this->onlyForTypes;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getExceptForTypes(): ?array
+    {
+        return $this->exceptForTypes;
+    }
+
+    /**
+     * @param  array<int, string|list<string>>  $types
+     * @return list<string>
+     */
+    private static function typeList(array $types): array
+    {
+        $list = [];
+        foreach ($types as $type) {
+            array_push($list, ...(is_array($type) ? $type : [$type]));
+        }
+
+        return array_values(array_unique($list));
     }
 
     /**

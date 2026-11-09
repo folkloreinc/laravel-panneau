@@ -189,12 +189,19 @@ class PagesResource extends Resource
 {
     public function fields(): array
     {
-        return [Text::make('title')->localized()->required(), Slug::make('slug')->from('title')];
+        return [
+            Text::make('title')->localized()->required(),
+            Slug::make('slug')->from('title'),
+            // Only for events, and the types that extend EventType
+            Text::make('location')->onlyForTypes(EventType::class),
+            // For every type but the home page
+            Media::make('image')->exceptForTypes(HomeType::class),
+        ];
     }
 
     public function types(): array
     {
-        return [PageType::class, EventType::class, HomeType::class];
+        return [PageType::class, EventType::class, ConferenceType::class, HomeType::class];
     }
 }
 
@@ -208,6 +215,15 @@ class EventType extends ResourceType // id "event", label "Event"
     public function fields(): array
     {
         return [Date::make('starts_on')->required(), Text::make('location')];
+    }
+}
+
+// A type that extends another has its fields, and the resource's fields for it
+class ConferenceType extends EventType
+{
+    public function fields(): array
+    {
+        return [...parent::fields(), Text::make('venue')];
     }
 }
 
@@ -231,13 +247,15 @@ class HomeType extends ResourceType
 }
 ```
 
+- **Fields for some types.** `onlyForTypes()` and `exceptForTypes()` on a field of the resource name types by id, or by class: a class includes the types that extend it. The definition gives the field to those types (in their `fields`, before their own), not to the resource, so the items of the other types don't have it. Their forms show it after the resource's fields, unless `layout()` places it. A list column can't name it, as for any field of a type.
+- **Types that extend others.** A type is a class: one that extends another inherits its fields (with `parent::fields()`), label, icon and `canCreate()`, and has its own id. An abstract base type, listed by no resource, holds what several types share; `onlyForTypes(BaseType::class)` gives a field of the resource to all of them.
 - **The item's type.** `typeOf($item)` reads it, the `type` attribute by default. Items say it (`"type": "event"`), and have the fields of the resource, then those of their type: `toItem()`, validation, saving, hidden fields, references and field checks all use them. An item without a type, or with one the resource doesn't have, has the resource's fields alone.
 - **Creating.** `POST /resources/{resource}` needs `type`: none, or one the resource doesn't have, is a `422` with `errors.type`; a type whose `canCreate()` is false is a `403`. The type is in the values that `creating()` and the repository get, as `type`. To store it elsewhere, map it in `creating()` and override `typeOf()`.
 - **Updating** never changes the type: the request's `type` is ignored. Changing the type of an item is an action of the resource.
 - **Duplicating** an item of a type that can't be created is refused.
 - **Showing and filtering.** A resource with types gets a `select` field `type`, left out of forms (`notInForm()`), and a `select` filter `type` first in its list, with the types as options. Declare your own to change them: a field `type` must be `notInForm()`.
 - **One layout.** The resource's `layout()` can name the fields of every type: the form of a type leaves out those of the others, and adds the type's fields the layout doesn't name at the end.
-- **Checks.** Type ids are unique, and type fields are named apart from those of the resource, unique in their type, and never `type`. Two types can have fields of the same name. A mistake throws when the admin loads.
+- **Checks.** Type ids are unique, and type fields are named apart from those of the resource (those for some types too), unique in their type, and never `type`. A type named in `onlyForTypes()` or `exceptForTypes()` is one of the resource's. Two types can have fields of the same name. A mistake throws when the admin loads.
 - Media libraries have no types: their items' `type` is their media type.
 
 ## Fields

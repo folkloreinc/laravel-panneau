@@ -256,7 +256,7 @@ final class ResourceRegistry
             // The fields of the resource, and those of its types
             array_values(array_unique(array_map(fn ($field): string => $field->name(), [
                 ...$resource->allFields(),
-                ...array_merge(...array_map(fn (ResourceType $type): array => $type->fields(), $resource->resourceTypes())),
+                ...array_merge(...array_map(fn (ResourceType $type): array => $resource->fieldsOfType($type), $resource->resourceTypes())),
             ]))),
             $perPage,
             $maxPerPage,

@@ -248,7 +248,14 @@ abstract class Resource
      */
     public function allFields(): array
     {
-        return $this->withTypeField($this->fields());
+        $fields = $this->fields();
+        // The fields for some types only go to those types (onlyForTypes(), exceptForTypes())
+        $shared = array_values(array_filter($fields, fn (Field $field): bool => ! self::isForSomeTypes($field)));
+        if (count($shared) !== count($fields) && ! $this->hasTypes()) {
+            throw new LogicException(sprintf('The resource "%s" has fields for some types only, and no types().', $this->id()));
+        }
+
+        return $this->withTypeField($shared);
     }
 
     /**
@@ -327,8 +334,72 @@ abstract class Resource
             }
             $resolved[$id] = $instance;
         }
+        $this->checkFieldsForSomeTypes(array_values($resolved));
 
         return array_values($resolved);
+    }
+
+    /**
+     * Checks that the types that fields name in `onlyForTypes()` and `exceptForTypes()` are
+     * types of the resource: a typo would leave a field out of every type.
+     *
+     * @param  list<ResourceType>  $types
+     */
+    private function checkFieldsForSomeTypes(array $types): void
+    {
+        foreach ($this->fields() as $field) {
+            if (! self::isForSomeTypes($field)) {
+                continue;
+            }
+            if ($field->name() === self::ITEM_TYPE) {
+                throw new LogicException(sprintf('The field "type" of the resource "%s" holds the type of the item: it is for every type.', $this->id()));
+            }
+            foreach ([...$field->getOnlyForTypes() ?? [], ...$field->getExceptForTypes() ?? []] as $name) {
+                if (count(array_filter($types, fn (ResourceType $type): bool => self::isNamed($type, $name))) === 0) {
+                    throw new LogicException(sprintf('The field "%s" of the resource "%s" names the type "%s", which the resource doesn\'t have.', $field->name(), $this->id(), $name));
+                }
+            }
+        }
+    }
+
+    /**
+     * The fields of the resource's items of a type, after those of `allFields()`: the fields of
+     * `fields()` for that type (`onlyForTypes()`, `exceptForTypes()`), then the type's own.
+     *
+     * @internal Declare fields in `fields()` and in the `fields()` of the types.
+     *
+     * @return list<Field>
+     */
+    public function fieldsOfType(ResourceType $type): array
+    {
+        $forType = array_filter($this->fields(), fn (Field $field): bool => self::isForSomeTypes($field) && self::appliesTo($field, $type));
+
+        return [...array_values($forType), ...$type->fields()];
+    }
+
+    private static function isForSomeTypes(Field $field): bool
+    {
+        return $field->getOnlyForTypes() !== null || $field->getExceptForTypes() !== null;
+    }
+
+    /**
+     * Whether a field is for the items of a type, by its `onlyForTypes()` and `exceptForTypes()`.
+     */
+    private static function appliesTo(Field $field, ResourceType $type): bool
+    {
+        $only = $field->getOnlyForTypes();
+        $except = $field->getExceptForTypes() ?? [];
+        $named = fn (string $name): bool => self::isNamed($type, $name);
+
+        return ($only === null || count(array_filter($only, $named)) > 0) && count(array_filter($except, $named)) === 0;
+    }
+
+    /**
+     * Whether a type is named by its id, or by its class or a class it extends.
+     */
+    private static function isNamed(ResourceType $type, string $name): bool
+    {
+        return $type->id() === $name || is_a($type, $name);
     }
 
     /**
@@ -351,8 +422,9 @@ abstract class Resource
     }
 
     /**
-     * The fields of the items of a type: those of `allFields()`, then those of the type. Only
-     * those of `allFields()` without a type, or for one the resource doesn't have.
+     * The fields of the items of a type: those of `allFields()`, then those of the type
+     * (`fieldsOfType()`). Only those of `allFields()` without a type, or for one the resource
+     * doesn't have.
      *
      * @internal Declare fields in `fields()` and in the `fields()` of the types.
      *
@@ -363,7 +435,7 @@ abstract class Resource
         $fields = $this->allFields();
         $found = $this->resourceType($type);
 
-        return $found !== null ? [...$fields, ...$found->fields()] : $fields;
+        return $found !== null ? [...$fields, ...$this->fieldsOfType($found)] : $fields;
     }
 
     /**

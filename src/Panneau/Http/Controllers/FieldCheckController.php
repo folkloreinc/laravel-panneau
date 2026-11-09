@@ -113,7 +113,8 @@ final class FieldCheckController
     }
 
     /**
-     * The types of a resource with a field of their own of that name, with a check.
+     * The types of a resource with a field of that name, with a check, after those of the
+     * resource: their own, or one of the resource for some types only.
      *
      * @return list<string>
      */
@@ -121,7 +122,7 @@ final class FieldCheckController
     {
         $types = [];
         foreach ($resource->resourceTypes() as $type) {
-            foreach ($type->fields() as $field) {
+            foreach ($resource->fieldsOfType($type) as $field) {
                 if ($field->name() === $name && $field->hasCheck()) {
                     $types[] = $type->id();
                 }

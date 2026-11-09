@@ -92,7 +92,8 @@ Run them on the directories that hold the resources and fields (`app/Panneau` us
 | | `make('name', 'Label')`, `new Text('name')` | `Text::make('name')->label('Label')` |
 | | `withTransLabel()`, `withLabel()`, `withTransHelpText()`, `withHelpText()` | `label(__())`, `label()`, `help(__())`, `help()` |
 | | `isRequired()`, `isDisabled()`, `withFields()`, `withDefaultValue()`, `withOptions()`, `withRules()`, `withSettings()`, `withResource()` | `required()`, `readOnly()`, `fields()`, `default()`, `options()`, `rules()`, `settings()`, `resource()` |
-| | `onlyForTypes()`, `exceptForTypes()`, `onlyTypes()`, `exceptTypes()` | Removed, with a TODO: move the field to the `fields()` of those types |
+| | `onlyForTypes()`, `exceptForTypes()` | Kept: 5.x fields have them, with the same type ids |
+| | `onlyTypes()`, `exceptTypes()` | Removed, with a TODO: `onlyForTypes()`, `exceptForTypes()` |
 | | `hideInForm()`, `withAttributes()`, `withComponents()`, `withSiblingFields()`, `withQuery()`, `withTypes()`, `withoutType()`, `isRequired([...])` with locales | Removed, with a TODO |
 | | `withButton()`, `withoutReset()`, `uploadOnly()`, `withEndpoint()`, `isNullable()`, `isEnabled()`, `isText()`, `showInForm()` | Removed: they only changed the 1.x UI, or were defaults |
 | `ResourceTypesRector` | `extends Panneau\Support\ResourceType` (not a block type) | `extends Panneau\Resources\ResourceType` |
@@ -126,7 +127,8 @@ The field rules apply to chains that make a 1.x field, or a field of the project
 
 - **Resource types** ([Resource types](architecture.md#resource-types)). The Rector rules convert the 1.x types: check what 5.x does differently.
   - Items read their type from their `type` attribute (`typeOf()`). A model that implemented `HasResourceType::resourceType()` on another column: override `typeOf()`, and map `type` to that column in `creating()`.
-  - A type's fields are named apart from the resource's, and none is named `type`: 1.x merged both lists, so a field declared in both now throws when the admin loads. Keep it in one place. A resource field with `onlyTypes()` or `exceptTypes()` moves to the `fields()` of those types.
+  - A type's fields are named apart from the resource's, and none is named `type`: 1.x merged both lists, so a field declared in both now throws when the admin loads. Keep it in one place. `onlyForTypes()` and `exceptForTypes()` stay as they are, with the 1.x ids that the converted types keep; a class name works too. A field for some types now comes after the resource's other fields in their forms, unless `layout()` places it.
+  - A type that extends another (`Home extends Page`) stays a subclass: it inherits `canCreate()` and the rest as in 1.x, and `[...parent::fields(), …]` adds its fields to those of its parent.
   - The resource gets a `type` field and filter on its own: remove a 1.x `type` column of `index()`, or declare the field yourself, with `notInForm()`.
   - The `$jsonResource` of a type goes to the `toItem()` of the resource, which can read `typeOf($item)`. The default `toItem()` reads the fields of the item's type.
   - Creating asks for the type first in the app (`/resources/{resource}/create/{type}`), and a type whose `canCreate()` is false, such as the home page, is only edited.

@@ -58,14 +58,32 @@ class ResourceTypesTest extends HttpTestCase
                 'description' => 'Something that happens on a day.',
                 'icon' => 'calendar',
                 'fields' => [
+                    // The fields of the resource for some types only, then the type's
+                    ['name' => 'location', 'type' => 'text'],
+                    ['name' => 'intro', 'type' => 'textarea'],
                     ['name' => 'starts_on', 'type' => 'date', 'rules' => [['rule' => 'required']]],
                     ['name' => 'slug', 'type' => 'slug', 'from' => 'title', 'check' => true],
+                ],
+            ],
+            [
+                // A type that extends EventType: its fields, and the resource's for EventType
+                'id' => 'conference',
+                'label' => 'Conference',
+                'description' => 'An event with a venue.',
+                'icon' => 'calendar',
+                'fields' => [
+                    ['name' => 'location', 'type' => 'text'],
+                    ['name' => 'intro', 'type' => 'textarea'],
+                    ['name' => 'starts_on', 'type' => 'date', 'rules' => [['rule' => 'required']]],
+                    ['name' => 'slug', 'type' => 'slug', 'from' => 'title', 'check' => true],
+                    ['name' => 'venue', 'type' => 'text', 'rules' => [['rule' => 'required']]],
                 ],
             ],
             [
                 'id' => 'article',
                 'label' => 'Article',
                 'fields' => [
+                    ['name' => 'intro', 'type' => 'textarea'],
                     ['name' => 'summary', 'type' => 'textarea'],
                     ['name' => 'author', 'type' => 'relation', 'resource' => 'authors'],
                     ['name' => 'secret', 'type' => 'text', 'abilities' => ['view' => false]],
@@ -73,6 +91,8 @@ class ResourceTypesTest extends HttpTestCase
             ],
             ['id' => 'home', 'label' => 'Home page', 'fields' => [], 'abilities' => ['create' => false]],
         ], $entries['types']);
+        // The fields for some types only aren't the resource's
+        $this->assertSame(['title', 'type'], array_column($entries['fields'], 'name'));
     }
 
     public function test_a_type_field_and_filter_show_and_filter_by_type(): void
@@ -80,6 +100,7 @@ class ResourceTypesTest extends HttpTestCase
         $entries = $this->definition();
         $options = [
             ['value' => 'event', 'label' => 'Event'],
+            ['value' => 'conference', 'label' => 'Conference'],
             ['value' => 'article', 'label' => 'Article'],
             ['value' => 'home', 'label' => 'Home page'],
         ];
@@ -123,6 +144,43 @@ class ResourceTypesTest extends HttpTestCase
         // A field of the type the user can't see
         $this->assertArrayNotHasKey('secret', $data);
         $this->assertArrayNotHasKey('starts_on', $data);
+    }
+
+    public function test_fields_for_some_types_and_types_that_extend_others(): void
+    {
+        $response = $this->postJson(self::API.'/resources/entries', [
+            'type' => 'conference',
+            'title' => 'Laracon',
+            'location' => 'Montréal',
+            'intro' => 'Two days',
+            'starts_on' => '2026-12-01',
+        ])->assertStatus(422);
+        // The fields of the type it extends, and its own
+        $this->assertSame(['venue'], array_keys($response->json('errors')));
+
+        $data = $this->postJson(self::API.'/resources/entries', [
+            'type' => 'conference',
+            'title' => 'Laracon',
+            'location' => 'Montréal',
+            'intro' => 'Two days',
+            'starts_on' => '2026-12-01',
+            'venue' => 'Palais des congrès',
+        ])->assertCreated()->json('data');
+        $this->assertSame(['Montréal', 'Two days', 'Palais des congrès'], [$data['location'], $data['intro'], $data['venue']]);
+
+        // An article has the intro, not the location; the home page neither
+        $article = $this->postJson(self::API.'/resources/entries', ['type' => 'article', 'title' => 'News', 'location' => 'Ignored', 'intro' => 'Read'])
+            ->assertCreated()
+            ->json('data');
+        $this->assertSame('Read', $article['intro']);
+        $this->assertArrayNotHasKey('location', $article);
+        $this->assertNull(Entry::query()->findOrFail($article['id'])->location);
+
+        $home = $this->createEntry('home', ['intro' => 'Not a home page field', 'location' => 'Nor this']);
+        $data = $this->patchJson(self::API.'/resources/entries/'.$home->id, ['intro' => 'Ignored'])->assertOk()->json('data');
+        $this->assertArrayNotHasKey('intro', $data);
+        $this->assertArrayNotHasKey('location', $data);
+        $this->assertSame('Not a home page field', $home->refresh()->intro);
     }
 
     public function test_an_item_asked_for_some_fields_still_has_its_type(): void
@@ -331,6 +389,26 @@ class ResourceTypesTest extends HttpTestCase
                 fn (): array => [$type('event', []), $type('event', [])],
                 'The resource "invalid" has a duplicate type id "event".',
             ],
+            'a field for a type the resource doesn\'t have' => [
+                fn (): array => [Text::make('title'), Text::make('location')->onlyForTypes('missing')],
+                fn (): array => [$type('event', [])],
+                'The field "location" of the resource "invalid" names the type "missing", which the resource doesn\'t have.',
+            ],
+            'a type field for some types' => [
+                fn (): array => [Text::make('title'), Select::make('type')->notInForm()->exceptForTypes('event')],
+                fn (): array => [$type('event', [])],
+                'The field "type" of the resource "invalid" holds the type of the item: it is for every type.',
+            ],
+            'a type field named like a field for some types' => [
+                fn (): array => [Text::make('title'), Text::make('location')->onlyForTypes('event')],
+                fn (): array => [$type('event', [Text::make('location')])],
+                'The type "event" of the resource "invalid" has a field "location": the resource has a field of that name.',
+            ],
+            'fields for some types without types' => [
+                fn (): array => [Text::make('title'), Text::make('location')->onlyForTypes('event')],
+                fn (): array => [],
+                'The resource "invalid" has fields for some types only, and no types().',
+            ],
             'a type field in forms' => [
                 fn (): array => [Text::make('title'), Select::make('type')],
                 fn (): array => [$type('event', [])],
@@ -401,6 +479,11 @@ class ResourceTypesTest extends HttpTestCase
             public function id(): string
             {
                 return 'restricted-entries';
+            }
+
+            public function fields(): array
+            {
+                return [Text::make('title')];
             }
 
             public function types(): array

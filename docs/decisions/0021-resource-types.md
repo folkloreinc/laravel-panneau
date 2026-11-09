@@ -13,6 +13,8 @@
 ## Decision
 
 - **A type is a class.** `Panneau\Resources\ResourceType` is configured by overriding methods, like a resource: `fields()`, `id()` (from the class name: `EventType` gives `event`), `label()`, `description()`, `icon()` and `canCreate(?Authenticatable $user)`. `Resource::types()` lists classes, resolved from the container, or instances. A 1.x type keeps its shape, and the Rector rules convert it.
+- **Fields for some types**, as `onlyForTypes()` and `exceptForTypes()` did in 1.x, with the same names. A field of the resource names its types by id or by class, and a class includes the types that extend it. The protocol has no such field: the backend gives it to the `fields` of those types in the definition, before their own, and leaves it out of the resource's. The app needs nothing new.
+- **Types extend types.** A type that extends another class inherits its fields with `parent::fields()`, and the rest of its methods. An abstract base holds what several types share, and a field of the resource can name it.
 - **The item's type picks its fields.** `Resource::typeOf($item)` reads the type of an item, its `type` attribute by default. Every place that reads the fields of an item reads those of its type: `toItem()`, serialization and hidden fields, validation and saving, media and relation references, slug copies, and field checks. The definition, lists and sorts read the resource's fields.
 - **The type is saved as a value.** A create gets the type of the body, checks it, and gives it to `creating()` and the repository in the values, as `type`. A resource that stores it elsewhere maps it in `creating()` and overrides `typeOf()`. An update never changes it: the `type` field is `notInForm`, so its value is ignored.
 - **The `type` field and filter are automatic.** A resource with types gets a `select` field `type` after its fields, and a `select` filter `type` first in its list, with the types as options, unless it declares them. A field `type` it declares must be `notInForm()`.
@@ -22,6 +24,7 @@
 
 ## Consequences
 
+- A field for some types comes after the resource's fields in the form of a type, wherever it is declared, unless the resource's `layout()` places it: one layout names the fields of every type (panneau-js decision 0077). A list column can't name it.
 - Shared field names across types are allowed, as the protocol allows them: the fields of an item come from its type, never from the union of the types.
 - A list column names a field of the resource only, as in the protocol: a type's field has no column.
 - An item without a type, or with a type the resource doesn't have, has the fields of the resource alone, and no `type`.

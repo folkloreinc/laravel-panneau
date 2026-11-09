@@ -104,8 +104,7 @@ class Venues extends Resource
             ]),
             Select::make('status')->options(['open' => 'Open', 'closed' => 'Closed'])->default('open'),
             Select::make('size')->options(['s', 'm', 'l']),
-            // TODO(panneau-5): 'phone' was only for some types (onlyForTypes()): move it to the fields() of those types
-            Tel::make('phone'),
+            Tel::make('phone')->onlyForTypes(['venue']),
             // TODO(panneau-5): 'code' is a Password: write-only and required to create only in 5.x. hashed(false) leaves the hashing to the repository, as in 1.x: remove it if neither the repository nor the model hashes. Not a password? Use Text
             Password::make('code')->hashed(false),
             // TODO(panneau-5): 'notes' had attributes for the JS (withAttributes()): settings(), or a JS plugin

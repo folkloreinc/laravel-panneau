@@ -353,7 +353,7 @@ final class DefinitionBuilder
         $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $fields);
         $types = $resource->resourceTypes();
         if (count($types) > 0) {
-            $definition['types'] = array_map(fn (ResourceType $type): array => $this->resourceType($type, $user), $types);
+            $definition['types'] = array_map(fn (ResourceType $type): array => $this->resourceType($resource, $type, $user), $types);
         }
 
         $layout = $resource->layout();
@@ -419,12 +419,13 @@ final class DefinitionBuilder
     }
 
     /**
-     * A type of a resource in the definition (panneau-js decision 0077), with what the user
-     * can't do: `create: false` when they can't create items of the type.
+     * A type of a resource in the definition (panneau-js decision 0077): its fields are those of
+     * the resource for that type only, then its own. With what the user can't do: `create:
+     * false` when they can't create items of the type.
      *
      * @return array<string, mixed>
      */
-    private function resourceType(ResourceType $type, ?Authenticatable $user): array
+    private function resourceType(Resource $resource, ResourceType $type, ?Authenticatable $user): array
     {
         $definition = ['id' => $type->id(), 'label' => $type->label()];
         foreach (['description' => $type->description(), 'icon' => $type->icon()] as $key => $value) {
@@ -432,7 +433,7 @@ final class DefinitionBuilder
                 $definition[$key] = $value;
             }
         }
-        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $type->fields());
+        $definition['fields'] = array_map(fn (Field $field): array => $this->field($field, $user), $resource->fieldsOfType($type));
         if (! $type->canCreate($user)) {
             $definition['abilities'] = ['create' => false];
         }

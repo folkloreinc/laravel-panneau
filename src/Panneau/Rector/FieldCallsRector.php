@@ -101,10 +101,9 @@ final class FieldCallsRector extends AbstractRector
         'showInForm' => [null],
         'hideInForm' => [null, '%s was hidden from the form (hideInForm()): 5.x has no field that shows in lists only'],
         'withFields' => ['fields'],
-        'onlyForTypes' => [null, '%s was only for some types (onlyForTypes()): move it to the fields() of those types'],
-        'exceptForTypes' => [null, '%s was not for some types (exceptForTypes()): move it to the fields() of the other types'],
-        'onlyTypes' => [null, '%s was only for some types (onlyTypes()): move it to the fields() of those types'],
-        'exceptTypes' => [null, '%s was not for some types (exceptTypes()): move it to the fields() of the other types'],
+        // onlyForTypes() and exceptForTypes() are 5.x methods, with the same ids
+        'onlyTypes' => [null, '%s was only for some types (onlyTypes()): onlyForTypes()'],
+        'exceptTypes' => [null, '%s was not for some types (exceptTypes()): exceptForTypes()'],
         'withDefaultValue' => ['default'],
         'withOptions' => ['options'],
         'withRules' => ['rules'],

@@ -64,7 +64,10 @@ return new class extends Migration
             $table->id();
             $table->string('type')->nullable();
             $table->string('title');
+            $table->string('location')->nullable();
+            $table->text('intro')->nullable();
             $table->date('starts_on')->nullable();
+            $table->string('venue')->nullable();
             $table->string('slug')->nullable();
             $table->text('summary')->nullable();
             $table->foreignId('author_id')->nullable();
