@@ -21,9 +21,9 @@ jobs:
         name: Pint and Larastan
         runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
-            - uses: shivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
               with:
                   php-version: '8.4'
                   coverage: none
@@ -32,7 +32,7 @@ jobs:
               run: composer validate --strict
 
             - name: Cache Composer downloads
-              uses: actions/cache@v4
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               with:
                   path: ~/.cache/composer/files
                   key: composer-${{ runner.os }}-lint-${{ hashFiles('composer.json') }}
@@ -56,15 +56,15 @@ jobs:
                 php: ['8.3', '8.4', '8.5']
                 laravel: ['12.*', '13.*']
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
-            - uses: shivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
               with:
                   php-version: ${{ matrix.php }}
                   coverage: none
 
             - name: Cache Composer downloads
-              uses: actions/cache@v4
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               with:
                   path: ~/.cache/composer/files
                   key: composer-${{ runner.os }}-${{ matrix.php }}-${{ matrix.laravel }}-${{ hashFiles('composer.json') }}
@@ -88,15 +88,15 @@ jobs:
         name: Protocol conformance
         runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
-            - uses: shivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
               with:
                   php-version: '8.4'
                   coverage: none
 
             - name: Cache Composer downloads
-              uses: actions/cache@v4
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               with:
                   path: ~/.cache/composer/files
                   key: composer-${{ runner.os }}-conformance-${{ hashFiles('composer.json') }}
@@ -111,14 +111,14 @@ jobs:
               run: echo "ref=$(cat tests/protocol/VERSION)" >> "$GITHUB_OUTPUT"
 
             - name: Check out @panneau/protocol
-              uses: actions/checkout@v5
+              uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
               with:
                   repository: folkloreinc/panneau-js
                   ref: ${{ steps.protocol.outputs.ref }}
                   path: build/panneau-js
                   sparse-checkout: packages/protocol
 
-            - uses: actions/setup-node@v5
+            - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
               with:
                   node-version: 24
 
