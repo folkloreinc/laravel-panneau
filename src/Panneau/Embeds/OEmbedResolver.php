@@ -109,6 +109,10 @@ final class OEmbedResolver implements EmbedResolver
             'html' => $string('html'),
             'width' => $number('width'),
             'height' => $number('height'),
+            // In seconds, when the provider says (Vimeo's oEmbed does)
+            'duration' => is_int($data['duration'] ?? null) || is_float($data['duration'] ?? null)
+                ? ($data['duration'] >= 0 ? $data['duration'] : null)
+                : null,
         ], fn (mixed $value): bool => $value !== null);
     }
 }
