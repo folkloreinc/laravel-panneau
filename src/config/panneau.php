@@ -238,6 +238,17 @@ return [
                 'endpoint' => 'https://vimeo.com/api/oembed.json',
             ],
             [
+                'name' => 'Dailymotion',
+                'schemes' => ['https://www.dailymotion.com/video/*', 'https://dailymotion.com/video/*', 'https://dai.ly/*'],
+                'endpoint' => 'https://www.dailymotion.com/services/oembed',
+            ],
+            [
+                'name' => 'TikTok',
+                'schemes' => ['https://www.tiktok.com/@*/video/*', 'https://tiktok.com/@*/video/*'],
+                'endpoint' => 'https://www.tiktok.com/oembed',
+                'type' => 'video',
+            ],
+            [
                 'name' => 'SoundCloud',
                 'schemes' => ['https://soundcloud.com/*', 'https://on.soundcloud.com/*'],
                 'endpoint' => 'https://soundcloud.com/oembed',
