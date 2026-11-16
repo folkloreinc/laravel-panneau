@@ -6,7 +6,11 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
-Needs `@panneau/*` with resource types (panneau-js decision 0077) to create items of a resource with types: earlier versions don't send the type, which the API now requires.
+## [5.0.0-alpha.17] - 2026-11-16
+
+Goes with `@panneau/*` `5.0.0-alpha.29`, which it needs: resource types (panneau-js decision 0077) are new in that release, and earlier versions don't send the `type` that creating an item of a resource with types now requires.
+
+Resource types, and the upgrade from 1.x converts them; the duration of embeds.
 
 ### Added
 
@@ -313,7 +317,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.16...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.17...v5.x
+[5.0.0-alpha.17]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.17
 [5.0.0-alpha.16]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.16
 [5.0.0-alpha.15]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.15
 [5.0.0-alpha.14]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.14
