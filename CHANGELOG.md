@@ -6,9 +6,16 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+Goes with the next `@panneau/*` (decision 0082). The definition now always writes `open`: earlier `@panneau/*` versions read it too, so items open in their form with them as well.
+
 ### Added
 
-- The languages of the interface, with a switcher in the app (#217, panneau-js decision 0082): `panneau.interface_locales` lists them, by locale with their names (`['fr' => 'Français', 'en' => 'English']`), or as locales named by the intl extension. With two or more, the definition has `interfaceLocales`, `GET {api}/locale/{locale}?next=…` keeps the choice in the session and goes back to the app, and Panneau's routes are in the language chosen. `@panneau/*` with the switcher shows it in the sidebar, the dock and "Go to…"; earlier versions ignore it.
+- The languages of the interface, with a switcher in the app (#217, panneau-js decision 0083): `panneau.interface_locales` lists them, by locale with their names (`['fr' => 'Français', 'en' => 'English']`), or as locales named by the intl extension. With two or more, the definition has `interfaceLocales`, `GET {api}/locale/{locale}?next=…` keeps the choice in the session and goes back to the app, and Panneau's routes are in the language chosen. `@panneau/*` with the switcher shows it in the sidebar, the dock and "Go to…"; earlier versions ignore it.
+
+### Changed
+
+- **Items open in their form by default** (#216, panneau-js decision 0082): `Resource::open()` returns `'edit'` instead of `'panel'`. The title of an item opens its form, its show route redirects there, and rows show "Edit" without "View"; an item the user can't update still opens in its panel. **To keep the panel** on a resource (items read more than edited, or shown with their preview), override `open()` to return `'panel'`. The definition always writes `open`, also when it is the default.
+- The upgrade tools (`ResourceIndexRector`, `panneau:install --upgrade --check`) no longer suggest `open(): 'edit'` for a 1.x list without a show button: it is the default.
 
 ## [5.0.0-alpha.19] - 2026-11-17
 

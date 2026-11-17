@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * `GET /locale/{locale}`: switches the interface to a language of `panneau.interface_locales`
- * (panneau-js decision 0082), for the session, then goes to `next`, a local path under the path
+ * (panneau-js decision 0083), for the session, then goes to `next`, a local path under the path
  * of the app, or to the app.
  *
  * @internal

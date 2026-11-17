@@ -1054,7 +1054,7 @@ class UpgradeCommandTest extends TestCase
         $this->assertNotNull($index);
         // Without show, the resource may open its items in their form
         $this->assertSame(
-            "itemActions(): ['edit', 'delete'], by the abilities of the policy; no show: open() can return 'edit'",
+            "itemActions(): ['edit', 'delete'], by the abilities of the policy",
             $index->detail('column actions: create, edit, delete')?->target,
         );
         // The buttons on the column of a field leave the column

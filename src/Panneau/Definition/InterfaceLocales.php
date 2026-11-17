@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 use Locale;
 
 /**
- * The languages of the interface of `panneau.interface_locales` (panneau-js decision 0082), that
+ * The languages of the interface of `panneau.interface_locales` (panneau-js decision 0083), that
  * the user switches to with `GET {api}/locale/{locale}`. The choice is kept in the session, and
  * applies to Panneau's routes.
  *

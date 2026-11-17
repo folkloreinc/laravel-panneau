@@ -42,7 +42,6 @@ class Orders extends Resource
         return \App\Repositories\Orders::class;
     }
 
-    // TODO(panneau-5): the 1.x list had no show button: if the panel of an item adds nothing to its form, open it in its form with open(): 'edit'
     public function itemActions(): array
     {
         return ['edit', 'delete'];

@@ -6,7 +6,7 @@ use Illuminate\Routing\RouteCollection;
 use Panneau\Support\Facade as Panneau;
 
 /**
- * The language switcher of the interface (panneau-js decision 0082): the languages of
+ * The language switcher of the interface (panneau-js decision 0083): the languages of
  * `panneau.interface_locales` in the definition, and `GET /locale/{locale}`, which keeps the
  * choice in the session for Panneau's routes.
  */

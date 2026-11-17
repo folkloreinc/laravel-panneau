@@ -166,9 +166,6 @@ final class ResourceIndexRector extends AbstractRector
         } elseif ($writesButtons) {
             Todo::add($itemActions, ['the 1.x list showed these buttons in its rows: '.($buttons === [] ? 'none' : implode(', ', $buttons))]);
         }
-        if ($itemActions !== null && $buttons !== [] && ! in_array('show', $buttons, true)) {
-            Todo::add($itemActions, ["the 1.x list had no show button: if the panel of an item adds nothing to its form, open it in its form with open(): 'edit'"]);
-        }
 
         if ($duplicates) {
             // Only the resource knows what a copy includes
