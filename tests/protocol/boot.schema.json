@@ -1593,6 +1593,15 @@
                 "external": {
                     "type": "boolean"
                 },
+                "collapsible": {
+                    "type": "boolean"
+                },
+                "collapsed": {
+                    "type": "boolean"
+                },
+                "emphasis": {
+                    "type": "boolean"
+                },
                 "children": {
                     "type": "array",
                     "items": {

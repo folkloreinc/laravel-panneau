@@ -5117,6 +5117,18 @@
                     "external": {
                         "type": "boolean"
                     },
+                    "collapsible": {
+                        "description": "`group` with a `label`: the user shows or hides its links, and the browser remembers it (decision 0079).",
+                        "type": "boolean"
+                    },
+                    "collapsed": {
+                        "description": "`group`: collapsible, and closed until the user opens it, unless it holds the current page.",
+                        "type": "boolean"
+                    },
+                    "emphasis": {
+                        "description": "`resource`, `page` or `link`: its label is bold, for the main entries.",
+                        "type": "boolean"
+                    },
                     "children": {
                         "type": "array",
                         "items": {

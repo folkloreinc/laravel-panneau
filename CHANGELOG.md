@@ -6,9 +6,15 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.19] - 2026-11-17
+
+Goes with `@panneau/*` `5.0.0-alpha.33`, which reads collapsible groups and emphasized entries; earlier versions ignore them, and show the menus as before.
+
+Collapsible groups and emphasized entries in menus.
+
 ### Added
 
-- Collapsible groups and emphasized entries in menus (panneau-js decision 0079): `MenuItem::group(...)->collapsible()` and `->collapsed()`, and `->emphasis()` on a `resource`, `page` or `link`. They need the `@panneau/*` version that reads them; earlier ones ignore them.
+- Collapsible groups and emphasized entries in menus (#211, panneau-js decision 0079): `MenuItem::group(...)->collapsible()` and `->collapsed()`, and `->emphasis()` on a `resource`, `page` or `link`. `@panneau/*` `5.0.0-alpha.33` shows them; earlier versions ignore them.
 
 ## [5.0.0-alpha.18] - 2026-11-17
 
@@ -331,7 +337,9 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.17...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.19...v5.x
+[5.0.0-alpha.19]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.19
+[5.0.0-alpha.18]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.18
 [5.0.0-alpha.17]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.17
 [5.0.0-alpha.16]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.16
 [5.0.0-alpha.15]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.15
