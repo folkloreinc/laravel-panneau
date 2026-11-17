@@ -99,6 +99,54 @@ class NavigationBuildersTest extends TestCase
         ], $group->toDefinition());
     }
 
+    public function test_a_collapsible_group_and_emphasized_entries(): void
+    {
+        $this->assertSame([
+            'type' => 'group',
+            'label' => 'Logs',
+            'collapsible' => true,
+            'children' => [
+                ['type' => 'resource', 'resource' => 'posts', 'emphasis' => true],
+                ['type' => 'page', 'page' => 'reports', 'emphasis' => true],
+                ['type' => 'link', 'url' => '/', 'label' => 'Site', 'emphasis' => true],
+            ],
+        ], MenuItem::group('Logs', [
+            MenuItem::resource('posts')->emphasis(),
+            MenuItem::page('reports')->emphasis(),
+            MenuItem::link('Site', '/')->emphasis(),
+        ])->collapsible()->toDefinition());
+
+        // Collapsed is collapsible, and both are left out when false
+        $this->assertSame(
+            ['type' => 'group', 'label' => 'Logs', 'collapsible' => true, 'collapsed' => true, 'children' => []],
+            MenuItem::group('Logs', [])->collapsed()->toDefinition(),
+        );
+        $this->assertSame(
+            ['type' => 'group', 'label' => 'Logs', 'children' => []],
+            MenuItem::group('Logs', [])->collapsible(false)->collapsed(false)->toDefinition(),
+        );
+        $this->assertSame(
+            ['type' => 'resource', 'resource' => 'posts'],
+            MenuItem::resource('posts')->emphasis(false)->toDefinition(),
+        );
+    }
+
+    public function test_only_a_group_collapses(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A menu item of type "resource" can\'t be collapsible.');
+
+        MenuItem::resource('posts')->collapsible();
+    }
+
+    public function test_a_group_is_not_emphasized(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A menu item of type "group" can\'t be emphasized.');
+
+        MenuItem::group('Logs', [])->emphasis();
+    }
+
     public function test_an_item_of_a_plugin(): void
     {
         $this->assertSame(

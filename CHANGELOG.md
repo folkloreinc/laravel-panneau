@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Collapsible groups and emphasized entries in menus (panneau-js decision 0079): `MenuItem::group(...)->collapsible()` and `->collapsed()`, and `->emphasis()` on a `resource`, `page` or `link`. They need the `@panneau/*` version that reads them; earlier ones ignore them.
+
 ## [5.0.0-alpha.18] - 2026-11-17
 
 Goes with `@panneau/*` `5.0.0-alpha.32`: earlier versions read the `null` `user.resource` of a user outside the resource `users` as `users`, and keep the profile link that isn't found.
