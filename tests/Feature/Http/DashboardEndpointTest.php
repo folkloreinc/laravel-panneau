@@ -41,6 +41,13 @@ class DashboardEndpointTest extends HttpTestCase
                 'empty' => 'No open contests.',
             ]),
             Widget::make('map', 'map')->using(fn (): array => []),
+            Widget::breakdown('states')->using(fn (): array => [
+                'items' => [['label' => 'Open', 'value' => 3, 'tone' => 'success', 'url' => '/contests?state=open'], ['label' => 'Closed', 'value' => 1]],
+                'total' => 5,
+                'other' => 1,
+            ]),
+            Widget::breakdown('wrong-parts')->using(fn (): array => ['items' => [['value' => 'x']]]),
+            Widget::stat('budget')->using(fn (): array => ['value' => 120, 'target' => 100, 'tone' => 'danger']),
             Widget::stat('cached')->cache(60)->using(function (?Authenticatable $user): array {
                 $this->calls++;
 
@@ -204,5 +211,24 @@ class DashboardEndpointTest extends HttpTestCase
         // The widget of the same id on the home page
         $this->getJson(self::API.'/dashboard/widgets/cached')->assertJsonPath('value', 2);
         $this->getJson(self::API.'/dashboard/widgets/cached?page=activity')->assertJsonPath('value', 1);
+    }
+
+    public function test_a_breakdown_and_a_stat_with_a_target_of_their_own(): void
+    {
+        $this->getJson(self::API.'/dashboard/widgets/states')
+            ->assertOk()
+            ->assertJsonPath('items.0.tone', 'success')
+            ->assertJsonPath('other', 1);
+        $this->getJson(self::API.'/dashboard/widgets/budget')->assertOk()->assertJsonPath('target', 100);
+    }
+
+    public function test_a_breakdown_in_the_wrong_shape_is_a_500(): void
+    {
+        Exceptions::fake();
+        $this->app['config']->set('app.debug', false);
+
+        $this->getJson(self::API.'/dashboard/widgets/wrong-parts')->assertStatus(500);
+
+        Exceptions::assertReported(fn (WidgetDataException $exception): bool => $exception->keys === ['items.0.label', 'items.0.value']);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Contracts\Foundation\Application;
 use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Actions\DeleteAction;
+use Panneau\Aggregates\ResourceAggregates;
 use Panneau\Auth\Authorizer;
 use Panneau\Context\ContextResolver;
 use Panneau\Contracts\ActionDeclaration;
@@ -52,6 +53,7 @@ final class DefinitionBuilder
         private readonly ContextResolver $context,
         private readonly Dashboard $dashboard,
         private readonly InterfaceLocales $interfaceLocales,
+        private readonly ResourceAggregates $aggregates,
     ) {}
 
     /**
@@ -427,6 +429,11 @@ final class DefinitionBuilder
         $list['columns'] ??= $this->defaultColumns($resource);
         if (isset($list['filters']) && is_array($list['filters'])) {
             $list['filters'] = array_map(fn (array $filter): array => $this->resolveResource($filter), $list['filters']);
+        }
+        // What the user can aggregate (panneau-js decision 0084): without the fields they can't see
+        $aggregates = $this->aggregates->definition($resource, $user);
+        if ($aggregates !== null) {
+            $list['aggregates'] = $aggregates;
         }
         $definition['list'] = $list;
 

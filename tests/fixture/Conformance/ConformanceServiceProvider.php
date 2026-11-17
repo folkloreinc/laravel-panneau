@@ -16,13 +16,16 @@ use TestApp\Dashboard\OverdueWidget;
 use TestApp\Models\Asset;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
+use TestApp\Models\Run;
 use TestApp\Models\User;
 use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\ImagesResource;
+use TestApp\Panneau\Resources\RunsResource;
 use TestApp\Panneau\Resources\TagsResource;
 use TestApp\Policies\AssetPolicy;
 use TestApp\Policies\AuthorPolicy;
 use TestApp\Policies\PostPolicy;
+use TestApp\Policies\RunPolicy;
 
 /**
  * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
@@ -84,8 +87,11 @@ class ConformanceServiceProvider extends ServiceProvider
         Gate::policy(Post::class, PostPolicy::class);
         Gate::policy(Author::class, AuthorPolicy::class);
         Gate::policy(Asset::class, AssetPolicy::class);
+        Gate::policy(Run::class, RunPolicy::class);
 
-        Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class]);
+        // The runs: a log with aggregates (panneau-js decision 0084), which the kit counts, sums
+        // and groups
+        Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class, RunsResource::class]);
         Panneau::pages([
             Page::make('reports', 'reports')->label('Reports'),
             // A dashboard page (panneau-js decision 0084): the kit asks for its widgets with `?page=`
@@ -105,6 +111,14 @@ class ConformanceServiceProvider extends ServiceProvider
             Widget::stat('drafts')->label('Drafts')->resource(ConformancePostsResource::class, ['filter[status]' => 'draft']),
             Widget::list('latest')->label('Latest posts')->resource(ConformancePostsResource::class, ['sort' => '-published_at']),
             Widget::stat('overdue')->label('Overdue')->using(OverdueWidget::class),
+            // On the aggregates of a resource: the kit reads them with the query of each widget
+            Widget::series('runs-per-day')->label('Runs per day')->resource(RunsResource::class)->per('day', 'ran_at'),
+            Widget::breakdown('runs-by-status')->label('Runs by status')->resource(RunsResource::class)->by('status'),
+            Widget::stat('runs-cost')->label('Cost')->resource(RunsResource::class)->sum('amount')->target(100000),
+            Widget::breakdown('contests-by-state')->label('Contests by state')->using(fn (): array => [
+                'items' => [['label' => 'Open', 'value' => 3, 'tone' => 'success'], ['label' => 'Closed', 'value' => 1]],
+                'total' => 4,
+            ]),
             Widget::series('per-day')->label('Posts per day')->cache(60)->using(fn (): array => [
                 'period' => 'day',
                 'points' => [['date' => '2026-10-05', 'value' => 4], ['date' => '2026-10-06', 'value' => 8]],

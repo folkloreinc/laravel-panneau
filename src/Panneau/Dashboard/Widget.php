@@ -5,25 +5,36 @@ namespace Panneau\Dashboard;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
+use Panneau\Aggregates\Group;
+use Panneau\Aggregates\Interval;
+use Panneau\Aggregates\Measure;
 use Panneau\Contracts\WidgetData;
 
 /**
- * A widget of the dashboard of the home page (panneau-js decision 0064): a `stat`, a `series` or
- * a `list`, or a type that a JS plugin draws. A `stat` or a `list` can read the list of a
- * resource (`resource()`); the others get their data from a class or a closure (`using()`),
- * which the app asks for at `GET {path}/api/dashboard/widgets/{id}`.
+ * A widget of a dashboard (panneau-js decisions 0064 and 0084): a `stat`, a `series`, a `list` or
+ * a `breakdown`, or a type that a JS plugin draws. The built-in types can read a resource
+ * (`resource()`): a `stat` counts its list, a `list` shows its first items, and a `series`, a
+ * `breakdown` and a `stat` that sums read its aggregates (`per()`, `by()`, `sum()`). The others
+ * get their data from a class or a closure (`using()`), which the app asks for at
+ * `GET {path}/api/dashboard/widgets/{id}`.
  */
 final class Widget
 {
     /**
      * The types that the app draws.
      */
-    public const BUILT_IN_TYPES = ['stat', 'series', 'list'];
+    public const BUILT_IN_TYPES = ['stat', 'series', 'list', 'breakdown'];
 
     /**
-     * The built-in types that can read the list of a resource.
+     * The built-in types that can read a resource: `stat` and `list` its list, `series` and
+     * `breakdown` its aggregates, and a `stat` that sums too.
      */
-    public const RESOURCE_TYPES = ['stat', 'list'];
+    public const RESOURCE_TYPES = ['stat', 'series', 'list', 'breakdown'];
+
+    /**
+     * The built-in types that read the aggregates of a resource grouped by `per()` or `by()`.
+     */
+    public const GROUPED_TYPES = ['series', 'breakdown'];
 
     /**
      * The periods of the points of a `series`.
@@ -34,6 +45,11 @@ final class Widget
      * The most items a `list` shows.
      */
     public const LIST_MAX_ITEMS = 5;
+
+    /**
+     * The most parts a `breakdown` shows: the rest is its `other`.
+     */
+    public const BREAKDOWN_MAX_ITEMS = 10;
 
     /**
      * Query parameters that the app sets on the list of a widget on a resource.
@@ -55,6 +71,12 @@ final class Widget
      * @var array<string, scalar|list<scalar>>
      */
     private array $query = [];
+
+    private ?Measure $measure = null;
+
+    private ?Group $group = null;
+
+    private int|float|null $target = null;
 
     /**
      * @var class-string<WidgetData>|Closure|null
@@ -88,11 +110,21 @@ final class Widget
     }
 
     /**
-     * A line of values per day, week or month, with its total. Always data of its own.
+     * A line of values per day, week or month, with its total: the aggregates of a resource
+     * (`resource()->per('day', 'created_at')`), or data of its own.
      */
     public static function series(string $id): self
     {
         return new self($id, 'series');
+    }
+
+    /**
+     * The parts of a total, as horizontal bars, the largest first: the aggregates of a resource
+     * by the values of a field (`resource()->by('status')`), or data of its own.
+     */
+    public static function breakdown(string $id): self
+    {
+        return new self($id, 'breakdown');
     }
 
     /**
@@ -170,7 +202,7 @@ final class Widget
     public function resource(string $resource, array $query = []): self
     {
         if (! in_array($this->type, self::RESOURCE_TYPES, true)) {
-            throw new InvalidArgumentException(sprintf('The %s "%s" can\'t read a resource: only a stat and a list can. Give it data with using().', $this->type, $this->id));
+            throw new InvalidArgumentException(sprintf('The %s "%s" can\'t read a resource: only a stat, a series, a list and a breakdown can. Give it data with using().', $this->type, $this->id));
         }
         if ($this->using !== null) {
             throw new InvalidArgumentException(sprintf('The widget "%s" has data of its own (using()): it can\'t also read a resource.', $this->id));
@@ -193,6 +225,81 @@ final class Widget
         }
         $this->resource = $resource;
         $this->query = $checked;
+
+        return $this;
+    }
+
+    /**
+     * Counts the items of the resource: a `stat` reads the total of its list, a `series` and a
+     * `breakdown` count the items of each period or part. The default.
+     */
+    public function count(): self
+    {
+        $this->checkAggregates('count()');
+        $this->measure = Measure::count();
+
+        return $this;
+    }
+
+    /**
+     * Sums a field of the items of the resource, among the `sum` of the aggregates of its list:
+     * the sum of all of them for a `stat`, of each period or part for a `series` and a
+     * `breakdown`. A sum of `money` is in minor units, shown in its currency.
+     */
+    public function sum(string $field): self
+    {
+        $this->checkAggregates('sum()');
+        $this->measure = Measure::sum($field);
+
+        return $this;
+    }
+
+    /**
+     * The periods of the points of a `series` on a resource: the days, weeks (from Monday) or
+     * months of a date field, among the `dates` of the aggregates of its list.
+     */
+    public function per(Interval|string $period, string $field): self
+    {
+        if ($this->type !== 'series') {
+            throw new InvalidArgumentException(sprintf('The %s "%s" has no periods: only a series does.', $this->type, $this->id));
+        }
+        if (! $period instanceof Interval && Interval::tryFrom($period) === null) {
+            throw new InvalidArgumentException(sprintf('The series "%s" is per %s: periods are day, week or month.', $this->id, json_encode($period)));
+        }
+        $this->group = Group::period($period, $field);
+
+        return $this;
+    }
+
+    /**
+     * The field whose values are the parts of a `breakdown` on a resource, among the `groupBy`
+     * of the aggregates of its list. A `select` gives the labels and the tones of its options, a
+     * `relation` the titles of its items, and each bar links to the list filtered by its value.
+     */
+    public function by(string $field): self
+    {
+        if ($this->type !== 'breakdown') {
+            throw new InvalidArgumentException(sprintf('The %s "%s" has no parts: only a breakdown does.', $this->type, $this->id));
+        }
+        $this->group = Group::field($field);
+
+        return $this;
+    }
+
+    /**
+     * A target for the number of a `stat` on a resource (a budget, a quota), drawn as a meter
+     * under it, in the unit of its value (minor units for a sum of `money`). Past it, the meter
+     * is `danger`.
+     */
+    public function target(int|float $target): self
+    {
+        if ($this->type !== 'stat') {
+            throw new InvalidArgumentException(sprintf('The %s "%s" has no target: only a stat does.', $this->type, $this->id));
+        }
+        if ($target <= 0) {
+            throw new InvalidArgumentException(sprintf('The stat "%s" has the target %s: targets are above 0.', $this->id, json_encode($target)));
+        }
+        $this->target = $target;
 
         return $this;
     }
@@ -265,6 +372,42 @@ final class Widget
     }
 
     /**
+     * @internal Read by `Dashboard`: what the widget measures of the aggregates of its resource.
+     */
+    public function getMeasure(): ?Measure
+    {
+        return $this->measure;
+    }
+
+    /**
+     * @internal Read by `Dashboard`: how the widget groups the aggregates of its resource.
+     */
+    public function getGroup(): ?Group
+    {
+        return $this->group;
+    }
+
+    /**
+     * @internal Read by `Dashboard`.
+     */
+    public function getTarget(): int|float|null
+    {
+        return $this->target;
+    }
+
+    /**
+     * Whether the widget reads the aggregates of its resource, rather than its list: a `series`,
+     * a `breakdown`, and a `stat` that sums.
+     *
+     * @internal Read by `Dashboard`.
+     */
+    public function readsAggregates(): bool
+    {
+        return in_array($this->type, self::GROUPED_TYPES, true)
+            || ($this->type === 'stat' && $this->measure !== null && ! $this->measure->isCount());
+    }
+
+    /**
      * @internal Read by `Dashboard`.
      *
      * @return class-string<WidgetData>|Closure|null
@@ -293,6 +436,16 @@ final class Widget
     }
 
     /**
+     * Throws for a widget that doesn't read aggregates: a `list`, or a widget of a plugin.
+     */
+    private function checkAggregates(string $method): void
+    {
+        if (! in_array($this->type, ['stat', ...self::GROUPED_TYPES], true)) {
+            throw new InvalidArgumentException(sprintf('The %s "%s" can\'t have %s: only a stat, a series and a breakdown measure a resource.', $this->type, $this->id, $method));
+        }
+    }
+
+    /**
      * The widget in the definition, with the id of its resource.
      *
      * @internal Built by `Dashboard`, which checks the resource.
@@ -302,7 +455,13 @@ final class Widget
     public function toDefinition(?string $resource = null): array
     {
         $settings = $resource !== null
-            ? array_filter(['resource' => $resource, 'query' => $this->query !== [] ? $this->query : null], fn (mixed $value): bool => $value !== null)
+            ? array_filter([
+                'resource' => $resource,
+                'query' => $this->query !== [] ? $this->query : null,
+                'measure' => $this->measure?->toParameter(),
+                'group' => $this->group?->toParameter(),
+                'target' => $this->target,
+            ], fn (mixed $value): bool => $value !== null)
             : $this->settings;
 
         return array_filter([

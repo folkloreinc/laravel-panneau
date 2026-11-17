@@ -9,6 +9,7 @@ use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use LogicException;
+use Panneau\Aggregates\ResourceAggregates;
 use Panneau\Context\Context;
 use Panneau\Contracts\WidgetData;
 use Panneau\Exceptions\WidgetDataException;
@@ -42,6 +43,7 @@ final class Dashboard
         private readonly ResourceRegistry $resources,
         private readonly Cache $cache,
         private readonly Navigation $navigation,
+        private readonly ResourceAggregates $aggregates,
     ) {}
 
     /**
@@ -103,7 +105,7 @@ final class Dashboard
             }
             $widgets = $this->widgets($user, $id, $pages);
             if ($widgets !== null) {
-                $definitions[$id] = $this->definitionOf($widgets);
+                $definitions[$id] = $this->definitionOf($user, $widgets);
             }
         }
 
@@ -128,31 +130,60 @@ final class Dashboard
             return [];
         }
 
-        return $this->definitionOf($this->widgets($user, self::HOME, $pages) ?? []);
+        return $this->definitionOf($user, $this->widgets($user, self::HOME, $pages) ?? []);
     }
 
     /**
      * Widgets in the definition. Checked when it is built: a widget without data, on a resource
-     * that isn't registered, with a filter its list doesn't have, or a stat on a list paged with
-     * cursors, which has no total, throws a `LogicException`.
+     * that isn't registered, with a filter its list doesn't have, a stat that counts a list paged
+     * with cursors, which has no total, or that measures or groups by what the aggregates of the
+     * list don't declare, throws a `LogicException`. A widget on aggregates of fields the user
+     * can't see is left out for them.
      *
      * @param  list<Widget>  $widgets
      * @return list<array<string, mixed>>
      */
-    private function definitionOf(array $widgets): array
+    private function definitionOf(?Authenticatable $user, array $widgets): array
     {
-        return array_map(function (Widget $widget): array {
+        $definitions = [];
+        foreach ($widgets as $widget) {
             $name = $widget->getResource();
             if ($name === null) {
                 if ($widget->getData() === null) {
                     throw new LogicException(sprintf('The widget "%s" has no data: give it a resource() or using().', $widget->id()));
                 }
+                if ($widget->getMeasure() !== null || $widget->getGroup() !== null || $widget->getTarget() !== null) {
+                    throw new LogicException(sprintf('The widget "%s" measures a resource (count(), sum(), per(), by() or target()) without one: give it a resource().', $widget->id()));
+                }
+                $definitions[] = $widget->toDefinition();
 
-                return $widget->toDefinition();
+                continue;
             }
+            $resource = $this->checkedResource($widget, $name);
+            if ($this->aggregatesHidden($widget, $resource, $user)) {
+                continue;
+            }
+            $definitions[] = $widget->toDefinition($resource->id());
+        }
 
-            return $widget->toDefinition($this->checkedResource($widget, $name)->id());
-        }, $widgets);
+        return $definitions;
+    }
+
+    /**
+     * Whether a widget on the aggregates of a resource reads a field the user can't see.
+     */
+    private function aggregatesHidden(Widget $widget, Resource $resource, ?Authenticatable $user): bool
+    {
+        if (! $widget->readsAggregates()) {
+            return false;
+        }
+        $aggregates = $this->aggregates->forUser($resource, $user);
+        $sum = $widget->getMeasure()?->field;
+        $group = $widget->getGroup();
+
+        return $aggregates === null
+            || ($sum !== null && ! in_array($sum, $aggregates['sum'], true))
+            || ($group !== null && ! in_array($group->field, $group->isPeriod() ? $aggregates['dates'] : $aggregates['groupBy'], true));
     }
 
     /**
@@ -303,7 +334,9 @@ final class Dashboard
         if ($resource === null) {
             throw new LogicException(sprintf('The widget "%s" reads the resource %s, which is not registered.', $widget->id(), $name));
         }
-        if ($widget->type() === 'stat' && $this->resources->cursorPaginated($resource)) {
+        if ($widget->readsAggregates()) {
+            $this->checkAggregates($widget, $resource);
+        } elseif ($widget->type() === 'stat' && $this->resources->cursorPaginated($resource)) {
             throw new LogicException(sprintf('The stat "%s" counts the list of "%s", which is paged with cursors and has no total.', $widget->id(), $resource->id()));
         }
         $filters = array_map(fn (Filter $filter): string => $filter->id(), $this->resources->list($resource)->getFilters());
@@ -314,6 +347,40 @@ final class Dashboard
         }
 
         return $resource;
+    }
+
+    /**
+     * Checks what a widget reads of the aggregates of a resource (panneau-js decision 0084): a
+     * `series` by the period of one of their `dates`, a `breakdown` by one of their `groupBy`,
+     * and a sum of one of their `sum`.
+     */
+    private function checkAggregates(Widget $widget, Resource $resource): void
+    {
+        $aggregates = $this->aggregates->declared($resource);
+        if ($aggregates === null) {
+            throw new LogicException(sprintf('The %s "%s" reads the aggregates of "%s", whose list declares none: add aggregates() to its list.', $widget->type(), $widget->id(), $resource->id()));
+        }
+        $sum = $widget->getMeasure()?->field;
+        if ($sum !== null && ! in_array($sum, $aggregates['sum'], true)) {
+            throw new LogicException(sprintf('The %s "%s" sums "%s" of "%s", which isn\'t in the sum of the aggregates of its list.', $widget->type(), $widget->id(), $sum, $resource->id()));
+        }
+        $group = $widget->getGroup();
+        if ($widget->type() === 'series') {
+            if ($group === null || ! $group->isPeriod()) {
+                throw new LogicException(sprintf('The series "%s" on "%s" needs per(): the days, weeks or months of a date.', $widget->id(), $resource->id()));
+            }
+            if (! in_array($group->field, $aggregates['dates'], true)) {
+                throw new LogicException(sprintf('The series "%s" groups "%s" by "%s", which isn\'t in the dates of the aggregates of its list.', $widget->id(), $resource->id(), $group->field));
+            }
+        }
+        if ($widget->type() === 'breakdown') {
+            if ($group === null) {
+                throw new LogicException(sprintf('The breakdown "%s" on "%s" needs by(): the field whose values are its parts.', $widget->id(), $resource->id()));
+            }
+            if (! in_array($group->field, $aggregates['groupBy'], true)) {
+                throw new LogicException(sprintf('The breakdown "%s" groups "%s" by "%s", which isn\'t in the groupBy of the aggregates of its list.', $widget->id(), $resource->id(), $group->field));
+            }
+        }
     }
 
     /**

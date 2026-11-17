@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Panneau\Dashboard\Dashboard;
 use Panneau\Dashboard\WidgetRequest;
+use Panneau\Http\Controllers\Concerns\ReadsRouteParameters;
 use Panneau\Http\Problem;
 use stdClass;
 
@@ -20,10 +21,13 @@ use stdClass;
  */
 final class DashboardWidgetController
 {
+    use ReadsRouteParameters;
+
     public function __construct(private readonly Dashboard $dashboard) {}
 
-    public function __invoke(Request $request, string $widget): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
+        $widget = $this->routeParameter($request, 'widget');
         $user = $request->user();
         // An empty value is null after the middleware that converts empty strings
         $page = $request->query->has('page') ? $request->query('page') : Dashboard::HOME;

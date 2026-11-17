@@ -119,7 +119,8 @@ interface Panneau
      *
      * @param  list<string>|null  $resources  The ids of the resources, or null for all of them.
      * @param  list<string>|null  $only  The routes among `index`, `store`, `show`, `update`,
-     *                                   `destroy` and `actions`, or null for all of them.
+     *                                   `destroy`, `duplicate`, `actions`, `check` and
+     *                                   `aggregate`, or null for all of them.
      */
     public function resourceRoutes(?array $resources = null, ?array $only = null): void;
 

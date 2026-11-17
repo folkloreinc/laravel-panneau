@@ -6,9 +6,13 @@ use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Panneau\Contracts\UploadStorage;
+use Panneau\Dashboard\Widget;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Uploads\S3UploadStorage;
 use Panneau\Uploads\Uploads;
+use TestApp\Models\Run;
+use TestApp\Panneau\Resources\RunsResource;
+use TestApp\Policies\RunPolicy;
 
 /**
  * Panneau's routes under a prefix with its own parameter, as a multi-tenant application mounts
@@ -94,5 +98,19 @@ class PrefixedRoutesTest extends HttpTestCase
         $this->postJson(self::PREFIXED_API.'/uploads/'.$signed['upload'].'/complete')
             ->assertOk()
             ->assertJsonPath('data.id', $signed['upload']);
+    }
+
+    public function test_the_dashboard_and_aggregate_routes(): void
+    {
+        Gate::policy(Run::class, RunPolicy::class);
+        Panneau::resources([RunsResource::class]);
+        Panneau::dashboard([Widget::stat('overdue')->using(fn (): array => ['value' => 3])]);
+        Run::query()->create(['team_id' => 1, 'title' => 'A', 'status' => 'failed']);
+
+        // The widget, not the tenant
+        $this->getJson(self::PREFIXED_API.'/dashboard/widgets/overdue')->assertOk()->assertJsonPath('value', 3);
+        $this->getJson(self::PREFIXED_API.'/resources/runs/aggregate?group=status')
+            ->assertOk()
+            ->assertJsonPath('items.0.key', 'failed');
     }
 }

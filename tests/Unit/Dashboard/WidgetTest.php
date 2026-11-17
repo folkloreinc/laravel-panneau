@@ -27,6 +27,27 @@ class WidgetTest extends TestCase
         ], $widget->toDefinition('posts'));
     }
 
+    public function test_widgets_on_the_aggregates_of_a_resource(): void
+    {
+        $this->assertSame(
+            ['id' => 'per-day', 'type' => 'series', 'settings' => ['resource' => 'posts', 'query' => ['filter[status]' => 'published'], 'group' => 'day:published_at']],
+            Widget::series('per-day')->resource('posts', ['filter[status]' => 'published'])->per('day', 'published_at')->toDefinition('posts'),
+        );
+        $this->assertSame(
+            ['id' => 'by-status', 'type' => 'breakdown', 'settings' => ['resource' => 'posts', 'measure' => 'sum:rating', 'group' => 'status']],
+            Widget::breakdown('by-status')->by('status')->sum('rating')->resource('posts')->toDefinition('posts'),
+        );
+        $budget = Widget::stat('budget')->resource('posts')->sum('budget')->target(100000);
+        $this->assertTrue($budget->readsAggregates());
+        $this->assertSame(['id' => 'budget', 'type' => 'stat', 'settings' => ['resource' => 'posts', 'measure' => 'sum:budget', 'target' => 100000]], $budget->toDefinition('posts'));
+        // A stat that counts reads the total of the list
+        $count = Widget::stat('drafts')->resource('posts')->count();
+        $this->assertFalse($count->readsAggregates());
+        $this->assertSame(['id' => 'drafts', 'type' => 'stat', 'settings' => ['resource' => 'posts', 'measure' => 'count']], $count->toDefinition('posts'));
+        $this->assertTrue(Widget::breakdown('a')->readsAggregates());
+        $this->assertFalse(Widget::list('a')->readsAggregates());
+    }
+
     public function test_widgets_with_data_of_their_own_leave_out_what_they_do_not_set(): void
     {
         $this->assertSame(['id' => 'per-day', 'type' => 'series', 'width' => 8], Widget::series('per-day')->width(8)->using(fn (): array => [])->toDefinition());
@@ -48,8 +69,14 @@ class WidgetTest extends TestCase
             'no id' => [fn (): Widget => Widget::stat(''), 'A widget needs an id.'],
             'no type' => [fn (): Widget => Widget::make('map', ''), 'The widget "map" needs a type.'],
             'a width out of the grid' => [fn (): Widget => Widget::stat('a')->width(13), 'The widget "a" has the width 13: widths go from 1 to 12 columns.'],
-            'a series on a resource' => [fn (): Widget => Widget::series('a')->resource('posts'), 'The series "a" can\'t read a resource: only a stat and a list can. Give it data with using().'],
-            'a widget of a plugin on a resource' => [fn (): Widget => Widget::make('a', 'map')->resource('posts'), 'The map "a" can\'t read a resource'],
+            'a sum of a list' => [fn (): Widget => Widget::list('a')->sum('price'), 'The list "a" can\'t have sum(): only a stat, a series and a breakdown measure a resource.'],
+            'a count of a plugin' => [fn (): Widget => Widget::make('a', 'map')->count(), 'The map "a" can\'t have count()'],
+            'periods of a stat' => [fn (): Widget => Widget::stat('a')->per('day', 'created_at'), 'The stat "a" has no periods: only a series does.'],
+            'a period of a year' => [fn (): Widget => Widget::series('a')->per('year', 'created_at'), 'The series "a" is per "year": periods are day, week or month.'],
+            'parts of a series' => [fn (): Widget => Widget::series('a')->by('status'), 'The series "a" has no parts: only a breakdown does.'],
+            'a target of a series' => [fn (): Widget => Widget::series('a')->target(10), 'The series "a" has no target: only a stat does.'],
+            'a target of 0' => [fn (): Widget => Widget::stat('a')->target(0), 'The stat "a" has the target 0: targets are above 0.'],
+            'a widget of a plugin on a resource' => [fn (): Widget => Widget::make('a', 'map')->resource('posts'), 'The map "a" can\'t read a resource: only a stat, a series, a list and a breakdown can.'],
             'a query that pages' => [fn (): Widget => Widget::list('a')->resource('posts', ['perPage' => 10]), 'The query of the widget "a" sets "perPage", which the app sets.'],
             'a query with an object' => [fn (): Widget => Widget::list('a')->resource('posts', ['filter[status]' => ['x' => new stdClass]]), 'The query of the widget "a" has a value of "filter[status]"'],
             'settings of a built-in type' => [fn (): Widget => Widget::stat('a')->settings(['x' => 1]), 'The stat "a" has no settings'],
@@ -95,6 +122,12 @@ class WidgetTest extends TestCase
             'a list without titles' => ['list', ['items' => [['description' => 'No title', 'badge' => ['tone' => 'success']]], 'empty' => 1], ['items.0.title', 'items.0.badge', 'empty']],
             'a list too long' => ['list', ['items' => array_map(fn (int $index): array => ['title' => (string) $index], range(1, 6))], ['items']],
             'a widget of a plugin as a list' => ['map', ['a', 'b'], ['']],
+            'a stat with a target' => ['stat', ['value' => 12, 'target' => 20], []],
+            'a stat with a target of 0' => ['stat', ['value' => 12, 'target' => 0], ['target']],
+            'a breakdown' => ['breakdown', ['items' => [['label' => 'Failed', 'value' => 3, 'tone' => 'danger', 'url' => '/x', 'key' => 'failed'], ['label' => 'None', 'value' => 1, 'key' => null], ['label' => 'Yes', 'value' => 2, 'key' => true]], 'total' => 42, 'other' => 5], []],
+            'an empty breakdown' => ['breakdown', ['items' => []], []],
+            'a breakdown with wrong parts' => ['breakdown', ['items' => [['value' => 'x', 'tone' => 'Red', 'key' => ['a']], 'x'], 'other' => '5'], ['items.0.label', 'items.0.value', 'items.0.tone', 'items.0.key', 'items.1', 'other']],
+            'a breakdown too long' => ['breakdown', ['items' => array_map(fn (int $index): array => ['label' => (string) $index, 'value' => $index], range(1, 11))], ['items']],
         ];
     }
 
