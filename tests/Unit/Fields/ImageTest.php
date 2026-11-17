@@ -81,4 +81,47 @@ class ImageTest extends TestCase
         $this->expectException(LogicException::class);
         Media::make('cover')->transforms(false)->crop(required: true);
     }
+
+    public function test_a_field_without_transforms_says_it_and_has_no_editor(): void
+    {
+        $this->assertSame([
+            'name' => 'cover',
+            'type' => 'image',
+            'rules' => [['rule' => 'accept', 'value' => ['image/*']]],
+            'accept' => ['image/*'],
+            'resource' => 'images',
+            'transforms' => false,
+        ], Image::make('cover')
+            ->resource('images')
+            ->rotate(false)
+            ->focalPoint()
+            ->transformBase('original')
+            ->ratios([])
+            ->transforms(false)
+            ->toDefinition());
+        $this->assertSame(false, Media::make('file')->transforms(false)->toDefinition()['transforms']);
+        $this->assertArrayNotHasKey('transforms', Media::make('file')->transforms()->toDefinition());
+        $this->assertArrayNotHasKey('transforms', Image::make('cover')->toDefinition());
+        // Back on, the editor's options are back
+        $this->assertSame(['16:9'], Image::make('cover')->transforms(false)->transforms()->ratios(['16:9'])->toDefinition()['ratios']);
+    }
+
+    public function test_a_field_without_transforms_has_no_ratios(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('The image field "cover" keeps no transform (transforms(false)), so it has no editor to suggest ratios.');
+        Image::make('cover')->transforms(false)->ratios(['16:9']);
+    }
+
+    public function test_ratios_refuse_a_field_without_transforms_after_them(): void
+    {
+        $this->expectException(LogicException::class);
+        Image::make('cover')->ratios(['16:9'])->transforms(false);
+    }
+
+    public function test_an_image_field_without_transforms_has_no_crop_rule(): void
+    {
+        $this->expectException(LogicException::class);
+        Image::make('cover')->crop(required: true)->transforms(false);
+    }
 }

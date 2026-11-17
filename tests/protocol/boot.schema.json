@@ -422,6 +422,9 @@
                         "choose"
                     ]
                 },
+                "transforms": {
+                    "type": "boolean"
+                },
                 "from": {
                     "type": "string"
                 },

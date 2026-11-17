@@ -3,6 +3,7 @@
 namespace Panneau\Fields;
 
 use InvalidArgumentException;
+use LogicException;
 use Panneau\Media\MediaTransform;
 
 /**
@@ -16,6 +17,9 @@ use Panneau\Media\MediaTransform;
  * - `transformBase()`: what a transform for one use starts from: the media's own transform
  *   (`media`, the default), the original file (`original`), or the user's choice in the editor
  *   (`choose`).
+ * - `transforms(false)`: values keep no transform, and the field has no editor (panneau-js
+ *   decision 0087). It can't have `ratios()` or the `crop()` rule, and the definition leaves out
+ *   the options of the editor.
  */
 class Image extends Media
 {
@@ -51,6 +55,15 @@ class Image extends Media
     public function ratios(array $ratios): static
     {
         $this->ratios = self::ratioList($ratios);
+        $this->checkRatios();
+
+        return $this;
+    }
+
+    public function transforms(bool $transforms = true): static
+    {
+        parent::transforms($transforms);
+        $this->checkRatios();
 
         return $this;
     }
@@ -91,11 +104,28 @@ class Image extends Media
 
     protected function typeDefinition(): array
     {
+        if (! $this->keepsTransforms()) {
+            return parent::typeDefinition();
+        }
+
         return array_merge(parent::typeDefinition(), array_filter([
             'ratios' => $this->ratios,
             'rotate' => $this->rotate,
             'focalPoint' => $this->focalPoint,
             'transformBase' => $this->transformBase,
         ], fn (mixed $value): bool => $value !== null));
+    }
+
+    /**
+     * A field without transforms has no editor to suggest ratios to (`transforms(false)`).
+     */
+    private function checkRatios(): void
+    {
+        if (! $this->keepsTransforms() && $this->ratios !== null && count($this->ratios) > 0) {
+            throw new LogicException(sprintf(
+                'The image field "%s" keeps no transform (transforms(false)), so it has no editor to suggest ratios.',
+                $this->name,
+            ));
+        }
     }
 }
