@@ -6,7 +6,11 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
-Goes with the next `@panneau/*` (decision 0082). The definition now always writes `open`: earlier `@panneau/*` versions read it too, so items open in their form with them as well.
+## [5.0.0-alpha.20] - 2026-11-17
+
+Goes with `@panneau/*` `5.0.0-alpha.36`, which shows the language switcher and opens items in their form by default (panneau-js decisions 0083 and 0082). The definition now always writes `open`: earlier `@panneau/*` versions read it too, so items open in their form with them as well; they ignore `interfaceLocales`.
+
+The languages of the interface, and items that open in their form by default.
 
 ### Added
 
@@ -348,7 +352,8 @@ Goes with `@panneau/*` `5.0.0-alpha.1`. A rewrite: the reference implementation 
 - Contract tests against the protocol's OpenAPI document, and its conformance kit in CI (#67, #68).
 - `php artisan panneau:install`, and the admin page with its JS entry (#69, #70, #71, #72).
 
-[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.19...v5.x
+[Unreleased]: https://github.com/folkloreinc/laravel-panneau/compare/v5.0.0-alpha.20...v5.x
+[5.0.0-alpha.20]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.20
 [5.0.0-alpha.19]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.19
 [5.0.0-alpha.18]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.18
 [5.0.0-alpha.17]: https://github.com/folkloreinc/laravel-panneau/releases/tag/v5.0.0-alpha.17
