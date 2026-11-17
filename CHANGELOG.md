@@ -6,9 +6,15 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.18] - 2026-11-17
+
+Goes with `@panneau/*` `5.0.0-alpha.32`: earlier versions read the `null` `user.resource` of a user outside the resource `users` as `users`, and keep the profile link that isn't found.
+
+The profile link of users outside the resource `users`.
+
 ### Fixed
 
-- In the `external` mode, the user's name no longer links to a profile that isn't found when the user is outside the scope of the resource `users`, such as an admin let in by the domain of their email (#202). The definition's `user.resource` is `users` when the user is an item of it they can `view` and `update`, and `null` otherwise, which needs the `@panneau/*` release that reads `null` as no profile (folkloreinc/panneau-js#287). Without a resource `users`, it is left out, as before.
+- In the `external` mode, the user's name no longer links to a profile that isn't found when the user is outside the scope of the resource `users`, such as an admin let in by the domain of their email (#202). The definition's `user.resource` is `users` when the user is an item of it they can `view` and `update`, and `null` otherwise, which `@panneau/*` `5.0.0-alpha.32` reads as no profile (folkloreinc/panneau-js#287). Without a resource `users`, it is left out, as before.
 
 ## [5.0.0-alpha.17] - 2026-11-16
 
