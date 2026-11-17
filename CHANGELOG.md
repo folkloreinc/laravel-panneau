@@ -6,6 +6,13 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+Goes with the next `@panneau/*` (decision 0082). The definition now always writes `open`: earlier `@panneau/*` versions read it too, so items open in their form with them as well.
+
+### Changed
+
+- **Items open in their form by default** (#216, panneau-js decision 0082): `Resource::open()` returns `'edit'` instead of `'panel'`. The title of an item opens its form, its show route redirects there, and rows show "Edit" without "View"; an item the user can't update still opens in its panel. **To keep the panel** on a resource (items read more than edited, or shown with their preview), override `open()` to return `'panel'`. The definition always writes `open`, also when it is the default.
+- The upgrade tools (`ResourceIndexRector`, `panneau:install --upgrade --check`) no longer suggest `open(): 'edit'` for a 1.x list without a show button: it is the default.
+
 ## [5.0.0-alpha.19] - 2026-11-17
 
 Goes with `@panneau/*` `5.0.0-alpha.33`, which reads collapsible groups and emphasized entries; earlier versions ignore them, and show the menus as before.

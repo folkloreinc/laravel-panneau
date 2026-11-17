@@ -749,9 +749,6 @@ final class Audit
         if ($builtIn === []) {
             $target = 'itemActions(): []';
         }
-        if ($builtIn !== [] && ! in_array('show', $builtIn, true)) {
-            $others[] = "no show: open() can return 'edit'";
-        }
         if (in_array('duplicate', $builtIn, true)) {
             // Shown only once the resource says what a copy includes
             $manual[] = 'duplicate, with duplication() on the resource and what a copy includes';

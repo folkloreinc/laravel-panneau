@@ -278,10 +278,10 @@ class DefinitionBuilderTest extends TestCase
 
     public function test_what_opens_an_item_and_its_built_in_actions(): void
     {
-        $this->assertSame('edit', $this->resource('authors')['open']);
+        $this->assertSame('panel', $this->resource('authors')['open']);
         $this->assertSame(['edit', 'delete'], $this->resource('authors')['itemActions']);
-        // The defaults, `panel` and the four built-in actions, are left out
-        $this->assertArrayNotHasKey('open', $this->resource('tags'));
+        // `edit` by default, always written; the four built-in actions by default, left out
+        $this->assertSame('edit', $this->resource('tags')['open']);
         $this->assertArrayNotHasKey('itemActions', $this->resource('tags'));
     }
 
