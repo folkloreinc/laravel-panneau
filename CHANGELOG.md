@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.21] - 2026-11-17
+
+Goes with `@panneau/*` `5.0.0-alpha.37`, which draws the overviews (panneau-js decision 0084): dashboard pages, summaries above lists, the `breakdown` widget, widgets on the aggregates of a resource, and the period. Earlier versions ignore dashboard pages, summaries and periods, and show a widget of an unknown type in place of a `breakdown`. Nothing changes for a definition without overviews.
+
+Overviews: dashboard pages, the aggregates of a resource, summaries above lists, and a period.
+
 ### Added
 
 - Overviews (#215, panneau-js decision 0084): numbers, curves and breakdowns of one or more resources, without code.
