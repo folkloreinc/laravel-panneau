@@ -66,7 +66,7 @@
             ],
             "get": {
                 "operationId": "switchLocale",
-                "summary": "Optional: switches the interface to a locale of `interfaceLocales`, when their `url` is here (decision 0082). The app comes with a full navigation, and the next page load gets the definition in that locale.",
+                "summary": "Optional: switches the interface to a locale of `interfaceLocales`, when their `url` is here (decision 0083). The app comes with a full navigation, and the next page load gets the definition in that locale.",
                 "parameters": [
                     {
                         "name": "next",
@@ -4943,7 +4943,7 @@
                         "type": "string"
                     },
                     "open": {
-                        "description": "Where an item's title goes, in its list and wherever the app links to the item (decision 0040). `panel`, the default: the show route, with the item's details in a panel next to the list. `edit`: its edit form, and the show route redirects there. Clients treat a value they don't know as `panel`.",
+                        "description": "Where an item's title goes, in its list and wherever the app links to the item (decision 0082). `edit`, the default: its edit form, and the show route redirects there. An item the user can't update still opens in the panel. `panel`: the show route, with the item's details in a panel next to the list, for items read more than edited, or shown with their preview. Clients treat a value they don't know as `edit`.",
                         "anyOf": [
                             {
                                 "type": "string",
@@ -5172,7 +5172,7 @@
                     "url": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Where the browser goes to switch to this locale, with a full navigation. The app adds `next`, the path and query to come back to (decision 0082)."
+                        "description": "Where the browser goes to switch to this locale, with a full navigation. The app adds `next`, the path and query to come back to (decision 0083)."
                     }
                 },
                 "required": [
@@ -5919,7 +5919,7 @@
                         "description": "Locales of localized content fields."
                     },
                     "interfaceLocales": {
-                        "description": "The languages of the interface, `locale` among them: with two or more, the shell has a switcher (decision 0082). Not the locales of the content, which are `locales`.",
+                        "description": "The languages of the interface, `locale` among them: with two or more, the shell has a switcher (decision 0083). Not the locales of the content, which are `locales`.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/InterfaceLocale"
