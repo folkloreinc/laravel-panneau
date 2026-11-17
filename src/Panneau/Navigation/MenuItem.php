@@ -21,6 +21,12 @@ final class MenuItem
 
     private ?bool $external = null;
 
+    private bool $collapsible = false;
+
+    private bool $collapsed = false;
+
+    private bool $emphasis = false;
+
     /**
      * @var list<MenuItem|array<string, mixed>>|null
      */
@@ -131,6 +137,51 @@ final class MenuItem
     }
 
     /**
+     * A group whose links the user shows or hides, and the browser remembers it (panneau-js
+     * decision 0079). Only a group with a label: the app ignores it on a group without one.
+     */
+    public function collapsible(bool $collapsible = true): self
+    {
+        $this->onlyFor(['group'], 'collapsible');
+        $this->collapsible = $collapsible;
+
+        return $this;
+    }
+
+    /**
+     * A collapsible group, closed until the user opens it, unless it holds the current page.
+     */
+    public function collapsed(bool $collapsed = true): self
+    {
+        $this->onlyFor(['group'], 'collapsed');
+        $this->collapsed = $collapsed;
+
+        return $this;
+    }
+
+    /**
+     * A main entry, with its label in bold: a resource, a page or a link (panneau-js decision
+     * 0079).
+     */
+    public function emphasis(bool $emphasis = true): self
+    {
+        $this->onlyFor(['resource', 'page', 'link'], 'emphasized');
+        $this->emphasis = $emphasis;
+
+        return $this;
+    }
+
+    /**
+     * @param  list<string>  $types
+     */
+    private function onlyFor(array $types, string $option): void
+    {
+        if (! in_array($this->type, $types, true)) {
+            throw new InvalidArgumentException(sprintf('A menu item of type "%s" can\'t be %s.', $this->type, $option));
+        }
+    }
+
+    /**
      * The entries of a group, or of an entry of a plugin's type.
      *
      * @param  list<MenuItem|array<string, mixed>>  $children
@@ -155,6 +206,16 @@ final class MenuItem
             if ($value !== null) {
                 $definition[$key] = $value;
             }
+        }
+        // Left out when false, so that menus without them stay as they were
+        if ($this->collapsible || $this->collapsed) {
+            $definition['collapsible'] = true;
+        }
+        if ($this->collapsed) {
+            $definition['collapsed'] = true;
+        }
+        if ($this->emphasis) {
+            $definition['emphasis'] = true;
         }
         if ($this->children !== null) {
             $definition['children'] = array_map(
