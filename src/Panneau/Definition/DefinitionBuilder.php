@@ -366,7 +366,7 @@ final class DefinitionBuilder
                 $definition[$key] = $value;
             }
         }
-        // Always written: its default changed in panneau-js decision 0081, and `@panneau/*` before it
+        // Always written: its default changed in panneau-js decision 0082, and `@panneau/*` before it
         // opens items in the panel without it
         $definition['open'] = self::checkedOpen($resource, $resource->open());
         // Left out when it is the default, so that definitions stay as they were
