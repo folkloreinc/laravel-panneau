@@ -89,10 +89,15 @@ class RunsResource extends Resource
                 'value' => count($request->query->filters ?? []),
                 'help' => implode(',', array_keys($request->query->filters ?? [])).($request->search() !== null ? ' q='.$request->search() : ''),
             ]),
-            Widget::stat('everything')->label('Everything')->followsList(false)->using(fn (WidgetRequest $request): array => [
+            Widget::stat('everything')->label('Everything')->followsList(false)->period(false)->using(fn (WidgetRequest $request): array => [
                 'value' => count($request->query->filters ?? []),
+                'help' => $request->period !== null ? 'a period' : 'no period',
             ]),
-        ])->listCollapsed();
+            Widget::stat('in-period')->label('In the period')->using(fn (WidgetRequest $request): array => [
+                'value' => $request->period !== null ? (int) $request->period->start()->diffInDays($request->period->end()) + 1 : 0,
+                'help' => $request->period !== null ? $request->period->option.' '.$request->period->from.' '.$request->period->to : 'no period',
+            ]),
+        ])->listCollapsed()->period(['7d', '30d', '90d', 'month', 'year'], default: '30d');
     }
 
     public function scope(Request $request): array

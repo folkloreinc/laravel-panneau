@@ -7,7 +7,7 @@ use Panneau\Query\ResourceQuery;
 /**
  * Where and how the data of a widget is asked for, at `GET {api}/dashboard/widgets/{widget}`
  * (panneau-js decisions 0064 and 0084): on a dashboard page, or in the summary of a resource with
- * the query of its list.
+ * the query of its list, and the period of its overview.
  *
  * The data of a widget gets it from the container, for the time of the request: a `WidgetData`
  * class asks for it in its constructor, and a closure of `Widget::using()` as a parameter of
@@ -27,12 +27,16 @@ final readonly class WidgetRequest
      *                                     resource, page 1 and the default sort), to give to its
      *                                     repository. Without filters or search for a widget with
      *                                     `followsList(false)`. Null on a dashboard page.
+     * @param  WidgetPeriod|null  $period  The period chosen in the overview of the widget, when it
+     *                                     declares one: null without one, or for a widget with
+     *                                     `period(false)`.
      */
     public function __construct(
         public string $widget,
         public ?string $page = Dashboard::HOME,
         public ?string $resource = null,
         public ?ResourceQuery $query = null,
+        public ?WidgetPeriod $period = null,
     ) {}
 
     /**

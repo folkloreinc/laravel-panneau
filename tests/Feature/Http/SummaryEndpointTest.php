@@ -56,7 +56,7 @@ class SummaryEndpointTest extends HttpTestCase
     {
         $this->getJson(self::API.'/dashboard/widgets/everything?resource=runs&filter[status][]=failed&q=import')
             ->assertOk()
-            ->assertExactJson(['value' => 0]);
+            ->assertExactJson(['value' => 0, 'help' => 'no period']);
     }
 
     /**
@@ -154,5 +154,20 @@ class SummaryEndpointTest extends HttpTestCase
         $this->getJson(self::API.'/dashboard/widgets/cached?resource=logs&filter[status]=failed')->assertJsonPath('value', 2);
         $this->getJson(self::API.'/dashboard/widgets/cached?resource=logs&filter[status]=failed')->assertJsonPath('value', 2);
         $this->getJson(self::API.'/dashboard/widgets/cached?resource=logs&q=x')->assertJsonPath('value', 1);
+    }
+
+    public function test_a_widget_of_a_summary_gets_the_period(): void
+    {
+        $period = 'period[option]=30d&period[from]=2026-10-19&period[to]=2026-11-17';
+        $this->getJson(self::API.'/dashboard/widgets/in-period?resource=runs&'.$period.'&filter[ran_at][from]=2026-10-19&filter[ran_at][to]=2026-11-17')
+            ->assertOk()
+            ->assertExactJson(['value' => 30, 'help' => '30d 2026-10-19 2026-11-17']);
+        $this->getJson(self::API.'/dashboard/widgets/in-period?resource=runs')
+            ->assertOk()
+            ->assertExactJson(['value' => 0, 'help' => 'no period']);
+        // A widget that doesn't follow the period
+        $this->getJson(self::API.'/dashboard/widgets/everything?resource=runs&'.$period)
+            ->assertOk()
+            ->assertJsonPath('help', 'no period');
     }
 }

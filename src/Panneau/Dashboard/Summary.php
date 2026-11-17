@@ -24,6 +24,8 @@ final class Summary
 {
     private bool $listCollapsed = false;
 
+    private ?Period $period = null;
+
     /**
      * @param  list<Widget>|Closure  $widgets
      */
@@ -51,6 +53,31 @@ final class Summary
         $this->listCollapsed = $collapsed;
 
         return $this;
+    }
+
+    /**
+     * One period for the summary (panneau-js decision 0084), chosen in its header among
+     * `$options` (`7d`, `30d`, `90d`, `month`, `year`), `$default` or the first one when it opens.
+     * It is the list's own `date-range` filter `$filter`, the first one of the list without it:
+     * choosing it filters the rows, and the widgets that follow the list. The widgets with data
+     * of their own also get its days in their `WidgetRequest`, unless they have
+     * `Widget::period(false)`.
+     *
+     * @param  list<string>  $options
+     */
+    public function period(array $options, ?string $default = null, ?string $filter = null): self
+    {
+        $this->period = new Period($options, $default, $filter);
+
+        return $this;
+    }
+
+    /**
+     * @internal Read by `Dashboard`.
+     */
+    public function getPeriod(): ?Period
+    {
+        return $this->period;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace Panneau\Navigation;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
+use Panneau\Dashboard\Period;
 use Panneau\Dashboard\Widget;
 
 /**
@@ -50,6 +51,8 @@ final class Page
      * @var list<Widget>|Closure|null
      */
     private array|Closure|null $widgets = null;
+
+    private ?Period $period = null;
 
     private function __construct(private readonly string $id, private readonly string $component)
     {
@@ -181,6 +184,34 @@ final class Page
     }
 
     /**
+     * One period for the widgets of a dashboard page (panneau-js decision 0084), chosen in its
+     * header among `$options` (`7d`, `30d`, `90d`, `month`, `year`), `$default` or the first one
+     * when it opens. The widgets with data of their own get its days in their `WidgetRequest`,
+     * unless they have `Widget::period(false)`; those on a resource with `Widget::period()` get
+     * them as the list's `date-range` filter it names. On `Page::dashboard('home')`, it is the
+     * period of the home page, also with the widgets of `Panneau::dashboard()`.
+     *
+     * @param  list<string>  $options
+     */
+    public function period(array $options, ?string $default = null): self
+    {
+        if (! $this->isDashboard()) {
+            throw new InvalidArgumentException(sprintf('The page "%s" is a "%s": only a dashboard page (Page::dashboard()) has a period.', $this->id, $this->component));
+        }
+        $this->period = new Period($options, $default);
+
+        return $this;
+    }
+
+    /**
+     * @internal Read by `Dashboard`.
+     */
+    public function getPeriod(): ?Period
+    {
+        return $this->period;
+    }
+
+    /**
      * @internal Read by `Navigation`.
      *
      * @return string|(Closure(?Authenticatable): bool)|null
@@ -215,6 +246,7 @@ final class Page
             // Left out when empty, so that it isn't sent as a JSON list
             'props' => $this->props !== [] ? $this->props : null,
             'params' => $this->params !== [] ? $this->params : null,
+            'period' => $this->period?->toDefinition(),
         ], fn (mixed $value): bool => $value !== null);
     }
 }

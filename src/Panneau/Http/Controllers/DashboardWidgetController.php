@@ -9,7 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Panneau\Auth\Authorizer;
 use Panneau\Dashboard\Dashboard;
+use Panneau\Dashboard\Period;
 use Panneau\Dashboard\Widget;
+use Panneau\Dashboard\WidgetPeriod;
 use Panneau\Dashboard\WidgetRequest;
 use Panneau\Http\Controllers\Concerns\ReadsRouteParameters;
 use Panneau\Http\Problem;
@@ -21,10 +23,11 @@ use stdClass;
 /**
  * `GET /dashboard/widgets/{widget}`: the data of a widget, as the user (panneau-js decisions 0064
  * and 0084), of a dashboard page (`?page={page}`, the home page without it), or of the summary
- * of a resource (`?resource={resource}`, with the filters and the search of its list). A widget
- * that isn't on that page or in that summary of the user, or that reads a resource, is a `404`;
- * `page` and `resource` together, or an empty one, a `422`; the summary of a resource the user
- * can't list a `403`; data in the wrong shape a `500`.
+ * of a resource (`?resource={resource}`, with the filters and the search of its list), with the
+ * period of its overview (`period[option]`, `period[from]`, `period[to]`). A widget that isn't on
+ * that page or in that summary of the user, or that reads a resource, is a `404`; `page` and
+ * `resource` together, an empty one, or a wrong period, a `422`; the summary of a resource the
+ * user can't list a `403`; data in the wrong shape a `500`.
  *
  * @internal
  */
@@ -44,6 +47,10 @@ final class DashboardWidgetController
         $id = $this->routeParameter($request, 'widget');
         $user = $request->user();
         $place = $this->place($request);
+        $period = WidgetPeriod::read($request->query('period'));
+        if (is_string($period)) {
+            throw ValidationException::withMessages(['period' => [$period]]);
+        }
 
         if ($place['resource'] !== null) {
             $resource = $this->resources->find($place['resource']);
@@ -52,11 +59,19 @@ final class DashboardWidgetController
             }
             $widget = $resource !== null ? $this->dashboard->findInSummary($user, $resource, $id) : null;
             $widgetRequest = $resource !== null && $widget !== null
-                ? new WidgetRequest($id, null, $resource->id(), $this->listQuery($request, $resource, $widget))
+                ? new WidgetRequest(
+                    $id,
+                    null,
+                    $resource->id(),
+                    $this->listQuery($request, $resource, $widget),
+                    $this->periodOf($widget, $this->dashboard->summaryPeriod($resource), $period),
+                )
                 : null;
         } else {
             $widget = $this->dashboard->find($user, $id, $place['page']);
-            $widgetRequest = new WidgetRequest($id, $place['page']);
+            $widgetRequest = $widget !== null
+                ? new WidgetRequest($id, $place['page'], period: $this->periodOf($widget, $this->dashboard->pagePeriod($user, $place['page']), $period))
+                : null;
         }
         if ($widget === null || $widgetRequest === null || $widget->getResource() !== null) {
             return Problem::response(404, detail: __('This widget is not on your dashboard.'));
@@ -97,6 +112,15 @@ final class DashboardWidgetController
         }
 
         return ['page' => $page, 'resource' => null];
+    }
+
+    /**
+     * The period a widget gets: the one of the request, when its overview has a period and the
+     * widget follows it.
+     */
+    private function periodOf(Widget $widget, ?Period $overview, ?WidgetPeriod $period): ?WidgetPeriod
+    {
+        return $overview !== null && $widget->getPeriod() !== false ? $period : null;
     }
 
     /**

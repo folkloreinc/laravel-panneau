@@ -106,7 +106,7 @@ final class Dashboard
             }
             $widgets = $this->widgets($user, $id, $pages);
             if ($widgets !== null) {
-                $definitions[$id] = $this->definitionOf($user, $widgets);
+                $definitions[$id] = $this->definitionOf($user, $widgets, null, $page->getPeriod());
             }
         }
 
@@ -131,7 +131,7 @@ final class Dashboard
             return [];
         }
 
-        return $this->definitionOf($user, $this->widgets($user, self::HOME, $pages) ?? []);
+        return $this->definitionOf($user, $this->widgets($user, self::HOME, $pages) ?? [], null, $this->pagePeriod($user, self::HOME, $pages));
     }
 
     /**
@@ -161,12 +161,58 @@ final class Dashboard
         if ($summary === null) {
             return null;
         }
-        $definition = ['widgets' => $this->definitionOf($user, $this->summaryWidgets($user, $resource) ?? [], $resource)];
+        $period = $summary->getPeriod();
+        $definition = ['widgets' => $this->definitionOf($user, $this->summaryWidgets($user, $resource) ?? [], $resource, $period)];
         if ($summary->collapsesList()) {
             $definition['list'] = 'collapsed';
         }
+        if ($period !== null) {
+            $filters = $this->dateRangeFilters($resource);
+            if ($period->filter !== null && ! in_array($period->filter, $filters, true)) {
+                throw new LogicException(sprintf('The period of the summary of "%s" sets the filter "%s", which isn\'t a date-range filter of its list.', $resource->id(), $period->filter));
+            }
+            if ($filters === []) {
+                throw new LogicException(sprintf('The period of the summary of "%s" is a date-range filter of its list, which has none.', $resource->id()));
+            }
+            $definition['period'] = $period->toDefinition();
+        }
 
         return $definition;
+    }
+
+    /**
+     * The period of the summary of a resource: null without one.
+     */
+    public function summaryPeriod(Resource $resource): ?Period
+    {
+        return $this->summaryOf($resource)?->getPeriod();
+    }
+
+    /**
+     * The period of the dashboard of a page: that of its `Page::dashboard()`, null without one.
+     *
+     * @param  array<string, Page>|null  $pages  The dashboard pages of the user
+     *                                           (`Navigation::dashboardPages()`), when they are
+     *                                           already known.
+     */
+    public function pagePeriod(?Authenticatable $user, string $page = self::HOME, ?array $pages = null): ?Period
+    {
+        $pages ??= $this->navigation->dashboardPages($user);
+
+        return ($pages[$page] ?? null)?->getPeriod();
+    }
+
+    /**
+     * The ids of the `date-range` filters of the list of a resource.
+     *
+     * @return list<string>
+     */
+    private function dateRangeFilters(Resource $resource): array
+    {
+        return array_values(array_map(
+            fn (Filter $filter): string => $filter->id(),
+            array_filter($this->resources->list($resource)->getFilters(), fn (Filter $filter): bool => $filter->type() === 'date-range'),
+        ));
     }
 
     /**
@@ -205,10 +251,12 @@ final class Dashboard
      * them.
      *
      * @param  list<Widget>  $widgets
-     * @param  resource|null  $summary  The resource of a summary, or null for a dashboard.
+     * @param  \Panneau\Resources\Resource|null  $summary  The resource of a summary, or null for a
+     *                                                     dashboard.
+     * @param  Period|null  $period  The period of the dashboard or the summary.
      * @return list<array<string, mixed>>
      */
-    private function definitionOf(?Authenticatable $user, array $widgets, ?Resource $summary = null): array
+    private function definitionOf(?Authenticatable $user, array $widgets, ?Resource $summary = null, ?Period $period = null): array
     {
         $definitions = [];
         foreach ($widgets as $widget) {
@@ -216,7 +264,13 @@ final class Dashboard
             if ($widget->getFollowsList() !== null && $summary === null) {
                 throw new LogicException(sprintf('The widget "%s" follows a list (followsList()): only the widgets of the summary of a resource do.', $widget->id()));
             }
+            if ($widget->getPeriod() !== null && $period === null) {
+                throw new LogicException(sprintf('The widget "%s" follows a period (period()), but its %s has none.', $widget->id(), $summary !== null ? 'summary' : 'dashboard'));
+            }
             if ($name === null) {
+                if (is_string($widget->getPeriod())) {
+                    throw new LogicException(sprintf('The widget "%s" follows the period with the filter "%s" of no list: without a resource(), period() can only be false.', $widget->id(), $widget->getPeriod()));
+                }
                 if ($widget->getData() === null) {
                     throw new LogicException(sprintf('The widget "%s" has no data: give it a resource() or using().', $widget->id()));
                 }
@@ -228,6 +282,10 @@ final class Dashboard
                 continue;
             }
             $resource = $this->checkedResource($widget, $name);
+            $filter = $widget->getPeriod();
+            if (is_string($filter) && ! in_array($filter, $this->dateRangeFilters($resource), true)) {
+                throw new LogicException(sprintf('The widget "%s" follows the period with the filter "%s", which isn\'t a date-range filter of the list of "%s".', $widget->id(), $filter, $resource->id()));
+            }
             if ($widget->getFollowsList() !== null && $summary !== null && $resource->id() !== $summary->id()) {
                 throw new LogicException(sprintf('The widget "%s" reads "%s": it doesn\'t follow the list of "%s" (followsList()).', $widget->id(), $resource->id(), $summary->id()));
             }
@@ -399,6 +457,9 @@ final class Dashboard
             $request->resource,
             $request->query?->filters,
             $request->query?->search,
+            $request->period?->option,
+            $request->period?->from,
+            $request->period?->to,
         ]));
     }
 

@@ -241,4 +241,56 @@ class DashboardTest extends TestCase
 
         $this->definition();
     }
+
+    public function test_the_period_of_a_dashboard_page_and_of_the_home_page(): void
+    {
+        Panneau::pages([
+            Page::dashboard('home')->period(['7d', '30d'], default: '30d'),
+            Page::dashboard('activity')->label('Activity')->period(['month', 'year'])->widgets([
+                Widget::stat('requested')->using(RequestWidget::class),
+                Widget::stat('steady')->using(RequestWidget::class)->period(false),
+                Widget::list('published')->resource(PostsResource::class)->period('published_at'),
+            ]),
+        ]);
+        Panneau::dashboard([Widget::stat('overdue')->using(OverdueWidget::class)]);
+
+        $definition = $this->definition();
+        $this->assertSame(['options' => ['7d', '30d'], 'default' => '30d'], $definition['pages']['home']['period']);
+        $this->assertSame(['options' => ['month', 'year']], $definition['pages']['activity']['period']);
+        $this->assertSame(['resource' => 'posts', 'period' => 'published_at'], $definition['pages']['activity']['widgets'][2]['settings']);
+        $this->assertSame([['id' => 'overdue', 'type' => 'stat']], $definition['dashboard']['widgets']);
+        $this->assertValidDefinition($definition);
+    }
+
+    /**
+     * @return array<string, array{Widget, string}>
+     */
+    public static function invalidPeriodWidgets(): array
+    {
+        return [
+            'a widget on a resource without a date-range filter of that id' => [Widget::stat('a')->resource('posts')->period('created_at'), 'The widget "a" follows the period with the filter "created_at", which isn\'t a date-range filter of the list of "posts".'],
+            'a filter without a resource' => [Widget::stat('a')->using(OverdueWidget::class)->period('published_at'), 'The widget "a" follows the period with the filter "published_at" of no list: without a resource(), period() can only be false.'],
+        ];
+    }
+
+    #[DataProvider('invalidPeriodWidgets')]
+    public function test_the_period_of_a_widget_is_checked(Widget $widget, string $message): void
+    {
+        Panneau::pages([Page::dashboard('activity')->period(['7d'])->widgets([$widget])]);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage($message);
+
+        $this->definition();
+    }
+
+    public function test_a_widget_follows_the_period_of_a_dashboard_that_has_one(): void
+    {
+        Panneau::dashboard([Widget::stat('a')->using(OverdueWidget::class)->period(false)]);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('The widget "a" follows a period (period()), but its dashboard has none.');
+
+        $this->definition();
+    }
 }

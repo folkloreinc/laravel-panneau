@@ -94,10 +94,12 @@ class ConformanceServiceProvider extends ServiceProvider
         Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class, RunsResource::class]);
         Panneau::pages([
             Page::make('reports', 'reports')->label('Reports'),
-            // A dashboard page (panneau-js decision 0084): the kit asks for its widgets with `?page=`
-            Page::dashboard('activity')->label('Activity')->widgets([
+            // A dashboard page with a period (panneau-js decision 0084): the kit asks for its
+            // widgets with `?page=`, and for those with data of their own with the default period
+            Page::dashboard('activity')->label('Activity')->period(['7d', '30d', '90d', 'month', 'year'], default: '30d')->widgets([
                 Widget::stat('published')->label('Published')->resource(ConformancePostsResource::class, ['filter[status]' => 'published']),
                 Widget::stat('overdue')->label('Overdue')->using(OverdueWidget::class),
+                Widget::series('runs-in-period')->label('Runs')->resource(RunsResource::class)->per('day', 'ran_at')->period('ran_at'),
             ]),
         ]);
         Panneau::menu('main', [

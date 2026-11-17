@@ -9,7 +9,11 @@ use LogicException;
 use Panneau\Dashboard\Summary;
 use Panneau\Dashboard\Widget;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Fields\DateTime;
 use Panneau\Fields\Text;
+use Panneau\Lists\Filters\DateFilter;
+use Panneau\Lists\Filters\DateRangeFilter;
+use Panneau\Lists\ResourceList;
 use Panneau\Resources\Resource;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Concerns\ValidatesProtocol;
@@ -65,9 +69,11 @@ class SummaryTest extends TestCase
                 ['id' => 'by-tool', 'type' => 'breakdown', 'label' => 'Runs by tool', 'settings' => ['resource' => 'runs', 'group' => 'tool']],
                 ['id' => 'all', 'type' => 'stat', 'label' => 'All runs', 'settings' => ['resource' => 'runs', 'followsList' => false]],
                 ['id' => 'matching', 'type' => 'stat', 'label' => 'Matching'],
-                ['id' => 'everything', 'type' => 'stat', 'label' => 'Everything', 'settings' => ['followsList' => false]],
+                ['id' => 'everything', 'type' => 'stat', 'label' => 'Everything', 'settings' => ['followsList' => false, 'period' => false]],
+                ['id' => 'in-period', 'type' => 'stat', 'label' => 'In the period'],
             ],
             'list' => 'collapsed',
+            'period' => ['options' => ['7d', '30d', '90d', 'month', 'year'], 'default' => '30d'],
         ], $this->summary('runs'));
         $this->assertNull($this->summary('posts'));
         $this->assertValidDefinition($this->app->make(DefinitionBuilder::class)->build(new GenericUser(['id' => 1, 'name' => 'Ada'])));
@@ -169,5 +175,70 @@ class SummaryTest extends TestCase
         $this->expectExceptionMessage('The widget "a" follows a list (followsList()): only the widgets of the summary of a resource do.');
 
         $this->summary('runs');
+    }
+
+    /**
+     * A resource of runs whose summary has a period, with a list of its own.
+     */
+    private static function withPeriod(?string $filter, bool $dateRange = true): Resource
+    {
+        return new class($filter, $dateRange) extends Resource
+        {
+            public function __construct(private ?string $filter, private bool $dateRange) {}
+
+            public function id(): string
+            {
+                return 'logs';
+            }
+
+            public function model(): string
+            {
+                return Run::class;
+            }
+
+            public function fields(): array
+            {
+                return [Text::make('title'), DateTime::make('ran_at')];
+            }
+
+            public function list(ResourceList $list): ResourceList
+            {
+                return $list->filters($this->dateRange ? [DateRangeFilter::make('ran_at')] : [DateFilter::make('ran_at')]);
+            }
+
+            public function summary(): Summary
+            {
+                return Summary::make([Widget::stat('runs')->resource('logs')])->period(['7d', '30d'], filter: $this->filter);
+            }
+        };
+    }
+
+    public function test_the_period_of_a_summary(): void
+    {
+        Panneau::resources([self::withPeriod('ran_at')]);
+
+        $this->assertSame(['options' => ['7d', '30d'], 'filter' => 'ran_at'], $this->summary('logs')['period'] ?? null);
+    }
+
+    /**
+     * @return array<string, array{string|null, bool, string}>
+     */
+    public static function invalidSummaryPeriods(): array
+    {
+        return [
+            'a filter that is not a date-range' => ['published_at', true, 'The period of the summary of "logs" sets the filter "published_at", which isn\'t a date-range filter of its list.'],
+            'a list without a date-range filter' => [null, false, 'The period of the summary of "logs" is a date-range filter of its list, which has none.'],
+        ];
+    }
+
+    #[DataProvider('invalidSummaryPeriods')]
+    public function test_the_period_of_a_summary_is_a_date_range_filter_of_its_list(?string $filter, bool $dateRange, string $message): void
+    {
+        Panneau::resources([self::withPeriod($filter, $dateRange)]);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage($message);
+
+        $this->summary('logs');
     }
 }

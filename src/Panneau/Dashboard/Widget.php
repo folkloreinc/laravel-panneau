@@ -80,6 +80,8 @@ final class Widget
 
     private ?bool $followsList = null;
 
+    private string|false|null $period = null;
+
     /**
      * @var class-string<WidgetData>|Closure|null
      */
@@ -320,6 +322,23 @@ final class Widget
     }
 
     /**
+     * How the widget follows the period of its overview (panneau-js decision 0084). On a
+     * resource: the id of the list's `date-range` filter that gets the days of the chosen period
+     * (`'created_at'`); without it, only the widgets of a summary that follow its list do. `false`:
+     * the widget doesn't follow the period; a widget with data of its own then gets none in its
+     * `WidgetRequest`.
+     */
+    public function period(string|false $period): self
+    {
+        if ($period === '') {
+            throw new InvalidArgumentException(sprintf('The widget "%s" follows the period with the filter "": give the id of a date-range filter, or false.', $this->id));
+        }
+        $this->period = $period;
+
+        return $this;
+    }
+
+    /**
      * The data of the widget: a class that implements `WidgetData`, built from the container,
      * or a closure called through the container with the user as `$user`. Either returns the
      * data in the shape of the type, with texts translated.
@@ -411,6 +430,14 @@ final class Widget
     }
 
     /**
+     * @internal Read by `Dashboard`: `period()`, or null without it.
+     */
+    public function getPeriod(): string|false|null
+    {
+        return $this->period;
+    }
+
+    /**
      * @internal Read by `Dashboard`.
      */
     public function getTarget(): int|float|null
@@ -488,6 +515,9 @@ final class Widget
             : $this->settings;
         if ($this->followsList !== null) {
             $settings['followsList'] = $this->followsList;
+        }
+        if ($this->period !== null) {
+            $settings['period'] = $this->period;
         }
 
         return array_filter([

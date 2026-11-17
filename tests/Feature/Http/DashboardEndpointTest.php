@@ -13,6 +13,7 @@ use Panneau\Exceptions\WidgetDataException;
 use Panneau\Http\Problem;
 use Panneau\Navigation\Page;
 use Panneau\Support\Facade as Panneau;
+use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Dashboard\OverdueWidget;
 use TestApp\Dashboard\RequestWidget;
 
@@ -47,6 +48,7 @@ class DashboardEndpointTest extends HttpTestCase
                 'other' => 1,
             ]),
             Widget::breakdown('wrong-parts')->using(fn (): array => ['items' => [['value' => 'x']]]),
+            Widget::stat('home-period')->using(fn (WidgetRequest $request): array => ['value' => $request->period === null ? 0 : 1]),
             Widget::stat('budget')->using(fn (): array => ['value' => 120, 'target' => 100, 'tone' => 'danger']),
             Widget::stat('cached')->cache(60)->using(function (?Authenticatable $user): array {
                 $this->calls++;
@@ -63,16 +65,17 @@ class DashboardEndpointTest extends HttpTestCase
         ]);
         Gate::define('reports.view', fn (Authenticatable $user): bool => $user->getAuthIdentifier() === 1);
         Panneau::pages([
-            Page::dashboard('activity')->label('Activity')->widgets([
+            Page::dashboard('activity')->label('Activity')->period(['7d', '30d'])->widgets([
                 Widget::stat('overdue')->using(RequestWidget::class),
                 Widget::stat('where')->using(fn (WidgetRequest $request, ?Authenticatable $user): array => [
                     'value' => (int) $user?->getAuthIdentifier(),
-                    'help' => $request->widget.' on '.$request->page,
+                    'help' => $request->widget.' on '.$request->page.($request->period !== null ? ' for '.$request->period->option.' from '.$request->period->from.' to '.$request->period->to : ''),
                 ]),
-                Widget::stat('cached')->cache(60)->using(function (): array {
+                Widget::stat('steady')->period(false)->using(fn (WidgetRequest $request): array => ['value' => $request->period === null ? 0 : 1]),
+                Widget::stat('cached')->cache(60)->using(function (WidgetRequest $request): array {
                     $this->calls++;
 
-                    return ['value' => $this->calls];
+                    return ['value' => $this->calls, 'help' => $request->period?->option];
                 }),
                 Widget::stat('drafts')->resource('posts', ['filter[status]' => 'draft']),
             ]),
@@ -230,5 +233,48 @@ class DashboardEndpointTest extends HttpTestCase
         $this->getJson(self::API.'/dashboard/widgets/wrong-parts')->assertStatus(500);
 
         Exceptions::assertReported(fn (WidgetDataException $exception): bool => $exception->keys === ['items.0.label', 'items.0.value']);
+    }
+
+    public function test_a_widget_of_a_dashboard_page_gets_its_period(): void
+    {
+        $period = 'period[option]=30d&period[from]=2026-10-19&period[to]=2026-11-17';
+        $this->getJson(self::API.'/dashboard/widgets/where?page=activity&'.$period)
+            ->assertOk()
+            ->assertJsonPath('help', 'where on activity for 30d from 2026-10-19 to 2026-11-17');
+        $this->getJson(self::API.'/dashboard/widgets/steady?page=activity&'.$period)->assertOk()->assertJsonPath('value', 0);
+        // The home page has no period: its widgets get none
+        $this->getJson(self::API.'/dashboard/widgets/home-period?'.$period)->assertOk()->assertJsonPath('value', 0);
+    }
+
+    public function test_a_cached_widget_is_kept_per_period(): void
+    {
+        $url = self::API.'/dashboard/widgets/cached?page=activity&period[option]=7d&period[from]=2026-11-11&period[to]=2026-11-17';
+        $this->getJson($url)->assertJsonPath('value', 1)->assertJsonPath('help', '7d');
+        $this->getJson($url)->assertJsonPath('value', 1);
+        $this->getJson(self::API.'/dashboard/widgets/cached?page=activity&period[option]=30d&period[from]=2026-10-19&period[to]=2026-11-17')
+            ->assertJsonPath('value', 2)
+            ->assertJsonPath('help', '30d');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function wrongPeriods(): array
+    {
+        return [
+            'an unknown option' => ['period[option]=decade&period[from]=2026-01-01&period[to]=2026-12-31'],
+            'no days' => ['period[option]=7d'],
+            'a day that does not exist' => ['period[option]=month&period[from]=2026-02-01&period[to]=2026-02-30'],
+            'from after to' => ['period[option]=7d&period[from]=2026-11-17&period[to]=2026-11-11'],
+        ];
+    }
+
+    #[DataProvider('wrongPeriods')]
+    public function test_a_wrong_period_is_a_422(string $query): void
+    {
+        $this->getJson(self::API.'/dashboard/widgets/where?page=activity&'.$query)
+            ->assertUnprocessable()
+            ->assertJsonPath('type', Problem::VALIDATION)
+            ->assertJsonStructure(['errors' => ['period']]);
     }
 }
