@@ -3,6 +3,9 @@
 namespace TestApp\Panneau\Resources;
 
 use Illuminate\Http\Request;
+use Panneau\Dashboard\Summary;
+use Panneau\Dashboard\Widget;
+use Panneau\Dashboard\WidgetRequest;
 use Panneau\Fields\Boolean;
 use Panneau\Fields\Date;
 use Panneau\Fields\DateTime;
@@ -20,7 +23,7 @@ use TestApp\Models\Run;
 
 /**
  * A log of the runs of tools, read through its aggregates (panneau-js decision 0084): counted and
- * summed per day, per status, per author.
+ * summed per day, per status, per author, in a summary above its list.
  */
 class RunsResource extends Resource
 {
@@ -70,6 +73,26 @@ class RunsResource extends Resource
                 groupBy: ['status', 'tool', 'retried', 'author', 'watchers', 'labels'],
                 dates: ['ran_at', 'day'],
             );
+    }
+
+    public function summary(): Summary
+    {
+        return Summary::make([
+            // On the resource: they follow the list
+            Widget::stat('failed')->label('Failed')->resource(self::class, ['filter[status][]' => 'failed']),
+            Widget::series('per-day')->label('Runs per day')->resource(self::class)->per('day', 'ran_at'),
+            Widget::breakdown('by-tool')->label('Runs by tool')->resource(self::class)->by('tool'),
+            // The whole resource, whatever the list shows
+            Widget::stat('all')->label('All runs')->resource(self::class)->followsList(false),
+            // Data of their own: what the list asks for
+            Widget::stat('matching')->label('Matching')->using(fn (WidgetRequest $request): array => [
+                'value' => count($request->query->filters ?? []),
+                'help' => implode(',', array_keys($request->query->filters ?? [])).($request->search() !== null ? ' q='.$request->search() : ''),
+            ]),
+            Widget::stat('everything')->label('Everything')->followsList(false)->using(fn (WidgetRequest $request): array => [
+                'value' => count($request->query->filters ?? []),
+            ]),
+        ])->listCollapsed();
     }
 
     public function scope(Request $request): array

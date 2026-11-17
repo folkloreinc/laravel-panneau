@@ -78,6 +78,8 @@ final class Widget
 
     private int|float|null $target = null;
 
+    private ?bool $followsList = null;
+
     /**
      * @var class-string<WidgetData>|Closure|null
      */
@@ -305,6 +307,19 @@ final class Widget
     }
 
     /**
+     * In the summary of a resource (`Resource::summary()`): `false` keeps the widget on the whole
+     * resource, without the list's current filters and search. The widgets on the resource of the
+     * summary, and those with data of their own, follow the list by default; a widget on another
+     * resource doesn't.
+     */
+    public function followsList(bool $follows = true): self
+    {
+        $this->followsList = $follows;
+
+        return $this;
+    }
+
+    /**
      * The data of the widget: a class that implements `WidgetData`, built from the container,
      * or a closure called through the container with the user as `$user`. Either returns the
      * data in the shape of the type, with texts translated.
@@ -388,6 +403,14 @@ final class Widget
     }
 
     /**
+     * @internal Read by `Dashboard`: `followsList()`, or null without it.
+     */
+    public function getFollowsList(): ?bool
+    {
+        return $this->followsList;
+    }
+
+    /**
      * @internal Read by `Dashboard`.
      */
     public function getTarget(): int|float|null
@@ -463,6 +486,9 @@ final class Widget
                 'target' => $this->target,
             ], fn (mixed $value): bool => $value !== null)
             : $this->settings;
+        if ($this->followsList !== null) {
+            $settings['followsList'] = $this->followsList;
+        }
 
         return array_filter([
             'id' => $this->id,

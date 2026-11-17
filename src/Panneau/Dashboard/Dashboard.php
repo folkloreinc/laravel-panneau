@@ -20,9 +20,10 @@ use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 
 /**
- * The widgets of the dashboards and their data (panneau-js decisions 0064 and 0084): those of the
- * home page, declared with `Panneau::dashboard()` or `Page::dashboard('home')`, and those of each
- * dashboard page (`Page::dashboard()`).
+ * The widgets of the dashboards and the summaries, and their data (panneau-js decisions 0064 and
+ * 0084): those of the home page, declared with `Panneau::dashboard()` or
+ * `Page::dashboard('home')`, those of each dashboard page (`Page::dashboard()`), and those of the
+ * summary above the list of a resource (`Resource::summary()`).
  *
  * @internal
  */
@@ -134,20 +135,87 @@ final class Dashboard
     }
 
     /**
+     * The widgets of the summary of a resource for a user, in order: those whose ability they
+     * have. Null for a resource without a summary.
+     *
+     * @return list<Widget>|null
+     */
+    public function summaryWidgets(?Authenticatable $user, Resource $resource): ?array
+    {
+        $summary = $this->summaryOf($resource);
+
+        return $summary !== null
+            ? $this->filter($user, $summary->getWidgets(), sprintf('The summary of "%s"', $resource->id()))
+            : null;
+    }
+
+    /**
+     * The summary of a resource in the definition, for a user, checked as the widgets of the
+     * dashboards: its widgets, and `list: "collapsed"`. Null without one.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function summaryDefinition(?Authenticatable $user, Resource $resource): ?array
+    {
+        $summary = $this->summaryOf($resource);
+        if ($summary === null) {
+            return null;
+        }
+        $definition = ['widgets' => $this->definitionOf($user, $this->summaryWidgets($user, $resource) ?? [], $resource)];
+        if ($summary->collapsesList()) {
+            $definition['list'] = 'collapsed';
+        }
+
+        return $definition;
+    }
+
+    /**
+     * A widget of the summary of a resource for the user, by id.
+     */
+    public function findInSummary(?Authenticatable $user, Resource $resource, string $id): ?Widget
+    {
+        foreach ($this->summaryWidgets($user, $resource) ?? [] as $widget) {
+            if ($widget->id() === $id) {
+                return $widget;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The summary of a resource: what `summary()` returns, as a `Summary`. Null for none.
+     */
+    private function summaryOf(Resource $resource): ?Summary
+    {
+        $summary = $resource->summary();
+        if (is_array($summary)) {
+            return $summary !== [] ? Summary::make($summary) : null;
+        }
+
+        return $summary;
+    }
+
+    /**
      * Widgets in the definition. Checked when it is built: a widget without data, on a resource
      * that isn't registered, with a filter its list doesn't have, a stat that counts a list paged
      * with cursors, which has no total, or that measures or groups by what the aggregates of the
-     * list don't declare, throws a `LogicException`. A widget on aggregates of fields the user
-     * can't see is left out for them.
+     * list don't declare, throws a `LogicException`, and so does `followsList()` out of a summary,
+     * or on another resource. A widget on aggregates of fields the user can't see is left out for
+     * them.
      *
      * @param  list<Widget>  $widgets
+     * @param  resource|null  $summary  The resource of a summary, or null for a dashboard.
      * @return list<array<string, mixed>>
      */
-    private function definitionOf(?Authenticatable $user, array $widgets): array
+    private function definitionOf(?Authenticatable $user, array $widgets, ?Resource $summary = null): array
     {
         $definitions = [];
         foreach ($widgets as $widget) {
             $name = $widget->getResource();
+            if ($widget->getFollowsList() !== null && $summary === null) {
+                throw new LogicException(sprintf('The widget "%s" follows a list (followsList()): only the widgets of the summary of a resource do.', $widget->id()));
+            }
             if ($name === null) {
                 if ($widget->getData() === null) {
                     throw new LogicException(sprintf('The widget "%s" has no data: give it a resource() or using().', $widget->id()));
@@ -160,6 +228,9 @@ final class Dashboard
                 continue;
             }
             $resource = $this->checkedResource($widget, $name);
+            if ($widget->getFollowsList() !== null && $summary !== null && $resource->id() !== $summary->id()) {
+                throw new LogicException(sprintf('The widget "%s" reads "%s": it doesn\'t follow the list of "%s" (followsList()).', $widget->id(), $resource->id(), $summary->id()));
+            }
             if ($this->aggregatesHidden($widget, $resource, $user)) {
                 continue;
             }
@@ -325,6 +396,9 @@ final class Dashboard
             $locale,
             $context,
             $request->page,
+            $request->resource,
+            $request->query?->filters,
+            $request->query?->search,
         ]));
     }
 

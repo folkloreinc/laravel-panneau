@@ -471,6 +471,11 @@ final class DefinitionBuilder
             $definition['actions'] = $actions;
         }
         $definition['abilities'] = $abilities;
+        // Widgets above the list (panneau-js decision 0084), for a user who can list it
+        $summary = $abilities['viewAny'] ? $this->dashboard->summaryDefinition($user, $resource) : null;
+        if ($summary !== null) {
+            $definition['summary'] = $summary;
+        }
 
         $features = $resource->features();
         $features['search'] = $this->resources->inGlobalSearch($resource);
