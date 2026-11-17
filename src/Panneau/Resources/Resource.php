@@ -230,16 +230,17 @@ abstract class Resource
     }
 
     /**
-     * What an item's title opens, in its list and wherever the app links to the item: `panel`,
-     * its details in a panel next to the list, or `edit`, its form. With `edit`, the item's show
-     * route redirects to its form, and the app leaves out `show`. Use it when the panel
-     * adds nothing to the form.
+     * What an item's title opens, in its list and wherever the app links to the item: `edit`, its
+     * form, the default, or `panel`, its details in a panel next to the list. With `edit`, the
+     * item's show route redirects to its form, and the app leaves out `show`; an item the user
+     * can't update still opens in the panel. Return `panel` for items read more than edited
+     * (orders, submissions), or shown with their preview.
      *
      * @return 'panel'|'edit'
      */
     public function open(): string
     {
-        return 'panel';
+        return 'edit';
     }
 
     /**

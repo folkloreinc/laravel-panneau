@@ -16,7 +16,7 @@ class AuthorsResource extends Resource
 
     public function open(): string
     {
-        return 'edit';
+        return 'panel';
     }
 
     public function itemActions(): array
