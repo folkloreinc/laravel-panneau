@@ -12,6 +12,8 @@ use Panneau\Actions\Action;
 use Panneau\Actions\BuiltInLink;
 use Panneau\Context\Context;
 use Panneau\Contracts\ActionDeclaration;
+use Panneau\Dashboard\Summary;
+use Panneau\Dashboard\Widget;
 use Panneau\Fields\Field;
 use Panneau\Fields\Select;
 use Panneau\Fields\Text;
@@ -199,6 +201,20 @@ abstract class Resource
     public function list(ResourceList $list): ResourceList
     {
         return $list;
+    }
+
+    /**
+     * The summary above the list (panneau-js decision 0084): widgets, in the grid of a dashboard,
+     * between the header of the list page and the list, or a `Summary` with its options
+     * (`listCollapsed()`, a period). The widgets on this resource follow the list's filters and
+     * search; those with data of their own get them in their `WidgetRequest`. Empty, the default,
+     * is no summary.
+     *
+     * @return list<Widget>|Summary
+     */
+    public function summary(): array|Summary
+    {
+        return [];
     }
 
     /**

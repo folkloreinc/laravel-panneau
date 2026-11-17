@@ -138,9 +138,135 @@ trait ValidatesProtocol
                     }
                 }
             }
+            self::lintAggregates($resource, $path, $issues);
         }
+        self::lintOverviews($definition, $issues);
 
         return $issues;
+    }
+
+    /**
+     * The aggregates of a list, as `lintDefinition()` checks them (decision 0084): each one names
+     * a field the user can view, `sum` a number or money of one currency, `dates` a date,
+     * `groupBy` a value.
+     *
+     * @param  array<string, mixed>  $resource
+     * @param  list<string>  $issues
+     */
+    private static function lintAggregates(array $resource, string $path, array &$issues): void
+    {
+        $aggregates = $resource['list']['aggregates'] ?? null;
+        if (! is_array($aggregates)) {
+            return;
+        }
+        $fields = [...$resource['fields'], ...array_merge(...array_map(fn (array $type): array => $type['fields'] ?? [], $resource['types'] ?? []))];
+        $byName = array_column($fields, null, 'name');
+        $checks = [
+            'sum' => fn (array $field): bool => in_array($field['type'], ['number', 'range', 'duration', 'money'], true)
+                && ($field['type'] !== 'money' || is_string($field['settings']['currency'] ?? null)),
+            'dates' => fn (array $field): bool => in_array($field['type'], ['date', 'datetime'], true),
+            'groupBy' => fn (array $field): bool => ! in_array($field['type'], ['richtext', 'media', 'image', 'file', 'group', 'repeater', 'json', 'embed', 'location', 'address', 'link', 'daterange', 'money'], true),
+        ];
+        foreach ($checks as $key => $accepts) {
+            foreach ($aggregates[$key] ?? [] as $index => $name) {
+                $field = $byName[$name] ?? null;
+                if ($field === null || ($field['abilities']['view'] ?? true) === false || ! $accepts($field)) {
+                    $issues[] = $path.'.list.aggregates.'.$key.'.'.$index.': '.$name.' can\'t be aggregated there';
+                }
+            }
+        }
+    }
+
+    /**
+     * The dashboards and the summaries, as `lintDefinition()` checks them (decisions 0064 and
+     * 0084): widgets on a resource that exists, with the aggregates of its list, `followsList`
+     * only in a summary, `period` only in an overview with a period, on a `date-range` filter.
+     *
+     * @param  array<string, mixed>  $definition
+     * @param  list<string>  $issues
+     */
+    private static function lintOverviews(array $definition, array &$issues): void
+    {
+        $resources = array_column($definition['resources'], null, 'id');
+        $home = $definition['pages']['home'] ?? null;
+        $homePeriod = (($home['component'] ?? null) === 'dashboard' ? ($home['period'] ?? null) : null) ?? ($definition['dashboard']['period'] ?? null);
+        $overviews = [];
+        if (isset($definition['dashboard'])) {
+            $overviews[] = ['dashboard.widgets', $definition['dashboard']['widgets'], null, $homePeriod !== null];
+        }
+        foreach ($definition['pages'] ?? [] as $id => $page) {
+            if ((isset($page['widgets']) || isset($page['period'])) && $page['component'] !== 'dashboard') {
+                $issues[] = 'pages.'.$id.': only a dashboard page has widgets and a period';
+            }
+            if (isset($page['widgets'])) {
+                $overviews[] = ['pages.'.$id.'.widgets', $page['widgets'], null, ($id === 'home' ? $homePeriod : ($page['period'] ?? null)) !== null];
+            }
+        }
+        foreach ($definition['resources'] as $index => $resource) {
+            $summary = $resource['summary'] ?? null;
+            if ($summary === null) {
+                continue;
+            }
+            if (isset($summary['period'])) {
+                $filters = array_column(array_filter($resource['list']['filters'] ?? [], fn (array $filter): bool => $filter['type'] === 'date-range'), 'id');
+                $filter = $summary['period']['filter'] ?? ($filters[0] ?? null);
+                if (! in_array($filter, $filters, true)) {
+                    $issues[] = 'resources.'.$index.'.summary.period: no date-range filter '.($filter ?? '(none)');
+                }
+            }
+            $overviews[] = ['resources.'.$index.'.summary.widgets', $summary['widgets'], $resource['id'], isset($summary['period'])];
+        }
+        foreach ($overviews as [$path, $widgets, $summaryOf, $hasPeriod]) {
+            foreach ($widgets as $index => $widget) {
+                $widgetPath = $path.'.'.$index;
+                $settings = $widget['settings'] ?? [];
+                $on = $settings['resource'] ?? null;
+                if (isset($settings['followsList']) && ($summaryOf === null || ($on !== null && $on !== $summaryOf))) {
+                    $issues[] = $widgetPath.'.settings.followsList: only the widgets of a summary on its resource follow its list';
+                }
+                if (isset($settings['period']) && ! $hasPeriod) {
+                    $issues[] = $widgetPath.'.settings.period: its overview has no period';
+                }
+                if (! in_array($widget['type'], ['stat', 'series', 'list', 'breakdown'], true)) {
+                    continue;
+                }
+                if ($on === null) {
+                    if (is_string($settings['period'] ?? null)) {
+                        $issues[] = $widgetPath.'.settings.period: without a resource, it can only be false';
+                    }
+
+                    continue;
+                }
+                $resource = $resources[$on] ?? null;
+                if ($resource === null) {
+                    $issues[] = $widgetPath.'.settings.resource: no resource '.$on;
+
+                    continue;
+                }
+                $filters = array_column($resource['list']['filters'] ?? [], 'type', 'id');
+                if (is_string($settings['period'] ?? null) && ($filters[$settings['period']] ?? null) !== 'date-range') {
+                    $issues[] = $widgetPath.'.settings.period: no date-range filter '.$settings['period'];
+                }
+                $aggregates = $resource['list']['aggregates'] ?? [];
+                $measure = $settings['measure'] ?? null;
+                $group = $settings['group'] ?? null;
+                if ($widget['type'] === 'list' && ($measure !== null || $group !== null)) {
+                    $issues[] = $widgetPath.'.settings: a list has no measure or group';
+                }
+                if (is_string($measure) && str_starts_with($measure, 'sum:') && ! in_array(substr($measure, 4), $aggregates['sum'] ?? [], true)) {
+                    $issues[] = $widgetPath.'.settings.measure: '.$measure.' isn\'t in the sum of the aggregates';
+                }
+                if ($widget['type'] === 'series' && (! is_string($group) || preg_match('/^(day|week|month):(.+)$/', $group, $matches) !== 1 || ! in_array($matches[2], $aggregates['dates'] ?? [], true))) {
+                    $issues[] = $widgetPath.'.settings.group: a series needs a period of a date of the aggregates';
+                }
+                if ($widget['type'] === 'breakdown' && (! is_string($group) || ! in_array($group, $aggregates['groupBy'] ?? [], true))) {
+                    $issues[] = $widgetPath.'.settings.group: a breakdown needs a field of the groupBy of the aggregates';
+                }
+                if (isset($settings['target']) && $widget['type'] !== 'stat') {
+                    $issues[] = $widgetPath.'.settings.target: only a stat has a target';
+                }
+            }
+        }
     }
 
     /**

@@ -77,6 +77,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 ## 5.x (minor releases)
 
 - [x] Dashboard widgets: the built-in `stat`, `series` and `list`, on the list of a resource or with data of their own, widgets of plugins, per user, and a cache per widget (panneau-js decision 0064, [#178](https://github.com/folkloreinc/laravel-panneau/issues/178)) — unreleased — 5.0.0-alpha.13
+- [x] Overviews: dashboard pages, the aggregates of a resource and the widgets that read them (`breakdown`), summaries above lists, and a period (panneau-js decision 0084, [#215](https://github.com/folkloreinc/laravel-panneau/issues/215)) — unreleased
 - [ ] Preview, drafts and revisions
 - [ ] Realtime collaboration support (signed tokens for a Yjs server)
 - [ ] AI agents, with the user's abilities and the policies: the resources and actions of the definition as tools, built once (see the panneau-js roadmap)

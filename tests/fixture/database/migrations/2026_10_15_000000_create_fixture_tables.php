@@ -49,6 +49,31 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // A log, read through its aggregates (RunsResource, panneau-js decision 0084)
+        Schema::create('runs', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedInteger('team_id')->nullable();
+            $table->string('title');
+            $table->string('status')->nullable();
+            $table->string('tool')->nullable();
+            $table->boolean('retried')->default(false);
+            $table->foreignId('author_id')->nullable();
+            $table->json('labels')->nullable();
+            $table->decimal('cost', 10, 2)->nullable();
+            $table->unsignedInteger('tokens')->nullable();
+            $table->unsignedInteger('margin')->nullable();
+            $table->bigInteger('amount_cents')->nullable();
+            $table->char('currency', 3)->nullable();
+            $table->dateTime('ran_at')->nullable();
+            $table->date('day')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('author_run', function (Blueprint $table) {
+            $table->foreignId('author_id');
+            $table->foreignId('run_id');
+        });
+
         Schema::create('pages', function (Blueprint $table) {
             $table->id();
             $table->unsignedInteger('team_id')->nullable();
@@ -145,6 +170,8 @@ return new class extends Migration
         Schema::dropIfExists('post_tag');
         Schema::dropIfExists('entries');
         Schema::dropIfExists('pages');
+        Schema::dropIfExists('author_run');
+        Schema::dropIfExists('runs');
         Schema::dropIfExists('posts');
         Schema::dropIfExists('tags');
         Schema::dropIfExists('authors');

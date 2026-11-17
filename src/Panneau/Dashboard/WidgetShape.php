@@ -4,7 +4,7 @@ namespace Panneau\Dashboard;
 
 /**
  * Checks the data of a widget against the shape of its type, as `checkWidgetData()` of
- * `@panneau/protocol` does (panneau-js decision 0064).
+ * `@panneau/protocol` does (panneau-js decisions 0064 and 0084).
  *
  * @internal
  */
@@ -31,6 +31,7 @@ final class WidgetShape
             'stat' => self::stat($data),
             'series' => self::series($data),
             'list' => self::list($data),
+            'breakdown' => self::breakdown($data),
             default => [],
         };
     }
@@ -45,8 +46,47 @@ final class WidgetShape
         if (! self::isNumber($data['value'] ?? null)) {
             $wrong[] = 'value';
         }
-        foreach (['help' => self::isString(...), 'tone' => self::isTone(...), 'url' => self::isString(...)] as $key => $check) {
+        foreach (['help' => self::isString(...), 'tone' => self::isTone(...), 'url' => self::isString(...), 'target' => self::isPositive(...)] as $key => $check) {
             if (! self::optional($data, $key, $check)) {
+                $wrong[] = $key;
+            }
+        }
+
+        return $wrong;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     * @return list<string>
+     */
+    private static function breakdown(array $data): array
+    {
+        $wrong = [];
+        $items = $data['items'] ?? null;
+        if (! is_array($items) || ! array_is_list($items) || count($items) > Widget::BREAKDOWN_MAX_ITEMS) {
+            $wrong[] = 'items';
+        } else {
+            foreach ($items as $index => $item) {
+                if (! is_array($item) || ($item !== [] && array_is_list($item))) {
+                    $wrong[] = "items.{$index}";
+
+                    continue;
+                }
+                if (! is_string($item['label'] ?? null)) {
+                    $wrong[] = "items.{$index}.label";
+                }
+                if (! self::isNumber($item['value'] ?? null)) {
+                    $wrong[] = "items.{$index}.value";
+                }
+                foreach (['tone' => self::isTone(...), 'url' => self::isString(...), 'key' => self::isKey(...)] as $key => $check) {
+                    if (! self::optional($item, $key, $check)) {
+                        $wrong[] = "items.{$index}.{$key}";
+                    }
+                }
+            }
+        }
+        foreach (['total', 'other'] as $key) {
+            if (! self::optional($data, $key, self::isNumber(...))) {
                 $wrong[] = $key;
             }
         }
@@ -151,6 +191,16 @@ final class WidgetShape
     private static function isNumber(mixed $value): bool
     {
         return (is_int($value) || is_float($value)) && is_finite((float) $value);
+    }
+
+    private static function isPositive(mixed $value): bool
+    {
+        return self::isNumber($value) && $value > 0;
+    }
+
+    private static function isKey(mixed $value): bool
+    {
+        return is_string($value) || is_bool($value) || self::isNumber($value);
     }
 
     private static function isString(mixed $value): bool

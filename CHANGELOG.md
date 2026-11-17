@@ -6,6 +6,20 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Overviews (#215, panneau-js decision 0084): numbers, curves and breakdowns of one or more resources, without code.
+  - **Dashboard pages:** `Page::dashboard($id)->widgets([...])`, a page of widgets in `pages.{id}.widgets`, whose data is `GET {api}/dashboard/widgets/{widget}?page={id}`. `Page::dashboard('home')` can hold the widgets of the home page instead of `Panneau::dashboard()`, which doesn't change.
+  - **Aggregates of a resource:** `$list->aggregates(sum: [...], groupBy: [...], dates: [...])`, `list.aggregates` in the definition, and `GET {api}/resources/{resource}/aggregate`, which counts or sums the items the user can list, with the list's filters and search, by a period or by a field. Repositories implement the optional `Panneau\Contracts\Repositories\Aggregates`; `EloquentRepository` does, with a `GROUP BY` on MySQL, MariaDB, PostgreSQL and SQLite, and in PHP where SQL can't group.
+  - **Widgets on aggregates:** `Widget::breakdown()`, and `resource()` on a `stat`, a `series` and a `breakdown`, with `count()`, `sum()`, `per()`, `by()` and `target()`. A `stat` and a `breakdown` with data of their own can have a `target` and parts.
+  - **Summaries above lists:** `Resource::summary()` returns widgets, or a `Summary` with `listCollapsed()`; `Widget::followsList(false)`; `GET {api}/dashboard/widgets/{widget}?resource={resource}` with the list's filters and search.
+  - **A period:** `period()` on a dashboard page and a summary, `Widget::period()`, and `period[option]`, `period[from]` and `period[to]` at the widget endpoint.
+  - The data of a widget (`WidgetData` or a closure of `using()`) gets a `Panneau\Dashboard\WidgetRequest` from the container: its page, or its summary with the list's query, and the period. `WidgetData::data()` doesn't change.
+
+### Fixed
+
+- `GET {api}/dashboard/widgets/{widget}` under a prefix with a parameter of its own (`tenants/{tenant}`) read the prefix's parameter as the widget (#215).
+
 ## [5.0.0-alpha.20] - 2026-11-17
 
 Goes with `@panneau/*` `5.0.0-alpha.36`, which shows the language switcher and opens items in their form by default (panneau-js decisions 0083 and 0082). The definition now always writes `open`: earlier `@panneau/*` versions read it too, so items open in their form with them as well; they ignore `interfaceLocales`.

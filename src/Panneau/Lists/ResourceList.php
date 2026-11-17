@@ -2,6 +2,7 @@
 
 namespace Panneau\Lists;
 
+use InvalidArgumentException;
 use Panneau\Fields\Field;
 use Panneau\Lists\Filters\Filter;
 use Panneau\Query\QueryOptions;
@@ -67,6 +68,11 @@ final class ResourceList
      * @var array{field: string, filter: string|null, perPage: int|null}|null
      */
     private ?array $calendar = null;
+
+    /**
+     * @var array{sum: list<string>, groupBy: list<string>, dates: list<string>}|null
+     */
+    private ?array $aggregates = null;
 
     /**
      * @param  list<string|Column>  $columns  Field names, or columns.
@@ -285,6 +291,46 @@ final class ResourceList
     }
 
     /**
+     * What the items of the list can be counted, summed and grouped by, at
+     * `GET {api}/resources/{resource}/aggregate` and in the `series`, `breakdown` and `stat`
+     * widgets on the resource (panneau-js decision 0084). Nothing else is aggregated:
+     *
+     * - `$sum`: `number`, `range` and `duration` fields, and `money` fields of one `currency()`;
+     * - `$groupBy`: fields whose values group the items in a `breakdown` (a `select`, a
+     *   `relation`, a `boolean`…), not those whose values are structures (`money`, `daterange`,
+     *   `group`…);
+     * - `$dates`: `date` and `datetime` fields whose days, weeks or months group the items in a
+     *   `series`.
+     *
+     * The repository must implement `Panneau\Contracts\Repositories\Aggregates`, as
+     * `EloquentRepository` does. The fields a user can't see are left out for them. The
+     * definition checks the fields and their types when it is built.
+     *
+     * @param  list<string>  $sum
+     * @param  list<string>  $groupBy
+     * @param  list<string>  $dates
+     */
+    public function aggregates(array $sum = [], array $groupBy = [], array $dates = []): self
+    {
+        if ($sum === [] && $groupBy === [] && $dates === []) {
+            throw new InvalidArgumentException('The aggregates of a list need a field to sum, to group by, or a date.');
+        }
+        $this->aggregates = ['sum' => $sum, 'groupBy' => $groupBy, 'dates' => $dates];
+
+        return $this;
+    }
+
+    /**
+     * The aggregates of the list, as declared: null without them.
+     *
+     * @return array{sum: list<string>, groupBy: list<string>, dates: list<string>}|null
+     */
+    public function getAggregates(): ?array
+    {
+        return $this->aggregates;
+    }
+
+    /**
      * What the query string can ask for.
      *
      * @param  bool  $searchable  Whether the repository supports search.
@@ -312,7 +358,7 @@ final class ResourceList
     }
 
     /**
-     * The list in the protocol's definition.
+     * The list in the protocol's definition, without its aggregates, which depend on the user.
      *
      * @param  bool  $searchable  Whether the repository supports search.
      * @param  bool  $cursors  Whether the list is paged with cursors: it asks for it, and the

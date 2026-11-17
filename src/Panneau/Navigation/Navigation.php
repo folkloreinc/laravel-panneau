@@ -63,9 +63,62 @@ final class Navigation
     /**
      * The pages for a user, by id, in the protocol's shape.
      *
+     * @param  array<string, array{Page|array<string, mixed>, array<string, mixed>}>|null  $declared  The pages of
+     *                                                                                                `declaredPages()`, when they are already known.
      * @return array<string, array<string, mixed>>
      */
-    public function pages(?Authenticatable $user = null): array
+    public function pages(?Authenticatable $user = null, ?array $declared = null): array
+    {
+        $pages = [];
+        foreach ($declared ?? $this->declaredPages($user) as $id => [$page, $definition]) {
+            // A page the user can't open (`Page::can()`, panneau-js decision 0046)
+            if ($page instanceof Page && ! $this->allows($user, $page->ability())) {
+                $definition['abilities'] = ['view' => false];
+            }
+            $pages[$id] = $definition;
+        }
+
+        return $pages;
+    }
+
+    /**
+     * The dashboard pages declared for a user with `Page::dashboard()`, by id (panneau-js
+     * decision 0084), whether the user can view them or not (`canView()`).
+     *
+     * @param  array<string, array{Page|array<string, mixed>, array<string, mixed>}>|null  $declared  The pages of
+     *                                                                                                `declaredPages()`, when they are already known.
+     * @return array<string, Page>
+     */
+    public function dashboardPages(?Authenticatable $user = null, ?array $declared = null): array
+    {
+        $pages = [];
+        foreach ($declared ?? $this->declaredPages($user) as $id => [$page]) {
+            if ($page instanceof Page && $page->isDashboard()) {
+                $pages[$id] = $page;
+            }
+        }
+
+        return $pages;
+    }
+
+    /**
+     * Whether a user can view a page: they have its ability (`Page::can()`), or it has none.
+     */
+    public function canView(?Authenticatable $user, Page $page): bool
+    {
+        return $this->allows($user, $page->ability());
+    }
+
+    /**
+     * The pages declared for a user, by id, each with its definition: a page replaces the one of
+     * the same id declared before it. Closures are called once: give the result to `pages()` and
+     * `dashboardPages()` to build the definition.
+     *
+     * @internal
+     *
+     * @return array<string, array{Page|array<string, mixed>, array<string, mixed>}>
+     */
+    public function declaredPages(?Authenticatable $user): array
     {
         $config = $this->config->get('panneau.pages');
         $sources = [is_array($config) ? $config : [], ...$this->pages];
@@ -73,11 +126,7 @@ final class Navigation
         foreach ($sources as $source) {
             foreach ($this->evaluate($source, $user, 'pages') as $key => $page) {
                 [$id, $definition] = self::page($key, $page);
-                // A page the user can't open (`Page::can()`, panneau-js decision 0046)
-                if ($page instanceof Page && ! $this->allows($user, $page->ability())) {
-                    $definition['abilities'] = ['view' => false];
-                }
-                $pages[$id] = $definition;
+                $pages[$id] = [$page instanceof Page ? $page : $definition, $definition];
             }
         }
 
@@ -168,6 +217,9 @@ final class Navigation
         }
         if (! is_string($page['component'] ?? null) || $page['component'] === '') {
             throw new LogicException(sprintf('The page "%s" has no component.', $id));
+        }
+        if (array_key_exists('widgets', $page)) {
+            throw new LogicException(sprintf('The page "%s" has widgets in an array: declare a dashboard page with Page::dashboard(\'%s\')->widgets([...]), whose widgets get their data.', $id, $id));
         }
         $params = $page['params'] ?? [];
         if (! is_array($params) || ! array_is_list($params) || array_filter($params, fn (mixed $param): bool => ! is_string($param) || preg_match(Page::PARAM_PATTERN, $param) !== 1) !== []) {

@@ -8,6 +8,7 @@ use Illuminate\Contracts\Foundation\Application;
 use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Actions\DeleteAction;
+use Panneau\Aggregates\ResourceAggregates;
 use Panneau\Auth\Authorizer;
 use Panneau\Context\ContextResolver;
 use Panneau\Contracts\ActionDeclaration;
@@ -52,6 +53,7 @@ final class DefinitionBuilder
         private readonly ContextResolver $context,
         private readonly Dashboard $dashboard,
         private readonly InterfaceLocales $interfaceLocales,
+        private readonly ResourceAggregates $aggregates,
     ) {}
 
     /**
@@ -76,8 +78,14 @@ final class DefinitionBuilder
             $definition['interfaceLocales'] = $interfaceLocales;
         }
         // Left out when there are none, so that definitions stay as they were
-        $pages = $this->navigation->pages($user);
-        $widgets = $this->dashboard->definition($user);
+        $declared = $this->navigation->declaredPages($user);
+        $pages = $this->navigation->pages($user, $declared);
+        // The widgets of the dashboard pages (panneau-js decision 0084)
+        $dashboards = $this->navigation->dashboardPages($user, $declared);
+        foreach ($this->dashboard->pagesDefinition($user, $dashboards) as $id => $pageWidgets) {
+            $pages[$id]['widgets'] = $pageWidgets;
+        }
+        $widgets = $this->dashboard->homeDefinition($user, $dashboards);
         // With widgets, the home page is the dashboard, unless the project declares its own
         if ($widgets !== [] && ! isset($pages['home'])) {
             $pages['home'] = ['component' => 'dashboard'];
@@ -422,6 +430,11 @@ final class DefinitionBuilder
         if (isset($list['filters']) && is_array($list['filters'])) {
             $list['filters'] = array_map(fn (array $filter): array => $this->resolveResource($filter), $list['filters']);
         }
+        // What the user can aggregate (panneau-js decision 0084): without the fields they can't see
+        $aggregates = $this->aggregates->definition($resource, $user);
+        if ($aggregates !== null) {
+            $list['aggregates'] = $aggregates;
+        }
         $definition['list'] = $list;
 
         $abilities = $this->authorizer->resourceAbilities($user, $resource);
@@ -458,6 +471,11 @@ final class DefinitionBuilder
             $definition['actions'] = $actions;
         }
         $definition['abilities'] = $abilities;
+        // Widgets above the list (panneau-js decision 0084), for a user who can list it
+        $summary = $abilities['viewAny'] ? $this->dashboard->summaryDefinition($user, $resource) : null;
+        if ($summary !== null) {
+            $definition['summary'] = $summary;
+        }
 
         $features = $resource->features();
         $features['search'] = $this->resources->inGlobalSearch($resource);

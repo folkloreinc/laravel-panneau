@@ -58,6 +58,26 @@ class NavigationBuildersTest extends TestCase
         Page::make('post-stats', 'post-stats')->params(['post-id']);
     }
 
+    public function test_a_dashboard_page(): void
+    {
+        $page = Page::dashboard('activity')->label('Activity')->widgets([]);
+
+        $this->assertTrue($page->isDashboard());
+        $this->assertSame([], $page->getWidgets());
+        // Its widgets are added for each user by the definition
+        $this->assertSame(['component' => 'dashboard', 'label' => 'Activity'], $page->toDefinition());
+        $this->assertFalse(Page::make('reports', 'reports')->isDashboard());
+        $this->assertNull(Page::dashboard('activity')->getWidgets());
+    }
+
+    public function test_only_a_dashboard_page_has_widgets(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The page "reports" is a "reports": only a dashboard page (Page::dashboard()) has widgets.');
+
+        Page::make('reports', 'reports')->widgets([]);
+    }
+
     public function test_the_built_in_menu_items(): void
     {
         $this->assertSame(['type' => 'resources'], MenuItem::resources()->toDefinition());

@@ -24,6 +24,7 @@ use Panneau\Definition\InterfaceLocales;
 use Panneau\Exceptions\ContextRefusedException;
 use Panneau\Http\Controllers\AccountController;
 use Panneau\Http\Controllers\ActionController;
+use Panneau\Http\Controllers\AggregateController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\AuthController;
 use Panneau\Http\Controllers\ContextOptionsController;
@@ -57,7 +58,7 @@ class Panneau implements PanneauContract
     /**
      * The resource routes that `resourceRoutes()` can register.
      */
-    private const RESOURCE_ROUTES = ['index', 'store', 'show', 'update', 'destroy', 'duplicate', 'actions', 'check'];
+    private const RESOURCE_ROUTES = ['index', 'store', 'show', 'update', 'destroy', 'duplicate', 'actions', 'check', 'aggregate'];
 
     public function __construct(private readonly Container $container) {}
 
@@ -336,6 +337,8 @@ class Panneau implements PanneauContract
             'store' => fn () => $router->post('resources/{resource}', [ResourceController::class, 'store'])->name('resources.store'),
             'actions' => fn () => $router->post('resources/{resource}/actions/{action}', ActionController::class)->name('resources.actions'),
             'check' => fn () => $router->post('resources/{resource}/fields/{field}/check', FieldCheckController::class)->name('resources.fields.check'),
+            // Before the item's route, which would read `aggregate` as an id
+            'aggregate' => fn () => $router->get('resources/{resource}/aggregate', AggregateController::class)->name('resources.aggregate'),
             'show' => fn () => $router->get('resources/{resource}/{id}', [ResourceController::class, 'show'])->name('resources.show'),
             'update' => fn () => $router->patch('resources/{resource}/{id}', [ResourceController::class, 'update'])->name('resources.update'),
             'destroy' => fn () => $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy'),
