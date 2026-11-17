@@ -66,6 +66,52 @@ class ValidatesProtocolTest extends TestCase
         $this->assertValidDefinition($definition);
     }
 
+    /**
+     * The checks of the overviews that `lintDefinition()` makes (decision 0084).
+     *
+     * @return array<string, array{\Closure(array<string, mixed>): array<string, mixed>}>
+     */
+    public static function invalidOverviews(): array
+    {
+        $widget = fn (array $widget): \Closure => function (array $definition) use ($widget): array {
+            $definition['pages'] = ['activity' => ['component' => 'dashboard', 'widgets' => [$widget]]];
+
+            return $definition;
+        };
+
+        return [
+            'a sum of text' => [function (array $definition): array {
+                $definition['resources'][0]['list']['aggregates'] = ['sum' => ['title']];
+
+                return $definition;
+            }],
+            'a series without a period' => [$widget(['id' => 'a', 'type' => 'series', 'settings' => ['resource' => 'pages', 'group' => 'title']])],
+            'a sum that is not declared' => [$widget(['id' => 'a', 'type' => 'stat', 'settings' => ['resource' => 'pages', 'measure' => 'sum:title']])],
+            'a widget that follows a list on a dashboard' => [$widget(['id' => 'a', 'type' => 'stat', 'settings' => ['resource' => 'pages', 'followsList' => false]])],
+            'a period without one on its dashboard' => [$widget(['id' => 'a', 'type' => 'stat', 'settings' => ['period' => false]])],
+            'widgets of a page that is not a dashboard' => [function (array $definition): array {
+                $definition['pages'] = ['reports' => ['component' => 'reports', 'widgets' => []]];
+
+                return $definition;
+            }],
+            'a summary period without a date-range filter' => [function (array $definition): array {
+                $definition['resources'][0]['summary'] = ['widgets' => [], 'period' => ['options' => ['7d']]];
+
+                return $definition;
+            }],
+        ];
+    }
+
+    /**
+     * @param  \Closure(array<string, mixed>): array<string, mixed>  $change
+     */
+    #[DataProvider('invalidOverviews')]
+    public function test_an_invalid_overview_fails(\Closure $change): void
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->assertValidDefinition($change($this->definition()));
+    }
+
     public function test_the_built_in_links_need_no_label_nor_target(): void
     {
         $definition = $this->definition();

@@ -154,7 +154,7 @@ interface ResourceRepository
 }
 ```
 
-- **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, `ChecksSlugs` (for unique slugs on repositories that aren't Eloquent, see [Slug](#slug)), `ChunkedQuery` (for queued actions), and `CursorPaginated` (for lists paged with cursors). Actions and features that need one are only offered when the repository has it.
+- **Optional capabilities:** `Restorable`, `Duplicable`, `Searchable`, `ChecksSlugs` (for unique slugs on repositories that aren't Eloquent, see [Slug](#slug)), `ChunkedQuery` (for queued actions), `CursorPaginated` (for lists paged with cursors), and `Aggregates` (for the lists that declare aggregates, see [Overviews](#aggregates-of-a-resource)). Actions and features that need one are only offered when the repository has it.
 - **Cursor pagination** ([panneau-js decision 0039](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0039-cursor-pagination.md)). A list too large to count, or too live for page numbers, asks for cursors: `$list->cursorPagination()`, sent as `"pagination": "cursor"` when the repository is `CursorPaginated` (numbered pages otherwise). The index then reads `cursor` instead of `page`, calls `cursorQuery()`, which returns a `CursorPage`, and answers `meta: { perPage, nextCursor, previousCursor }`, without a total unless the repository counts. `previousCursor` is null when the previous page is the first, which has no cursor. A cursor the repository can't read is a `422` problem with `errors.cursor`.
   - `EloquentRepository` uses `cursorPaginate()` on the columns of the sorts, then the key: the sorted columns must never be null. Its cursors also hold the number of their page, for `previousCursor`, and a cursor from another sort is refused.
   - A Scout search has no cursors: it pages by number (`simplePaginate()`) behind its cursors, still without a total.
@@ -820,7 +820,7 @@ Panneau::menu('main', fn (?Authenticatable $user): array => [
 
 - **Where they are declared.** In `config/panneau.php`, as `pages` (a map of id to page) and `menus` (a map of name to entries), in the protocol's shape, or in a service provider with `Panneau::pages()` and `Panneau::menu()`, which take the builders or the same arrays. `Panneau::pages()` adds pages; `Panneau::menu()` sets a whole menu. **The service provider wins:** a page declared there replaces the page of the config with the same id, and a menu the menu of the same name; a later call wins over an earlier one.
 - **Closures.** `Panneau::pages()` and `Panneau::menu()` also take a closure that returns the pages or the entries. It is called each time the definition is built, through the container (`$app->call()`), with the user (or null) as `$user`: labels are translated in the request's locale, and a menu can depend on the user, such as their role, or on the current context, with a parameter of type `Panneau\Context\Context` (see [Current context](#current-context)). Arrays are evaluated once, when they are declared: `__()` in an array of a service provider gives the boot locale, and the config can't translate.
-- **Pages.** `Page::make($id, $component)`, with `label()`, `path()` (a custom path), `props()` (the props of the component) and `params()` (the names of the path segments after the page, which the component gets as `params`). `can($ability)` shows the page only to the users who have a Gate ability (`'stats.view'`), or a closure that gets the user: for the others, the page has `"abilities": { "view": false }`, and the app leaves it out of menus and shows a forbidden page on its route ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)). It only hides the page: the endpoints its component calls check the user themselves.
+- **Pages.** `Page::make($id, $component)`, with `label()`, `path()` (a custom path), `props()` (the props of the component) and `params()` (the names of the path segments after the page, which the component gets as `params`). `can($ability)` shows the page only to the users who have a Gate ability (`'stats.view'`), or a closure that gets the user: for the others, the page has `"abilities": { "view": false }`, and the app leaves it out of menus and shows a forbidden page on its route ([panneau-js decision 0046](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0046-abilities-in-the-ui.md)). It only hides the page: the endpoints its component calls check the user themselves. `Page::dashboard($id)` is a page of widgets drawn by the app, with `widgets()` and `period()`: see [Overviews](#dashboard-pages).
 - **Entries.** `MenuItem::resources()`, `resource()`, `page()`, `link()`, `separator()` and `group()`, with `label()`, `icon()` (a Lucide name) and `external()`. A resource or a page without a label gets its own in the app. `MenuItem::make($type, [...])` makes an entry of a type a plugin provides, which is sent as it is.
 - **Collapsible groups and emphasized entries** ([panneau-js decision 0079](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0079-collapsible-groups-and-emphasized-entries.md)). `MenuItem::group(...)->collapsible()` lets the user show or hide the links of a group with a label, and the browser remembers it; `->collapsed()` starts it closed, unless it holds the current page. `->emphasis()` on a `resource`, `page` or `link` shows its label in bold, for the main entries. They are sent only when true, and other types refuse them with an `InvalidArgumentException`.
 - **Languages of the interface** ([panneau-js decision 0083](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0083-a-language-switcher-in-the-shell.md)). The app has a language switcher, not a menu entry, when `panneau.interface_locales` has two languages or more: labels by locale (`['fr' => 'Français', 'en' => 'English']`), or locales named in their own language by the intl extension. They aren't `panneau.locales`, the languages of the content. The definition lists them as `interfaceLocales`, each with the URL of `GET {api}/locale/{locale}` (route `panneau.api.locale`), which keeps the choice in the session (`panneau.locale`) and redirects to `next`, a local path under `{panneau.path}`, or to the app. A locale that isn't listed is a `404`. The `ApplyInterfaceLocale` middleware, after those of `panneau.middleware`, sets the locale of Panneau's routes to that choice; without one, the app's locale stays, as the site's middleware chose it. In the `external` mode, the choice applies to Panneau's routes only: the site's pages keep their own language.
@@ -1210,11 +1210,11 @@ See [decisions/0010](decisions/0010-global-search.md) and the [shared decision](
   - the `database` and `collection` engines run that callback before paginating, so pages and totals are exact. Engines with their own index (Meilisearch, Algolia, Typesense) run it only on the items of the page they found. The scope is also given to the engine as `where` clauses (`whereIn` for a list), so **the scope's columns must be filterable attributes of the index**. The callback still keeps the items outside the scope out. Filters, ids and exclusions can make such pages shorter, and the order is the engine's;
   - override `scoutSearch()` to give the engine more of the query, and `searchesWithScout()` to keep `LIKE` queries for a searchable model;
   - in a list paged with cursors, Scout pages by number behind the cursors, since it has none.
-- **Dashboard widgets.** See [Dashboard](#dashboard).
+- **Dashboard widgets.** See [Dashboard](#dashboard) and [Overviews](#overviews).
 
 ## Dashboard
 
-The home page is a dashboard of widgets (#178, [panneau-js decision 0064](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0064-dashboard-widgets.md)): numbers, lines and short lists that the app draws, and widgets of JS plugins.
+The home page is a dashboard of widgets (#178, [panneau-js decision 0064](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0064-dashboard-widgets.md)): numbers, lines, breakdowns and short lists that the app draws, and widgets of JS plugins. Dashboard pages, summaries above lists and a shared period make the [overviews](#overviews) of a resource or of several.
 
 ```php
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -1227,25 +1227,111 @@ Panneau::dashboard(fn (?Authenticatable $user): array => [
         ->resource(EntriesResource::class, ['filter[status]' => 'to-judge']),
     Widget::list('latest')->label(__('Latest entries'))->width(4)
         ->resource(EntriesResource::class, ['sort' => '-created_at']),
+    // On the aggregates of a resource (see Overviews)
+    Widget::series('submitted')->label(__('Entries per day'))->resource(EntriesResource::class)->per('day', 'created_at'),
     // Data of its own, from a class or a closure
     Widget::stat('revenue')->label(__('Revenue'))->using(RevenueWidget::class)->cache(300),
-    Widget::series('per-day')->label(__('Entries per day'))->width(8)->using(EntriesPerDay::class),
+    Widget::series('per-day')->label(__('Visits per day'))->width(8)->using(VisitsPerDay::class),
     Widget::make('weather', 'weather')->settings(['city' => 'Montréal'])->using(WeatherWidget::class), // a plugin's
     ...($user?->is_admin ? [Widget::stat('overdue')->using(OverdueWidget::class)] : []), // by role
 ]);
 ```
 
-- **Types.** `Widget::stat()`, a number with a line of help; `Widget::series()`, a line of values per day, week or month, with its total; `Widget::list()`, at most 5 items, the most useful first; `Widget::make($id, $type)`, a type that a JS plugin draws, with its `settings()`. `label()` and `width()` (columns of a grid of 12: 3 for a `stat` and 6 for the others by default) go with each.
-- **On a resource.** A `stat` or a `list` can read the list of a resource (a class or an id), with a query written as its query parameters. The app reads the list itself, as the user: a `stat` shows its total, a `list` its first items with their title and the badge of their first `select` column, and both link to the list with that query. The definition checks that the resource is registered, that the filters of the query are filters of its list, and that a `stat` doesn't count a list paged with cursors, which has no total. `page`, `perPage` and `cursor` are the app's.
-- **Data of its own.** `using()` takes a class that implements `Panneau\Contracts\WidgetData`, built from the container for each request (its constructor can ask for the request or the context), or a closure called through the container with the user as `$user`. It returns the data in the shape of the type, with its texts translated:
-  - `stat`: `['value' => 12, 'help' => __('3 more than last week'), 'tone' => 'warning', 'url' => '…']`. A `tone` only when the number calls for attention, never at 0;
+- **Types.** `Widget::stat()`, a number with a line of help; `Widget::series()`, a line of values per day, week or month, with its total; `Widget::list()`, at most 5 items, the most useful first; `Widget::breakdown()`, the parts of a total as horizontal bars, at most 10, the largest first; `Widget::make($id, $type)`, a type that a JS plugin draws, with its `settings()`. `label()` and `width()` (columns of a grid of 12: 3 for a `stat` and 6 for the others by default) go with each.
+- **On a resource.** A `stat` or a `list` can read the list of a resource (a class or an id), with a query written as its query parameters. The app reads the list itself, as the user: a `stat` shows its total, a `list` its first items with their title and the badge of their first `select` column, and both link to the list with that query. A `series`, a `breakdown` and a `stat` that sums read its [aggregates](#aggregates-of-a-resource) instead. The definition checks that the resource is registered, that the filters of the query are filters of its list, and that a `stat` that counts doesn't count a list paged with cursors, which has no total. `page`, `perPage` and `cursor` are the app's.
+- **Data of its own.** `using()` takes a class that implements `Panneau\Contracts\WidgetData`, built from the container for each request (its constructor can ask for the request, the context, or the `WidgetRequest`), or a closure called through the container with the user as `$user` (and a `WidgetRequest` parameter, if it has one). It returns the data in the shape of the type, with its texts translated:
+  - `stat`: `['value' => 12, 'help' => __('3 more than last week'), 'tone' => 'warning', 'url' => '…', 'target' => 20]`. A `tone` only when the number calls for attention, never at 0; a `target` draws a meter under the number;
   - `series`: `['period' => 'day', 'points' => [['date' => '2026-10-05', 'value' => 4], …], 'total' => 12]`, the first day of each period, going up, one point per period;
-  - `list`: `['items' => [['title' => '…', 'description' => null, 'meta' => __('12 answers'), 'url' => '…', 'badge' => ['label' => __('Open'), 'tone' => 'success']]], 'empty' => __('No open contests.'), 'url' => '…']`.
+  - `list`: `['items' => [['title' => '…', 'description' => null, 'meta' => __('12 answers'), 'url' => '…', 'badge' => ['label' => __('Open'), 'tone' => 'success']]], 'empty' => __('No open contests.'), 'url' => '…']`;
+  - `breakdown`: `['items' => [['label' => __('Failed'), 'value' => 3, 'tone' => 'danger', 'url' => '…']], 'total' => 42, 'other' => 5]`.
+- **`WidgetRequest`.** Where the widget is asked for: `$request->page` (its dashboard page, `home` for the home page), or `$request->resource` and `$request->query` in a summary (the `ResourceQuery` of the list, with its filters and search in the scope of the resource, to give to its repository; `filter($id)` and `search()` read it), and `$request->period`, a `WidgetPeriod` (`option`, `from`, `to`, `start()`, `end()`, `range()`) when its overview has a period. `WidgetData::data(?Authenticatable $user)` keeps its signature: the request comes from the container, so existing classes don't change.
 - **`GET {path}/api/dashboard/widgets/{id}`** answers a widget of the user's dashboard only, as the user: a widget that isn't on it, or that reads a resource, is a `404`. An `AuthorizationException` is a `403`, and the app hides the widget. Data that doesn't have the shape of its type is a `500` problem: the `WidgetDataException` reported in the log names the wrong keys, and the data is never sent.
 - **Per user.** The closure of `Panneau::dashboard()` builds the widgets of each user, as for menus, and `can()` keeps a widget for the users who have a Gate ability, or a closure that gets the user. The others don't get it in the definition, and its data is a `404`.
-- **Home page.** With widgets, the definition has `dashboard.widgets`, and `pages.home` is the built-in `dashboard`, unless the project declares a page `home`. A user without widgets gets the cards of the resources.
-- **Cache.** `cache($seconds)` keeps a successful answer per widget, user, locale and context, in the app's cache: for widgets that call another service or compute something heavy. Errors are never kept. **Don't cache a widget about the resource's own items**: the user expects to see them as soon as they change. A widget on a resource has nothing to cache.
+- **Home page.** With widgets, the definition has `dashboard.widgets`, and `pages.home` is the built-in `dashboard`, unless the project declares a page `home`. A user without widgets gets the cards of the resources. `Page::dashboard('home')->widgets([...])` can declare them instead (`pages.home.widgets`), but not with `Panneau::dashboard()`: both throw a `LogicException`.
+- **Cache.** `cache($seconds)` keeps a successful answer per widget, user, locale, context, page or summary, query of the list and period, in the app's cache: for widgets that call another service or compute something heavy. Errors are never kept. **Don't cache a widget about the resource's own items**: the user expects to see them as soon as they change. A widget on a resource has nothing to cache.
 - The tests check a definition with widgets against `definition.schema.json` and the endpoint against `openapi.json`, and the conformance app has a dashboard.
+
+## Overviews
+
+An overview answers the questions asked of one or more resources, such as logs, with numbers, curves and breakdowns rather than rows ([#215](https://github.com/folkloreinc/laravel-panneau/issues/215), [panneau-js decision 0084](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0084-overviews.md)): a dashboard page, or the summary above the list of a resource. Its widgets can count and sum a resource without code, and it can share one period.
+
+```php
+use Panneau\Dashboard\Summary;
+use Panneau\Dashboard\Widget;
+use Panneau\Lists\Filters\DateRangeFilter;
+use Panneau\Lists\Filters\SelectFilter;
+use Panneau\Lists\ResourceList;
+use Panneau\Navigation\Page;
+
+class EmailsResource extends Resource
+{
+    public function list(ResourceList $list): ResourceList
+    {
+        return $list
+            ->filters([SelectFilter::make('status')->options(EmailStatus::class), DateRangeFilter::make('sent_at')])
+            // What can be summed, grouped by, and grouped by period: nothing else
+            ->aggregates(sum: ['cost'], groupBy: ['status', 'tool'], dates: ['sent_at']);
+    }
+
+    // Above the list, following its filters and its search
+    public function summary(): Summary
+    {
+        return Summary::make([
+            Widget::stat('failed')->label(__('Failed'))->resource(self::class, ['filter[status]' => 'failed']),
+            Widget::series('per-day')->label(__('Emails per day'))->resource(self::class)->per('day', 'sent_at'),
+            Widget::breakdown('by-status')->label(__('By status'))->resource(self::class)->by('status'),
+            Widget::stat('cost')->label(__('Cost'))->resource(self::class)->sum('cost')->target(10000),
+            Widget::stat('all')->label(__('All emails'))->resource(self::class)->followsList(false),
+            Widget::stat('bounce-rate')->label(__('Bounce rate'))->using(BounceRate::class),
+        ])->listCollapsed()->period(['7d', '30d', '90d', 'month', 'year'], default: '30d', filter: 'sent_at');
+    }
+}
+
+// A dashboard page, linked from a menu with MenuItem::page('activity')
+Panneau::pages([
+    Page::dashboard('activity')->label(__('Activity'))
+        ->period(['7d', '30d', 'month'], default: '7d')
+        ->widgets(fn (?Authenticatable $user): array => [
+            Widget::series('emails')->resource(EmailsResource::class)->per('day', 'sent_at')->period('sent_at'),
+            Widget::breakdown('costs')->resource(CallsResource::class)->by('service')->sum('cost')->period('called_at'),
+            Widget::stat('jobs')->using(FailedJobs::class), // gets the period in its WidgetRequest
+        ]),
+]);
+```
+
+### Dashboard pages
+
+- `Page::dashboard($id)` is a page drawn by the app's built-in `dashboard`, at `{basePath}/pages/{id}`, with its label above its widgets: `widgets()` takes `Widget` builders or a closure that gets the user, as `Panneau::dashboard()`. The definition has them in `pages.{id}.widgets`, per user, checked as those of the home page. `widgets()` on another page throws an `InvalidArgumentException`; a page declared as an array can't have widgets (a `LogicException`): their data would have no source.
+- `GET {api}/dashboard/widgets/{widget}?page={id}` answers its widgets with data of their own. A widget that isn't on that page of the user (an unknown page, a page that isn't a dashboard, a widget of another page, a page the user can't view with `can()`) is a `404`; an empty `page` a `422`. The same id on two pages is two widgets, cached apart.
+
+### Aggregates of a resource
+
+- **Declared.** `$list->aggregates(sum: [...], groupBy: [...], dates: [...])` declares what can be summed (`number`, `range`, `duration`, and `money` of one `currency()`), grouped by (fields whose values aren't structures: a `select`, a `relation`, a `boolean`, text…), and grouped by the day, week or month of (`date` and `datetime`). The definition checks the fields and their types when it is built, and that the repository implements `Panneau\Contracts\Repositories\Aggregates`, with a `LogicException`; it writes `list.aggregates` without the fields the user can't see.
+- **`GET {api}/resources/{resource}/aggregate`** (route `panneau.api.resources.aggregate`, before the item's route; `aggregate` of `resourceRoutes(only: [...])`): authorized as the list, `viewAny` (`403`) and the scope of the resource, with the list's `filter[…]` and `q`, read as the list reads them; `page`, `perPage`, `cursor`, `sort` and `fields` are ignored. `measure` is `count` (the default) or `sum:{field}`, `group` is `{day|week|month}:{date field}` or a field of `groupBy`. A resource without aggregates for the user is a `404`, and a measure or a group in another format, or on a field that isn't declared (or that the user can't see), a `422` problem with `errors` keyed by `measure` or `group`.
+- **Answers,** in the shape of a widget, as `aggregateItems()` of `@panneau/protocol`:
+  - without a group, a `stat`: `{ "value": 12 }`;
+  - by a period, a `series`: a point per period, at 0 without items, each on the first day of its period (the Monday of a week), from the period of the `from` bound of the `date-range` filter whose id is the date field to the period of its `to` bound, or without a bound, of the first or the last item; at most 366 points, the latest. Items without a date are left out, and `total` is the sum of the points;
+  - by a field, a `breakdown`: a part per value, the largest first (equal parts in the order of the options of the field, then of their labels), at most 10, and the rest in `other`. Each part has its `key`, the value as the list filters by it (the id of a related item for a `relation`, `null` for the items without a value, labeled "None"), its `label` (the label of its option for a `select`, with its `tone`; the title of the related item for a `relation`, found within the scope of its resource; "Yes" or "No" for a boolean), and an item with several values counts in each of its parts, once in `total`.
+  - A sum of `money` is in minor units.
+- **Repositories.** `Aggregates::aggregate(ResourceQuery $query, Measure $measure, ?Group $group = null): AggregateResult` measures the items of the query (its scope, ids, exclusions, filters and search) and returns the total, the measure of each period keyed by its first day (`Interval::startOf()`), or of each value (`['key' => …, 'value' => …]`); Panneau fills the empty periods, labels, sorts and cuts the parts. `Measure`, `Group`, `Interval` and `AggregateResult` are in `Panneau\Aggregates`. A repository without it can't declare aggregates.
+- **`EloquentRepository`** groups in SQL, with a `GROUP BY` on the column of a field (with no cast, a scalar cast or an enum), the foreign key of a `BelongsTo` (mapped to the related route keys when they differ), or a truncated date: `substr()`/`date()` on SQLite, `date_format()` on MySQL and MariaDB, `date_trunc()` on PostgreSQL. It sums the column of a field, or the amount column of an `AsMoney` attribute. **In PHP, over the matching rows read 500 at a time:** values of several items (a `BelongsToMany` relation, a column cast to an array), accessors and relations, and the dates of other databases (SQL Server). Override `aggregateColumn()` and `truncatedDate()` to change them.
+  - **Time zone.** The day of a date is the one stored in its column. Eloquent writes and reads dates in `app.timezone`, as items serialize them and as `date-range` filters compare them (`whereDate()`), so they agree. A PostgreSQL `timestamp with time zone` column is truncated in the time zone of the connection: set the connection's `timezone` to `app.timezone`.
+- **Widgets on aggregates.** `Widget::series()->resource($r, $query)->per('day', 'created_at')`, `Widget::breakdown()->resource($r, $query)->by('status')`, and `Widget::stat()->resource($r)->sum('cost')`, each with `count()` (the default) or `sum($field)`; `target($n)` on a `stat` (in the unit of its value, minor units for `money`). They write `settings.measure`, `settings.group` and `settings.target`, and the app reads the aggregate endpoint with the widget's query. The definition checks them against the aggregates of the list (a `LogicException`), and leaves out for a user a widget on a field they can't see. A `stat` that counts keeps reading the total of the list.
+
+### Summaries above lists
+
+- `Resource::summary()` returns widgets, or a `Summary::make([...])` (or a closure that gets the user) with its options. The definition writes `summary.widgets` per user, checked as those of a dashboard, and `summary.list: "collapsed"` with `listCollapsed()`: the resource opens on its summary, its list folded under it. A user who can't list the resource gets no summary.
+- **It follows the list.** The widgets on the resource of the summary get the list's filters and search from the app; `followsList(false)` keeps a widget on the whole resource. `followsList()` out of a summary, or on a widget of another resource, throws a `LogicException`.
+- **Data of its own.** `GET {api}/dashboard/widgets/{widget}?resource={resource}` with the list's `filter[…]` and `q`: the `WidgetRequest` has the `ResourceQuery` of the list (without its filters and search for a widget with `followsList(false)`). A widget that isn't in the summary of that resource for the user is a `404`, a resource the user can't list a `403`, and `page` and `resource` together, or an empty `resource`, a `422`.
+
+### Period
+
+- `Page::dashboard()->period($options, default:)` and `Summary::period($options, default:, filter:)` declare one period, among `7d`, `30d`, `90d`, `month` and `year`, `default` or the first option when the overview opens (`Panneau\Dashboard\Period`, which refuses other options, an option twice, or a default that isn't one, with an `InvalidArgumentException`). `Page::dashboard('home')->period()` is the period of the home page, also with the widgets of `Panneau::dashboard()`. The browser computes its days: the last 7, 30 or 90 days, today included; the month so far; the last 12 months from the first day of the month 11 months ago.
+- **A summary's period** is the list's own `date-range` filter: `filter`, or the first one of the list, which must exist (a `LogicException` otherwise).
+- **Widgets on a resource** follow it with `period('created_at')`, the id of a `date-range` filter of their list, which the app sets to the days of the period; in a summary, those that follow the list follow it too. The backend needs nothing more: the list and the aggregates read the filter.
+- **Widgets with data of their own** get `period[option]`, `period[from]` and `period[to]`, read as `readWidgetDataQuery()` reads them: an option that isn't one of the five, days that are missing or aren't days, or `from` after `to`, are a `422` with `errors.period`. Their `WidgetRequest` has it as `$request->period` when their overview has a period, unless they have `period(false)`.
+- `period()` on a widget of an overview without a period, or a filter name on a widget without a resource, or that isn't a `date-range` filter of its list, throws a `LogicException`.
+- The tests check definitions with dashboard pages, aggregates, summaries and periods against `definition.schema.json` and a port of the overview checks of `lintDefinition()`, and the endpoints against `openapi.json`; the conformance app has a dashboard page with a period, and a resource of runs with aggregates and a summary with a period.
 
 ## laravel-folklore
 
