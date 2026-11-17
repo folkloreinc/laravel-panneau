@@ -34,6 +34,11 @@ final class DefinitionBuilder
     public const PROTOCOL_VERSION = 1;
 
     /**
+     * The id of the resource of users, where clients look for the user's profile.
+     */
+    private const USERS_RESOURCE = 'users';
+
+    /**
      * Field types shown as columns when a list declares none.
      */
     private const DEFAULT_COLUMN_TYPES = ['text', 'email', 'url', 'slug', 'number', 'boolean', 'date', 'datetime', 'time', 'select', 'color', 'tel', 'range', 'duration', 'tags', 'country', 'region', 'daterange', 'money', 'address'];
@@ -261,12 +266,35 @@ final class DefinitionBuilder
         $name = $this->userProperty($user, 'name');
         $email = $this->userProperty($user, 'email');
 
-        return array_filter([
+        $definition = array_filter([
             'id' => (string) $user->getAuthIdentifier(),
             'name' => is_string($name) ? $name : (is_string($email) ? $email : ''),
             'email' => is_string($email) ? $email : null,
             'abilities' => ['panneau.view' => true],
         ], fn (mixed $value): bool => $value !== null);
+
+        // Without `auth.account`, the app links the user's name to their item in the resource
+        // `users`. A user it can't open there has no link: `null` (#202).
+        $resource = $this->resources->find(self::USERS_RESOURCE);
+        if ($resource !== null) {
+            $definition['resource'] = $this->reachesItem($user, $resource) ? $resource->id() : null;
+        }
+
+        return $definition;
+    }
+
+    /**
+     * Whether the user is an item of the resource they can open and edit: inside its scope, and
+     * allowed to `view` and `update` it, as `GET` and `PATCH` of the item check.
+     */
+    private function reachesItem(Authenticatable $user, Resource $resource): bool
+    {
+        $request = $this->app->make('request');
+        $item = $this->resources->repository($resource)->find((string) $user->getAuthIdentifier(), $resource->repositoryScope($request));
+
+        return $item !== null
+            && $this->authorizer->allowsItem($user, $resource, 'view', $item)
+            && $this->authorizer->allowsItem($user, $resource, 'update', $item);
     }
 
     /**

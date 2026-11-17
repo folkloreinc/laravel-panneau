@@ -2114,7 +2114,10 @@
                     "$ref": "#/$defs/Abilities"
                 },
                 "resource": {
-                    "type": "string"
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 }
             },
             "required": [
