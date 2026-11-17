@@ -26,7 +26,7 @@ use TestApp\Policies\PostPolicy;
 
 /**
  * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
- * direct uploads, a page and a main menu, a dashboard, a context with an optional param, the password reset
+ * direct uploads, pages and a main menu, a dashboard and a dashboard page, a context with an optional param, the password reset
  * and the email verification of the `panneau` auth mode, behind a bearer token (`Authorization:
  * Bearer conformance`).
  */
@@ -86,11 +86,18 @@ class ConformanceServiceProvider extends ServiceProvider
         Gate::policy(Asset::class, AssetPolicy::class);
 
         Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class]);
-        Panneau::pages([Page::make('reports', 'reports')->label('Reports')]);
+        Panneau::pages([
+            Page::make('reports', 'reports')->label('Reports'),
+            // A dashboard page (panneau-js decision 0084): the kit asks for its widgets with `?page=`
+            Page::dashboard('activity')->label('Activity')->widgets([
+                Widget::stat('published')->label('Published')->resource(ConformancePostsResource::class, ['filter[status]' => 'published']),
+                Widget::stat('overdue')->label('Overdue')->using(OverdueWidget::class),
+            ]),
+        ]);
         Panneau::menu('main', [
             MenuItem::resources(),
             MenuItem::separator(),
-            MenuItem::group('More', [MenuItem::page('reports'), MenuItem::link('Site', '/')->external()]),
+            MenuItem::group('More', [MenuItem::page('activity'), MenuItem::page('reports'), MenuItem::link('Site', '/')->external()]),
         ]);
         // The dashboard (panneau-js decision 0064): the kit checks the data of the widgets with
         // data of their own, the lists of those on a resource, and a widget that isn't on it

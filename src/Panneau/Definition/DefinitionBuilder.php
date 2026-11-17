@@ -76,8 +76,14 @@ final class DefinitionBuilder
             $definition['interfaceLocales'] = $interfaceLocales;
         }
         // Left out when there are none, so that definitions stay as they were
-        $pages = $this->navigation->pages($user);
-        $widgets = $this->dashboard->definition($user);
+        $declared = $this->navigation->declaredPages($user);
+        $pages = $this->navigation->pages($user, $declared);
+        // The widgets of the dashboard pages (panneau-js decision 0084)
+        $dashboards = $this->navigation->dashboardPages($user, $declared);
+        foreach ($this->dashboard->pagesDefinition($user, $dashboards) as $id => $pageWidgets) {
+            $pages[$id]['widgets'] = $pageWidgets;
+        }
+        $widgets = $this->dashboard->homeDefinition($user, $dashboards);
         // With widgets, the home page is the dashboard, unless the project declares its own
         if ($widgets !== [] && ! isset($pages['home'])) {
             $pages['home'] = ['component' => 'dashboard'];

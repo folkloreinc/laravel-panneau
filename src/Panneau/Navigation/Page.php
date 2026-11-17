@@ -5,14 +5,23 @@ namespace Panneau\Navigation;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
+use Panneau\Dashboard\Widget;
 
 /**
  * A page of the app shell, in the definition's `pages`: a component that a JS plugin registers
  * (or a built-in page), at `{basePath}/pages/{id}`, or at its own path. The page `home` is the
  * home page of the app.
+ *
+ * `Page::dashboard()` is a page of widgets, drawn by the app's built-in `dashboard` (panneau-js
+ * decision 0084): related numbers, lines and breakdowns, on one page of the menu.
  */
 final class Page
 {
+    /**
+     * The component of the app's built-in dashboard.
+     */
+    public const DASHBOARD = 'dashboard';
+
     /**
      * What the names of `params()` look like, as the protocol's schema says.
      */
@@ -37,6 +46,11 @@ final class Page
      */
     private string|Closure|null $ability = null;
 
+    /**
+     * @var list<Widget>|Closure|null
+     */
+    private array|Closure|null $widgets = null;
+
     private function __construct(private readonly string $id, private readonly string $component)
     {
         if ($id === '') {
@@ -55,9 +69,30 @@ final class Page
         return new self($id, $component);
     }
 
+    /**
+     * A dashboard page: its `widgets()`, drawn by the app's built-in `dashboard`, at
+     * `{basePath}/pages/{id}`, with its label above them (panneau-js decision 0084). Its widgets
+     * get their data from `GET {api}/dashboard/widgets/{widget}?page={id}`.
+     *
+     * `Page::dashboard('home')` is the home page: its widgets replace those of
+     * `Panneau::dashboard()`, which can't be set with them.
+     */
+    public static function dashboard(string $id): self
+    {
+        return new self($id, self::DASHBOARD);
+    }
+
     public function id(): string
     {
         return $this->id;
+    }
+
+    /**
+     * Whether the page is a dashboard, drawn by the app's built-in `dashboard`.
+     */
+    public function isDashboard(): bool
+    {
+        return $this->component === self::DASHBOARD;
     }
 
     /**
@@ -128,6 +163,24 @@ final class Page
     }
 
     /**
+     * The widgets of a dashboard page (`Page::dashboard()`), in order: `Widget` builders, or a
+     * closure called through the container with the user as `$user`, which returns them, as for
+     * `Panneau::dashboard()`. Each user gets those whose ability they have (`Widget::can()`); a
+     * user who can't view the page (`can()`) gets none.
+     *
+     * @param  list<Widget>|Closure  $widgets
+     */
+    public function widgets(array|Closure $widgets): self
+    {
+        if (! $this->isDashboard()) {
+            throw new InvalidArgumentException(sprintf('The page "%s" is a "%s": only a dashboard page (Page::dashboard()) has widgets.', $this->id, $this->component));
+        }
+        $this->widgets = $widgets;
+
+        return $this;
+    }
+
+    /**
      * @internal Read by `Navigation`.
      *
      * @return string|(Closure(?Authenticatable): bool)|null
@@ -138,7 +191,18 @@ final class Page
     }
 
     /**
-     * The page in the definition, without its id, which is its key in `pages`.
+     * @internal Read by `Dashboard`: the widgets of `widgets()`, or null without them.
+     *
+     * @return list<Widget>|Closure|null
+     */
+    public function getWidgets(): array|Closure|null
+    {
+        return $this->widgets;
+    }
+
+    /**
+     * The page in the definition, without its id, which is its key in `pages`. The widgets of a
+     * dashboard page are added for each user, checked, by the definition.
      *
      * @return array<string, mixed>
      */

@@ -413,6 +413,132 @@
                 }
             }
         },
+        "/resources/{resource}/aggregate": {
+            "parameters": [
+                {
+                    "name": "resource",
+                    "in": "path",
+                    "required": true,
+                    "description": "Resource id.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ],
+            "get": {
+                "operationId": "getResourceAggregate",
+                "description": "The count or the sum of the items of the list that the user can list, with the filters and the search of the list, in the shape of a widget (decision 0084). Only what `list.aggregates` declares is aggregated: a resource without it is a `404`, and an undeclared field, or a measure or a group in the wrong format, a `422` with `errors` keyed by `measure` or `group`. Without a group, a `StatWidgetData`. By a period, a `SeriesWidgetData`: a point per period, at 0 without items, from the period of the `from` bound of the `date-range` filter whose id is the date field to the period of its `to` bound, or without a bound, of the first or the last item; at most 366 points, the latest, and their sum in `total`. By a field, a `BreakdownWidgetData`: a part per value, the largest first, at most 10, the rest in `other`, each with its `key` (`null` for the items without a value), the label and the tone of its option for a `select`, and the measure of every item in `total`.",
+                "parameters": [
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "required": false,
+                        "style": "deepObject",
+                        "explode": true,
+                        "description": "`filter[status]=published`; `filter[tags][]=a&filter[tags][]=b` for any of several values; `filter[published_at][from]=2026-01-01&filter[published_at][to]=2026-01-31` for the inclusive bounds of a range filter (`date-range`), without the open end.",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "description": "Search.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "measure",
+                        "in": "query",
+                        "required": false,
+                        "description": "What is measured of the items: `count` (the default), or `sum:{field}` of a field of the `sum` of the aggregates of the list. A sum of `money` adds the amounts, in minor units.",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^(count|sum:.+)$",
+                            "default": "count"
+                        }
+                    },
+                    {
+                        "name": "group",
+                        "in": "query",
+                        "required": false,
+                        "description": "How the items are grouped: `{period}:{date field}`, where the period is `day`, `week` (from Monday) or `month` and the field is in the `dates` of the aggregates, or a field of their `groupBy`. Without it, the answer is a stat.",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^((day|week|month):.+|[^:]+)$"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The aggregate, in the shape of a widget.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/StatWidgetData"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/SeriesWidgetData"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/BreakdownWidgetData"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/resources/{resource}/{id}": {
             "parameters": [
                 {
@@ -3129,10 +3255,89 @@
             ],
             "get": {
                 "operationId": "getWidgetData",
-                "description": "The data of a widget of the dashboard of the user, read as the user (decision 0064). The built-in `stat` and `list` on a resource (`settings.resource`) have none: clients read the list of the resource. A widget that is not in the dashboard of the user is a `404`; a `403` hides the widget.",
+                "description": "The data of a widget of a dashboard of the user, read as the user (decision 0064): the home page, the dashboard page of `page`, or the summary above the list of `resource`, with the filters and the search of the list (decision 0084). The built-in widgets on a resource (`settings.resource`) have none: clients read the list or the aggregates of the resource. A widget that is not on that page or in that summary of the user is a `404`; a `403` hides the widget. `page` and `resource` together are a `422`.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "description": "The id of the dashboard page of the widget, in `pages`. Defaults to `home`, the home page, whose widgets are `pages.home.widgets` or `dashboard.widgets`. Not with `resource`.",
+                        "schema": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    {
+                        "name": "resource",
+                        "in": "query",
+                        "required": false,
+                        "description": "The id of the resource whose summary (`summary.widgets`) holds the widget, instead of a page. The request then has the list's current filters and search (`filter`, `q`), unless the widget has `settings.followsList: false`; never its sort or paging.",
+                        "schema": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "required": false,
+                        "style": "deepObject",
+                        "explode": true,
+                        "description": "`filter[status]=published`; `filter[tags][]=a&filter[tags][]=b` for any of several values; `filter[published_at][from]=2026-01-01&filter[published_at][to]=2026-01-31` for the inclusive bounds of a range filter (`date-range`), without the open end.",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "description": "Search.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "required": false,
+                        "style": "deepObject",
+                        "explode": true,
+                        "description": "The period chosen in the overview of the widget (decision 0084), unless the widget has `settings.period: false`: `period[option]=30d&period[from]=2026-10-19&period[to]=2026-11-17`. `from` and `to` are its first and last days, both inclusive, in the time zone of the browser. A wrong period is a `422` keyed by `period`.",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "option": {
+                                    "type": "string",
+                                    "enum": [
+                                        "7d",
+                                        "30d",
+                                        "90d",
+                                        "month",
+                                        "year"
+                                    ]
+                                },
+                                "from": {
+                                    "type": "string",
+                                    "format": "date"
+                                },
+                                "to": {
+                                    "type": "string",
+                                    "format": "date"
+                                }
+                            },
+                            "required": [
+                                "option",
+                                "from",
+                                "to"
+                            ]
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "The widget's data, in the shape of its type: `StatWidgetData`, `SeriesWidgetData` and `ListWidgetData` for the built-in types, the plugin's own object for others.",
+                        "description": "The widget's data, in the shape of its type: `StatWidgetData`, `SeriesWidgetData`, `ListWidgetData` and `BreakdownWidgetData` for the built-in types, the plugin's own object for others.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3145,6 +3350,9 @@
                                         },
                                         {
                                             "$ref": "#/components/schemas/ListWidgetData"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/BreakdownWidgetData"
                                         },
                                         {
                                             "type": "object",
@@ -3177,6 +3385,16 @@
                     },
                     "404": {
                         "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -4500,6 +4718,37 @@
                 ],
                 "additionalProperties": {}
             },
+            "ListAggregates": {
+                "type": "object",
+                "properties": {
+                    "sum": {
+                        "description": "Fields that can be summed (`measure=sum:{field}`): `number`, `range` and `duration` fields, and `money` fields of one `currency`.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "groupBy": {
+                        "description": "Fields whose values the items can be grouped by, in a `breakdown` (`group={field}`).",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "dates": {
+                        "description": "`date` and `datetime` fields whose days, weeks or months the items can be grouped by, in a `series` (`group={period}:{field}`).",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    }
+                },
+                "additionalProperties": {},
+                "description": "What `GET /resources/{resource}/aggregate` can count, sum and group by (decision 0084): nothing that is not declared."
+            },
             "ListDefinition": {
                 "type": "object",
                 "properties": {
@@ -4574,6 +4823,10 @@
                     "calendar": {
                         "description": "The calendar of the list: the items of a month on the days of a date field, asked for through a `date-range` filter instead of pages (decision 0044).",
                         "$ref": "#/components/schemas/ListCalendar"
+                    },
+                    "aggregates": {
+                        "description": "The fields that `GET /resources/{resource}/aggregate` sums and groups by (decision 0084). Without it, the resource has no aggregates.",
+                        "$ref": "#/components/schemas/ListAggregates"
                     }
                 },
                 "additionalProperties": {}
@@ -4896,6 +5149,74 @@
                 "additionalProperties": {},
                 "description": "A type of the items of a resource (decision 0077): the items of a type have the fields of the resource and its own."
             },
+            "SummaryPeriod": {
+                "type": "object",
+                "properties": {
+                    "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "7d",
+                                "30d",
+                                "90d",
+                                "month",
+                                "year"
+                            ]
+                        },
+                        "description": "The periods the user chooses from, in order: `7d`, `30d` and `90d`, the 7, 30 or 90 days ending today; `month`, the current calendar month, from its first day to today; `year`, the last 12 months, from the first day of the month 11 months ago to today. Days are those of the time zone of the browser."
+                    },
+                    "default": {
+                        "description": "The period the overview opens on, among `options`. Defaults to the first.",
+                        "type": "string",
+                        "enum": [
+                            "7d",
+                            "30d",
+                            "90d",
+                            "month",
+                            "year"
+                        ]
+                    },
+                    "filter": {
+                        "description": "The id of the list's `date-range` filter that the period sets. Defaults to the first `date-range` filter of the list.",
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "required": [
+                    "options"
+                ],
+                "additionalProperties": {},
+                "description": "The period of a summary (decision 0084): the list's own `date-range` filter, so choosing it filters the rows too."
+            },
+            "ResourceSummary": {
+                "type": "object",
+                "properties": {
+                    "widgets": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Widget"
+                        },
+                        "description": "The widgets of the summary for the user, in order, drawn above the list in the grid of a dashboard. Widgets on this resource get the list's current filters and search, unless `settings.followsList` is `false`. Widgets with data of their own are fed by `GET /dashboard/widgets/{widget}?resource={resource}`, with the filters and the search of the list."
+                    },
+                    "list": {
+                        "description": "`collapsed`: the resource opens on its summary, with its list folded under it behind \"Show the N items\". Without it, the list is shown under the summary.",
+                        "type": "string",
+                        "enum": [
+                            "collapsed"
+                        ]
+                    },
+                    "period": {
+                        "$ref": "#/components/schemas/SummaryPeriod"
+                    }
+                },
+                "required": [
+                    "widgets"
+                ],
+                "additionalProperties": {},
+                "description": "Widgets above the list of a resource, which follow its filters and its search (decision 0084)."
+            },
             "Resource": {
                 "type": "object",
                 "properties": {
@@ -5005,6 +5326,10 @@
                         "items": {
                             "$ref": "#/components/schemas/ResourceType"
                         }
+                    },
+                    "summary": {
+                        "description": "Widgets above the list, which follow its filters and its search (decision 0084).",
+                        "$ref": "#/components/schemas/ResourceSummary"
                     },
                     "settings": {
                         "type": "object",
@@ -5267,6 +5592,17 @@
                     "abilities": {
                         "description": "What the current user can do with the page (decision 0046). `view: false` leaves it out of menus, and its route shows a forbidden state; `pages.home` falls back to the built-in home. Without it, the page is allowed.",
                         "$ref": "#/components/schemas/Abilities"
+                    },
+                    "widgets": {
+                        "description": "A page whose component is the built-in `dashboard`: its widgets for the user, in order (decision 0084), fed by `GET /dashboard/widgets/{widget}?page={page}`. On `pages.home`, they replace `dashboard.widgets`.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Widget"
+                        }
+                    },
+                    "period": {
+                        "description": "A page whose component is the built-in `dashboard`: one period for its widgets (decision 0084). On `pages.home`, it replaces `dashboard.period`.",
+                        "$ref": "#/components/schemas/OverviewPeriod"
                     }
                 },
                 "required": [
@@ -5278,7 +5614,7 @@
                 "type": "object",
                 "properties": {
                     "resource": {
-                        "description": "Built-in `stat` and `list`: the resource whose list feeds the widget. The client reads `GET /resources/{resource}` with `query`: a `stat` counts its items (`meta.total`), a `list` shows its first items. Such a widget has no data at `GET /dashboard/widgets/{widget}`.",
+                        "description": "Built-in types: the resource that feeds the widget. A `stat` counts the items of its list (`meta.total`), a `list` shows its first items, and a `series`, a `breakdown` and a `stat` with a `sum:` measure read `GET /resources/{resource}/aggregate` (decision 0084). Such a widget has no data at `GET /dashboard/widgets/{widget}`.",
                         "type": "string",
                         "minLength": 1
                     },
@@ -5309,10 +5645,78 @@
                                 }
                             ]
                         }
+                    },
+                    "measure": {
+                        "description": "With `resource`, for a `stat`, a `series` and a `breakdown`: `count` (the default), or `sum:{field}` of a field of the `sum` of the aggregates of the list.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "group": {
+                        "description": "With `resource`: for a `series`, `{period}:{date field}` (`day`, `week` or `month`, and a field of `dates` of the aggregates of the list); for a `breakdown`, a field of their `groupBy`.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "target": {
+                        "description": "With `resource`, for a `stat`: its `target` (a budget, a quota), in the unit of the value: minor units for a sum of `money`.",
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                    },
+                    "period": {
+                        "description": "In an overview with a `period` (decision 0084). With `resource`: the id of the list's `date-range` filter that gets the days of the chosen period. `false`: the widget doesn't follow the period; a widget with data of its own then gets no `period` parameters.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "boolean",
+                                "const": false
+                            }
+                        ]
+                    },
+                    "followsList": {
+                        "description": "In the summary of a resource (decision 0084): `false` keeps the widget on the whole resource, without the list's current filters and search. Widgets on that resource, and widgets with data of their own, follow the list by default.",
+                        "type": "boolean"
                     }
                 },
                 "additionalProperties": {},
-                "description": "The settings of a widget: `resource` and `query` for the built-in `stat` and `list` on a resource, anything else for widgets of plugins."
+                "description": "The settings of a widget: `resource`, `query`, `measure`, `group` and `target` for the built-in types on a resource, `period` in an overview with a period, `followsList` in a summary, anything else for widgets of plugins."
+            },
+            "OverviewPeriod": {
+                "type": "object",
+                "properties": {
+                    "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "7d",
+                                "30d",
+                                "90d",
+                                "month",
+                                "year"
+                            ]
+                        },
+                        "description": "The periods the user chooses from, in order: `7d`, `30d` and `90d`, the 7, 30 or 90 days ending today; `month`, the current calendar month, from its first day to today; `year`, the last 12 months, from the first day of the month 11 months ago to today. Days are those of the time zone of the browser."
+                    },
+                    "default": {
+                        "description": "The period the overview opens on, among `options`. Defaults to the first.",
+                        "type": "string",
+                        "enum": [
+                            "7d",
+                            "30d",
+                            "90d",
+                            "month",
+                            "year"
+                        ]
+                    }
+                },
+                "required": [
+                    "options"
+                ],
+                "additionalProperties": {},
+                "description": "One period for the widgets of a dashboard page or a summary, chosen in its header and kept in the URL (`?period=30d`, decision 0084)."
             },
             "Widget": {
                 "type": "object",
@@ -5320,12 +5724,12 @@
                     "id": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Unique in the dashboard: the `{widget}` of its route."
+                        "description": "Unique in its dashboard: the `{widget}` of its route."
                     },
                     "type": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Built-in: `stat` (a number), `series` (a line over days, weeks or months) and `list` (a few items). Other types are widgets of plugins."
+                        "description": "Built-in: `stat` (a number), `series` (a line over days, weeks or months), `list` (a few items) and `breakdown` (the parts of a total). Other types are widgets of plugins."
                     },
                     "label": {
                         "type": "string"
@@ -5978,7 +6382,7 @@
                         "$ref": "#/components/schemas/Auth"
                     },
                     "dashboard": {
-                        "description": "The widgets of the home page for the user, in order, when `pages.home` is the `dashboard` (decision 0064).",
+                        "description": "The widgets of the home page for the user, in order, when `pages.home` is the `dashboard` (decision 0064): the shorthand of `pages.home.widgets`, which wins when set.",
                         "type": "object",
                         "properties": {
                             "widgets": {
@@ -5986,6 +6390,9 @@
                                 "items": {
                                     "$ref": "#/components/schemas/Widget"
                                 }
+                            },
+                            "period": {
+                                "$ref": "#/components/schemas/OverviewPeriod"
                             }
                         },
                         "required": [
@@ -7655,6 +8062,18 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "target": {
+                        "description": "A target for the number (a budget, a quota), drawn as a meter under it. Past it, the meter takes `tone`, or `danger` without one (decision 0084).",
+                        "anyOf": [
+                            {
+                                "type": "number",
+                                "exclusiveMinimum": 0
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -7787,6 +8206,84 @@
                 ],
                 "additionalProperties": {},
                 "description": "The data of a `list` widget: a few items (decision 0064)."
+            },
+            "BreakdownWidgetItem": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "description": "What the part is, translated: `Failed`."
+                    },
+                    "value": {
+                        "type": "number",
+                        "description": "The count or the sum of the part."
+                    },
+                    "tone": {
+                        "description": "A tone of the theme for its bar: the tone of an option of a `select`.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^[a-z0-9-]+$"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "url": {
+                        "description": "Where the bar links: the list of what it counts.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "key": {
+                        "description": "From `GET /resources/{resource}/aggregate`: the value of the field it groups, `null` for the items without one. The client links the bar to the list filtered by it.",
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "label",
+                    "value"
+                ],
+                "additionalProperties": {}
+            },
+            "BreakdownWidgetData": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "maxItems": 10,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BreakdownWidgetItem"
+                        },
+                        "description": "The parts, at most 10: clients draw the largest first."
+                    },
+                    "total": {
+                        "description": "The total the parts are of. Items with several values count in each of their parts, and once in the total.",
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "other": {
+                        "description": "The rest of the total, past the items: drawn last, as \"Other\".",
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "items"
+                ],
+                "additionalProperties": {},
+                "description": "The data of a `breakdown` widget: the parts of a total, as horizontal bars (decision 0084)."
             }
         },
         "parameters": {

@@ -6,14 +6,18 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Gate;
 use Panneau\Dashboard\Widget;
+use Panneau\Dashboard\WidgetRequest;
 use Panneau\Exceptions\WidgetDataException;
 use Panneau\Http\Problem;
+use Panneau\Navigation\Page;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Dashboard\OverdueWidget;
+use TestApp\Dashboard\RequestWidget;
 
 /**
- * `GET /dashboard/widgets/{widget}` (panneau-js decision 0064).
+ * `GET /dashboard/widgets/{widget}` (panneau-js decisions 0064 and 0084).
  */
 class DashboardEndpointTest extends HttpTestCase
 {
@@ -49,6 +53,24 @@ class DashboardEndpointTest extends HttpTestCase
                 return ['value' => 'many', 'tone' => 'Red', 'secret' => 'never sent'];
             }),
             ...($user?->getAuthIdentifier() === 1 ? [Widget::stat('ada')->using(fn (): array => ['value' => 1])] : []),
+        ]);
+        Gate::define('reports.view', fn (Authenticatable $user): bool => $user->getAuthIdentifier() === 1);
+        Panneau::pages([
+            Page::dashboard('activity')->label('Activity')->widgets([
+                Widget::stat('overdue')->using(RequestWidget::class),
+                Widget::stat('where')->using(fn (WidgetRequest $request, ?Authenticatable $user): array => [
+                    'value' => (int) $user?->getAuthIdentifier(),
+                    'help' => $request->widget.' on '.$request->page,
+                ]),
+                Widget::stat('cached')->cache(60)->using(function (): array {
+                    $this->calls++;
+
+                    return ['value' => $this->calls];
+                }),
+                Widget::stat('drafts')->resource('posts', ['filter[status]' => 'draft']),
+            ]),
+            Page::dashboard('reports')->can('reports.view')->widgets([Widget::stat('overdue')->using(OverdueWidget::class)]),
+            Page::make('about', 'about'),
         ]);
     }
 
@@ -133,5 +155,54 @@ class DashboardEndpointTest extends HttpTestCase
         $this->app['auth']->forgetGuards();
 
         $this->getJson(self::API.'/dashboard/widgets/overdue')->assertUnauthorized();
+    }
+
+    public function test_the_widgets_of_a_dashboard_page(): void
+    {
+        // The same id as a widget of the home page, another widget
+        $this->getJson(self::API.'/dashboard/widgets/overdue?page=activity')
+            ->assertOk()
+            ->assertExactJson(['value' => 1, 'help' => 'overdue on activity']);
+        $this->getJson(self::API.'/dashboard/widgets/where?page=activity')
+            ->assertOk()
+            ->assertExactJson(['value' => 1, 'help' => 'where on activity']);
+        $this->getJson(self::API.'/dashboard/widgets/overdue')->assertOk()->assertJsonPath('help', 'Since Monday');
+        $this->getJson(self::API.'/dashboard/widgets/overdue?page=home')->assertOk()->assertJsonPath('help', 'Since Monday');
+        $this->getJson(self::API.'/dashboard/widgets/overdue?page=reports')->assertOk();
+    }
+
+    public function test_a_widget_that_is_not_on_that_page_of_the_user_is_a_404(): void
+    {
+        foreach ([
+            'per-day?page=activity', // a widget of the home page
+            'where', // a widget of another page
+            'where?page=nope', // an unknown page
+            'where?page=about', // a page that isn't a dashboard
+            'drafts?page=activity', // a widget on a resource
+        ] as $path) {
+            $this->getJson(self::API.'/dashboard/widgets/'.$path)
+                ->assertNotFound()
+                ->assertHeader('Content-Type', Problem::CONTENT_TYPE);
+        }
+        // A page the user can't view
+        $this->actingAs(new GenericUser(['id' => 2, 'name' => 'Grace']));
+        $this->getJson(self::API.'/dashboard/widgets/overdue?page=reports')->assertNotFound();
+    }
+
+    public function test_an_empty_page_is_a_422(): void
+    {
+        $this->getJson(self::API.'/dashboard/widgets/where?page=')
+            ->assertUnprocessable()
+            ->assertJsonPath('type', Problem::VALIDATION)
+            ->assertJsonPath('errors.page.0', 'The page must not be empty.');
+    }
+
+    public function test_a_cached_widget_is_kept_per_page(): void
+    {
+        $this->getJson(self::API.'/dashboard/widgets/cached?page=activity')->assertJsonPath('value', 1);
+        $this->getJson(self::API.'/dashboard/widgets/cached?page=activity')->assertJsonPath('value', 1);
+        // The widget of the same id on the home page
+        $this->getJson(self::API.'/dashboard/widgets/cached')->assertJsonPath('value', 2);
+        $this->getJson(self::API.'/dashboard/widgets/cached?page=activity')->assertJsonPath('value', 1);
     }
 }

@@ -90,6 +90,9 @@
                             "items": {
                                 "$ref": "#/$defs/Widget"
                             }
+                        },
+                        "period": {
+                            "$ref": "#/$defs/OverviewPeriod"
                         }
                     },
                     "required": [
@@ -263,6 +266,9 @@
                     "items": {
                         "$ref": "#/$defs/ResourceType"
                     }
+                },
+                "summary": {
+                    "$ref": "#/$defs/ResourceSummary"
                 },
                 "settings": {
                     "type": "object",
@@ -1121,6 +1127,9 @@
                 },
                 "calendar": {
                     "$ref": "#/$defs/ListCalendar"
+                },
+                "aggregates": {
+                    "$ref": "#/$defs/ListAggregates"
                 }
             },
             "additionalProperties": {}
@@ -1223,6 +1232,33 @@
             "required": [
                 "field"
             ],
+            "additionalProperties": {}
+        },
+        "ListAggregates": {
+            "type": "object",
+            "properties": {
+                "sum": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "groupBy": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "dates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            },
             "additionalProperties": {}
         },
         "Action": {
@@ -1523,6 +1559,160 @@
             ],
             "additionalProperties": {}
         },
+        "ResourceSummary": {
+            "type": "object",
+            "properties": {
+                "widgets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Widget"
+                    }
+                },
+                "list": {
+                    "type": "string",
+                    "enum": [
+                        "collapsed"
+                    ]
+                },
+                "period": {
+                    "$ref": "#/$defs/SummaryPeriod"
+                }
+            },
+            "required": [
+                "widgets"
+            ],
+            "additionalProperties": {}
+        },
+        "Widget": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "type": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "label": {
+                    "type": "string"
+                },
+                "width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                },
+                "settings": {
+                    "$ref": "#/$defs/WidgetSettings"
+                }
+            },
+            "required": [
+                "id",
+                "type"
+            ],
+            "additionalProperties": {}
+        },
+        "WidgetSettings": {
+            "type": "object",
+            "properties": {
+                "resource": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "query": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string"
+                    },
+                    "additionalProperties": {
+                        "anyOf": [
+                            {
+                                "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                ]
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "measure": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "group": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "target": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "period": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "boolean",
+                            "const": false
+                        }
+                    ]
+                },
+                "followsList": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": {}
+        },
+        "SummaryPeriod": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "7d",
+                            "30d",
+                            "90d",
+                            "month",
+                            "year"
+                        ]
+                    }
+                },
+                "default": {
+                    "type": "string",
+                    "enum": [
+                        "7d",
+                        "30d",
+                        "90d",
+                        "month",
+                        "year"
+                    ]
+                },
+                "filter": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "options"
+            ],
+            "additionalProperties": {}
+        },
         "Page": {
             "type": "object",
             "properties": {
@@ -1552,10 +1742,52 @@
                 },
                 "abilities": {
                     "$ref": "#/$defs/Abilities"
+                },
+                "widgets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Widget"
+                    }
+                },
+                "period": {
+                    "$ref": "#/$defs/OverviewPeriod"
                 }
             },
             "required": [
                 "component"
+            ],
+            "additionalProperties": {}
+        },
+        "OverviewPeriod": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "7d",
+                            "30d",
+                            "90d",
+                            "month",
+                            "year"
+                        ]
+                    }
+                },
+                "default": {
+                    "type": "string",
+                    "enum": [
+                        "7d",
+                        "30d",
+                        "90d",
+                        "month",
+                        "year"
+                    ]
+                }
+            },
+            "required": [
+                "options"
             ],
             "additionalProperties": {}
         },
@@ -1693,72 +1925,6 @@
                 "id",
                 "label"
             ],
-            "additionalProperties": {}
-        },
-        "Widget": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "type": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "label": {
-                    "type": "string"
-                },
-                "width": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 12
-                },
-                "settings": {
-                    "$ref": "#/$defs/WidgetSettings"
-                }
-            },
-            "required": [
-                "id",
-                "type"
-            ],
-            "additionalProperties": {}
-        },
-        "WidgetSettings": {
-            "type": "object",
-            "properties": {
-                "resource": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "query": {
-                    "type": "object",
-                    "propertyNames": {
-                        "type": "string"
-                    },
-                    "additionalProperties": {
-                        "anyOf": [
-                            {
-                                "type": [
-                                    "string",
-                                    "number",
-                                    "boolean"
-                                ]
-                            },
-                            {
-                                "type": "array",
-                                "items": {
-                                    "type": [
-                                        "string",
-                                        "number",
-                                        "boolean"
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            },
             "additionalProperties": {}
         },
         "Uploads": {
