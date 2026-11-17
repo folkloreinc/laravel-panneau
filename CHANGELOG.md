@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- The languages of the interface, with a switcher in the app (#217, panneau-js decision 0082): `panneau.interface_locales` lists them, by locale with their names (`['fr' => 'Français', 'en' => 'English']`), or as locales named by the intl extension. With two or more, the definition has `interfaceLocales`, `GET {api}/locale/{locale}?next=…` keeps the choice in the session and goes back to the app, and Panneau's routes are in the language chosen. `@panneau/*` with the switcher shows it in the sidebar, the dock and "Go to…"; earlier versions ignore it.
+
 ## [5.0.0-alpha.19] - 2026-11-17
 
 Goes with `@panneau/*` `5.0.0-alpha.33`, which reads collapsible groups and emphasized entries; earlier versions ignore them, and show the menus as before.

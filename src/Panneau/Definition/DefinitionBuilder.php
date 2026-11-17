@@ -51,6 +51,7 @@ final class DefinitionBuilder
         private readonly Navigation $navigation,
         private readonly ContextResolver $context,
         private readonly Dashboard $dashboard,
+        private readonly InterfaceLocales $interfaceLocales,
     ) {}
 
     /**
@@ -69,6 +70,11 @@ final class DefinitionBuilder
             'api' => ['baseUrl' => $this->apiBaseUrl()],
             'resources' => array_map(fn (Resource $resource): array => $this->resource($resource, $user), $this->resources->all()),
         ];
+        // Left out without a switcher, so that definitions stay as they were
+        $interfaceLocales = $this->interfaceLocales();
+        if ($interfaceLocales !== []) {
+            $definition['interfaceLocales'] = $interfaceLocales;
+        }
         // Left out when there are none, so that definitions stay as they were
         $pages = $this->navigation->pages($user);
         $widgets = $this->dashboard->definition($user);
@@ -339,6 +345,26 @@ final class DefinitionBuilder
         }
 
         return [$this->app->getLocale()];
+    }
+
+    /**
+     * The languages of the interface of `panneau.interface_locales` (panneau-js decision 0082),
+     * with the URL that switches to each, under the API. None with fewer than two.
+     *
+     * @return list<array{locale: string, label: string, url: string}>
+     */
+    public function interfaceLocales(): array
+    {
+        $locales = [];
+        foreach ($this->interfaceLocales->all() as $locale => $label) {
+            $locales[] = [
+                'locale' => $locale,
+                'label' => $label,
+                'url' => rtrim($this->apiBaseUrl(), '/').'/locale/'.rawurlencode($locale),
+            ];
+        }
+
+        return $locales;
     }
 
     public function apiBaseUrl(): string

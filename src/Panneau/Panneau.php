@@ -20,6 +20,7 @@ use Panneau\Context\ContextResolver;
 use Panneau\Contracts\Panneau as PanneauContract;
 use Panneau\Dashboard\Dashboard;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Definition\InterfaceLocales;
 use Panneau\Exceptions\ContextRefusedException;
 use Panneau\Http\Controllers\AccountController;
 use Panneau\Http\Controllers\ActionController;
@@ -31,6 +32,7 @@ use Panneau\Http\Controllers\DefinitionController;
 use Panneau\Http\Controllers\EmailVerificationController;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\FieldCheckController;
+use Panneau\Http\Controllers\LocaleController;
 use Panneau\Http\Controllers\PasskeyController;
 use Panneau\Http\Controllers\PasswordConfirmationController;
 use Panneau\Http\Controllers\PasswordResetController;
@@ -39,6 +41,7 @@ use Panneau\Http\Controllers\ResourceController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Controllers\TwoFactorController;
 use Panneau\Http\Controllers\UploadController;
+use Panneau\Http\Middleware\ApplyInterfaceLocale;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Http\Middleware\RequirePassword;
@@ -135,14 +138,21 @@ class Panneau implements PanneauContract
         $search = (bool) $config->get('panneau.search.enabled', true);
         $embeds = (bool) $config->get('panneau.embeds.enabled', true);
         $auth = $this->container->make(DefinitionBuilder::class)->auth();
+        $locales = $this->container->make(InterfaceLocales::class)->all() !== [];
+        // The language of the interface the user chose, after the session and the authentication
+        $middleware[] = ApplyInterfaceLocale::class;
 
-        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search, $embeds, $auth): void {
+        $router->group([...$group, 'middleware' => [RenderProblems::class, ...$middleware]], function (Router $router) use ($search, $embeds, $auth, $locales): void {
             // The context after the authentication: values are checked for the user
-            $router->prefix('api')->as('api.')->middleware(ResolveContext::class)->group(function (Router $router) use ($search, $embeds, $auth): void {
+            $router->prefix('api')->as('api.')->middleware(ResolveContext::class)->group(function (Router $router) use ($search, $embeds, $auth, $locales): void {
                 if ($auth['mode'] === 'panneau') {
                     $this->registerAuthRoutes($router, $auth);
                 }
                 $router->get('definition', DefinitionController::class)->name('definition');
+                if ($locales) {
+                    // A full navigation from the app, which sends no context
+                    $router->get('locale/{locale}', LocaleController::class)->withoutMiddleware(ResolveContext::class)->name('locale');
+                }
                 $router->get('context/{param}/options', ContextOptionsController::class)->name('context.options');
                 $router->get('dashboard/widgets/{widget}', DashboardWidgetController::class)->name('dashboard.widgets.show');
                 if ($search) {

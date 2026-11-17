@@ -12,6 +12,15 @@ return [
     // Locales of localized fields. Defaults to the app's locale.
     'locales' => null,
 
+    // Languages of the interface, which the user can switch to: labels by locale, the name of
+    // each language in that language, or a list of locales, named by the intl extension. With
+    // two or more, the app has a language switcher, and the choice is kept in the session for
+    // Panneau's routes. Without a choice, the app's locale stays. Unlike "locales", these are
+    // not the languages of the content.
+    //
+    //     'interface_locales' => ['fr' => 'Français', 'en' => 'English'],
+    'interface_locales' => null,
+
     // Resource classes, registered at boot. Resources can also be registered with
     // Panneau::resources([...]) in a service provider.
     'resources' => [],
