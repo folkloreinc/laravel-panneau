@@ -17,6 +17,7 @@ use Laravel\Socialite\Contracts\User as ProviderUser;
 use LogicException;
 use Panneau\Auth\PasswordConfirmation;
 use Panneau\Contracts\Auth\ResolvesProviderUsers;
+use Panneau\Http\Controllers\Concerns\RedirectsToTheApp;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
@@ -35,6 +36,8 @@ use Throwable;
  */
 final class ProviderController
 {
+    use RedirectsToTheApp;
+
     private const NEXT = 'panneau.auth.provider_next';
 
     public function __construct(
@@ -105,17 +108,6 @@ final class ProviderController
     private function failed(string $code): RedirectResponse
     {
         return $this->redirectTo($this->appPath().'?authError='.$code);
-    }
-
-    /**
-     * A redirection without the page that Symfony writes in its body: a browser follows it.
-     */
-    private function redirectTo(string $url): RedirectResponse
-    {
-        $response = new RedirectResponse($url);
-        $response->setContent('');
-
-        return $response;
     }
 
     private function ensureConfigured(string $provider): void
@@ -210,19 +202,6 @@ final class ProviderController
         }
 
         return $resolver;
-    }
-
-    private function isLocal(string $path): bool
-    {
-        $base = $this->appPath();
-
-        return str_starts_with($path, '/') && ! str_starts_with($path, '//') && ! str_contains($path, '\\')
-            && ($path === $base || str_starts_with($path, rtrim($base, '/').'/') || str_starts_with($path, rtrim($base, '/').'?'));
-    }
-
-    private function appPath(): string
-    {
-        return '/'.trim((string) $this->config->get('panneau.path', 'panneau'), '/');
     }
 
     private function guard(): SessionGuard

@@ -49,6 +49,72 @@
                 }
             ]
         },
+        "/locale/{locale}": {
+            "parameters": [
+                {
+                    "name": "locale",
+                    "in": "path",
+                    "required": true,
+                    "description": "A `locale` of `interfaceLocales`.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ],
+            "get": {
+                "operationId": "switchLocale",
+                "summary": "Optional: switches the interface to a locale of `interfaceLocales`, when their `url` is here (decision 0083). The app comes with a full navigation, and the next page load gets the definition in that locale.",
+                "parameters": [
+                    {
+                        "name": "next",
+                        "in": "query",
+                        "required": false,
+                        "description": "Where to go next: a local path under the base path of the app. Another one is ignored.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "To `next`, or to the base path of the app."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/context/{param}/options": {
             "parameters": [
                 {
@@ -4877,7 +4943,7 @@
                         "type": "string"
                     },
                     "open": {
-                        "description": "Where an item's title goes, in its list and wherever the app links to the item (decision 0040). `panel`, the default: the show route, with the item's details in a panel next to the list. `edit`: its edit form, and the show route redirects there. Clients treat a value they don't know as `panel`.",
+                        "description": "Where an item's title goes, in its list and wherever the app links to the item (decision 0082). `edit`, the default: its edit form, and the show route redirects there. An item the user can't update still opens in the panel. `panel`: the show route, with the item's details in a panel next to the list, for items read more than edited, or shown with their preview. Clients treat a value they don't know as `edit`.",
                         "anyOf": [
                             {
                                 "type": "string",
@@ -5090,6 +5156,32 @@
                     "mode"
                 ],
                 "additionalProperties": {}
+            },
+            "InterfaceLocale": {
+                "type": "object",
+                "properties": {
+                    "locale": {
+                        "type": "string",
+                        "minLength": 2,
+                        "description": "BCP 47 locale of the interface."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "The name of the language in that language, such as \"Français\"."
+                    },
+                    "url": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Where the browser goes to switch to this locale, with a full navigation. The app adds `next`, the path and query to come back to (decision 0083)."
+                    }
+                },
+                "required": [
+                    "locale",
+                    "label",
+                    "url"
+                ],
+                "additionalProperties": {},
+                "description": "A language the user can switch the interface to."
             },
             "MenuItem": {
                 "type": "object",
@@ -5825,6 +5917,13 @@
                             "minLength": 2
                         },
                         "description": "Locales of localized content fields."
+                    },
+                    "interfaceLocales": {
+                        "description": "The languages of the interface, `locale` among them: with two or more, the shell has a switcher (decision 0083). Not the locales of the content, which are `locales`.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InterfaceLocale"
+                        }
                     },
                     "api": {
                         "type": "object",

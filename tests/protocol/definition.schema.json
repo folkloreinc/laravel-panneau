@@ -25,6 +25,12 @@
                         "minLength": 2
                     }
                 },
+                "interfaceLocales": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/InterfaceLocale"
+                    }
+                },
                 "api": {
                     "type": "object",
                     "properties": {
@@ -130,6 +136,28 @@
                 "locales",
                 "api",
                 "resources"
+            ],
+            "additionalProperties": {}
+        },
+        "InterfaceLocale": {
+            "type": "object",
+            "properties": {
+                "locale": {
+                    "type": "string",
+                    "minLength": 2
+                },
+                "label": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "locale",
+                "label",
+                "url"
             ],
             "additionalProperties": {}
         },
