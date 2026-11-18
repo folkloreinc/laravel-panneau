@@ -8,7 +8,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Panneau\Context\ContextParam;
+use Panneau\Dashboard\Row;
+use Panneau\Dashboard\Source;
 use Panneau\Dashboard\Widget;
+use Panneau\Dashboard\WidgetRequest;
 use Panneau\Navigation\MenuItem;
 use Panneau\Navigation\Page;
 use Panneau\Support\Facade as Panneau;
@@ -100,6 +103,45 @@ class ConformanceServiceProvider extends ServiceProvider
                 Widget::stat('published')->label('Published')->resource(ConformancePostsResource::class, ['filter[status]' => 'published']),
                 Widget::stat('overdue')->label('Overdue')->using(OverdueWidget::class),
                 Widget::series('runs-in-period')->label('Runs')->resource(RunsResource::class)->per('day', 'ran_at')->period('ran_at'),
+                // Combined widgets (panneau-js decision 0089): the kit reads each aggregate of
+                // those on resources, and checks the data of those of their own
+                Widget::metric('runs-cost')->label('Cost')->resource(RunsResource::class)->sum('amount')
+                    ->points('day', 'ran_at')->by('status')->target(100000)->goodWhen('down')->period('ran_at'),
+                Widget::series('runs-per-status')->label('Runs per status')->resource(RunsResource::class)
+                    ->per('day', 'ran_at')->split('status')->stacked()->period('ran_at'),
+                Widget::series('runs-and-tokens')->label('Runs and tokens')->per('day', 'ran_at')->period('ran_at')->sources([
+                    Source::make(RunsResource::class, 'Runs')->help('Every tool'),
+                    Source::make(RunsResource::class, 'Tokens')->sum('tokens')->alert(['filter[status][]' => 'failed'], 'failed'),
+                ]),
+                Widget::table('runs-table')->label('Runs')->width(12)->points('day', 'ran_at')->period('ran_at')->goodWhen('down')->rows([
+                    Row::make(RunsResource::class, 'Runs')->alert(['filter[status][]' => 'failed'], 'failed'),
+                    Row::make(RunsResource::class, 'Cost')->sum('amount'),
+                    Row::make(RunsResource::class, 'Tokens')->sum('tokens')->query(['filter[status][]' => 'succeeded'])->period(false),
+                ]),
+                Widget::metric('spend')->label('Spend')->currency('USD')->goodWhen('down')->using(fn (WidgetRequest $request): array => [
+                    'value' => 9.08,
+                    'previous' => $request->period !== null ? 7.5 : null,
+                    'points' => [['date' => '2026-10-05', 'value' => 4.08], ['date' => '2026-10-06', 'value' => 5]],
+                    'period' => 'day',
+                    'parts' => [['label' => 'Summaries', 'value' => 6.08], ['label' => 'Translations', 'value' => 3]],
+                ]),
+                Widget::table('logs')->label('Logs')->using(fn (): array => [
+                    'columns' => [['key' => 'count', 'label' => 'Count'], ['key' => 'cost', 'label' => 'Cost', 'format' => ['style' => 'currency', 'currency' => 'USD']]],
+                    'rows' => [
+                        ['label' => 'Emails', 'cells' => ['count' => 32, 'cost' => null], 'points' => [['date' => '2026-10-05', 'value' => 32]]],
+                        ['label' => 'Text messages', 'cells' => ['count' => ['value' => 4, 'tone' => 'danger', 'help' => 'failed']]],
+                        ['label' => 'Jobs', 'cells' => []],
+                    ],
+                    'period' => 'day',
+                ]),
+                Widget::series('messages')->label('Messages')->stacked()->using(fn (): array => [
+                    'period' => 'day',
+                    'points' => [['date' => '2026-10-05', 'value' => 36]],
+                    'series' => [
+                        ['key' => 'emails', 'label' => 'Emails', 'points' => [['date' => '2026-10-05', 'value' => 32]], 'total' => 32],
+                        ['key' => 'texts', 'label' => 'Text messages', 'points' => [['date' => '2026-10-05', 'value' => 4]], 'total' => 4, 'alert' => ['value' => 1, 'label' => 'failed']],
+                    ],
+                ]),
             ]),
         ]);
         Panneau::menu('main', [
