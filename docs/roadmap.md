@@ -81,8 +81,9 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [x] Combined widgets: `Widget::metric()`, `Widget::table()`, a `series` of several lines (`split()`, `sources()`), number formats, `hideEmpty()`, `goodWhen()` and `WidgetPeriod::previous()` (panneau-js decision 0089, [#228](https://github.com/folkloreinc/laravel-panneau/pull/228)) — unreleased — 5.0.0-alpha.23
 - [ ] Preview, drafts and revisions
 - [ ] Realtime collaboration support (signed tokens for a Yjs server)
-- [ ] AI agents, with the user's abilities and the policies: the resources and actions of the definition as tools, built once (see the panneau-js roadmap)
-    - an MCP server on `laravel/mcp`, for outside AI clients signed in as the user with OAuth 2.1 (Passport) or a Sanctum token;
+- [ ] AI agents, with the user's abilities and the policies: the nine tools of the protocol, built once (panneau-js decision 0090, [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md))
+    - first, the operations out of the controllers (`Panneau\Operations`), with no change of the API;
+    - an MCP server on `laravel/mcp`, for outside AI clients signed in as the user with OAuth 2.1 (Passport) or a personal token;
     - an assistant inside Panneau on the Laravel AI SDK (`laravel/ai`), on the same tools, with streamed answers
 
 ## Maintenance of 1.x
