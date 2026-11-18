@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.22] - 2026-11-18
+
+Goes with `@panneau/*` `5.0.0-alpha.38`, which offers no image editor on a field without transforms (panneau-js decision 0087). Earlier versions still offer it, and the crops it makes are dropped on save, as before. Nothing changes for a field that keeps its transforms.
+
+Image fields without transforms.
+
 ### Added
 
 - `transforms(false)` writes `"transforms": false` in the definition of a `media` or `image` field, so that `@panneau/*` offers no image editor on a field whose values keep no transform, instead of dropping its crops on save (#223, panneau-js decision 0087). An `image` field without transforms leaves `rotate()`, `focalPoint()` and `transformBase()` out of its definition, and `ratios()` throws a `LogicException` next to it, as `crop()` does.
