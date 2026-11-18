@@ -1172,6 +1172,7 @@ Image::make('cover')
 ```
 
 - **Options.** `ratios()`, `rotate()`, `focalPoint()` and `transformBase()` are given in the definition when they are set. A ratio is `width:height` in whole numbers, and an invalid one, or another base, throws an `InvalidArgumentException`.
+- **Without transforms.** `transforms(false)` gives `"transforms": false` in the definition, on `media` and `image` fields alike, and clients then send no transform: an `image` field has no editor (panneau-js decision 0087). Its definition leaves out `rotate()`, `focalPoint()` and `transformBase()`, and `ratios()` throws a `LogicException`, in either order, since there is no editor to suggest them to.
 - **The `crop` rule** is a portable rule of `media` and `image` fields alike: `crop(ratios: [...], required: true)` gives `{ "rule": "crop", "value": { "ratios": [...], "required": true } }`. The server checks the transform of each media, as it checks `accept` and `maxSize`, with a `422` on the entry's path (`cover`, `gallery.2`):
   - with `required`, each media needs a crop for this use: an id alone, or `{ "id" }`, has none;
   - with `ratios`, a crop must have one of them once rendered: a quarter turn swaps its width and its height. A crop has a ratio when its height is within one pixel of its width divided by the ratio, so a 1601×900 crop is 16:9.

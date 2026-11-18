@@ -95,7 +95,9 @@ class Media extends Field
 
     /**
      * Whether values keep the edits of the image for this use (`transform`). Without, the
-     * repository receives ids only, so the field allows one library only.
+     * repository receives ids only, so the field allows one library only, and the definition
+     * says `"transforms": false`, so that clients send no transform and an `image` field has no
+     * editor (panneau-js decision 0087).
      */
     public function transforms(bool $transforms = true): static
     {
@@ -136,6 +138,9 @@ class Media extends Field
         $definition = $this->filesTypeDefinition();
         if (count($this->resources) > 0) {
             $definition['resource'] = count($this->resources) === 1 ? $this->resources[0] : $this->resources;
+        }
+        if (! $this->transforms) {
+            $definition['transforms'] = false;
         }
 
         return $definition;

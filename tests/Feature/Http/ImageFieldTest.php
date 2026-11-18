@@ -51,6 +51,8 @@ class ImageFieldTest extends HttpTestCase
                         ->crop(['16:9', '1:1'], required: true),
                     // The rule on a media field, without required
                     Media::make('gallery')->resource(ImagesResource::class)->multiple()->crop(['16:9']),
+                    // Without transforms, in a column of ids
+                    Image::make('attachment')->resource(ImagesResource::class)->rotate(false)->transforms(false),
                 ];
             }
         }]);
@@ -109,6 +111,27 @@ class ImageFieldTest extends HttpTestCase
             'transformBase' => 'choose',
         ], $fields['cover']);
         $this->assertSame([['rule' => 'crop', 'value' => ['ratios' => ['16:9'], 'required' => false]]], $fields['gallery']['rules']);
+        $this->assertSame([
+            'name' => 'attachment',
+            'type' => 'image',
+            'rules' => [['rule' => 'accept', 'value' => ['image/*']]],
+            'accept' => ['image/*'],
+            'resource' => 'images',
+            'transforms' => false,
+        ], $fields['attachment']);
+    }
+
+    public function test_an_image_field_without_transforms_keeps_the_id_only(): void
+    {
+        $image = $this->image();
+        $cover = $this->cover($image, ['crop' => self::crop(1600, 900)]);
+
+        $response = $this->postJson(self::API.'/resources/features', ['title' => 'A', 'cover' => $cover, 'attachment' => $this->cover($image, ['crop' => self::crop(800, 800)])])
+            ->assertCreated()
+            ->assertJsonPath('data.attachment.id', (string) $image->id)
+            ->assertJsonMissingPath('data.attachment.transform');
+        $this->assertMatchesComponent($response->json('data.attachment'), 'MediaReference');
+        $this->assertSame((string) $image->id, Article::query()->findOrFail($response->json('data.id'))->attachment);
     }
 
     public function test_a_required_crop(): void
