@@ -79,6 +79,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [x] Dashboard widgets: the built-in `stat`, `series` and `list`, on the list of a resource or with data of their own, widgets of plugins, per user, and a cache per widget (panneau-js decision 0064, [#178](https://github.com/folkloreinc/laravel-panneau/issues/178)) — unreleased — 5.0.0-alpha.13
 - [x] Overviews: dashboard pages, the aggregates of a resource and the widgets that read them (`breakdown`), summaries above lists, and a period (panneau-js decision 0084, [#215](https://github.com/folkloreinc/laravel-panneau/issues/215)) — unreleased — 5.0.0-alpha.21
 - [x] Combined widgets: `Widget::metric()`, `Widget::table()`, a `series` of several lines (`split()`, `sources()`), number formats, `hideEmpty()`, `goodWhen()` and `WidgetPeriod::previous()` (panneau-js decision 0089, [#228](https://github.com/folkloreinc/laravel-panneau/pull/228)) — unreleased — 5.0.0-alpha.23
+- [x] Actions in their tones: `tone()` on an action colors its icon in rows and its outline in the header of an item (panneau-js decision 0091, [#231](https://github.com/folkloreinc/laravel-panneau/issues/231)) — unreleased — 5.0.0-alpha.24
 - [ ] Preview, drafts and revisions
 - [ ] Realtime collaboration support (signed tokens for a Yjs server)
 - [ ] AI agents, with the user's abilities and the policies: the nine tools of the protocol, built once (panneau-js decision 0090, [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md))

@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.24] - 2026-11-18
+
+Goes with `@panneau/*` `5.0.0-alpha.43`, which draws actions in their tones (panneau-js decision 0091): a colored icon in rows and a colored outline in the header of an item. Earlier versions ignore `tone` and draw every action as before. Nothing changes for a definition without it.
+
+Actions in their tones.
+
 ### Added
 
 - Actions have a tone (#231, panneau-js decision 0091): `tone('info')` on a fluent action (`LinkAction`, `ClientAction`), or a `tone()` method on an `Action`, writes `tone` in its definition. It colors the action's icon in rows and its outline in the header of an item. Its name is lowercase letters, digits and dashes, or an `InvalidArgumentException`. An action that destroys is always `danger`.
