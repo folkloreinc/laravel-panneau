@@ -97,4 +97,29 @@ class PeriodTest extends TestCase
         $this->assertSame('2026-11-17 23:59:59', $period->end()->format('Y-m-d H:i:s'));
         $this->assertSame(['from' => '2026-11-11', 'to' => '2026-11-17'], $period->range());
     }
+
+    /**
+     * The same cases as the tests of `getPreviousRange()` in `@panneau/protocol`.
+     *
+     * @return array<string, array{string, string, string, string, string}>
+     */
+    public static function previousPeriods(): array
+    {
+        return [
+            '7 days' => ['7d', '2026-11-12', '2026-11-18', '2026-11-05', '2026-11-11'],
+            '30 days' => ['30d', '2026-10-20', '2026-11-18', '2026-09-20', '2026-10-19'],
+            '90 days across a year' => ['90d', '2026-01-01', '2026-03-31', '2025-10-03', '2025-12-31'],
+            'the month so far' => ['month', '2026-11-01', '2026-11-18', '2026-10-01', '2026-10-18'],
+            'a month after a shorter one' => ['month', '2026-03-01', '2026-03-31', '2026-02-01', '2026-02-28'],
+            'a month after a leap February' => ['month', '2028-03-01', '2028-03-30', '2028-02-01', '2028-02-29'],
+            'a year' => ['year', '2025-12-01', '2026-11-18', '2024-12-01', '2025-11-18'],
+            'a year from a leap day' => ['year', '2028-02-29', '2028-02-29', '2027-02-28', '2027-02-28'],
+        ];
+    }
+
+    #[DataProvider('previousPeriods')]
+    public function test_the_previous_period(string $option, string $from, string $to, string $previousFrom, string $previousTo): void
+    {
+        $this->assertEquals(new WidgetPeriod($option, $previousFrom, $previousTo), (new WidgetPeriod($option, $from, $to))->previous());
+    }
 }

@@ -3337,7 +3337,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "The widget's data, in the shape of its type: `StatWidgetData`, `SeriesWidgetData`, `ListWidgetData` and `BreakdownWidgetData` for the built-in types, the plugin's own object for others.",
+                        "description": "The widget's data, in the shape of its type: `StatWidgetData`, `SeriesWidgetData`, `ListWidgetData`, `BreakdownWidgetData`, `MetricWidgetData` and `TableWidgetData` for the built-in types, the plugin's own object for others. A `metric` that follows the period has `previous`, its value over the days of `getPreviousRange()`: the same number of days just before (`7d`, `30d`, `90d`), the same days of the month before (`month`), or of the year before (`year`).",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3353,6 +3353,12 @@
                                         },
                                         {
                                             "$ref": "#/components/schemas/BreakdownWidgetData"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/MetricWidgetData"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/TableWidgetData"
                                         },
                                         {
                                             "type": "object",
@@ -5614,6 +5620,444 @@
                 ],
                 "additionalProperties": {}
             },
+            "WidgetNumberFormat": {
+                "type": "object",
+                "properties": {
+                    "style": {
+                        "description": "`decimal` (the default), `percent` (`0.12` is `12%`), `currency` (with `currency`) or `unit` (with `unit`).",
+                        "type": "string",
+                        "enum": [
+                            "decimal",
+                            "percent",
+                            "currency",
+                            "unit"
+                        ]
+                    },
+                    "currency": {
+                        "description": "With `style: \"currency\"`: an ISO 4217 code, `USD`.",
+                        "type": "string",
+                        "enum": [
+                            "AED",
+                            "AFN",
+                            "ALL",
+                            "AMD",
+                            "ANG",
+                            "AOA",
+                            "ARS",
+                            "AUD",
+                            "AWG",
+                            "AZN",
+                            "BAM",
+                            "BBD",
+                            "BDT",
+                            "BGN",
+                            "BHD",
+                            "BIF",
+                            "BMD",
+                            "BND",
+                            "BOB",
+                            "BRL",
+                            "BSD",
+                            "BTN",
+                            "BWP",
+                            "BYN",
+                            "BZD",
+                            "CAD",
+                            "CDF",
+                            "CHF",
+                            "CLP",
+                            "CNY",
+                            "COP",
+                            "CRC",
+                            "CUC",
+                            "CUP",
+                            "CVE",
+                            "CZK",
+                            "DJF",
+                            "DKK",
+                            "DOP",
+                            "DZD",
+                            "EGP",
+                            "ERN",
+                            "ETB",
+                            "EUR",
+                            "FJD",
+                            "FKP",
+                            "GBP",
+                            "GEL",
+                            "GHS",
+                            "GIP",
+                            "GMD",
+                            "GNF",
+                            "GTQ",
+                            "GYD",
+                            "HKD",
+                            "HNL",
+                            "HRK",
+                            "HTG",
+                            "HUF",
+                            "IDR",
+                            "ILS",
+                            "INR",
+                            "IQD",
+                            "IRR",
+                            "ISK",
+                            "JMD",
+                            "JOD",
+                            "JPY",
+                            "KES",
+                            "KGS",
+                            "KHR",
+                            "KMF",
+                            "KPW",
+                            "KRW",
+                            "KWD",
+                            "KYD",
+                            "KZT",
+                            "LAK",
+                            "LBP",
+                            "LKR",
+                            "LRD",
+                            "LSL",
+                            "LYD",
+                            "MAD",
+                            "MDL",
+                            "MGA",
+                            "MKD",
+                            "MMK",
+                            "MNT",
+                            "MOP",
+                            "MRU",
+                            "MUR",
+                            "MVR",
+                            "MWK",
+                            "MXN",
+                            "MYR",
+                            "MZN",
+                            "NAD",
+                            "NGN",
+                            "NIO",
+                            "NOK",
+                            "NPR",
+                            "NZD",
+                            "OMR",
+                            "PAB",
+                            "PEN",
+                            "PGK",
+                            "PHP",
+                            "PKR",
+                            "PLN",
+                            "PYG",
+                            "QAR",
+                            "RON",
+                            "RSD",
+                            "RUB",
+                            "RWF",
+                            "SAR",
+                            "SBD",
+                            "SCR",
+                            "SDG",
+                            "SEK",
+                            "SGD",
+                            "SHP",
+                            "SLE",
+                            "SLL",
+                            "SOS",
+                            "SRD",
+                            "SSP",
+                            "STN",
+                            "SVC",
+                            "SYP",
+                            "SZL",
+                            "THB",
+                            "TJS",
+                            "TMT",
+                            "TND",
+                            "TOP",
+                            "TRY",
+                            "TTD",
+                            "TWD",
+                            "TZS",
+                            "UAH",
+                            "UGX",
+                            "USD",
+                            "UYU",
+                            "UZS",
+                            "VED",
+                            "VES",
+                            "VND",
+                            "VUV",
+                            "WST",
+                            "XAF",
+                            "XCD",
+                            "XCG",
+                            "XOF",
+                            "XPF",
+                            "YER",
+                            "ZAR",
+                            "ZMW",
+                            "ZWG",
+                            "ZWL"
+                        ]
+                    },
+                    "currencyDisplay": {
+                        "type": "string",
+                        "enum": [
+                            "symbol",
+                            "narrowSymbol",
+                            "code",
+                            "name"
+                        ]
+                    },
+                    "unit": {
+                        "description": "With `style: \"unit\"`: a unit of `Intl.NumberFormat` (`byte`, `kilobyte`, `megabyte`, `gigabyte`, `second`, `minute`, `hour`…), or two of them joined by `-per-`.",
+                        "type": "string"
+                    },
+                    "unitDisplay": {
+                        "type": "string",
+                        "enum": [
+                            "short",
+                            "narrow",
+                            "long"
+                        ]
+                    },
+                    "minimumFractionDigits": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 20
+                    },
+                    "maximumFractionDigits": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 20
+                    },
+                    "notation": {
+                        "description": "`compact` writes `1.2K` and `3.4M`.",
+                        "type": "string",
+                        "enum": [
+                            "standard",
+                            "compact"
+                        ]
+                    },
+                    "signDisplay": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "always",
+                            "exceptZero",
+                            "never"
+                        ]
+                    }
+                },
+                "additionalProperties": {},
+                "description": "How the numbers of a widget are written: options of `Intl.NumberFormat`, for the locale of the user (decision 0089). `{ \"style\": \"currency\", \"currency\": \"USD\" }` writes `9.08` as `$9.08`, `{ \"style\": \"unit\", \"unit\": \"megabyte\" }` as `9.08 MB`."
+            },
+            "WidgetAlertSettings": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "anyOf": [
+                                {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": [
+                                            "string",
+                                            "number",
+                                            "boolean"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "description": "The filters of the items to count, as query parameters, on top of those of their source: `{ \"filter[status]\": \"failed\" }`."
+                    },
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "What they are, written after their count, translated: `failed`."
+                    },
+                    "tone": {
+                        "description": "The tone of the count, when it is above 0. `danger` by default.",
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
+                    }
+                },
+                "required": [
+                    "query",
+                    "label"
+                ],
+                "additionalProperties": {},
+                "description": "Items of a source that call for attention (decision 0089): counted with the same query and period, and shown as `4 failed` when there are some."
+            },
+            "WidgetSeriesSource": {
+                "type": "object",
+                "properties": {
+                    "resource": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The resource it counts or sums."
+                    },
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The name of its line, in the legend."
+                    },
+                    "query": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "anyOf": [
+                                {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": [
+                                            "string",
+                                            "number",
+                                            "boolean"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "measure": {
+                        "description": "`count` (the default), or `sum:{field}`.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "group": {
+                        "description": "`{period}:{date field}`: `settings.group` of the widget by default.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "period": {
+                        "description": "The `date-range` filter of its list that gets the period of the overview: `settings.period` of the widget by default. `false`: it doesn't follow the period.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "boolean",
+                                "const": false
+                            }
+                        ]
+                    },
+                    "help": {
+                        "description": "A line under its label in the legend.",
+                        "type": "string"
+                    },
+                    "tone": {
+                        "description": "The tone of its line, instead of a categorical color.",
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
+                    },
+                    "alert": {
+                        "$ref": "#/components/schemas/WidgetAlertSettings"
+                    }
+                },
+                "required": [
+                    "resource",
+                    "label"
+                ],
+                "additionalProperties": {},
+                "description": "A line of a `series` on resources (decision 0089): the count or the sum of a resource per period."
+            },
+            "WidgetRowSource": {
+                "type": "object",
+                "properties": {
+                    "resource": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The resource it counts or sums."
+                    },
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The name of the row."
+                    },
+                    "query": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "anyOf": [
+                                {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": [
+                                            "string",
+                                            "number",
+                                            "boolean"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "measure": {
+                        "description": "`count` (the default), or `sum:{field}`.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "points": {
+                        "description": "`{period}:{date field}`: the points of its trend. `settings.points` of the widget by default.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "period": {
+                        "description": "The `date-range` filter of its list that gets the period of the overview, and the previous one for its change: `settings.period` of the widget by default.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "boolean",
+                                "const": false
+                            }
+                        ]
+                    },
+                    "alert": {
+                        "$ref": "#/components/schemas/WidgetAlertSettings"
+                    }
+                },
+                "required": [
+                    "resource",
+                    "label"
+                ],
+                "additionalProperties": {},
+                "description": "A row of a `table` on resources (decision 0089): one subject, counted or summed over the period."
+            },
             "WidgetSettings": {
                 "type": "object",
                 "properties": {
@@ -5681,10 +6125,63 @@
                     "followsList": {
                         "description": "In the summary of a resource (decision 0084): `false` keeps the widget on the whole resource, without the list's current filters and search. Widgets on that resource, and widgets with data of their own, follow the list by default.",
                         "type": "boolean"
+                    },
+                    "format": {
+                        "description": "Built-in types: how their numbers are written (decision 0089). It wins over the `format` of their data, key by key. A sum of `money` is written in its currency without it.",
+                        "$ref": "#/components/schemas/WidgetNumberFormat"
+                    },
+                    "hideEmpty": {
+                        "description": "Built-in types: `true` hides the widget when its data has nothing to show (a value of 0, no items, no rows), and the grid closes the gap (decision 0089).",
+                        "type": "boolean"
+                    },
+                    "goodWhen": {
+                        "description": "A `metric` or a `table`: whether a rise (`up`) or a fall (`down`) is good news, so that its change from the previous period is colored `success` or `danger`. Neutral without it.",
+                        "type": "string",
+                        "enum": [
+                            "up",
+                            "down"
+                        ]
+                    },
+                    "points": {
+                        "description": "With `resource`, for a `metric`: `{period}:{date field}`, the points of its trend line. For a `table`, the default of its rows.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "by": {
+                        "description": "With `resource`, for a `metric`: a field of the `groupBy` of the aggregates of the list, whose largest parts are drawn under the number.",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "split": {
+                        "description": "With `resource` and a `group` on a period, for a `series`: a field of the `groupBy` of the aggregates of the list with a filter of its own. A line per value, for the 5 largest, and the rest as \"Other\".",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "sources": {
+                        "description": "A `series` without `resource`: a line per source, at most 5, each from a resource.",
+                        "minItems": 1,
+                        "maxItems": 5,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/WidgetSeriesSource"
+                        }
+                    },
+                    "stacked": {
+                        "description": "A `series` with several lines: stacks them, as areas.",
+                        "type": "boolean"
+                    },
+                    "rows": {
+                        "description": "A `table` on resources: its rows, at most 8, each a count or a sum of a resource.",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/WidgetRowSource"
+                        }
                     }
                 },
                 "additionalProperties": {},
-                "description": "The settings of a widget: `resource`, `query`, `measure`, `group` and `target` for the built-in types on a resource, `period` in an overview with a period, `followsList` in a summary, anything else for widgets of plugins."
+                "description": "The settings of a widget: `resource`, `query`, `measure`, `group`, `target`, `points`, `by` and `split` for the built-in types on a resource, `sources` and `rows` for those on several, `period` in an overview with a period, `followsList` in a summary, `format`, `hideEmpty` and `goodWhen` for how they are drawn, anything else for widgets of plugins."
             },
             "OverviewPeriod": {
                 "type": "object",
@@ -5733,7 +6230,7 @@
                     "type": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Built-in: `stat` (a number), `series` (a line over days, weeks or months), `list` (a few items) and `breakdown` (the parts of a total). Other types are widgets of plugins."
+                        "description": "Built-in: `stat` (a number), `series` (lines over days, weeks or months), `list` (a few items), `breakdown` (the parts of a total), `metric` (a number with its change, its trend and its parts) and `table` (rows of numbers). Other types are widgets of plugins."
                     },
                     "label": {
                         "type": "string"
@@ -8078,6 +8575,16 @@
                                 "type": "null"
                             }
                         ]
+                    },
+                    "format": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetNumberFormat"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -8121,13 +8628,31 @@
                         "items": {
                             "$ref": "#/components/schemas/SeriesPoint"
                         },
-                        "description": "One point per period, the dates going up. Periods without a value are points at 0."
+                        "description": "One point per period, the dates going up. Periods without a value are points at 0. With `series`, the total of the lines per period, or none (`[]`): clients that only draw one line draw it."
+                    },
+                    "series": {
+                        "description": "Several lines, at most 6, instead of `points` (decision 0089): one chart, with a legend of their labels, totals and help.",
+                        "maxItems": 6,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SeriesWidgetSeries"
+                        }
                     },
                     "total": {
                         "description": "The total over the points, shown with the line.",
                         "type": [
                             "number",
                             "null"
+                        ]
+                    },
+                    "format": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetNumberFormat"
+                            },
+                            {
+                                "type": "null"
+                            }
                         ]
                     }
                 },
@@ -8136,7 +8661,7 @@
                     "points"
                 ],
                 "additionalProperties": {},
-                "description": "The data of a `series` widget: a line of values per period (decision 0064)."
+                "description": "The data of a `series` widget: a line of values per period (decision 0064), or several (decision 0089)."
             },
             "ListWidgetItem": {
                 "type": "object",
@@ -8281,6 +8806,16 @@
                             "number",
                             "null"
                         ]
+                    },
+                    "format": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetNumberFormat"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -8288,6 +8823,442 @@
                 ],
                 "additionalProperties": {},
                 "description": "The data of a `breakdown` widget: the parts of a total, as horizontal bars (decision 0084)."
+            },
+            "WidgetAlert": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "description": "How many items call for attention."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "What they are, written after their count, translated: `failed`."
+                    },
+                    "tone": {
+                        "description": "The tone of the count, above 0. `danger` by default.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^[a-z0-9-]+$"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "value",
+                    "label"
+                ],
+                "additionalProperties": {},
+                "description": "A count that calls for attention (decision 0089): `4 failed`, in its tone, shown when it is above 0."
+            },
+            "SeriesWidgetSeries": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "description": "The value it is the line of, for a line per value of a field.",
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "Its name, in the legend."
+                    },
+                    "points": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SeriesPoint"
+                        },
+                        "description": "One point per period, the dates going up. A date missing is 0."
+                    },
+                    "total": {
+                        "description": "Its total over the points, in the legend.",
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "tone": {
+                        "description": "The tone of its line, instead of a categorical color.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^[a-z0-9-]+$"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "url": {
+                        "description": "Where its legend links.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "help": {
+                        "description": "A line under its label in the legend.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "alert": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetAlert"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "label",
+                    "points"
+                ],
+                "additionalProperties": {},
+                "description": "A line of a `series` with several (decision 0089)."
+            },
+            "MetricWidgetData": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "description": "The number, in large type."
+                    },
+                    "previous": {
+                        "description": "The same number over the previous period, of the same length (`getPreviousRange()`): the change from it is written under the number.",
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "help": {
+                        "description": "A line under the number, translated.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tone": {
+                        "description": "A tone of the theme, only when the number calls for attention.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^[a-z0-9-]+$"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "url": {
+                        "description": "Where the number links: the list of what it counts.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "target": {
+                        "description": "A target for the number, drawn as a meter under it, as for a `stat`.",
+                        "anyOf": [
+                            {
+                                "type": "number",
+                                "exclusiveMinimum": 0
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "points": {
+                        "description": "Its trend: one point per period, the dates going up, drawn as a small line.",
+                        "anyOf": [
+                            {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/SeriesPoint"
+                                }
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "period": {
+                        "description": "The period of each point.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "day",
+                                    "week",
+                                    "month"
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "parts": {
+                        "description": "Its largest parts, at most 10: clients draw the 5 largest as bars, and the rest with `other`.",
+                        "anyOf": [
+                            {
+                                "maxItems": 10,
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/BreakdownWidgetItem"
+                                }
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "other": {
+                        "description": "The rest of the value, past the parts: drawn last, as \"Other\".",
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "format": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetNumberFormat"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "value"
+                ],
+                "additionalProperties": {},
+                "description": "The data of a `metric` widget: one subject in one card, its number, its change from the previous period, its trend and its parts (decision 0089)."
+            },
+            "TableWidgetColumn": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The key of its cells in each row."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "Its header, translated."
+                    },
+                    "align": {
+                        "description": "`end` (the default) for numbers, or `start`.",
+                        "type": "string",
+                        "enum": [
+                            "start",
+                            "end"
+                        ]
+                    },
+                    "format": {
+                        "description": "How its numbers are written: the `format` of the widget by default.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetNumberFormat"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "key",
+                    "label"
+                ],
+                "additionalProperties": {},
+                "description": "A column of a `table` widget."
+            },
+            "TableWidgetCell": {
+                "anyOf": [
+                    {
+                        "type": "number"
+                    },
+                    {
+                        "type": "null"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "value": {
+                                "description": "The number, `null` for none.",
+                                "type": [
+                                    "number",
+                                    "null"
+                                ]
+                            },
+                            "tone": {
+                                "description": "A tone, only when the number calls for attention.",
+                                "anyOf": [
+                                    {
+                                        "type": "string",
+                                        "pattern": "^[a-z0-9-]+$"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "help": {
+                                "description": "A word after the number, translated: `rejected` in `6 rejected`.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "format": {
+                                "description": "How this number is written, instead of the format of its column.",
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/WidgetNumberFormat"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            }
+                        },
+                        "required": [
+                            "value"
+                        ],
+                        "additionalProperties": {}
+                    }
+                ],
+                "description": "A cell of a `table` widget: a number, `null` for none, or a number with a tone and a word."
+            },
+            "TableWidgetRow": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "description": "What the row is about, in its first column."
+                    },
+                    "url": {
+                        "description": "Where its label links.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cells": {
+                        "type": "object",
+                        "propertyNames": {
+                            "type": "string"
+                        },
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/TableWidgetCell"
+                        },
+                        "description": "Its cells, by the `key` of their column. A cell missing is empty."
+                    },
+                    "points": {
+                        "description": "Its trend, drawn as a small line in a last column: the dates going up.",
+                        "anyOf": [
+                            {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/SeriesPoint"
+                                }
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "label",
+                    "cells"
+                ],
+                "additionalProperties": {},
+                "description": "A row of a `table` widget: one subject."
+            },
+            "TableWidgetData": {
+                "type": "object",
+                "properties": {
+                    "columns": {
+                        "minItems": 1,
+                        "maxItems": 6,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TableWidgetColumn"
+                        },
+                        "description": "Its columns of numbers, at most 6, after the column of the labels."
+                    },
+                    "rows": {
+                        "maxItems": 8,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TableWidgetRow"
+                        },
+                        "description": "Its rows, at most 8."
+                    },
+                    "period": {
+                        "description": "The period of the points of the rows.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "day",
+                                    "week",
+                                    "month"
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "empty": {
+                        "description": "The message without rows, translated.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "url": {
+                        "description": "Where \"See all\" links.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "format": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WidgetNumberFormat"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "columns",
+                    "rows"
+                ],
+                "additionalProperties": {},
+                "description": "The data of a `table` widget: rows of numbers, one per subject, with an optional trend (decision 0089)."
             }
         },
         "parameters": {

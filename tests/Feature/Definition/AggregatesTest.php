@@ -179,7 +179,7 @@ class AggregatesTest extends TestCase
             'a breakdown by a field that is not declared' => [Widget::breakdown('a')->resource('runs')->by('title'), 'The breakdown "a" groups "runs" by "title", which isn\'t in the groupBy of the aggregates of its list.'],
             'a sum that is not declared' => [Widget::stat('a')->resource('runs')->sum('title'), 'The stat "a" sums "title" of "runs", which isn\'t in the sum of the aggregates of its list.'],
             'a resource without aggregates' => [Widget::series('a')->resource('posts')->per('day', 'published_at'), 'The series "a" reads the aggregates of "posts", whose list declares none: add aggregates() to its list.'],
-            'a measure without a resource' => [Widget::stat('a')->using(OverdueWidget::class)->target(10), 'The widget "a" measures a resource (count(), sum(), per(), by() or target()) without one: give it a resource().'],
+            'a measure without a resource' => [Widget::stat('a')->using(OverdueWidget::class)->target(10), 'The widget "a" measures a resource (count(), sum(), per(), by(), points(), split() or target()) without one: give it a resource().'],
         ];
     }
 

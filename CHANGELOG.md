@@ -9,6 +9,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 ### Added
 
 - The `panneau.interface-locale` middleware alias (#226): a project's own admin routes, such as an export or a link to an item's page on the site, apply the language of the interface the user chose, as Panneau's routes do. `ApplyInterfaceLocale` is no longer `@internal`.
+- Combined widgets (#35, panneau-js decision 0089): `Widget::metric()`, a number with its change from the previous period, its trend and its parts, and `Widget::table()`, rows of numbers, on resources or with data of their own; a `series` of several lines, `split()` by a field or from `sources([...])`, and `stacked()`; `Source` and `Row` builders, each with its query, measure, period and `alert()`; `points()`, `by()` and `target()` on a `metric`; `format()`, `currency()`, `unit()` and `percent()`, `hideEmpty()` and `goodWhen()` on the built-in types. The definition checks them against the aggregates and the filters of the lists they read, the widget endpoint checks the data of a `metric`, a `table` and a `series` of several lines, and a `format` in the data, and `WidgetPeriod::previous()` gives the days a `metric` of its own compares its period with.
 
 ## [5.0.0-alpha.22] - 2026-11-18
 

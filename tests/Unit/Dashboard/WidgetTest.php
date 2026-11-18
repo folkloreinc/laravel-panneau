@@ -3,6 +3,8 @@
 namespace Panneau\Tests\Unit\Dashboard;
 
 use InvalidArgumentException;
+use Panneau\Dashboard\Row;
+use Panneau\Dashboard\Source;
 use Panneau\Dashboard\Widget;
 use Panneau\Dashboard\WidgetShape;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -60,6 +62,127 @@ class WidgetTest extends TestCase
         $this->assertSame(['id' => 'latest', 'type' => 'list', 'settings' => ['resource' => 'posts']], Widget::list('latest')->resource('posts')->toDefinition('posts'));
     }
 
+    public function test_a_metric_on_a_resource(): void
+    {
+        $widget = Widget::metric('cost')->label('AI cost')
+            ->resource('runs', ['filter[tool]' => 'summaries'])
+            ->sum('cost')
+            ->points('day', 'ran_at')
+            ->by('tool')
+            ->target(500)
+            ->goodWhen('down')
+            ->currency('USD')
+            ->format(['maximumFractionDigits' => 2])
+            ->hideEmpty()
+            ->period('ran_at');
+
+        $this->assertTrue($widget->readsAggregates());
+        $this->assertTrue($widget->readsResources());
+        $this->assertSame([
+            'id' => 'cost',
+            'type' => 'metric',
+            'label' => 'AI cost',
+            'settings' => [
+                'resource' => 'runs',
+                'query' => ['filter[tool]' => 'summaries'],
+                'measure' => 'sum:cost',
+                'target' => 500,
+                'points' => 'day:ran_at',
+                'by' => 'tool',
+                'format' => ['style' => 'currency', 'currency' => 'USD', 'maximumFractionDigits' => 2],
+                'hideEmpty' => true,
+                'goodWhen' => 'down',
+                'period' => 'ran_at',
+            ],
+        ], $widget->toDefinition('runs'));
+    }
+
+    public function test_a_series_split_by_a_field_and_stacked(): void
+    {
+        $this->assertSame(
+            ['id' => 'per-status', 'type' => 'series', 'settings' => ['resource' => 'runs', 'group' => 'week:ran_at', 'split' => 'status', 'stacked' => true]],
+            Widget::series('per-status')->resource('runs')->per('week', 'ran_at')->split('status')->stacked()->toDefinition('runs'),
+        );
+    }
+
+    public function test_a_series_of_several_sources(): void
+    {
+        $widget = Widget::series('messages')->label('Messages')->per('day', 'sent_at')->period('sent_at')->sources([
+            Source::make('emails', 'Emails')->help('To members'),
+            Source::make('texts', 'Text messages')
+                ->query(['filter[channel]' => 'sms'])
+                ->sum('segments')
+                ->per('day', 'created_at')
+                ->period(false)
+                ->tone('info')
+                ->alert(['filter[status]' => 'failed'], 'failed'),
+        ]);
+
+        $this->assertTrue($widget->readsResources());
+        $this->assertSame([
+            'id' => 'messages',
+            'type' => 'series',
+            'label' => 'Messages',
+            'settings' => [
+                'group' => 'day:sent_at',
+                'sources' => [
+                    ['resource' => 'emails', 'label' => 'Emails', 'help' => 'To members'],
+                    [
+                        'resource' => 'sms',
+                        'label' => 'Text messages',
+                        'query' => ['filter[channel]' => 'sms'],
+                        'measure' => 'sum:segments',
+                        'group' => 'day:created_at',
+                        'tone' => 'info',
+                        'period' => false,
+                        'alert' => ['query' => ['filter[status]' => 'failed'], 'label' => 'failed'],
+                    ],
+                ],
+                'period' => 'sent_at',
+            ],
+        ], $widget->toDefinition(null, ['emails', 'sms']));
+    }
+
+    public function test_a_table_of_rows(): void
+    {
+        $widget = Widget::table('logs')->label('Logs')->width(12)->points('day', 'ran_at')->goodWhen('down')->rows([
+            Row::make('runs', 'Runs')->alert(['filter[status]' => 'failed'], 'failed', 'warning'),
+            Row::make('runs', 'Cost')->sum('cost')->points('day', 'day')->period('ran_at'),
+        ]);
+
+        $this->assertTrue($widget->readsResources());
+        $this->assertSame([
+            'id' => 'logs',
+            'type' => 'table',
+            'label' => 'Logs',
+            'width' => 12,
+            'settings' => [
+                'points' => 'day:ran_at',
+                'rows' => [
+                    ['resource' => 'runs', 'label' => 'Runs', 'alert' => ['query' => ['filter[status]' => 'failed'], 'label' => 'failed', 'tone' => 'warning']],
+                    ['resource' => 'runs', 'label' => 'Cost', 'measure' => 'sum:cost', 'points' => 'day:day', 'period' => 'ran_at'],
+                ],
+                'goodWhen' => 'down',
+            ],
+        ], $widget->toDefinition());
+    }
+
+    public function test_formats_merge_key_by_key(): void
+    {
+        $widget = Widget::metric('size')->format(['maximumFractionDigits' => 1])->unit('megabyte', 'long');
+        $this->assertSame(['maximumFractionDigits' => 1, 'style' => 'unit', 'unit' => 'megabyte', 'unitDisplay' => 'long'], $widget->toDefinition()['settings']['format']);
+        // A currency replaces the unit, and null removes an option
+        $widget->currency('CAD', 'narrowSymbol')->format(['maximumFractionDigits' => null]);
+        $this->assertSame(['style' => 'currency', 'currency' => 'CAD', 'currencyDisplay' => 'narrowSymbol'], $widget->toDefinition()['settings']['format']);
+        $this->assertSame(['style' => 'percent'], Widget::stat('rate')->currency('USD')->percent()->toDefinition()['settings']['format']);
+        $this->assertSame(
+            ['notation' => 'compact', 'signDisplay' => 'exceptZero', 'style' => 'unit', 'unit' => 'kilometer-per-hour'],
+            Widget::series('speed')->format(['notation' => 'compact', 'signDisplay' => 'exceptZero'])->unit('kilometer-per-hour')->toDefinition()['settings']['format'],
+        );
+        // Without a format, false flags are left out
+        $this->assertSame(['id' => 'a', 'type' => 'series'], Widget::series('a')->hideEmpty(false)->stacked(false)->toDefinition());
+    }
+
     /**
      * @return array<string, array{\Closure(): mixed, string}>
      */
@@ -69,14 +192,14 @@ class WidgetTest extends TestCase
             'no id' => [fn (): Widget => Widget::stat(''), 'A widget needs an id.'],
             'no type' => [fn (): Widget => Widget::make('map', ''), 'The widget "map" needs a type.'],
             'a width out of the grid' => [fn (): Widget => Widget::stat('a')->width(13), 'The widget "a" has the width 13: widths go from 1 to 12 columns.'],
-            'a sum of a list' => [fn (): Widget => Widget::list('a')->sum('price'), 'The list "a" can\'t have sum(): only a stat, a series and a breakdown measure a resource.'],
+            'a sum of a list' => [fn (): Widget => Widget::list('a')->sum('price'), 'The list "a" can\'t have sum(): only a stat, a series, a breakdown and a metric measure a resource.'],
             'a count of a plugin' => [fn (): Widget => Widget::make('a', 'map')->count(), 'The map "a" can\'t have count()'],
             'periods of a stat' => [fn (): Widget => Widget::stat('a')->per('day', 'created_at'), 'The stat "a" has no periods: only a series does.'],
             'a period of a year' => [fn (): Widget => Widget::series('a')->per('year', 'created_at'), 'The series "a" is per "year": periods are day, week or month.'],
-            'parts of a series' => [fn (): Widget => Widget::series('a')->by('status'), 'The series "a" has no parts: only a breakdown does.'],
-            'a target of a series' => [fn (): Widget => Widget::series('a')->target(10), 'The series "a" has no target: only a stat does.'],
+            'parts of a series' => [fn (): Widget => Widget::series('a')->by('status'), 'The series "a" has no parts: only a breakdown and a metric do.'],
+            'a target of a series' => [fn (): Widget => Widget::series('a')->target(10), 'The series "a" has no target: only a stat and a metric do.'],
             'a target of 0' => [fn (): Widget => Widget::stat('a')->target(0), 'The stat "a" has the target 0: targets are above 0.'],
-            'a widget of a plugin on a resource' => [fn (): Widget => Widget::make('a', 'map')->resource('posts'), 'The map "a" can\'t read a resource: only a stat, a series, a list and a breakdown can.'],
+            'a widget of a plugin on a resource' => [fn (): Widget => Widget::make('a', 'map')->resource('posts'), 'The map "a" can\'t read a resource: only a stat, a series, a list, a breakdown and a metric can.'],
             'a query that pages' => [fn (): Widget => Widget::list('a')->resource('posts', ['perPage' => 10]), 'The query of the widget "a" sets "perPage", which the app sets.'],
             'a query with an object' => [fn (): Widget => Widget::list('a')->resource('posts', ['filter[status]' => ['x' => new stdClass]]), 'The query of the widget "a" has a value of "filter[status]"'],
             'settings of a built-in type' => [fn (): Widget => Widget::stat('a')->settings(['x' => 1]), 'The stat "a" has no settings'],
@@ -84,6 +207,41 @@ class WidgetTest extends TestCase
             'a resource and data' => [fn (): Widget => Widget::stat('a')->using(OverdueWidget::class)->resource('posts'), 'The widget "a" has data of its own (using()): it can\'t also read a resource.'],
             'data and a resource' => [fn (): Widget => Widget::stat('a')->resource('posts')->using(OverdueWidget::class), 'The widget "a" reads a resource: it can\'t also have data of its own.'],
             'a cache of no time' => [fn (): Widget => Widget::stat('a')->cache(0), 'The widget "a" is cached for 0 seconds: give it at least one.'],
+            // Combined widgets (panneau-js decision 0089)
+            'a table on a resource' => [fn (): Widget => Widget::table('a')->resource('runs'), 'The table "a" can\'t read a resource'],
+            'points of a series' => [fn (): Widget => Widget::series('a')->points('day', 'ran_at'), 'The series "a" has no trend: only a metric and a table do.'],
+            'points of a year' => [fn (): Widget => Widget::metric('a')->points('year', 'ran_at'), 'The metric "a" has points per "year": periods are day, week or month.'],
+            'a metric split' => [fn (): Widget => Widget::metric('a')->split('status'), 'The metric "a" has no lines: only a series is split.'],
+            'parts of a table' => [fn (): Widget => Widget::table('a')->by('status'), 'The table "a" has no parts: only a breakdown and a metric do.'],
+            'a table stacked' => [fn (): Widget => Widget::table('a')->stacked(), 'The table "a" has no lines to stack: only a series does.'],
+            'a stat good when it rises' => [fn (): Widget => Widget::stat('a')->goodWhen('up'), 'The stat "a" shows no change: only a metric and a table have goodWhen().'],
+            'a metric good sideways' => [fn (): Widget => Widget::metric('a')->goodWhen('left'), 'The metric "a" is good when "left": give up or down.'],
+            'sources of a table' => [fn (): Widget => Widget::table('a')->sources([Source::make('runs', 'Runs')]), 'The table "a" has no sources: only a series does. A table has rows().'],
+            'rows of a series' => [fn (): Widget => Widget::series('a')->rows([Row::make('runs', 'Runs')]), 'The series "a" has no rows: only a table does.'],
+            'no sources' => [fn (): Widget => Widget::series('a')->sources([]), 'The series "a" has 0 sources: give it from 1 to 5.'],
+            'six sources' => [fn (): Widget => Widget::series('a')->sources(array_fill(0, 6, Source::make('runs', 'Runs'))), 'The series "a" has 6 sources: give it from 1 to 5.'],
+            'nine rows' => [fn (): Widget => Widget::table('a')->rows(array_fill(0, 9, Row::make('runs', 'Runs'))), 'The table "a" has 9 rows: give it from 1 to 8.'],
+            'a row among sources' => [fn (): Widget => Widget::series('a')->sources([Row::make('runs', 'Runs')]), 'The series "a" has a Panneau\Dashboard\Row in its sources(): give it Panneau\Dashboard\Source builders.'],
+            'sources and a resource' => [fn (): Widget => Widget::series('a')->resource('runs')->sources([Source::make('runs', 'Runs')]), 'The series "a" reads a resource: it can\'t also have sources().'],
+            'a resource and sources' => [fn (): Widget => Widget::series('a')->sources([Source::make('runs', 'Runs')])->resource('runs'), 'The series "a" reads the resources of its sources(): it can\'t also read a resource.'],
+            'rows and data' => [fn (): Widget => Widget::table('a')->rows([Row::make('runs', 'Runs')])->using(OverdueWidget::class), 'The table "a" reads the resources of its rows(): it can\'t also have data of its own.'],
+            'data and rows' => [fn (): Widget => Widget::table('a')->using(OverdueWidget::class)->rows([Row::make('runs', 'Runs')]), 'The table "a" has data of its own (using()): it can\'t also have rows().'],
+            'a format of a plugin' => [fn (): Widget => Widget::make('a', 'map')->currency('USD'), 'The map "a" can\'t have format(): give a widget of a plugin its settings().'],
+            'a format with an unknown option' => [fn (): Widget => Widget::metric('a')->format(['locale' => 'fr']), 'The format of the widget "a" has the option "locale"'],
+            'a currency that is not one' => [fn (): Widget => Widget::metric('a')->currency('usd'), 'The format of the widget "a" has a wrong currency'],
+            'a currency style without a currency' => [fn (): Widget => Widget::metric('a')->format(['style' => 'currency']), 'The format of the widget "a" has a wrong currency'],
+            'a unit that is not one' => [fn (): Widget => Widget::metric('a')->unit('parsec'), 'The format of the widget "a" has a wrong unit'],
+            'more minimum digits than maximum' => [fn (): Widget => Widget::metric('a')->format(['minimumFractionDigits' => 3, 'maximumFractionDigits' => 1]), 'The format of the widget "a" has a wrong minimumFractionDigits'],
+            'a hidden plugin' => [fn (): Widget => Widget::make('a', 'map')->hideEmpty(), 'The map "a" can\'t have hideEmpty()'],
+            'a source without a label' => [fn (): Source => Source::make('runs', ''), 'The source on "runs" needs a label.'],
+            'a row without a resource' => [fn (): Row => Row::make('', 'Runs'), 'The row "Runs" needs a resource.'],
+            'a source per year' => [fn (): Source => Source::make('runs', 'Runs')->per('year', 'ran_at'), 'The source "Runs" is per "year": periods are day, week or month.'],
+            'a source with a wrong tone' => [fn (): Source => Source::make('runs', 'Runs')->tone('Red'), 'The source "Runs" has the tone "Red"'],
+            'a row whose query pages' => [fn (): Row => Row::make('runs', 'Runs')->query(['cursor' => 'x']), 'The query of the row "Runs" sets "cursor", which the app sets.'],
+            'an alert of everything' => [fn (): Row => Row::make('runs', 'Runs')->alert([], 'runs'), 'The alert of the row "Runs" counts some of its items: give it the filters of a query.'],
+            'an alert without a label' => [fn (): Row => Row::make('runs', 'Runs')->alert(['filter[status]' => 'failed'], ''), 'The alert of the row "Runs" needs a label'],
+            'an alert whose query pages' => [fn (): Source => Source::make('runs', 'Runs')->alert(['page' => 2], 'runs'), 'The query of the alert of the source "Runs" sets "page"'],
+            'a row without a period' => [fn (): Row => Row::make('runs', 'Runs')->period(''), 'The row "Runs" follows the period with the filter ""'],
         ];
     }
 
@@ -128,6 +286,58 @@ class WidgetTest extends TestCase
             'an empty breakdown' => ['breakdown', ['items' => []], []],
             'a breakdown with wrong parts' => ['breakdown', ['items' => [['value' => 'x', 'tone' => 'Red', 'key' => ['a']], 'x'], 'other' => '5'], ['items.0.label', 'items.0.value', 'items.0.tone', 'items.0.key', 'items.1', 'other']],
             'a breakdown too long' => ['breakdown', ['items' => array_map(fn (int $index): array => ['label' => (string) $index, 'value' => $index], range(1, 11))], ['items']],
+            // Combined widgets (panneau-js decision 0089), as in `combinedWidgets.test.ts`
+            'a metric' => ['metric', [
+                'value' => 40, 'previous' => 32, 'help' => 'Sent to members', 'url' => '/emails',
+                'points' => [['date' => '2026-10-05', 'value' => 12], ['date' => '2026-10-06', 'value' => 28]],
+                'period' => 'day', 'parts' => [['label' => 'Sent', 'value' => 38, 'key' => 'sent', 'tone' => 'success']], 'other' => 2,
+                'format' => ['style' => 'currency', 'currency' => 'USD'],
+            ], []],
+            'a metric of a value' => ['metric', ['value' => 3], []],
+            'a wrong metric' => ['metric', [
+                'value' => '3', 'previous' => 'x',
+                'points' => [['date' => '2026-10-06', 'value' => 1], ['date' => '2026-10-05', 'value' => 1]],
+                'parts' => [['label' => 'A']], 'format' => ['style' => 'currency'],
+            ], ['value', 'format.currency', 'previous', 'points.1.date', 'parts.0.value']],
+            'a metric with too many parts' => ['metric', ['value' => 1, 'parts' => array_map(fn (int $index): array => ['label' => (string) $index, 'value' => $index], range(1, 11)), 'period' => 'year'], ['period', 'parts']],
+            'a table' => ['table', [
+                'columns' => [['key' => 'cost', 'label' => 'Cost', 'format' => ['style' => 'currency', 'currency' => 'USD']], ['key' => 'calls', 'label' => 'Calls', 'align' => 'end']],
+                'rows' => [
+                    ['label' => 'Summaries', 'url' => '/runs', 'cells' => ['cost' => 9.08, 'calls' => ['value' => 6, 'tone' => 'danger', 'help' => 'failed']], 'points' => [['date' => '2026-10-05', 'value' => 3]]],
+                    ['label' => 'Translations', 'cells' => ['cost' => null]],
+                    ['label' => 'Nothing yet', 'cells' => []],
+                ],
+            ], []],
+            'a wrong table' => ['table', [
+                'columns' => [['key' => 'a', 'label' => 'A'], ['key' => 'a', 'label' => 'B', 'align' => 'middle']],
+                'rows' => [['label' => 'R', 'cells' => ['a' => '3']]],
+            ], ['columns.1.key', 'columns.1.align', 'rows.0.cells.a']],
+            'a table without columns' => ['table', ['columns' => [], 'rows' => []], ['columns']],
+            'a table with wrong cells and formats' => ['table', [
+                'columns' => [['key' => 'a', 'label' => 'A', 'format' => ['unit' => 'parsec']]],
+                'rows' => [['label' => 'R', 'cells' => ['a' => ['tone' => 'danger'], 'b' => ['value' => 1, 'format' => ['currency' => 'usd']]], 'points' => 'x'], ['cells' => [1]]],
+                'format' => ['notation' => 'scientific'],
+            ], ['columns.0.format.unit', 'rows.0.cells.a', 'rows.0.cells.b', 'rows.0.points', 'rows.1.label', 'rows.1.cells', 'format.notation']],
+            'a table too large' => ['table', [
+                'columns' => array_map(fn (int $index): array => ['key' => (string) $index, 'label' => (string) $index], range(1, 7)),
+                'rows' => array_map(fn (int $index): array => ['label' => (string) $index, 'cells' => []], range(1, 9)),
+            ], ['columns', 'rows']],
+            'a series of several lines' => ['series', [
+                'period' => 'day', 'points' => [],
+                'series' => [
+                    ['label' => 'Emails', 'points' => [['date' => '2026-10-05', 'value' => 3]], 'total' => 3, 'alert' => ['value' => 4, 'label' => 'failed', 'tone' => 'danger']],
+                    ['label' => 'Texts', 'points' => [], 'help' => 'Since Monday', 'url' => '/texts', 'key' => 'texts'],
+                ],
+                'format' => ['style' => 'unit', 'unit' => 'megabyte'],
+            ], []],
+            'a series with wrong lines' => ['series', [
+                'period' => 'day', 'points' => [],
+                'series' => [['points' => [['date' => 'x', 'value' => 1]], 'alert' => ['value' => 'x']]],
+            ], ['series.0.label', 'series.0.points.0.date', 'series.0.alert.value', 'series.0.alert.label']],
+            'a series with too many lines' => ['series', ['period' => 'day', 'points' => [], 'series' => array_fill(0, 7, ['label' => 'A', 'points' => []])], ['series']],
+            'a series without its points' => ['series', ['period' => 'day', 'series' => [['label' => 'A', 'points' => []]]], ['points']],
+            'a stat and a breakdown with formats' => ['stat', ['value' => 1, 'format' => ['style' => 'percent', 'minimumFractionDigits' => 1]], []],
+            'a breakdown with a wrong format' => ['breakdown', ['items' => [], 'format' => 'USD'], ['format']],
         ];
     }
 
