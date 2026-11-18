@@ -1712,8 +1712,467 @@
                 },
                 "followsList": {
                     "type": "boolean"
+                },
+                "format": {
+                    "$ref": "#/$defs/WidgetNumberFormat"
+                },
+                "hideEmpty": {
+                    "type": "boolean"
+                },
+                "goodWhen": {
+                    "type": "string",
+                    "enum": [
+                        "up",
+                        "down"
+                    ]
+                },
+                "points": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "by": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "split": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "sources": {
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/WidgetSeriesSource"
+                    }
+                },
+                "stacked": {
+                    "type": "boolean"
+                },
+                "rows": {
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/WidgetRowSource"
+                    }
                 }
             },
+            "additionalProperties": {}
+        },
+        "WidgetNumberFormat": {
+            "type": "object",
+            "properties": {
+                "style": {
+                    "type": "string",
+                    "enum": [
+                        "decimal",
+                        "percent",
+                        "currency",
+                        "unit"
+                    ]
+                },
+                "currency": {
+                    "type": "string",
+                    "enum": [
+                        "AED",
+                        "AFN",
+                        "ALL",
+                        "AMD",
+                        "ANG",
+                        "AOA",
+                        "ARS",
+                        "AUD",
+                        "AWG",
+                        "AZN",
+                        "BAM",
+                        "BBD",
+                        "BDT",
+                        "BGN",
+                        "BHD",
+                        "BIF",
+                        "BMD",
+                        "BND",
+                        "BOB",
+                        "BRL",
+                        "BSD",
+                        "BTN",
+                        "BWP",
+                        "BYN",
+                        "BZD",
+                        "CAD",
+                        "CDF",
+                        "CHF",
+                        "CLP",
+                        "CNY",
+                        "COP",
+                        "CRC",
+                        "CUC",
+                        "CUP",
+                        "CVE",
+                        "CZK",
+                        "DJF",
+                        "DKK",
+                        "DOP",
+                        "DZD",
+                        "EGP",
+                        "ERN",
+                        "ETB",
+                        "EUR",
+                        "FJD",
+                        "FKP",
+                        "GBP",
+                        "GEL",
+                        "GHS",
+                        "GIP",
+                        "GMD",
+                        "GNF",
+                        "GTQ",
+                        "GYD",
+                        "HKD",
+                        "HNL",
+                        "HRK",
+                        "HTG",
+                        "HUF",
+                        "IDR",
+                        "ILS",
+                        "INR",
+                        "IQD",
+                        "IRR",
+                        "ISK",
+                        "JMD",
+                        "JOD",
+                        "JPY",
+                        "KES",
+                        "KGS",
+                        "KHR",
+                        "KMF",
+                        "KPW",
+                        "KRW",
+                        "KWD",
+                        "KYD",
+                        "KZT",
+                        "LAK",
+                        "LBP",
+                        "LKR",
+                        "LRD",
+                        "LSL",
+                        "LYD",
+                        "MAD",
+                        "MDL",
+                        "MGA",
+                        "MKD",
+                        "MMK",
+                        "MNT",
+                        "MOP",
+                        "MRU",
+                        "MUR",
+                        "MVR",
+                        "MWK",
+                        "MXN",
+                        "MYR",
+                        "MZN",
+                        "NAD",
+                        "NGN",
+                        "NIO",
+                        "NOK",
+                        "NPR",
+                        "NZD",
+                        "OMR",
+                        "PAB",
+                        "PEN",
+                        "PGK",
+                        "PHP",
+                        "PKR",
+                        "PLN",
+                        "PYG",
+                        "QAR",
+                        "RON",
+                        "RSD",
+                        "RUB",
+                        "RWF",
+                        "SAR",
+                        "SBD",
+                        "SCR",
+                        "SDG",
+                        "SEK",
+                        "SGD",
+                        "SHP",
+                        "SLE",
+                        "SLL",
+                        "SOS",
+                        "SRD",
+                        "SSP",
+                        "STN",
+                        "SVC",
+                        "SYP",
+                        "SZL",
+                        "THB",
+                        "TJS",
+                        "TMT",
+                        "TND",
+                        "TOP",
+                        "TRY",
+                        "TTD",
+                        "TWD",
+                        "TZS",
+                        "UAH",
+                        "UGX",
+                        "USD",
+                        "UYU",
+                        "UZS",
+                        "VED",
+                        "VES",
+                        "VND",
+                        "VUV",
+                        "WST",
+                        "XAF",
+                        "XCD",
+                        "XCG",
+                        "XOF",
+                        "XPF",
+                        "YER",
+                        "ZAR",
+                        "ZMW",
+                        "ZWG",
+                        "ZWL"
+                    ]
+                },
+                "currencyDisplay": {
+                    "type": "string",
+                    "enum": [
+                        "symbol",
+                        "narrowSymbol",
+                        "code",
+                        "name"
+                    ]
+                },
+                "unit": {
+                    "type": "string"
+                },
+                "unitDisplay": {
+                    "type": "string",
+                    "enum": [
+                        "short",
+                        "narrow",
+                        "long"
+                    ]
+                },
+                "minimumFractionDigits": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 20
+                },
+                "maximumFractionDigits": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 20
+                },
+                "notation": {
+                    "type": "string",
+                    "enum": [
+                        "standard",
+                        "compact"
+                    ]
+                },
+                "signDisplay": {
+                    "type": "string",
+                    "enum": [
+                        "auto",
+                        "always",
+                        "exceptZero",
+                        "never"
+                    ]
+                }
+            },
+            "additionalProperties": {}
+        },
+        "WidgetSeriesSource": {
+            "type": "object",
+            "properties": {
+                "resource": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "label": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "query": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string"
+                    },
+                    "additionalProperties": {
+                        "anyOf": [
+                            {
+                                "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                ]
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "measure": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "group": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "period": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "boolean",
+                            "const": false
+                        }
+                    ]
+                },
+                "help": {
+                    "type": "string"
+                },
+                "tone": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9-]+$"
+                },
+                "alert": {
+                    "$ref": "#/$defs/WidgetAlertSettings"
+                }
+            },
+            "required": [
+                "resource",
+                "label"
+            ],
+            "additionalProperties": {}
+        },
+        "WidgetAlertSettings": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string"
+                    },
+                    "additionalProperties": {
+                        "anyOf": [
+                            {
+                                "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                ]
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "label": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "tone": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9-]+$"
+                }
+            },
+            "required": [
+                "query",
+                "label"
+            ],
+            "additionalProperties": {}
+        },
+        "WidgetRowSource": {
+            "type": "object",
+            "properties": {
+                "resource": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "label": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "query": {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string"
+                    },
+                    "additionalProperties": {
+                        "anyOf": [
+                            {
+                                "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                ]
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "measure": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "points": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "period": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "boolean",
+                            "const": false
+                        }
+                    ]
+                },
+                "alert": {
+                    "$ref": "#/$defs/WidgetAlertSettings"
+                }
+            },
+            "required": [
+                "resource",
+                "label"
+            ],
             "additionalProperties": {}
         },
         "SummaryPeriod": {
