@@ -4924,6 +4924,11 @@
                     "destructive": {
                         "type": "boolean"
                     },
+                    "tone": {
+                        "description": "The color of its icon in rows and of its button in the header of an item (decision 0091): a tone of the theme, such as `info`. An action that destroys is always `danger`.",
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+$"
+                    },
                     "confirm": {
                         "$ref": "#/components/schemas/ActionConfirm"
                     },
