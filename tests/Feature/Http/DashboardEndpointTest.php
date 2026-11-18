@@ -7,6 +7,8 @@ use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Gate;
+use Panneau\Dashboard\Row;
+use Panneau\Dashboard\Source;
 use Panneau\Dashboard\Widget;
 use Panneau\Dashboard\WidgetRequest;
 use Panneau\Exceptions\WidgetDataException;
@@ -62,6 +64,28 @@ class DashboardEndpointTest extends HttpTestCase
                 return ['value' => 'many', 'tone' => 'Red', 'secret' => 'never sent'];
             }),
             ...($user?->getAuthIdentifier() === 1 ? [Widget::stat('ada')->using(fn (): array => ['value' => 1])] : []),
+            // Combined widgets (panneau-js decision 0089)
+            Widget::table('costs')->currency('USD')->using(fn (): array => [
+                'columns' => [['key' => 'cost', 'label' => 'Cost'], ['key' => 'calls', 'label' => 'Calls', 'format' => ['style' => 'decimal']]],
+                'rows' => [
+                    ['label' => 'Summaries', 'url' => '/runs', 'cells' => ['cost' => 9.08, 'calls' => ['value' => 6, 'tone' => 'danger', 'help' => 'failed']], 'points' => [['date' => '2026-10-05', 'value' => 3]]],
+                    ['label' => 'Translations', 'cells' => []],
+                ],
+                'period' => 'day',
+                'format' => [],
+            ]),
+            Widget::series('messages')->stacked()->using(fn (): array => [
+                'period' => 'day',
+                'points' => [['date' => '2026-10-05', 'value' => 7]],
+                'series' => [
+                    ['key' => 'emails', 'label' => 'Emails', 'points' => [['date' => '2026-10-05', 'value' => 3]], 'total' => 3, 'alert' => ['value' => 1, 'label' => 'failed']],
+                    ['key' => 'texts', 'label' => 'Text messages', 'points' => [['date' => '2026-10-05', 'value' => 4]], 'total' => 4, 'tone' => 'info'],
+                ],
+            ]),
+            Widget::metric('wrong-metric')->using(fn (): array => ['value' => 1, 'parts' => [['label' => 'A', 'value' => 1]], 'format' => ['style' => 'currency']]),
+            Widget::metric('posts-metric')->resource('posts'),
+            Widget::series('sources')->per('day', 'published_at')->sources([Source::make('posts', 'Posts')]),
+            Widget::table('rows')->rows([Row::make('posts', 'Posts')]),
         ]);
         Gate::define('reports.view', fn (Authenticatable $user): bool => $user->getAuthIdentifier() === 1);
         Panneau::pages([
@@ -78,6 +102,15 @@ class DashboardEndpointTest extends HttpTestCase
                     return ['value' => $this->calls, 'help' => $request->period?->option];
                 }),
                 Widget::stat('drafts')->resource('posts', ['filter[status]' => 'draft']),
+                Widget::metric('cost')->currency('USD')->goodWhen('down')->using(fn (WidgetRequest $request): array => [
+                    'value' => 40,
+                    'previous' => $request->period !== null ? 32 : null,
+                    'help' => $request->period !== null ? 'from '.$request->period->previous()->from.' to '.$request->period->previous()->to : null,
+                    'points' => [['date' => '2026-10-05', 'value' => 12], ['date' => '2026-10-06', 'value' => 28]],
+                    'period' => 'day',
+                    'parts' => [['label' => 'Summaries', 'value' => 30, 'key' => 'summaries'], ['label' => 'Translations', 'value' => 8]],
+                    'other' => 2,
+                ]),
             ]),
             Page::dashboard('reports')->can('reports.view')->widgets([Widget::stat('overdue')->using(OverdueWidget::class)]),
             Page::make('about', 'about'),
@@ -254,6 +287,49 @@ class DashboardEndpointTest extends HttpTestCase
         $this->getJson(self::API.'/dashboard/widgets/cached?page=activity&period[option]=30d&period[from]=2026-10-19&period[to]=2026-11-17')
             ->assertJsonPath('value', 2)
             ->assertJsonPath('help', '30d');
+    }
+
+    public function test_a_metric_compares_its_period_with_the_previous_one(): void
+    {
+        $this->getJson(self::API.'/dashboard/widgets/cost?page=activity&period[option]=30d&period[from]=2026-10-20&period[to]=2026-11-18')
+            ->assertOk()
+            ->assertJsonPath('value', 40)
+            ->assertJsonPath('previous', 32)
+            ->assertJsonPath('help', 'from 2026-09-20 to 2026-10-19')
+            ->assertJsonPath('parts.1.label', 'Translations');
+    }
+
+    public function test_a_table_and_a_series_of_several_lines_of_their_own(): void
+    {
+        $response = $this->getJson(self::API.'/dashboard/widgets/costs')
+            ->assertOk()
+            ->assertJsonPath('rows.0.cells.calls.help', 'failed')
+            ->assertJsonMissingPath('format');
+        // A row without cells has them as an object
+        $this->assertStringContainsString('"label":"Translations","cells":{}', (string) $response->getContent());
+        $this->getJson(self::API.'/dashboard/widgets/messages')
+            ->assertOk()
+            ->assertJsonPath('series.1.label', 'Text messages')
+            ->assertJsonPath('series.0.alert.value', 1);
+    }
+
+    public function test_combined_widgets_that_read_resources_have_no_data(): void
+    {
+        foreach (['posts-metric', 'sources', 'rows'] as $id) {
+            $this->getJson(self::API.'/dashboard/widgets/'.$id)
+                ->assertNotFound()
+                ->assertHeader('Content-Type', Problem::CONTENT_TYPE);
+        }
+    }
+
+    public function test_a_metric_in_the_wrong_shape_is_a_500(): void
+    {
+        Exceptions::fake();
+        $this->app['config']->set('app.debug', false);
+
+        $this->getJson(self::API.'/dashboard/widgets/wrong-metric')->assertStatus(500);
+
+        Exceptions::assertReported(fn (WidgetDataException $exception): bool => $exception->keys === ['format.currency']);
     }
 
     /**

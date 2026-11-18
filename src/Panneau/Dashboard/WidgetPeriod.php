@@ -3,6 +3,7 @@
 namespace Panneau\Dashboard;
 
 use Carbon\CarbonImmutable;
+use LogicException;
 
 /**
  * The period chosen in the overview of a widget, as the widget gets it in its `WidgetRequest`
@@ -46,6 +47,37 @@ final readonly class WidgetPeriod
     public function range(): array
     {
         return ['from' => $this->from, 'to' => $this->to];
+    }
+
+    /**
+     * The days this period is compared with (panneau-js decision 0089), as `getPreviousRange()`
+     * of `@panneau/protocol` computes them, with the same option: the data of a `metric` gives
+     * its `previous` over them.
+     *
+     * - `7d`, `30d` and `90d`: the same number of days, just before;
+     * - `month`: the same days of the month before, to its last day when it is shorter (March 31
+     *   is compared with February 28);
+     * - `year`: the same days a year before.
+     */
+    public function previous(): self
+    {
+        $from = CarbonImmutable::createFromFormat('!Y-m-d', $this->from, 'UTC');
+        $to = CarbonImmutable::createFromFormat('!Y-m-d', $this->to, 'UTC');
+        if (! $from instanceof CarbonImmutable || ! $to instanceof CarbonImmutable) {
+            throw new LogicException(sprintf('The period from %s to %s has days that aren\'t days.', $this->from, $this->to));
+        }
+        if ($this->option === 'month' || $this->option === 'year') {
+            $months = $this->option === 'month' ? 1 : 12;
+
+            return new self(
+                $this->option,
+                $from->subMonthsNoOverflow($months)->format('Y-m-d'),
+                $to->subMonthsNoOverflow($months)->format('Y-m-d'),
+            );
+        }
+        $days = (int) $from->diffInDays($to) + 1;
+
+        return new self($this->option, $from->subDays($days)->format('Y-m-d'), $from->subDay()->format('Y-m-d'));
     }
 
     /**

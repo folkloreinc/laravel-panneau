@@ -21,11 +21,12 @@ use Panneau\Resources\ResourceRegistry;
 use stdClass;
 
 /**
- * `GET /dashboard/widgets/{widget}`: the data of a widget, as the user (panneau-js decisions 0064
- * and 0084), of a dashboard page (`?page={page}`, the home page without it), or of the summary
+ * `GET /dashboard/widgets/{widget}`: the data of a widget, as the user (panneau-js decisions 0064,
+ * 0084 and 0089), of a dashboard page (`?page={page}`, the home page without it), or of the summary
  * of a resource (`?resource={resource}`, with the filters and the search of its list), with the
  * period of its overview (`period[option]`, `period[from]`, `period[to]`). A widget that isn't on
- * that page or in that summary of the user, or that reads a resource, is a `404`; `page` and
+ * that page or in that summary of the user, or that reads resources (a resource, the sources of a
+ * series, the rows of a table), is a `404`; `page` and
  * `resource` together, an empty one, or a wrong period, a `422`; the summary of a resource the
  * user can't list a `403`; data in the wrong shape a `500`.
  *
@@ -73,7 +74,7 @@ final class DashboardWidgetController
                 ? new WidgetRequest($id, $place['page'], period: $this->periodOf($widget, $this->dashboard->pagePeriod($user, $place['page']), $period))
                 : null;
         }
-        if ($widget === null || $widgetRequest === null || $widget->getResource() !== null) {
+        if ($widget === null || $widgetRequest === null || $widget->readsResources()) {
             return Problem::response(404, detail: __('This widget is not on your dashboard.'));
         }
         $data = $this->dashboard->data($widget, $user, $widgetRequest);

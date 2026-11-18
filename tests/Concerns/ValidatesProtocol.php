@@ -178,9 +178,10 @@ trait ValidatesProtocol
     }
 
     /**
-     * The dashboards and the summaries, as `lintDefinition()` checks them (decisions 0064 and
-     * 0084): widgets on a resource that exists, with the aggregates of its list, `followsList`
-     * only in a summary, `period` only in an overview with a period, on a `date-range` filter.
+     * The dashboards and the summaries, as `lintDefinition()` checks them (decisions 0064, 0084
+     * and 0089): widgets on a resource that exists, with the aggregates of its list, `followsList`
+     * only in a summary, `period` only in an overview with a period, on a `date-range` filter, the
+     * settings of each type, and the sources of a series and the rows of a table.
      *
      * @param  array<string, mixed>  $definition
      * @param  list<string>  $issues
@@ -227,13 +228,44 @@ trait ValidatesProtocol
                 if (isset($settings['period']) && ! $hasPeriod) {
                     $issues[] = $widgetPath.'.settings.period: its overview has no period';
                 }
-                if (! in_array($widget['type'], ['stat', 'series', 'list', 'breakdown'], true)) {
+                if (! in_array($widget['type'], ['stat', 'series', 'list', 'breakdown', 'metric', 'table'], true)) {
+                    continue;
+                }
+                foreach (['goodWhen' => ['metric', 'table'], 'points' => ['metric', 'table'], 'by' => ['metric'], 'split' => ['series'], 'sources' => ['series'], 'stacked' => ['series'], 'rows' => ['table']] as $key => $types) {
+                    if (isset($settings[$key]) && ! in_array($widget['type'], $types, true)) {
+                        $issues[] = $widgetPath.'.settings.'.$key.': only a '.implode(' or a ', $types).' has '.$key;
+                    }
+                }
+                $sourcesKey = $widget['type'] === 'table' ? 'rows' : 'sources';
+                if (isset($settings[$sourcesKey]) && in_array($widget['type'], ['series', 'table'], true)) {
+                    if ($on !== null) {
+                        $issues[] = $widgetPath.'.settings.'.$sourcesKey.': the widget has no resource';
+
+                        continue;
+                    }
+                    foreach (['query', 'measure', 'target', 'by', 'split'] as $key) {
+                        if (isset($settings[$key])) {
+                            $issues[] = $widgetPath.'.settings.'.$key.': goes with a resource, not '.$sourcesKey;
+                        }
+                    }
+                    self::lintSources($resources, $widget, $widgetPath, $hasPeriod, $issues);
+
                     continue;
                 }
                 if ($on === null) {
                     if (is_string($settings['period'] ?? null)) {
                         $issues[] = $widgetPath.'.settings.period: without a resource, it can only be false';
                     }
+                    foreach (['query', 'measure', 'group', 'target', 'points', 'by', 'split'] as $key) {
+                        if (isset($settings[$key])) {
+                            $issues[] = $widgetPath.'.settings.'.$key.': goes with a resource';
+                        }
+                    }
+
+                    continue;
+                }
+                if ($widget['type'] === 'table') {
+                    $issues[] = $widgetPath.'.settings.resource: a table can\'t read a resource';
 
                     continue;
                 }
@@ -256,16 +288,105 @@ trait ValidatesProtocol
                 if (is_string($measure) && str_starts_with($measure, 'sum:') && ! in_array(substr($measure, 4), $aggregates['sum'] ?? [], true)) {
                     $issues[] = $widgetPath.'.settings.measure: '.$measure.' isn\'t in the sum of the aggregates';
                 }
-                if ($widget['type'] === 'series' && (! is_string($group) || preg_match('/^(day|week|month):(.+)$/', $group, $matches) !== 1 || ! in_array($matches[2], $aggregates['dates'] ?? [], true))) {
+                if ($widget['type'] === 'series' && ! self::isPeriodOf($group, $aggregates)) {
                     $issues[] = $widgetPath.'.settings.group: a series needs a period of a date of the aggregates';
                 }
                 if ($widget['type'] === 'breakdown' && (! is_string($group) || ! in_array($group, $aggregates['groupBy'] ?? [], true))) {
                     $issues[] = $widgetPath.'.settings.group: a breakdown needs a field of the groupBy of the aggregates';
                 }
-                if (isset($settings['target']) && $widget['type'] !== 'stat') {
-                    $issues[] = $widgetPath.'.settings.target: only a stat has a target';
+                if ($widget['type'] === 'metric') {
+                    if (! isset($resource['list']['aggregates'])) {
+                        $issues[] = $widgetPath.'.settings.resource: a metric reads the aggregates of a list that declares none';
+                    }
+                    if ($group !== null) {
+                        $issues[] = $widgetPath.'.settings.group: a metric isn\'t grouped';
+                    }
+                    if (isset($settings['points']) && ! self::isPeriodOf($settings['points'], $aggregates)) {
+                        $issues[] = $widgetPath.'.settings.points: a period of a date of the aggregates';
+                    }
+                    if (isset($settings['by']) && ! in_array($settings['by'], $aggregates['groupBy'] ?? [], true)) {
+                        $issues[] = $widgetPath.'.settings.by: a field of the groupBy of the aggregates';
+                    }
+                }
+                if (isset($settings['split']) && (! in_array($settings['split'], $aggregates['groupBy'] ?? [], true) || ($filters[$settings['split']] ?? 'date-range') === 'date-range')) {
+                    $issues[] = $widgetPath.'.settings.split: a field of the groupBy of the aggregates, and a filter of the list';
+                }
+                if (isset($settings['target']) && ! in_array($widget['type'], ['stat', 'metric'], true)) {
+                    $issues[] = $widgetPath.'.settings.target: only a stat and a metric have a target';
                 }
             }
+        }
+    }
+
+    /**
+     * Whether a group is a period of a date of the aggregates of a list: `day:created_at`.
+     *
+     * @param  array<string, mixed>  $aggregates
+     */
+    private static function isPeriodOf(mixed $group, array $aggregates): bool
+    {
+        return is_string($group)
+            && preg_match('/^(day|week|month):(.+)$/', $group, $matches) === 1
+            && in_array($matches[2], $aggregates['dates'] ?? [], true);
+    }
+
+    /**
+     * The sources of a `series` or the rows of a `table`, as `checkSources()` of
+     * `lintDefinition()` checks them (decision 0089).
+     *
+     * @param  array<string, array<string, mixed>>  $resources
+     * @param  array<string, mixed>  $widget
+     * @param  list<string>  $issues
+     */
+    private static function lintSources(array $resources, array $widget, string $path, bool $hasPeriod, array &$issues): void
+    {
+        $settings = $widget['settings'];
+        $isSeries = $widget['type'] === 'series';
+        $key = $isSeries ? 'sources' : 'rows';
+        $periods = [];
+        foreach ($settings[$key] as $index => $source) {
+            $sourcePath = $path.'.settings.'.$key.'.'.$index;
+            $group = $source[$isSeries ? 'group' : 'points'] ?? ($settings[$isSeries ? 'group' : 'points'] ?? null);
+            if (is_string($group) && preg_match('/^(day|week|month):/', $group, $matches) === 1) {
+                $periods[$matches[1]] = true;
+            }
+            $resource = $resources[$source['resource']] ?? null;
+            if ($resource === null) {
+                $issues[] = $sourcePath.'.resource: no resource '.$source['resource'];
+
+                continue;
+            }
+            $aggregates = $resource['list']['aggregates'] ?? null;
+            if ($aggregates === null) {
+                $issues[] = $sourcePath.'.resource: its list declares no aggregates';
+
+                continue;
+            }
+            $measure = $source['measure'] ?? null;
+            if (is_string($measure) && str_starts_with($measure, 'sum:') && ! in_array(substr($measure, 4), $aggregates['sum'] ?? [], true)) {
+                $issues[] = $sourcePath.'.measure: '.$measure.' isn\'t in the sum of the aggregates';
+            }
+            if (($isSeries || $group !== null) && ! self::isPeriodOf($group, $aggregates)) {
+                $issues[] = $sourcePath.': its group needs a period of a date of the aggregates';
+            }
+            $filters = array_column($resource['list']['filters'] ?? [], 'type', 'id');
+            $period = array_key_exists('period', $source) ? $source['period'] : ($settings['period'] ?? null);
+            if (is_string($period)) {
+                if (isset($source['period']) && ! $hasPeriod) {
+                    $issues[] = $sourcePath.'.period: its overview has no period';
+                }
+                if (($filters[$period] ?? null) !== 'date-range') {
+                    $issues[] = $sourcePath.'.period: no date-range filter '.$period;
+                }
+            }
+            foreach ([...array_keys($source['query'] ?? []), ...array_keys($source['alert']['query'] ?? [])] as $param) {
+                if (preg_match('/^filter\[([^\]]+)\]/', $param, $matches) === 1 && ! isset($filters[$matches[1]])) {
+                    $issues[] = $sourcePath.'.query: no filter '.$matches[1];
+                }
+            }
+        }
+        if (count($periods) > 1) {
+            $issues[] = $path.'.settings.'.$key.': its lines or trends share one period';
         }
     }
 
