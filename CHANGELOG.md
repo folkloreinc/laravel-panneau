@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- The `panneau.interface-locale` middleware alias (#226): a project's own admin routes, such as an export or a link to an item's page on the site, apply the language of the interface the user chose, as Panneau's routes do. `ApplyInterfaceLocale` is no longer `@internal`.
+
 ## [5.0.0-alpha.22] - 2026-11-18
 
 Goes with `@panneau/*` `5.0.0-alpha.38`, which offers no image editor on a field without transforms (panneau-js decision 0087). Earlier versions still offer it, and the crops it makes are dropped on save, as before. Nothing changes for a field that keeps its transforms.
