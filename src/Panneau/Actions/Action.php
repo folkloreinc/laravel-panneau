@@ -99,6 +99,16 @@ abstract class Action implements ActionDeclaration
     }
 
     /**
+     * The color of the action, a tone of the theme such as `info` or `success` (panneau-js
+     * decision 0091): its icon in rows and its outline in the header of an item. Null lets the
+     * frontend decide. An action that destroys is always `danger`.
+     */
+    public function tone(): ?string
+    {
+        return null;
+    }
+
+    /**
      * A confirmation, `true` for the default one, or null for none.
      */
     public function confirm(): Confirm|bool|null
@@ -264,6 +274,7 @@ abstract class Action implements ActionDeclaration
             $this->hidden ? [] : $this->placement(),
             $this->destructive(),
             $this->confirm(),
+            self::checkedTone($this->tone()),
         );
         if ($this->supportsDryRun()) {
             $definition['dryRun'] = true;

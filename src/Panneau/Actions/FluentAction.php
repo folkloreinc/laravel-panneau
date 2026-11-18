@@ -31,6 +31,8 @@ abstract class FluentAction implements ActionDeclaration
 
     protected bool $destructive = false;
 
+    protected ?string $tone = null;
+
     protected Confirm|bool|null $confirm = null;
 
     final public function __construct(protected string $id) {}
@@ -86,6 +88,18 @@ abstract class FluentAction implements ActionDeclaration
         return $this;
     }
 
+    /**
+     * The color of the action, a tone of the theme such as `info` or `success` (panneau-js
+     * decision 0091): its icon in rows and its outline in the header of an item. An action that
+     * destroys is always `danger`.
+     */
+    public function tone(string $tone): static
+    {
+        $this->tone = self::checkedTone($tone);
+
+        return $this;
+    }
+
     public function confirm(Confirm|bool $confirm = true): static
     {
         $this->confirm = $confirm;
@@ -106,6 +120,7 @@ abstract class FluentAction implements ActionDeclaration
             $this->placement,
             $this->destructive,
             $this->confirm,
+            $this->tone,
         );
     }
 }

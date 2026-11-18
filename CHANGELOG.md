@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Actions have a tone (#231, panneau-js decision 0091): `tone('info')` on a fluent action (`LinkAction`, `ClientAction`), or a `tone()` method on an `Action`, writes `tone` in its definition. It colors the action's icon in rows and its outline in the header of an item. Its name is lowercase letters, digits and dashes, or an `InvalidArgumentException`. An action that destroys is always `danger`.
+
 ## [5.0.0-alpha.23] - 2026-11-18
 
 Goes with `@panneau/*` `5.0.0-alpha.41`, which draws combined widgets (panneau-js decision 0089): a metric, a table, a series of several lines, number formats, the change from the previous period, and widgets hidden when empty. Earlier versions show a widget of an unknown type in place of a `metric` or a `table`, and a single line in place of a series of several. Nothing changes for a definition without them.

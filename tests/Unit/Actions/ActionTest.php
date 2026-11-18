@@ -88,6 +88,35 @@ class ActionTest extends TestCase
         LinkAction::make('edit')->toDefinition();
     }
 
+    public function test_actions_can_have_a_tone(): void
+    {
+        $site = LinkAction::make('site')->url('https://example.com/{id}')->tone('info')->toDefinition();
+        $this->assertSame('info', $site['tone']);
+        $this->assertArrayNotHasKey('tone', LinkAction::make('jobs')->url('/jobs')->toDefinition());
+
+        $publish = new class extends Action
+        {
+            public function tone(): ?string
+            {
+                return 'success';
+            }
+
+            public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult
+            {
+                return $result;
+            }
+        };
+        $this->assertSame('success', $publish->toDefinition()['tone']);
+        $this->assertArrayNotHasKey('tone', (new PublishPosts)->toDefinition());
+    }
+
+    public function test_a_tone_is_a_tone_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        LinkAction::make('site')->url('/site')->tone('Brand Blue');
+    }
+
     public function test_results(): void
     {
         $result = new ActionResult(fn (object $item): string => (string) $item->id);

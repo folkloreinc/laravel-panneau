@@ -24,6 +24,7 @@ trait SerializesDeclaration
         ?array $placement,
         bool $destructive,
         Confirm|bool|null $confirm,
+        ?string $tone = null,
     ): array {
         return array_filter([
             'id' => $this->id(),
@@ -35,7 +36,20 @@ trait SerializesDeclaration
                 ? array_map(fn (ActionPlacement $placement): string => $placement->value, $placement)
                 : null,
             'destructive' => $destructive ?: null,
+            'tone' => $tone,
             'confirm' => $confirm instanceof Confirm ? $confirm->toDefinition() : $confirm,
         ], fn (mixed $value): bool => $value !== null);
+    }
+
+    /**
+     * A tone's name, as the protocol writes them: lowercase letters, digits and dashes.
+     */
+    protected static function checkedTone(?string $tone): ?string
+    {
+        if ($tone !== null && preg_match('/^[a-z0-9-]+$/', $tone) !== 1) {
+            throw new \InvalidArgumentException(sprintf('The tone "%s" of an action is not a tone name, such as "info" or "brand".', $tone));
+        }
+
+        return $tone;
     }
 }
