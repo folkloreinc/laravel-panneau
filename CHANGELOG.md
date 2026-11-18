@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.23] - 2026-11-18
+
+Goes with `@panneau/*` `5.0.0-alpha.41`, which draws combined widgets (panneau-js decision 0089): a metric, a table, a series of several lines, number formats, the change from the previous period, and widgets hidden when empty. Earlier versions show a widget of an unknown type in place of a `metric` or a `table`, and a single line in place of a series of several. Nothing changes for a definition without them.
+
+Combined widgets, and the interface locale middleware for a project's own routes.
+
 ### Added
 
 - The `panneau.interface-locale` middleware alias (#226): a project's own admin routes, such as an export or a link to an item's page on the site, apply the language of the interface the user chose, as Panneau's routes do. `ApplyInterfaceLocale` is no longer `@internal`.
