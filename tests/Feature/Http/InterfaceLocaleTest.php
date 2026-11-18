@@ -3,6 +3,7 @@
 namespace Panneau\Tests\Feature\Http;
 
 use Illuminate\Routing\RouteCollection;
+use Illuminate\Support\Facades\Route;
 use Panneau\Support\Facade as Panneau;
 
 /**
@@ -99,5 +100,21 @@ class InterfaceLocaleTest extends HttpTestCase
 
         $this->getJson('/panneau/api/locale/en')->assertUnauthorized();
         $this->assertNull(session('panneau.locale'));
+    }
+
+    public function test_a_route_of_the_project_applies_the_choice_with_the_alias(): void
+    {
+        Route::get('/exports/own', fn () => app()->getLocale())
+            ->middleware([...config('panneau.middleware'), 'panneau.interface-locale']);
+        Route::get('/exports/without', fn () => app()->getLocale())->middleware(config('panneau.middleware'));
+        $this->app['router']->getRoutes()->refreshNameLookups();
+
+        $this->get('/exports/own')->assertOk()->assertContent('fr');
+        $this->withSession(['panneau.locale' => 'en'])->get('/exports/own')->assertContent('en');
+        // The test reuses the application: the request before left its locale
+        $this->app->setLocale('fr');
+        $this->withSession(['panneau.locale' => 'en'])->get('/exports/without')->assertContent('fr');
+        $this->app->setLocale('fr');
+        $this->withSession(['panneau.locale' => 'de'])->get('/exports/own')->assertContent('fr');
     }
 }

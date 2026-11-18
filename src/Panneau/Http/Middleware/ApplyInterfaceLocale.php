@@ -13,7 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
  * (panneau-js decision 0083), kept in the session. Without a choice, or one that
  * `panneau.interface_locales` doesn't have anymore, the app's locale stays.
  *
- * @internal
+ * Panneau's routes have it. A project's own admin routes (an export, a link to an item's page on
+ * the site) add it as `panneau.interface-locale`, after the session and the authentication.
  */
 final class ApplyInterfaceLocale
 {

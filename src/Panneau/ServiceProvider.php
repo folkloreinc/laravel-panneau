@@ -28,6 +28,7 @@ use Panneau\Embeds\OEmbedResolver;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\PasswordResetController;
 use Panneau\Http\Controllers\SearchController;
+use Panneau\Http\Middleware\ApplyInterfaceLocale;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\ResolveContext;
 use Panneau\Navigation\Navigation;
@@ -89,6 +90,7 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
         $this->app->make(Router::class)->aliasMiddleware('panneau.context', ResolveContext::class);
+        $this->app->make(Router::class)->aliasMiddleware('panneau.interface-locale', ApplyInterfaceLocale::class);
         // Defined when the rate limiter is first resolved: a limiter of the same name that the
         // project defines in its own provider replaces it.
         $this->callAfterResolving(RateLimiter::class, function (RateLimiter $limiter): void {
