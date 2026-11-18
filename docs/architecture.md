@@ -1239,15 +1239,19 @@ Panneau::dashboard(fn (?Authenticatable $user): array => [
 ]);
 ```
 
-- **Types.** `Widget::stat()`, a number with a line of help; `Widget::series()`, a line of values per day, week or month, with its total; `Widget::list()`, at most 5 items, the most useful first; `Widget::breakdown()`, the parts of a total as horizontal bars, at most 10, the largest first; `Widget::make($id, $type)`, a type that a JS plugin draws, with its `settings()`. `label()` and `width()` (columns of a grid of 12: 3 for a `stat` and 6 for the others by default) go with each.
+- **Types.** `Widget::stat()`, a number with a line of help; `Widget::series()`, a line of values per day, week or month, with its total, or several lines; `Widget::list()`, at most 5 items, the most useful first; `Widget::breakdown()`, the parts of a total as horizontal bars, at most 10, the largest first; `Widget::metric()`, a number with its change from the previous period, its trend and its parts, and `Widget::table()`, rows of numbers, one per subject (see [Combined widgets](#combined-widgets)); `Widget::make($id, $type)`, a type that a JS plugin draws, with its `settings()`. `label()` and `width()` (columns of a grid of 12: 3 for a `stat`, 4 for a `metric` and 6 for the others by default) go with each.
 - **On a resource.** A `stat` or a `list` can read the list of a resource (a class or an id), with a query written as its query parameters. The app reads the list itself, as the user: a `stat` shows its total, a `list` its first items with their title and the badge of their first `select` column, and both link to the list with that query. A `series`, a `breakdown` and a `stat` that sums read its [aggregates](#aggregates-of-a-resource) instead. The definition checks that the resource is registered, that the filters of the query are filters of its list, and that a `stat` that counts doesn't count a list paged with cursors, which has no total. `page`, `perPage` and `cursor` are the app's.
 - **Data of its own.** `using()` takes a class that implements `Panneau\Contracts\WidgetData`, built from the container for each request (its constructor can ask for the request, the context, or the `WidgetRequest`), or a closure called through the container with the user as `$user` (and a `WidgetRequest` parameter, if it has one). It returns the data in the shape of the type, with its texts translated:
   - `stat`: `['value' => 12, 'help' => __('3 more than last week'), 'tone' => 'warning', 'url' => '…', 'target' => 20]`. A `tone` only when the number calls for attention, never at 0; a `target` draws a meter under the number;
   - `series`: `['period' => 'day', 'points' => [['date' => '2026-10-05', 'value' => 4], …], 'total' => 12]`, the first day of each period, going up, one point per period;
   - `list`: `['items' => [['title' => '…', 'description' => null, 'meta' => __('12 answers'), 'url' => '…', 'badge' => ['label' => __('Open'), 'tone' => 'success']]], 'empty' => __('No open contests.'), 'url' => '…']`;
-  - `breakdown`: `['items' => [['label' => __('Failed'), 'value' => 3, 'tone' => 'danger', 'url' => '…']], 'total' => 42, 'other' => 5]`.
-- **`WidgetRequest`.** Where the widget is asked for: `$request->page` (its dashboard page, `home` for the home page), or `$request->resource` and `$request->query` in a summary (the `ResourceQuery` of the list, with its filters and search in the scope of the resource, to give to its repository; `filter($id)` and `search()` read it), and `$request->period`, a `WidgetPeriod` (`option`, `from`, `to`, `start()`, `end()`, `range()`) when its overview has a period. `WidgetData::data(?Authenticatable $user)` keeps its signature: the request comes from the container, so existing classes don't change.
-- **`GET {path}/api/dashboard/widgets/{id}`** answers a widget of the user's dashboard only, as the user: a widget that isn't on it, or that reads a resource, is a `404`. An `AuthorizationException` is a `403`, and the app hides the widget. Data that doesn't have the shape of its type is a `500` problem: the `WidgetDataException` reported in the log names the wrong keys, and the data is never sent.
+  - `breakdown`: `['items' => [['label' => __('Failed'), 'value' => 3, 'tone' => 'danger', 'url' => '…']], 'total' => 42, 'other' => 5]`;
+  - `metric`: `['value' => 40, 'previous' => 32, 'points' => [['date' => '2026-10-05', 'value' => 4], …], 'period' => 'day', 'parts' => [['label' => __('Failed'), 'value' => 3, 'tone' => 'danger']], 'other' => 1]`, and the keys of a `stat`. Only `value` is required; `parts` has at most 10 items, shaped as those of a `breakdown`;
+  - `table`: `['columns' => [['key' => 'cost', 'label' => __('Cost'), 'align' => 'end', 'format' => [...]]], 'rows' => [['label' => __('Summaries'), 'url' => '…', 'cells' => ['cost' => 9.08, 'calls' => ['value' => 6, 'tone' => 'danger', 'help' => __('failed')]], 'points' => [...]]], 'period' => 'day', 'empty' => '…', 'url' => '…']`: 1 to 6 columns with unique keys, at most 8 rows. A cell is a number, `null` ("—"), or a number with a tone, a word and a format; a cell missing is empty, and a row without cells is sent with `{}`;
+  - a `series` can have several lines: `'series' => [['key' => 'emails', 'label' => __('Emails'), 'points' => [...], 'total' => 32, 'tone' => 'info', 'help' => '…', 'url' => '…', 'alert' => ['value' => 4, 'label' => __('failed'), 'tone' => 'danger']]]`, at most 6, drawn instead of `points`, which stays required: their total per period, or `[]`;
+  - the data of every type but `list` can have a `format`, the options of `format()` below; the settings win key by key.
+- **`WidgetRequest`.** Where the widget is asked for: `$request->page` (its dashboard page, `home` for the home page), or `$request->resource` and `$request->query` in a summary (the `ResourceQuery` of the list, with its filters and search in the scope of the resource, to give to its repository; `filter($id)` and `search()` read it), and `$request->period`, a `WidgetPeriod` (`option`, `from`, `to`, `start()`, `end()`, `range()`, `previous()`) when its overview has a period. `WidgetData::data(?Authenticatable $user)` keeps its signature: the request comes from the container, so existing classes don't change.
+- **`GET {path}/api/dashboard/widgets/{id}`** answers a widget of the user's dashboard only, as the user: a widget that isn't on it, or that reads resources (a `resource()`, the `sources()` of a series, the `rows()` of a table), is a `404`. An `AuthorizationException` is a `403`, and the app hides the widget. Data that doesn't have the shape of its type is a `500` problem: the `WidgetDataException` reported in the log names the wrong keys, and the data is never sent.
 - **Per user.** The closure of `Panneau::dashboard()` builds the widgets of each user, as for menus, and `can()` keeps a widget for the users who have a Gate ability, or a closure that gets the user. The others don't get it in the definition, and its data is a `404`.
 - **Home page.** With widgets, the definition has `dashboard.widgets`, and `pages.home` is the built-in `dashboard`, unless the project declares a page `home`. A user without widgets gets the cards of the resources. `Page::dashboard('home')->widgets([...])` can declare them instead (`pages.home.widgets`), but not with `Panneau::dashboard()`: both throw a `LogicException`.
 - **Cache.** `cache($seconds)` keeps a successful answer per widget, user, locale, context, page or summary, query of the list and period, in the app's cache: for widgets that call another service or compute something heavy. Errors are never kept. **Don't cache a widget about the resource's own items**: the user expects to see them as soon as they change. A widget on a resource has nothing to cache.
@@ -1334,6 +1338,64 @@ Panneau::pages([
 - **Widgets with data of their own** get `period[option]`, `period[from]` and `period[to]`, read as `readWidgetDataQuery()` reads them: an option that isn't one of the five, days that are missing or aren't days, or `from` after `to`, are a `422` with `errors.period`. Their `WidgetRequest` has it as `$request->period` when their overview has a period, unless they have `period(false)`.
 - `period()` on a widget of an overview without a period, or a filter name on a widget without a resource, or that isn't a `date-range` filter of its list, throws a `LogicException`.
 - The tests check definitions with dashboard pages, aggregates, summaries and periods against `definition.schema.json` and a port of the overview checks of `lintDefinition()`, and the endpoints against `openapi.json`; the conformance app has a dashboard page with a period, and a resource of runs with aggregates and a summary with a period.
+
+### Combined widgets
+
+A combined widget answers several questions about one subject in one card ([panneau-js decision 0089](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0089-combined-widgets.md)): a `metric` (a number, its change from the previous period, its trend and its parts), a `series` of several lines, and a `table` with a row per subject. On resources, the app reads their aggregates several times, with no code; with `using()`, their data is the project's.
+
+```php
+use Panneau\Dashboard\Row;
+use Panneau\Dashboard\Source;
+use Panneau\Dashboard\Widget;
+
+Page::dashboard('activity')->label(__('Activity'))->period(['7d', '30d', 'month'], default: '30d')->widgets([
+    // The cost of the AI: its total over the period, its change, a point per day, and its largest services
+    Widget::metric('ai-cost')->label(__('AI cost'))
+        ->resource(AiCallsResource::class)->sum('cost')->points('day', 'called_at')->by('service')
+        ->period('called_at')->goodWhen('down')->currency('USD'),
+    // Emails and text messages per day, one line each, with their failures
+    Widget::series('messages')->label(__('Messages sent'))->width(8)
+        ->per('day', 'sent_at')->period('sent_at')
+        ->sources([
+            Source::make(EmailsResource::class, __('Emails'))->alert(['filter[status]' => 'failed'], __('failed')),
+            Source::make(TextMessagesResource::class, __('Text messages'))->alert(['filter[status]' => 'failed'], __('failed')),
+        ]),
+    // A row per log: its count, its change, its failures, and its trend
+    Widget::table('logs')->label(__('Logs'))->width(12)->points('day', 'sent_at')->period('sent_at')->goodWhen('down')->rows([
+        Row::make(EmailsResource::class, __('Emails'))->alert(['filter[status]' => 'failed'], __('failed')),
+        Row::make(TextMessagesResource::class, __('Text messages'))->alert(['filter[status]' => 'failed'], __('failed')),
+        Row::make(JobsResource::class, __('Jobs'))->points('day', 'ran_at')->period('ran_at')->alert(['filter[status]' => 'failed'], __('failed')),
+    ]),
+    // Data of its own: a number with its change, computed over the previous range
+    Widget::metric('storage')->label(__('Storage'))->unit('megabyte')->hideEmpty()->using(StorageWidget::class),
+]);
+```
+
+- **`Widget::metric()`** on a resource reads its aggregates: `count()` or `sum()`, `points($period, $date)` for its trend (a date of `dates`), `by($field)` for its parts (a field of `groupBy`), and `target()`, as a `stat`. With `period()`, the app also reads the value over the previous range, for its change.
+- **`Widget::series()`** has two ways to draw several lines, exclusive: `split($field)` with `resource()` and `per()`, a line per value of a field of `groupBy` that the list also filters by (the 5 largest, and the rest as "Other"); or `sources([...])` without `resource()`, a line per `Source`, at most 5, possibly on different resources. `stacked()` stacks them.
+- **`Widget::table()`** with `rows([...])`: a `Row` per subject, at most 8, the count or the sum of a resource over the period, with its change, its alert, and its trend (`points()` of the row, or of the table).
+- **`Source` and `Row`** take the resource (a class or an id) and a label, then `query()`, `count()` or `sum()`, `period()` (the `period()` of the widget by default; `false` to ignore the period), and `alert($query, $label, $tone)`: the items of the source with the filters of `$query` on top, counted over the same period and shown as "4 failed" when there are some, in `$tone` (`danger` by default). A `Source` has `per()` (the `per()` of the series by default), `help()` and `tone()`; a `Row` has `points()`.
+- **How numbers are written**, on every built-in type: `format([...])` takes options of `Intl.NumberFormat`, checked as the protocol checks them (`style`, `currency`, an ISO 4217 code, `currencyDisplay`, `unit`, a unit of ECMA-402 or two joined by `-per-`, `unitDisplay`, `minimumFractionDigits` and `maximumFractionDigits` from 0 to 20, `notation` and `signDisplay`), merged over the options set before; `currency('USD')`, `unit('megabyte')` and `percent()` set the style. A value is never converted: a size in megabytes is written in megabytes. Without a format, a sum of `money` on a resource is written in its currency, as before.
+- **`goodWhen('up')`** (or `'down'`), on a `metric` or a `table`: a change that way is good news (`success`), the other way `danger`; neutral without it. **`hideEmpty()`** hides a built-in widget whose data has nothing to show (a `stat` at 0, a `metric` at 0 that was 0, a `series` all at 0, a `list` or a `table` without items or rows), as a `403` does.
+- **Checked when the definition is built,** as `lintDefinition()` checks them, with a `LogicException`: the resource of each source is registered and declares aggregates; its sum is in their `sum`, its periods in their `dates` (required for a line of a series), `by()` and `split()` in their `groupBy`, and `split()` is a filter of the list; its period is a `date-range` filter of its list, in an overview with a period; the filters of its query and of its alert are filters of its list; the lines of a series, and the trends of a table, share one period. A combined widget that reads a field the user can't see is left out for them.
+- **The previous range.** A `metric` with data of its own gets the period in its `WidgetRequest`, and gives its `previous` over `$request->period->previous()`, the days it is compared with, as `getPreviousRange()` computes them: for `7d`, `30d` and `90d`, the same number of days just before; for `month`, the same days of the month before, to its last day when it is shorter (March 31 is compared with February 28); for `year`, the same days a year before.
+
+  ```php
+  final class StorageWidget implements WidgetData
+  {
+      public function __construct(private WidgetRequest $request, private Storage $storage) {}
+
+      public function data(?Authenticatable $user): array
+      {
+          $period = $this->request->period;
+
+          return [
+              'value' => $this->storage->megabytes($period?->end()),
+              'previous' => $period !== null ? $this->storage->megabytes($period->previous()->end()) : null,
+          ];
+      }
+  }
+  ```
 
 ## laravel-folklore
 
