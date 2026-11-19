@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Changed
+
+- A resource builds its fields once per request (#234): `fields()`, `types()` and the `fields()` of each type run once per request and locale, rather than for each item, each check and each part of the definition. A list of 20 items of a resource with 11 types called `fields()` 373 times. Panneau builds them again after a request, a login or logout, and the resolution of the context; `$resource->flushFields()` forgets them in the middle of a request. A media library's `file` field comes from `buildAllFields()`, which replaces its override of `allFields()` (both `@internal`).
+
 ## [5.0.0-alpha.24] - 2026-11-18
 
 Goes with `@panneau/*` `5.0.0-alpha.43`, which draws actions in their tones (panneau-js decision 0091): a colored icon in rows and a colored outline in the header of an item. Earlier versions ignore `tone` and draw every action as before. Nothing changes for a definition without it.

@@ -7,6 +7,7 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\Request;
 use Panneau\Context\ContextRegistry;
 use Panneau\Context\ContextResolver;
+use Panneau\Resources\FieldCache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -36,6 +37,8 @@ final class ResolveContext
             $request->user(),
             $request,
         );
+        // Fields can depend on the context
+        $this->container->make(FieldCache::class)->flush();
 
         $response = $next($request);
         $response->setVary(array_values(array_unique([...$response->getVary(), ContextResolver::HEADER])));

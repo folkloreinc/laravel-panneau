@@ -2,6 +2,7 @@
 
 namespace Panneau\Resources;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
@@ -54,6 +55,51 @@ abstract class Resource
      * @return list<Field>
      */
     abstract public function fields(): array;
+
+    /**
+     * The fields of `fields()`, built once per request (#234): Panneau reads them many times per
+     * request. Work done while building a field, such as options from the database, then runs
+     * once.
+     *
+     * @internal Declare fields in `fields()`.
+     *
+     * @return list<Field>
+     */
+    public function declaredFields(): array
+    {
+        return $this->remember('fields', fn (): array => $this->fields());
+    }
+
+    /**
+     * The types of `types()`, once per request.
+     *
+     * @return list<class-string<ResourceType>|ResourceType>
+     */
+    private function declaredTypes(): array
+    {
+        return $this->remember('types', fn (): array => $this->types());
+    }
+
+    /**
+     * Forgets the fields and types built in this request, for code that changes what `fields()`
+     * or `types()` depend on in the middle of a request. Panneau forgets them when a request is
+     * handled, a user is authenticated, the locale changes, or the context is resolved.
+     */
+    public function flushFields(): void
+    {
+        Container::getInstance()->make(FieldCache::class)->forget($this);
+    }
+
+    /**
+     * @template T
+     *
+     * @param  Closure(): T  $build
+     * @return T
+     */
+    private function remember(string $key, Closure $build): mixed
+    {
+        return Container::getInstance()->make(FieldCache::class)->remember($this, $key, $build);
+    }
 
     /**
      * The id, derived from the class name: `PagesResource` gives `pages`, `BlogPosts` gives
@@ -186,7 +232,7 @@ abstract class Resource
         if (count($layout) > 0) {
             return $layout;
         }
-        $fields = $this->fields();
+        $fields = $this->declaredFields();
         if (count(array_filter($fields, self::isForSomeTypes(...))) === 0) {
             return [];
         }
@@ -290,7 +336,19 @@ abstract class Resource
      */
     public function allFields(): array
     {
-        $fields = $this->fields();
+        return $this->remember('allFields', fn (): array => $this->buildAllFields());
+    }
+
+    /**
+     * The fields of `allFields()`, built: the resource's own, with the `select` field `type`.
+     *
+     * @internal Declare fields in `fields()`.
+     *
+     * @return list<Field>
+     */
+    protected function buildAllFields(): array
+    {
+        $fields = $this->declaredFields();
         // The fields for some types only go to those types (onlyForTypes(), exceptForTypes())
         $shared = array_values(array_filter($fields, fn (Field $field): bool => ! self::isForSomeTypes($field)));
         if (count($shared) !== count($fields) && ! $this->hasTypes()) {
@@ -332,7 +390,7 @@ abstract class Resource
      */
     public function hasTypes(): bool
     {
-        return count($this->types()) > 0;
+        return count($this->declaredTypes()) > 0;
     }
 
     /**
@@ -345,11 +403,19 @@ abstract class Resource
      */
     public function resourceTypes(): array
     {
-        $types = $this->types();
+        return $this->remember('resourceTypes', fn (): array => $this->resolveTypes());
+    }
+
+    /**
+     * @return list<ResourceType>
+     */
+    private function resolveTypes(): array
+    {
+        $types = $this->declaredTypes();
         if (count($types) === 0) {
             return [];
         }
-        $names = array_map(fn (Field $field): string => $field->name(), $this->fields());
+        $names = array_map(fn (Field $field): string => $field->name(), $this->declaredFields());
         $resolved = [];
         foreach ($types as $type) {
             $instance = is_string($type) ? Container::getInstance()->make($type) : $type;
@@ -361,7 +427,7 @@ abstract class Resource
                 throw new LogicException(sprintf('The resource "%s" has %s type id "%s".', $this->id(), $id === '' ? 'an empty' : 'a duplicate', $id));
             }
             $own = [];
-            foreach ($instance->fields() as $field) {
+            foreach ($this->ownFieldsOf($instance) as $field) {
                 $name = $field->name();
                 $problem = match (true) {
                     $name === self::ITEM_TYPE => 'it holds the type of the item',
@@ -389,7 +455,7 @@ abstract class Resource
      */
     private function checkFieldsForSomeTypes(array $types): void
     {
-        foreach ($this->fields() as $field) {
+        foreach ($this->declaredFields() as $field) {
             if (! self::isForSomeTypes($field)) {
                 continue;
             }
@@ -414,9 +480,21 @@ abstract class Resource
      */
     public function fieldsOfType(ResourceType $type): array
     {
-        $forType = array_filter($this->fields(), fn (Field $field): bool => self::isForSomeTypes($field) && self::appliesTo($field, $type));
+        return $this->remember('fieldsOfType:'.$type->id(), function () use ($type): array {
+            $forType = array_filter($this->declaredFields(), fn (Field $field): bool => self::isForSomeTypes($field) && self::appliesTo($field, $type));
 
-        return [...array_values($forType), ...$type->fields()];
+            return [...array_values($forType), ...$this->ownFieldsOf($type)];
+        });
+    }
+
+    /**
+     * The fields of a type's `fields()`, once per request.
+     *
+     * @return list<Field>
+     */
+    private function ownFieldsOf(ResourceType $type): array
+    {
+        return $this->remember('typeFieldsOf:'.$type->id(), fn (): array => $type->fields());
     }
 
     private static function isForSomeTypes(Field $field): bool
@@ -474,10 +552,12 @@ abstract class Resource
      */
     public function typeFields(?string $type): array
     {
-        $fields = $this->allFields();
-        $found = $this->resourceType($type);
+        return $this->remember('typeFields:'.($type ?? ''), function () use ($type): array {
+            $fields = $this->allFields();
+            $found = $this->resourceType($type);
 
-        return $found !== null ? [...$fields, ...$this->fieldsOfType($found)] : $fields;
+            return $found !== null ? [...$fields, ...$this->fieldsOfType($found)] : $fields;
+        });
     }
 
     /**
