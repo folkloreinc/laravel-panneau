@@ -7,6 +7,7 @@ use Closure;
 use DateTimeInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -30,6 +31,7 @@ use Panneau\Contracts\Repositories\Aggregates;
 use Panneau\Contracts\Repositories\ChunkedQuery;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
+use Panneau\Contracts\Repositories\PreloadsFields;
 use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\Repositories\SortsFields;
 use Panneau\Contracts\ResourceRepository;
@@ -71,6 +73,8 @@ use UnexpectedValueException;
  *   an array), accessors, and other databases are aggregated in PHP over the matching rows,
  *   chunk by chunk.
  * - The version is a hash of the model's attributes.
+ * - Before a list is serialized, the relations named after its fields are eager loaded, with
+ *   `loadMissing()` (see `preloadFields()`).
  * - A unique slug (`Slug::unique()`) is looked up in the column of its field, or the locale's
  *   key of a JSON column for a localized slug, deleted items included (see `slugQuery()`).
  *
@@ -80,7 +84,7 @@ use UnexpectedValueException;
  *
  * @template TModel of Model
  */
-class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, Duplicable, ResourceRepository, Searchable, SortsFields
+class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, Duplicable, PreloadsFields, ResourceRepository, Searchable, SortsFields
 {
     /**
      * The parameter of a cursor with the number of its page, which no column can be named.
@@ -283,6 +287,32 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
             $model->getQualifiedKeyName(),
             $model->getKeyName(),
         );
+    }
+
+    /**
+     * Eager loads, with `loadMissing()`, the relations of the models named after the fields: a
+     * `BelongsTo`, `BelongsToMany`, `HasMany`… declared with a return type, as `fill()` finds
+     * them. Fields read with `resolveUsing()` are left out, since they may read anything.
+     *
+     * @param  list<object>  $items
+     * @param  list<Field>  $fields
+     */
+    public function preloadFields(array $items, array $fields): void
+    {
+        $models = array_values(array_filter($items, fn (object $item): bool => $item instanceof $this->model));
+        if ($models === []) {
+            return;
+        }
+        $model = $this->newModel();
+        $relations = [];
+        foreach ($fields as $field) {
+            if (! $field->isComputed() && $this->relation($model, $field->name()) !== null) {
+                $relations[] = $field->name();
+            }
+        }
+        if ($relations !== []) {
+            (new EloquentCollection($models))->loadMissing(array_values(array_unique($relations)));
+        }
     }
 
     /**
