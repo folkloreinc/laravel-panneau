@@ -3,8 +3,14 @@
 namespace Panneau\Tests\Unit\Dashboard;
 
 use InvalidArgumentException;
+use Panneau\Dashboard\BreakdownWidget;
+use Panneau\Dashboard\ListWidget;
+use Panneau\Dashboard\MetricWidget;
 use Panneau\Dashboard\Row;
+use Panneau\Dashboard\SeriesWidget;
 use Panneau\Dashboard\Source;
+use Panneau\Dashboard\StatWidget;
+use Panneau\Dashboard\TableWidget;
 use Panneau\Dashboard\Widget;
 use Panneau\Dashboard\WidgetShape;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -192,14 +198,8 @@ class WidgetTest extends TestCase
             'no id' => [fn (): Widget => Widget::stat(''), 'A widget needs an id.'],
             'no type' => [fn (): Widget => Widget::make('map', ''), 'The widget "map" needs a type.'],
             'a width out of the grid' => [fn (): Widget => Widget::stat('a')->width(13), 'The widget "a" has the width 13: widths go from 1 to 12 columns.'],
-            'a sum of a list' => [fn (): Widget => Widget::list('a')->sum('price'), 'The list "a" can\'t have sum(): only a stat, a series, a breakdown and a metric measure a resource.'],
-            'a count of a plugin' => [fn (): Widget => Widget::make('a', 'map')->count(), 'The map "a" can\'t have count()'],
-            'periods of a stat' => [fn (): Widget => Widget::stat('a')->per('day', 'created_at'), 'The stat "a" has no periods: only a series does.'],
             'a period of a year' => [fn (): Widget => Widget::series('a')->per('year', 'created_at'), 'The series "a" is per "year": periods are day, week or month.'],
-            'parts of a series' => [fn (): Widget => Widget::series('a')->by('status'), 'The series "a" has no parts: only a breakdown and a metric do.'],
-            'a target of a series' => [fn (): Widget => Widget::series('a')->target(10), 'The series "a" has no target: only a stat and a metric do.'],
             'a target of 0' => [fn (): Widget => Widget::stat('a')->target(0), 'The stat "a" has the target 0: targets are above 0.'],
-            'a widget of a plugin on a resource' => [fn (): Widget => Widget::make('a', 'map')->resource('posts'), 'The map "a" can\'t read a resource: only a stat, a series, a list, a breakdown and a metric can.'],
             'a query that pages' => [fn (): Widget => Widget::list('a')->resource('posts', ['perPage' => 10]), 'The query of the widget "a" sets "perPage", which the app sets.'],
             'a query with an object' => [fn (): Widget => Widget::list('a')->resource('posts', ['filter[status]' => ['x' => new stdClass]]), 'The query of the widget "a" has a value of "filter[status]"'],
             'settings of a built-in type' => [fn (): Widget => Widget::stat('a')->settings(['x' => 1]), 'The stat "a" has no settings'],
@@ -208,16 +208,8 @@ class WidgetTest extends TestCase
             'data and a resource' => [fn (): Widget => Widget::stat('a')->resource('posts')->using(OverdueWidget::class), 'The widget "a" reads a resource: it can\'t also have data of its own.'],
             'a cache of no time' => [fn (): Widget => Widget::stat('a')->cache(0), 'The widget "a" is cached for 0 seconds: give it at least one.'],
             // Combined widgets (panneau-js decision 0089)
-            'a table on a resource' => [fn (): Widget => Widget::table('a')->resource('runs'), 'The table "a" can\'t read a resource'],
-            'points of a series' => [fn (): Widget => Widget::series('a')->points('day', 'ran_at'), 'The series "a" has no trend: only a metric and a table do.'],
             'points of a year' => [fn (): Widget => Widget::metric('a')->points('year', 'ran_at'), 'The metric "a" has points per "year": periods are day, week or month.'],
-            'a metric split' => [fn (): Widget => Widget::metric('a')->split('status'), 'The metric "a" has no lines: only a series is split.'],
-            'parts of a table' => [fn (): Widget => Widget::table('a')->by('status'), 'The table "a" has no parts: only a breakdown and a metric do.'],
-            'a table stacked' => [fn (): Widget => Widget::table('a')->stacked(), 'The table "a" has no lines to stack: only a series does.'],
-            'a stat good when it rises' => [fn (): Widget => Widget::stat('a')->goodWhen('up'), 'The stat "a" shows no change: only a metric and a table have goodWhen().'],
             'a metric good sideways' => [fn (): Widget => Widget::metric('a')->goodWhen('left'), 'The metric "a" is good when "left": give up or down.'],
-            'sources of a table' => [fn (): Widget => Widget::table('a')->sources([Source::make('runs', 'Runs')]), 'The table "a" has no sources: only a series does. A table has rows().'],
-            'rows of a series' => [fn (): Widget => Widget::series('a')->rows([Row::make('runs', 'Runs')]), 'The series "a" has no rows: only a table does.'],
             'no sources' => [fn (): Widget => Widget::series('a')->sources([]), 'The series "a" has 0 sources: give it from 1 to 5.'],
             'six sources' => [fn (): Widget => Widget::series('a')->sources(array_fill(0, 6, Source::make('runs', 'Runs'))), 'The series "a" has 6 sources: give it from 1 to 5.'],
             'nine rows' => [fn (): Widget => Widget::table('a')->rows(array_fill(0, 9, Row::make('runs', 'Runs'))), 'The table "a" has 9 rows: give it from 1 to 8.'],
@@ -226,13 +218,11 @@ class WidgetTest extends TestCase
             'a resource and sources' => [fn (): Widget => Widget::series('a')->sources([Source::make('runs', 'Runs')])->resource('runs'), 'The series "a" reads the resources of its sources(): it can\'t also read a resource.'],
             'rows and data' => [fn (): Widget => Widget::table('a')->rows([Row::make('runs', 'Runs')])->using(OverdueWidget::class), 'The table "a" reads the resources of its rows(): it can\'t also have data of its own.'],
             'data and rows' => [fn (): Widget => Widget::table('a')->using(OverdueWidget::class)->rows([Row::make('runs', 'Runs')]), 'The table "a" has data of its own (using()): it can\'t also have rows().'],
-            'a format of a plugin' => [fn (): Widget => Widget::make('a', 'map')->currency('USD'), 'The map "a" can\'t have format(): give a widget of a plugin its settings().'],
             'a format with an unknown option' => [fn (): Widget => Widget::metric('a')->format(['locale' => 'fr']), 'The format of the widget "a" has the option "locale"'],
             'a currency that is not one' => [fn (): Widget => Widget::metric('a')->currency('usd'), 'The format of the widget "a" has a wrong currency'],
             'a currency style without a currency' => [fn (): Widget => Widget::metric('a')->format(['style' => 'currency']), 'The format of the widget "a" has a wrong currency'],
             'a unit that is not one' => [fn (): Widget => Widget::metric('a')->unit('parsec'), 'The format of the widget "a" has a wrong unit'],
             'more minimum digits than maximum' => [fn (): Widget => Widget::metric('a')->format(['minimumFractionDigits' => 3, 'maximumFractionDigits' => 1]), 'The format of the widget "a" has a wrong minimumFractionDigits'],
-            'a hidden plugin' => [fn (): Widget => Widget::make('a', 'map')->hideEmpty(), 'The map "a" can\'t have hideEmpty()'],
             'a source without a label' => [fn (): Source => Source::make('runs', ''), 'The source on "runs" needs a label.'],
             'a row without a resource' => [fn (): Row => Row::make('', 'Runs'), 'The row "Runs" needs a resource.'],
             'a source per year' => [fn (): Source => Source::make('runs', 'Runs')->per('year', 'ran_at'), 'The source "Runs" is per "year": periods are day, week or month.'],
@@ -243,6 +233,57 @@ class WidgetTest extends TestCase
             'an alert whose query pages' => [fn (): Source => Source::make('runs', 'Runs')->alert(['page' => 2], 'runs'), 'The query of the alert of the source "Runs" sets "page"'],
             'a row without a period' => [fn (): Row => Row::make('runs', 'Runs')->period(''), 'The row "Runs" follows the period with the filter ""'],
         ];
+    }
+
+    /**
+     * The methods of the types that have them, and not of the others: each builder only has those
+     * that apply to its type.
+     *
+     * @return array<string, array{Widget, list<string>, list<string>}>
+     */
+    public static function methodsOfTypes(): array
+    {
+        $resource = ['resource'];
+        $measures = ['count', 'sum'];
+        $format = ['format', 'currency', 'unit', 'percent', 'hideEmpty'];
+
+        return [
+            'a stat' => [Widget::stat('a'), [...$resource, ...$measures, ...$format, 'target'], ['per', 'by', 'points', 'split', 'sources', 'rows', 'goodWhen', 'stacked']],
+            'a series' => [Widget::series('a'), [...$resource, ...$measures, ...$format, 'per', 'split', 'sources', 'stacked'], ['by', 'points', 'rows', 'target', 'goodWhen']],
+            'a breakdown' => [Widget::breakdown('a'), [...$resource, ...$measures, ...$format, 'by'], ['per', 'points', 'split', 'sources', 'rows', 'target', 'goodWhen', 'stacked']],
+            'a list' => [Widget::list('a'), [...$resource, ...$format], [...$measures, 'per', 'by', 'points', 'split', 'sources', 'rows', 'target', 'goodWhen', 'stacked']],
+            'a metric' => [Widget::metric('a'), [...$resource, ...$measures, ...$format, 'by', 'points', 'target', 'goodWhen'], ['per', 'split', 'sources', 'rows', 'stacked']],
+            'a table' => [Widget::table('a'), [...$format, 'rows', 'points', 'goodWhen'], [...$resource, ...$measures, 'per', 'by', 'split', 'sources', 'target', 'stacked']],
+            'a widget of a plugin' => [Widget::make('a', 'map'), [], [...$resource, ...$measures, ...$format, 'per', 'by', 'points', 'split', 'sources', 'rows', 'target', 'goodWhen', 'stacked']],
+        ];
+    }
+
+    /**
+     * @param  list<string>  $has
+     * @param  list<string>  $hasNot
+     */
+    #[DataProvider('methodsOfTypes')]
+    public function test_each_builder_has_the_methods_of_its_type(Widget $widget, array $has, array $hasNot): void
+    {
+        foreach ([...$has, 'label', 'width', 'settings', 'followsList', 'period', 'using', 'cache', 'can'] as $method) {
+            $this->assertTrue(is_callable([$widget, $method]), sprintf('%s has %s().', $widget->type(), $method));
+        }
+        foreach ($hasNot as $method) {
+            $this->assertFalse(is_callable([$widget, $method]), sprintf('%s has no %s().', $widget->type(), $method));
+        }
+    }
+
+    public function test_make_gives_the_builder_of_a_built_in_type(): void
+    {
+        $this->assertInstanceOf(StatWidget::class, Widget::stat('a'));
+        $this->assertInstanceOf(SeriesWidget::class, Widget::make('a', 'series'));
+        $this->assertInstanceOf(BreakdownWidget::class, Widget::make('a', 'breakdown'));
+        $this->assertInstanceOf(ListWidget::class, Widget::make('a', 'list'));
+        $this->assertInstanceOf(MetricWidget::class, Widget::make('a', 'metric'));
+        $this->assertInstanceOf(TableWidget::class, Widget::make('a', 'table'));
+        $this->assertSame(Widget::class, Widget::make('a', 'map')::class);
+        // Chains keep the builder of the type
+        $this->assertInstanceOf(SeriesWidget::class, Widget::series('a')->label('Runs')->resource('runs')->count()->period('ran_at'));
     }
 
     /**

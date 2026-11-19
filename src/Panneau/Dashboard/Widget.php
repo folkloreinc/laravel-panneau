@@ -18,8 +18,14 @@ use Panneau\Contracts\WidgetData;
  * (`per()`, `by()`, `sum()`, `points()`, `split()`). A `series` can read several resources
  * (`sources()`), and a `table` a row per resource (`rows()`). The others get their data from a
  * class or a closure (`using()`), which the app asks for at `GET {path}/api/dashboard/widgets/{id}`.
+ *
+ * The named constructors return the builder of their type (`StatWidget`, `SeriesWidget`,
+ * `BreakdownWidget`, `ListWidget`, `MetricWidget`, `TableWidget`), which has the methods that
+ * apply to it, public: `Widget::series('runs')->per('day', 'ran_at')`. A widget of a plugin
+ * (`make()`) has the methods that all widgets share. The methods of the types are protected here,
+ * and public on their builders. It isn't meant to be extended by projects.
  */
-final class Widget
+class Widget
 {
     /**
      * The types that the app draws.
@@ -152,7 +158,7 @@ final class Widget
      */
     private string|Closure|null $ability = null;
 
-    private function __construct(private readonly string $id, private readonly string $type)
+    final protected function __construct(private readonly string $id, private readonly string $type)
     {
         if ($id === '') {
             throw new InvalidArgumentException('A widget needs an id.');
@@ -166,35 +172,35 @@ final class Widget
      * A number in large type, with a line of help: a count of the list of a resource, or data
      * of its own.
      */
-    public static function stat(string $id): self
+    public static function stat(string $id): StatWidget
     {
-        return new self($id, 'stat');
+        return new StatWidget($id, 'stat');
     }
 
     /**
      * A line of values per day, week or month, with its total: the aggregates of a resource
      * (`resource()->per('day', 'created_at')`), or data of its own.
      */
-    public static function series(string $id): self
+    public static function series(string $id): SeriesWidget
     {
-        return new self($id, 'series');
+        return new SeriesWidget($id, 'series');
     }
 
     /**
      * The parts of a total, as horizontal bars, the largest first: the aggregates of a resource
      * by the values of a field (`resource()->by('status')`), or data of its own.
      */
-    public static function breakdown(string $id): self
+    public static function breakdown(string $id): BreakdownWidget
     {
-        return new self($id, 'breakdown');
+        return new BreakdownWidget($id, 'breakdown');
     }
 
     /**
      * A few items: the first of the list of a resource, or data of its own.
      */
-    public static function list(string $id): self
+    public static function list(string $id): ListWidget
     {
-        return new self($id, 'list');
+        return new ListWidget($id, 'list');
     }
 
     /**
@@ -202,9 +208,9 @@ final class Widget
      * period, its trend and its largest parts. On the aggregates of a resource
      * (`resource()->sum('cost')->points('day', 'created_at')->by('service')`), or data of its own.
      */
-    public static function metric(string $id): self
+    public static function metric(string $id): MetricWidget
     {
-        return new self($id, 'metric');
+        return new MetricWidget($id, 'metric');
     }
 
     /**
@@ -212,17 +218,26 @@ final class Widget
      * count or its sum over the period, its change, its alert and its trend (`rows()`), or data of
      * its own.
      */
-    public static function table(string $id): self
+    public static function table(string $id): TableWidget
     {
-        return new self($id, 'table');
+        return new TableWidget($id, 'table');
     }
 
     /**
-     * A widget of a type that a JS plugin draws, with data of its own.
+     * A widget of a type that a JS plugin draws, with data of its own. A built-in type gets its
+     * builder, as its named constructor gives it (`make('a', 'series')` is a `SeriesWidget`).
      */
     public static function make(string $id, string $type): self
     {
-        return new self($id, $type);
+        return match ($type) {
+            'stat' => new StatWidget($id, $type),
+            'series' => new SeriesWidget($id, $type),
+            'breakdown' => new BreakdownWidget($id, $type),
+            'list' => new ListWidget($id, $type),
+            'metric' => new MetricWidget($id, $type),
+            'table' => new TableWidget($id, $type),
+            default => new self($id, $type),
+        };
     }
 
     public function id(): string
@@ -238,7 +253,7 @@ final class Widget
     /**
      * The label of the widget: the title of its card, or what a `stat` counts.
      */
-    public function label(string $label): self
+    public function label(string $label): static
     {
         $this->label = $label;
 
@@ -249,7 +264,7 @@ final class Widget
      * The columns it takes in a grid of 12. Defaults to 3 for a `stat`, 4 for a `metric`, 6 for
      * the others.
      */
-    public function width(int $width): self
+    public function width(int $width): static
     {
         if ($width < 1 || $width > 12) {
             throw new InvalidArgumentException(sprintf('The widget "%s" has the width %d: widths go from 1 to 12 columns.', $this->id, $width));
@@ -264,7 +279,7 @@ final class Widget
      *
      * @param  array<string, mixed>  $settings
      */
-    public function settings(array $settings): self
+    public function settings(array $settings): static
     {
         if (in_array($this->type, self::BUILT_IN_TYPES, true)) {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no settings: give it a resource() or data with using().', $this->type, $this->id));
@@ -282,7 +297,7 @@ final class Widget
      *
      * @param  array<string, mixed>  $query  Scalars, or lists of scalars.
      */
-    public function resource(string $resource, array $query = []): self
+    protected function resource(string $resource, array $query = []): static
     {
         if (! in_array($this->type, self::RESOURCE_TYPES, true)) {
             throw new InvalidArgumentException(sprintf('The %s "%s" can\'t read a resource: only a stat, a series, a list, a breakdown and a metric can. Give it data with using().', $this->type, $this->id));
@@ -303,7 +318,7 @@ final class Widget
      * Counts the items of the resource: a `stat` reads the total of its list, a `series` and a
      * `breakdown` count the items of each period or part. The default.
      */
-    public function count(): self
+    protected function count(): static
     {
         $this->checkAggregates('count()');
         $this->measure = Measure::count();
@@ -316,7 +331,7 @@ final class Widget
      * the sum of all of them for a `stat`, of each period or part for a `series` and a
      * `breakdown`. A sum of `money` is in minor units, shown in its currency.
      */
-    public function sum(string $field): self
+    protected function sum(string $field): static
     {
         $this->checkAggregates('sum()');
         $this->measure = Measure::sum($field);
@@ -328,7 +343,7 @@ final class Widget
      * The periods of the points of a `series` on a resource: the days, weeks (from Monday) or
      * months of a date field, among the `dates` of the aggregates of its list.
      */
-    public function per(Interval|string $period, string $field): self
+    protected function per(Interval|string $period, string $field): static
     {
         if ($this->type !== 'series') {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no periods: only a series does.', $this->type, $this->id));
@@ -347,7 +362,7 @@ final class Widget
      * its options, a `relation` the titles of its items, and each bar links to the list filtered
      * by its value. A `metric` draws its 5 largest parts under its number.
      */
-    public function by(string $field): self
+    protected function by(string $field): static
     {
         if ($this->type === 'metric') {
             if ($field === '') {
@@ -370,7 +385,7 @@ final class Widget
      * (from Monday) or months of a date field, among the `dates` of the aggregates of its list.
      * On a `table`, the trend of its rows, unless they have their own.
      */
-    public function points(Interval|string $period, string $field): self
+    protected function points(Interval|string $period, string $field): static
     {
         if (! in_array($this->type, ['metric', 'table'], true)) {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no trend: only a metric and a table do.', $this->type, $this->id));
@@ -388,7 +403,7 @@ final class Widget
      * field, among the `groupBy` of the aggregates of its list, needs a filter of the list, which
      * reads each line. The app draws the 5 largest values, and the rest as "Other".
      */
-    public function split(string $field): self
+    protected function split(string $field): static
     {
         if ($this->type !== 'series') {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no lines: only a series is split.', $this->type, $this->id));
@@ -408,7 +423,7 @@ final class Widget
      *
      * @param  list<Source>  $sources
      */
-    public function sources(array $sources): self
+    protected function sources(array $sources): static
     {
         if ($this->type !== 'series') {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no sources: only a series does. A table has rows().', $this->type, $this->id));
@@ -427,7 +442,7 @@ final class Widget
      *
      * @param  list<Row>  $rows
      */
-    public function rows(array $rows): self
+    protected function rows(array $rows): static
     {
         if ($this->type !== 'table') {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no rows: only a table does. A series has sources().', $this->type, $this->id));
@@ -442,7 +457,7 @@ final class Widget
      * as a meter under it, in the unit of its value (minor units for a sum of `money`). Past it,
      * the meter is `danger`.
      */
-    public function target(int|float $target): self
+    protected function target(int|float $target): static
     {
         if (! in_array($this->type, ['stat', 'metric'], true)) {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no target: only a stat and a metric do.', $this->type, $this->id));
@@ -461,7 +476,7 @@ final class Widget
      * summary, and those with data of their own, follow the list by default; a widget on another
      * resource doesn't.
      */
-    public function followsList(bool $follows = true): self
+    public function followsList(bool $follows = true): static
     {
         $this->followsList = $follows;
 
@@ -475,7 +490,7 @@ final class Widget
      * the widget doesn't follow the period; a widget with data of its own then gets none in its
      * `WidgetRequest`.
      */
-    public function period(string|false $period): self
+    public function period(string|false $period): static
     {
         if ($period === '') {
             throw new InvalidArgumentException(sprintf('The widget "%s" follows the period with the filter "": give the id of a date-range filter, or false.', $this->id));
@@ -497,7 +512,7 @@ final class Widget
      *
      * @param  array<string, mixed>  $options
      */
-    public function format(array $options): self
+    protected function format(array $options): static
     {
         $this->checkBuiltIn('format()');
         $unknown = array_diff(array_keys($options), WidgetFormat::KEYS);
@@ -519,7 +534,7 @@ final class Widget
      *
      * @param  string|null  $display  `symbol` (the default), `narrowSymbol`, `code` or `name`.
      */
-    public function currency(string $currency, ?string $display = null): self
+    protected function currency(string $currency, ?string $display = null): static
     {
         return $this->format(['style' => 'currency', 'currency' => $currency, 'currencyDisplay' => $display, 'unit' => null, 'unitDisplay' => null]);
     }
@@ -530,7 +545,7 @@ final class Widget
      *
      * @param  string|null  $display  `short` (the default), `narrow` or `long`.
      */
-    public function unit(string $unit, ?string $display = null): self
+    protected function unit(string $unit, ?string $display = null): static
     {
         return $this->format(['style' => 'unit', 'unit' => $unit, 'unitDisplay' => $display, 'currency' => null, 'currencyDisplay' => null]);
     }
@@ -538,7 +553,7 @@ final class Widget
     /**
      * Writes the numbers as percents: `0.12` is `12%`.
      */
-    public function percent(): self
+    protected function percent(): static
     {
         return $this->format(['style' => 'percent', 'currency' => null, 'currencyDisplay' => null, 'unit' => null, 'unitDisplay' => null]);
     }
@@ -549,7 +564,7 @@ final class Widget
      * whose points are all 0, a `breakdown` whose parts are all 0, a `list` without items, a
      * `table` without rows.
      */
-    public function hideEmpty(bool $hide = true): self
+    protected function hideEmpty(bool $hide = true): static
     {
         $this->checkBuiltIn('hideEmpty()');
         $this->hideEmpty = $hide;
@@ -562,7 +577,7 @@ final class Widget
      * from the previous period is then `success` that way, and `danger` the other way. Neutral
      * without it.
      */
-    public function goodWhen(string $direction): self
+    protected function goodWhen(string $direction): static
     {
         if (! in_array($this->type, ['metric', 'table'], true)) {
             throw new InvalidArgumentException(sprintf('The %s "%s" shows no change: only a metric and a table have goodWhen().', $this->type, $this->id));
@@ -578,7 +593,7 @@ final class Widget
     /**
      * Stacks the lines of a `series` with several, as areas.
      */
-    public function stacked(bool $stacked = true): self
+    protected function stacked(bool $stacked = true): static
     {
         if ($this->type !== 'series') {
             throw new InvalidArgumentException(sprintf('The %s "%s" has no lines to stack: only a series does.', $this->type, $this->id));
@@ -595,7 +610,7 @@ final class Widget
      *
      * @param  class-string<WidgetData>|Closure  $data
      */
-    public function using(string|Closure $data): self
+    public function using(string|Closure $data): static
     {
         if (is_string($data) && ! is_subclass_of($data, WidgetData::class)) {
             throw new InvalidArgumentException(sprintf('The data of the widget "%s" is %s, which doesn\'t implement %s.', $this->id, $data, WidgetData::class));
@@ -616,7 +631,7 @@ final class Widget
      * that calls another service or computes something heavy. Errors are never kept. Don't cache
      * the items of a resource, which the user expects to see as soon as they change.
      */
-    public function cache(int $seconds): self
+    public function cache(int $seconds): static
     {
         if ($seconds < 1) {
             throw new InvalidArgumentException(sprintf('The widget "%s" is cached for %d seconds: give it at least one.', $this->id, $seconds));
@@ -633,7 +648,7 @@ final class Widget
      *
      * @param  string|(Closure(?Authenticatable): bool)  $ability
      */
-    public function can(string|Closure $ability): self
+    public function can(string|Closure $ability): static
     {
         $this->ability = $ability;
 
