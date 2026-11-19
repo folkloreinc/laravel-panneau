@@ -4,7 +4,6 @@ namespace Panneau\Repositories;
 
 use BackedEnum;
 use Closure;
-use DateTimeInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -41,7 +40,6 @@ use Panneau\Exceptions\TooManyItemsToAggregateException;
 use Panneau\Fields\DateRange;
 use Panneau\Fields\Field;
 use Panneau\Fields\Money;
-use Panneau\Money\Money as MoneyValue;
 use Panneau\Query\CursorPage;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
@@ -93,16 +91,6 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
      * The parameter of a cursor with the number of its page, which no column can be named.
      */
     private const CURSOR_PAGE = '_page';
-
-    /**
-     * The casts whose values group the items in SQL: one scalar per item.
-     */
-    private const SCALAR_CASTS = ['int', 'integer', 'real', 'float', 'double', 'string', 'bool', 'boolean'];
-
-    /**
-     * How many rows aggregates read at a time, when they are computed in PHP.
-     */
-    private const AGGREGATE_CHUNK = 500;
 
     /**
      * @param  class-string<TModel>  $model
@@ -320,8 +308,8 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
 
     /**
      * Counts or sums the items of a query, grouped by a period or by the values of a field, with
-     * a `GROUP BY` when the database can (see `aggregatesInSql()`), and in PHP over the matching
-     * rows otherwise.
+     * a `GROUP BY` when the database can, and in PHP over the matching rows otherwise (see
+     * `aggregatesInMemory()`), through `EloquentAggregates`.
      *
      * The day of a date is the one stored in its column, which Eloquent writes and reads in the
      * time zone of the app (`app.timezone`), as items write it and `date-range` filters read it.
@@ -330,23 +318,7 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
      */
     public function aggregate(ResourceQuery $query, Measure $measure, ?Group $group = null): AggregateResult
     {
-        $builder = $this->aggregateQuery($query);
-        if ($this->computesInMemory($builder, $measure, $group)) {
-            return $this->aggregateInPhp($builder, $measure, $group);
-        }
-        $sum = $measure->field !== null ? $this->aggregateColumn($builder->getModel(), $measure->field) : null;
-        $value = $sum !== null
-            ? 'sum('.$builder->getQuery()->getGrammar()->wrap($builder->qualifyColumn($sum)).')'
-            : 'count(*)';
-        if ($group === null) {
-            return new AggregateResult($sum !== null
-                ? self::number($builder->toBase()->sum($builder->qualifyColumn($sum)))
-                : $builder->toBase()->count());
-        }
-
-        return $group->interval !== null
-            ? $this->aggregatePeriods($builder, $value, $group, $group->interval)
-            : $this->aggregateParts($builder, $value, $group);
+        return $this->aggregates()->aggregate($this->aggregateQuery($query), $measure, $group);
     }
 
     /**
@@ -357,7 +329,24 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
      */
     public function aggregatesInMemory(Measure $measure, ?Group $group = null): bool
     {
-        return $this->computesInMemory($this->newModel()->newQuery(), $measure, $group);
+        return $this->aggregates()->inMemory($this->newModel()->newQuery(), $measure, $group);
+    }
+
+    /**
+     * What computes the aggregates, with the hooks of this repository: `aggregateColumn()`,
+     * `aggregatedColumns()`, `truncatedDate()`, `relation()` and `maxAggregatedInMemory()`.
+     *
+     * @return EloquentAggregates<TModel>
+     */
+    private function aggregates(): EloquentAggregates
+    {
+        return new EloquentAggregates(
+            $this->aggregateColumn(...),
+            $this->aggregatedColumns(...),
+            $this->truncatedDate(...),
+            $this->relation(...),
+            $this->maxAggregatedInMemory(...),
+        );
     }
 
     /**
@@ -418,7 +407,7 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
         }
         $type = strtolower(explode(':', $cast, 2)[0]);
 
-        return in_array($type, [...self::SCALAR_CASTS, 'decimal', 'date', 'datetime', 'immutable_date', 'immutable_datetime', 'timestamp'], true) || is_subclass_of($cast, BackedEnum::class)
+        return in_array($type, [...EloquentAggregates::SCALAR_CASTS, 'decimal', 'date', 'datetime', 'immutable_date', 'immutable_datetime', 'timestamp'], true) || is_subclass_of($cast, BackedEnum::class)
             ? $field
             : null;
     }
@@ -491,298 +480,6 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
             'pgsql' => "to_char(date_trunc('{$interval->value}', {$wrapped}), 'YYYY-MM-DD')",
             default => null,
         };
-    }
-
-    /**
-     * @param  Builder<TModel>  $builder
-     */
-    private function aggregatePeriods(Builder $builder, string $value, Group $group, Interval $interval): AggregateResult
-    {
-        $column = $this->aggregateColumn($builder->getModel(), $group->field);
-        $period = $column !== null ? $this->truncatedDate($builder, $column, $interval) : null;
-        if ($column === null || $period === null) {
-            throw new LogicException(sprintf('The periods of "%s" are computed in memory.', $group->field));
-        }
-        $rows = $builder->toBase()
-            ->whereNotNull($builder->qualifyColumn($column))
-            ->selectRaw($period.' as panneau_period, '.$value.' as panneau_value')
-            ->groupByRaw($period)
-            ->get();
-        $periods = [];
-        foreach ($rows as $row) {
-            $day = is_string($row->panneau_period ?? null) ? $row->panneau_period : null;
-            if ($day !== null) {
-                $periods[$day] = self::number($row->panneau_value ?? 0);
-            }
-        }
-
-        return new AggregateResult(array_sum($periods), $periods);
-    }
-
-    /**
-     * @param  Builder<TModel>  $builder
-     */
-    private function aggregateParts(Builder $builder, string $value, Group $group): AggregateResult
-    {
-        $model = $builder->getModel();
-        $relation = $this->relation($model, $group->field);
-        $column = $this->partsColumn($model, $group->field) ?? throw new LogicException(sprintf('The parts of "%s" are computed in memory.', $group->field));
-        $wrapped = $builder->getQuery()->getGrammar()->wrap($builder->qualifyColumn($column));
-        $rows = $builder->toBase()
-            ->selectRaw($wrapped.' as panneau_key, '.$value.' as panneau_value')
-            ->groupBy($builder->qualifyColumn($column))
-            ->get();
-        $keys = $rows->map(fn (object $row): mixed => $row->panneau_key ?? null)->all();
-        $ids = $relation instanceof BelongsTo ? $this->relatedIds($relation, $keys) : null;
-        $parts = [];
-        $total = 0;
-        foreach ($rows as $row) {
-            $raw = $row->panneau_key ?? null;
-            $key = match (true) {
-                $raw === null || $raw === '' => null,
-                $ids !== null => $ids[(string) $raw] ?? (string) $raw,
-                default => $this->castKey($model, $column, $raw),
-            };
-            $number = self::number($row->panneau_value ?? 0);
-            // Null and an empty string are the same part
-            $id = json_encode($key);
-            $parts[$id] = ['key' => $key, 'value' => ($parts[$id]['value'] ?? 0) + $number];
-            $total += $number;
-        }
-
-        return new AggregateResult($total, [], array_values($parts));
-    }
-
-    /**
-     * Whether an aggregate of the items of a query is computed in PHP (see `aggregatesInMemory()`).
-     *
-     * @param  Builder<TModel>  $builder
-     */
-    private function computesInMemory(Builder $builder, Measure $measure, ?Group $group): bool
-    {
-        $model = $builder->getModel();
-        if ($measure->field !== null && $this->aggregateColumn($model, $measure->field) === null) {
-            return true;
-        }
-        if ($group === null) {
-            return false;
-        }
-        if ($group->interval === null) {
-            return $this->partsColumn($model, $group->field) === null;
-        }
-        $column = $this->aggregateColumn($model, $group->field);
-
-        return $column === null || $this->truncatedDate($builder, $column, $group->interval) === null;
-    }
-
-    /**
-     * The column whose values group the items in SQL: the foreign key of a `BelongsTo` relation,
-     * or a column with no cast, a scalar cast or an enum. Null for a field grouped in PHP.
-     *
-     * @param  TModel  $model
-     */
-    private function partsColumn(Model $model, string $field): ?string
-    {
-        $relation = $this->relation($model, $field);
-        $cast = $model->getCasts()[$field] ?? null;
-
-        return match (true) {
-            $relation instanceof BelongsTo => $relation->getForeignKeyName(),
-            $relation === null && ($cast === null || in_array(strtolower($cast), self::SCALAR_CASTS, true) || is_subclass_of($cast, BackedEnum::class)) => $this->aggregateColumn($model, $field),
-            default => null,
-        };
-    }
-
-    /**
-     * Aggregates the matching rows in PHP, chunk by chunk: for values of several items, accessors
-     * and relations, and dates on databases without a truncation of dates. Values are read as
-     * attributes of the models, so casts, accessors and relations apply. Only the columns that
-     * the fields read are selected (see `aggregatedColumns()`), and no row is read when more of
-     * them match than `maxAggregatedInMemory()`.
-     *
-     * @param  Builder<TModel>  $builder
-     *
-     * @throws TooManyItemsToAggregateException
-     */
-    private function aggregateInPhp(Builder $builder, Measure $measure, ?Group $group): AggregateResult
-    {
-        $model = $builder->getModel();
-        $max = $this->maxAggregatedInMemory();
-        if ($max !== null) {
-            $count = (clone $builder)->toBase()->count();
-            if ($count > $max) {
-                throw new TooManyItemsToAggregateException($count, $max);
-            }
-        }
-        $columns = [$model->getKeyName()];
-        foreach (array_filter([$measure->field, $group?->field]) as $field) {
-            $read = $this->aggregatedColumns($model, $field);
-            if ($read === null) {
-                $columns = null;
-
-                break;
-            }
-            $columns = [...$columns, ...$read];
-        }
-        if ($columns !== null) {
-            $builder->select(array_map(fn (string $column): string => $builder->qualifyColumn($column), array_values(array_unique($columns))));
-        }
-        if ($group !== null && $this->relation($model, $group->field) !== null) {
-            $builder->with($group->field);
-        }
-        $total = 0;
-        $periods = [];
-        $parts = [];
-        $builder->chunkById(self::AGGREGATE_CHUNK, function ($models) use ($measure, $group, &$total, &$periods, &$parts): void {
-            foreach ($models as $item) {
-                $amount = $measure->field !== null ? self::amount($item->getAttribute($measure->field)) : 1;
-                if ($group === null) {
-                    $total += $amount;
-
-                    continue;
-                }
-                $value = $item->getAttribute($group->field);
-                if ($group->interval !== null) {
-                    // The items with a date, as in SQL
-                    $day = self::day($value);
-                    if ($day !== null) {
-                        $start = $group->interval->startOf($day);
-                        $periods[$start] = ($periods[$start] ?? 0) + $amount;
-                        $total += $amount;
-                    }
-
-                    continue;
-                }
-                $total += $amount;
-                foreach ($this->keysOf($value) as $key) {
-                    $id = json_encode($key);
-                    $parts[$id] = ['key' => $key, 'value' => ($parts[$id]['value'] ?? 0) + $amount];
-                }
-            }
-        }, $model->getQualifiedKeyName(), $model->getKeyName());
-
-        return new AggregateResult($total, $periods, array_values($parts));
-    }
-
-    /**
-     * The keys of a value, once each: the public ids of related models, the values of a list,
-     * or the value itself. `[null]` without a value.
-     *
-     * @return list<string|int|float|bool|null>
-     */
-    private function keysOf(mixed $value): array
-    {
-        if ($value instanceof Collection) {
-            $value = $value->all();
-        }
-        if (is_array($value)) {
-            $keys = [];
-            foreach ($value as $entry) {
-                foreach ($this->keysOf($entry) as $key) {
-                    if ($key !== null && ! in_array($key, $keys, true)) {
-                        $keys[] = $key;
-                    }
-                }
-            }
-
-            return $keys !== [] ? $keys : [null];
-        }
-
-        return [match (true) {
-            $value instanceof Model => (string) $value->getAttribute($value->getRouteKeyName()),
-            $value instanceof BackedEnum => $value->value,
-            $value instanceof DateTimeInterface => $value->format(DateTimeInterface::ATOM),
-            $value === '' => null,
-            is_scalar($value) => $value,
-            default => null,
-        }];
-    }
-
-    /**
-     * The public ids of the items related by the values of a foreign key, keyed by value: the
-     * foreign key itself when it holds the route key.
-     *
-     * @param  BelongsTo<Model, Model>  $relation
-     * @param  list<mixed>  $keys
-     * @return array<string, string>|null
-     */
-    private function relatedIds(BelongsTo $relation, array $keys): ?array
-    {
-        $related = $relation->getRelated();
-        $owner = $relation->getOwnerKeyName();
-        $route = $related->getRouteKeyName();
-        if ($owner === $route) {
-            return null;
-        }
-        $values = array_values(array_filter($keys, fn (mixed $key): bool => $key !== null && $key !== ''));
-
-        return $related->newQuery()->whereIn($owner, $values)->pluck($route, $owner)
-            ->mapWithKeys(fn (mixed $id, mixed $key): array => [(string) $key => (string) $id])
-            ->all();
-    }
-
-    /**
-     * A value of a column as items have it: through the cast of the attribute (a boolean, an
-     * enum's value), or as it is.
-     *
-     * @param  TModel  $model
-     */
-    private function castKey(Model $model, string $column, mixed $raw): string|int|float|bool|null
-    {
-        $instance = $model->newInstance();
-        $instance->setRawAttributes([$column => $raw]);
-        $value = $instance->getAttribute($column);
-        if ($value instanceof BackedEnum) {
-            return $value->value;
-        }
-        if (is_scalar($value)) {
-            return $value;
-        }
-
-        return is_scalar($raw) ? $raw : null;
-    }
-
-    /**
-     * The day of a date value, as the item writes it: `null` without one.
-     */
-    private static function day(mixed $value): ?string
-    {
-        if ($value instanceof DateTimeInterface) {
-            return $value->format('Y-m-d');
-        }
-
-        return is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value) === 1 ? substr($value, 0, 10) : null;
-    }
-
-    /**
-     * The amount of a value that is summed: a number, or the amount of `money` in minor units.
-     */
-    private static function amount(mixed $value): int|float
-    {
-        if ($value instanceof MoneyValue) {
-            $value = $value->toArray();
-        }
-        if (is_array($value)) {
-            $value = $value['amount'] ?? null;
-        }
-
-        return self::number($value);
-    }
-
-    /**
-     * A number read from the database: an integer when it is one.
-     */
-    private static function number(mixed $value): int|float
-    {
-        if (is_int($value) || is_float($value)) {
-            return $value;
-        }
-        if (! is_numeric($value)) {
-            return 0;
-        }
-        $number = $value + 0;
-
-        return is_float($number) && floor($number) === $number && abs($number) < PHP_INT_MAX ? (int) $number : $number;
     }
 
     /**
