@@ -112,6 +112,52 @@ class ValidatesProtocolTest extends TestCase
         $this->assertValidDefinition($change($this->definition()));
     }
 
+    /**
+     * The checks of `parent` that `lintDefinition()` makes (decision 0093).
+     *
+     * @return array<string, array{array<string, array<string, mixed>>, ?string}>
+     */
+    public static function invalidParents(): array
+    {
+        return [
+            'a resource in a page that does not exist' => [[], 'reports'],
+            'a resource in the home page' => [['home' => ['component' => 'dashboard']], 'home'],
+            'a page in a page with params' => [['job' => ['component' => 'job', 'params' => ['id']], 'logs' => ['component' => 'logs', 'parent' => 'job']], null],
+            'a page that is its own parent' => [['usage' => ['component' => 'usage', 'parent' => 'usage']], null],
+            'a page in a resource that does not exist' => [['usage' => ['component' => 'usage', 'parent' => ['resource' => 'posts']]], null],
+            'parents that come back to where they started' => [['activity' => ['component' => 'dashboard', 'parent' => ['resource' => 'pages']]], 'activity'],
+        ];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $pages
+     */
+    #[DataProvider('invalidParents')]
+    public function test_an_invalid_parent_fails(array $pages, ?string $resourceParent): void
+    {
+        $definition = $this->definition();
+        $definition['pages'] = ['activity' => ['component' => 'dashboard'], ...$pages];
+        if ($resourceParent !== null) {
+            $definition['resources'][0]['parent'] = $resourceParent;
+        }
+
+        $this->expectException(AssertionFailedError::class);
+        $this->assertValidDefinition($definition);
+    }
+
+    public function test_valid_parents_pass(): void
+    {
+        $definition = $this->definition();
+        $definition['resources'][0]['parent'] = 'activity';
+        $definition['pages'] = [
+            'activity' => ['component' => 'dashboard'],
+            'usage' => ['component' => 'usage', 'parent' => 'activity'],
+            'page-stats' => ['component' => 'page-stats', 'params' => ['id'], 'parent' => ['resource' => 'pages']],
+        ];
+
+        $this->assertValidDefinition($definition);
+    }
+
     public function test_the_built_in_links_need_no_label_nor_target(): void
     {
         $definition = $this->definition();

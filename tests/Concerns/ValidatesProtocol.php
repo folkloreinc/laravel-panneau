@@ -141,8 +141,65 @@ trait ValidatesProtocol
             self::lintAggregates($resource, $path, $issues);
         }
         self::lintOverviews($definition, $issues);
+        self::lintParents($definition, $issues);
 
         return $issues;
+    }
+
+    /**
+     * The `parent` of resources and pages, as `lintDefinition()` checks it (decision 0093): a
+     * page of `pages` that a link leads to, or for a page, a resource of the definition, and no
+     * chain that comes back to where it started.
+     *
+     * @param  array<string, mixed>  $definition
+     * @param  list<string>  $issues
+     */
+    private static function lintParents(array $definition, array &$issues): void
+    {
+        $pages = $definition['pages'] ?? [];
+        $checkPage = function (string $page, string $path) use ($pages, &$issues): void {
+            if (! isset($pages[$page])) {
+                $issues[] = $path.': no page '.$page;
+            } elseif ($page === 'home') {
+                $issues[] = $path.': the home page is never a parent';
+            } elseif (($pages[$page]['params'] ?? []) !== []) {
+                $issues[] = $path.': the page '.$page.' has params';
+            }
+        };
+        $parentOf = [];
+        foreach ($definition['resources'] as $index => $resource) {
+            if (isset($resource['parent'])) {
+                $checkPage($resource['parent'], 'resources.'.$index.'.parent');
+                $parentOf['resource:'.$resource['id']] = 'page:'.$resource['parent'];
+            }
+        }
+        foreach ($pages as $id => $page) {
+            $parent = $page['parent'] ?? null;
+            if (is_string($parent)) {
+                if ($parent === $id) {
+                    $issues[] = 'pages.'.$id.'.parent: a page is not its own parent';
+                } else {
+                    $checkPage($parent, 'pages.'.$id.'.parent');
+                    $parentOf['page:'.$id] = 'page:'.$parent;
+                }
+            } elseif (is_array($parent)) {
+                if (! in_array($parent['resource'], array_column($definition['resources'], 'id'), true)) {
+                    $issues[] = 'pages.'.$id.'.parent.resource: no resource '.$parent['resource'];
+                }
+                $parentOf['page:'.$id] = 'resource:'.$parent['resource'];
+            }
+        }
+        foreach (array_keys($parentOf) as $start) {
+            $seen = [$start];
+            $current = $parentOf[$start];
+            while (isset($parentOf[$current]) && $current !== $start && ! in_array($current, $seen, true)) {
+                $seen[] = $current;
+                $current = $parentOf[$current];
+            }
+            if ($current === $start) {
+                $issues[] = $start.': its parents come back to it';
+            }
+        }
     }
 
     /**

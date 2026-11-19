@@ -96,7 +96,10 @@ class ConformanceServiceProvider extends ServiceProvider
         // and groups
         Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class, RunsResource::class]);
         Panneau::pages([
-            Page::make('reports', 'reports')->label('Reports'),
+            // Parents (panneau-js decision 0093): a page in a dashboard page, and a page with
+            // params in the list of a resource
+            Page::make('reports', 'reports')->label('Reports')->parent('activity'),
+            Page::make('run-report', 'run-report')->label('Run')->params(['id'])->parent(resource: RunsResource::class),
             // A dashboard page with a period (panneau-js decision 0084): the kit asks for its
             // widgets with `?page=`, and for those with data of their own with the default period
             Page::dashboard('activity')->label('Activity')->period(['7d', '30d', '90d', 'month', 'year'], default: '30d')->widgets([

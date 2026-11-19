@@ -142,6 +142,18 @@ abstract class Resource
     }
 
     /**
+     * The id of the page that the list of the resource belongs to, in the definition's `parent`
+     * (panneau-js decision 0093), such as the dashboard page that a log is reached from. The app
+     * shows it above the title of the list and of its items, and keeps it current in the menus
+     * when the resource isn't in them. A page declared in `panneau.pages` or with
+     * `Panneau::pages()`, neither `home` nor a page with `params`.
+     */
+    public function parent(): ?string
+    {
+        return null;
+    }
+
+    /**
      * The field used as the title of an item, in lists and pickers. Defaults to the first
      * text field.
      */

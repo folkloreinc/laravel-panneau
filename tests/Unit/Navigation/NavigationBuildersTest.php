@@ -5,6 +5,7 @@ namespace Panneau\Tests\Unit\Navigation;
 use InvalidArgumentException;
 use Panneau\Navigation\MenuItem;
 use Panneau\Navigation\Page;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use TestApp\Panneau\Resources\PostsResource;
 
@@ -56,6 +57,42 @@ class NavigationBuildersTest extends TestCase
         $this->expectExceptionMessage('The page "post-stats" has the param "post-id": params are names such as "id".');
 
         Page::make('post-stats', 'post-stats')->params(['post-id']);
+    }
+
+    public function test_the_parent_of_a_page(): void
+    {
+        $this->assertSame(['component' => 'usage', 'parent' => 'activity'], Page::make('usage', 'usage')->parent('activity')->toDefinition());
+        // A class stays a class here: the definition turns it into the id of the resource
+        $this->assertSame(
+            ['component' => 'post-stats', 'parent' => ['resource' => PostsResource::class], 'params' => ['id']],
+            Page::make('post-stats', 'post-stats')->parent(resource: PostsResource::class)->params(['id'])->toDefinition(),
+        );
+        // The last one wins
+        $this->assertSame(['component' => 'usage', 'parent' => 'reports'], Page::make('usage', 'usage')->parent(resource: 'posts')->parent('reports')->toDefinition());
+    }
+
+    /**
+     * @return iterable<string, array{array{page?: string, resource?: string}, string}>
+     */
+    public static function invalidParents(): iterable
+    {
+        yield 'none' => [[], 'The page "usage" needs one parent'];
+        yield 'a page and a resource' => [['page' => 'activity', 'resource' => 'posts'], 'The page "usage" needs one parent'];
+        yield 'an empty page' => [['page' => ''], 'The page "usage" needs one parent'];
+        yield 'an empty resource' => [['resource' => ''], 'The page "usage" needs one parent'];
+        yield 'itself' => [['page' => 'usage'], 'The page "usage" is not its own parent.'];
+    }
+
+    /**
+     * @param  array{page?: string, resource?: string}  $arguments
+     */
+    #[DataProvider('invalidParents')]
+    public function test_a_page_has_one_parent_other_than_itself(array $arguments, string $message): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        Page::make('usage', 'usage')->parent(...$arguments);
     }
 
     public function test_a_dashboard_page(): void
