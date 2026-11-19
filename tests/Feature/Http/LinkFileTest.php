@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Feature\Http;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Concerns\ValidatesProtocol;
@@ -84,5 +85,24 @@ class LinkFileTest extends HttpTestCase
         $this->postJson(self::API.'/resources/articles', ['title' => 'An article', 'download' => ['type' => 'file', 'file' => (string) $image->id, 'label' => ['fr' => 'Image']]])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['download.file']);
+    }
+
+    public function test_a_list_finds_the_files_of_its_links_at_once(): void
+    {
+        foreach (range(1, 5) as $index) {
+            $document = $this->asset('documents', 'application/pdf');
+            Article::query()->create(['title' => 'Article '.$index, 'download' => ['type' => 'file', 'file' => ['id' => (string) $document->id], 'label' => ['fr' => 'PDF']]]);
+        }
+
+        DB::enableQueryLog();
+        $response = $this->getJson(self::API.'/resources/articles?fields=download')->assertOk();
+        $queries = array_column(DB::getQueryLog(), 'query');
+
+        foreach ($response->json('data') as $item) {
+            $this->assertSame('documents', $item['download']['file']['resource']);
+            $this->assertIsString($item['download']['url']);
+        }
+        // The page of documents and its count
+        $this->assertCount(2, array_filter($queries, fn (string $query): bool => str_contains($query, 'from "assets"')), implode("\n", $queries));
     }
 }

@@ -13,18 +13,34 @@ use Panneau\Resources\ResourceRegistry;
  * Finds the media that `media` values reference, through the repository of their library and
  * within its scope for a request, and turns them into the protocol's `MediaReference`. The
  * library of a value is the `resource` it keeps, or the field's library when it allows one only.
- * Media are found once, and the media of a page of items in one query per library.
+ * Media are found once, and the media of a page of items in one query per library. It finds
+ * the pages of `link` values the same way, in one query per resource (`item()`, `queue()`).
  *
  * @internal
  */
 final class MediaReferences
 {
     /**
-     * The media found, by library id and media id. Null when an id is not in the library.
+     * The items found, media or pages, by resource id and item id. Null when an id is not in
+     * the resource.
      *
      * @var array<string, array<string, object|null>>
      */
     private array $found = [];
+
+    /**
+     * The ids to find at once with `loadQueued()`, by resource id.
+     *
+     * @var array<string, list<string>>
+     */
+    private array $queued = [];
+
+    /**
+     * The resources of the queued ids, by id.
+     *
+     * @var array<string, \Panneau\Resources\Resource>
+     */
+    private array $queuedResources = [];
 
     public function __construct(
         private readonly ResourceRegistry $resources,
@@ -50,9 +66,61 @@ final class MediaReferences
      */
     public function find(MediaResource $library, string $id): ?object
     {
-        $this->load($library, [$id]);
+        return $this->item($library, $id);
+    }
 
-        return $this->found[$library->id()][$id] ?? null;
+    /**
+     * An item of a resource, such as the page of a link, within its scope for the request: found
+     * once, with the ids queued for its resource.
+     */
+    public function item(Resource $resource, string $id): ?object
+    {
+        $this->queue($resource, $id);
+        $this->loadQueued();
+
+        return $this->found[$resource->id()][$id] ?? null;
+    }
+
+    /**
+     * Queues the id of an item of a resource, which `loadQueued()` finds with the others.
+     */
+    public function queue(Resource $resource, string $id): void
+    {
+        $key = $resource->id();
+        if (array_key_exists($id, $this->found[$key] ?? [])) {
+            return;
+        }
+        $this->queuedResources[$key] = $resource;
+        $this->queued[$key][] = $id;
+    }
+
+    /**
+     * Queues the media of the value of a `media` field.
+     */
+    public function queueMedia(Media $field, mixed $value): void
+    {
+        $libraries = $this->libraries($field);
+        foreach (self::entries($field, $value) as $entry) {
+            $id = is_array($entry) ? Media::idOf($entry) : null;
+            $library = is_array($entry) ? self::libraryOf($libraries, $entry) : null;
+            if ($id !== null && $library !== null) {
+                $this->queue($library, $id);
+            }
+        }
+    }
+
+    /**
+     * Finds the queued items: one query for each resource.
+     */
+    public function loadQueued(): void
+    {
+        $queued = $this->queued;
+        $resources = $this->queuedResources;
+        $this->queued = [];
+        $this->queuedResources = [];
+        foreach ($queued as $key => $ids) {
+            $this->load($resources[$key], $ids);
+        }
     }
 
     /**
@@ -65,31 +133,15 @@ final class MediaReferences
         $typed = $resource->hasTypes();
         // The fields of each type, in a resource with types
         $fieldsOf = [];
-        $librariesOf = [];
-        $ids = [];
         foreach ($items as $item) {
             $type = $typed ? $resource->typeOf($item) : null;
             $key = $type ?? '';
-            if (! isset($fieldsOf[$key])) {
-                $fieldsOf[$key] = array_values(array_filter($resource->typeFields($type), fn ($field): bool => $field instanceof Media));
-                $librariesOf[$key] = array_map(fn (Media $field): array => $this->libraries($field), $fieldsOf[$key]);
-            }
-            foreach ($fieldsOf[$key] as $index => $field) {
-                foreach (self::entries($field, $field->resolve($item)) as $entry) {
-                    $id = is_array($entry) ? Media::idOf($entry) : null;
-                    $library = is_array($entry) ? self::libraryOf($librariesOf[$key][$index], $entry) : null;
-                    if ($id !== null && $library !== null) {
-                        $ids[$library->id()][] = $id;
-                    }
-                }
+            $fieldsOf[$key] ??= array_values(array_filter($resource->typeFields($type), fn ($field): bool => $field instanceof Media));
+            foreach ($fieldsOf[$key] as $field) {
+                $this->queueMedia($field, $field->resolve($item));
             }
         }
-        foreach ($ids as $library => $libraryIds) {
-            $resource = $this->resources->find($library);
-            if ($resource instanceof MediaResource) {
-                $this->load($resource, $libraryIds);
-            }
-        }
+        $this->loadQueued();
     }
 
     /**
@@ -217,9 +269,9 @@ final class MediaReferences
     /**
      * @param  list<string>  $ids
      */
-    private function load(MediaResource $library, array $ids): void
+    private function load(Resource $resource, array $ids): void
     {
-        $key = $library->id();
+        $key = $resource->id();
         $missing = array_values(array_unique(array_filter(
             $ids,
             fn (string $id): bool => ! array_key_exists($id, $this->found[$key] ?? []),
@@ -230,8 +282,8 @@ final class MediaReferences
         foreach ($missing as $id) {
             $this->found[$key][$id] = null;
         }
-        $repository = $this->resources->repository($library);
-        $query = (new ResourceQuery(perPage: count($missing), scope: $library->repositoryScope($this->request)))->withIds($missing);
+        $repository = $this->resources->repository($resource);
+        $query = (new ResourceQuery(perPage: count($missing), scope: $resource->repositoryScope($this->request)))->withIds($missing);
         foreach ($repository->query($query)->items() as $item) {
             $id = $repository->id($item);
             if (array_key_exists($id, $this->found[$key])) {

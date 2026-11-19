@@ -13,6 +13,7 @@ use Panneau\Contracts\Repositories\Restorable;
 use Panneau\Fields\Date;
 use Panneau\Fields\DateRange;
 use Panneau\Fields\Money;
+use Panneau\Fields\Relation;
 use Panneau\Fields\Text;
 use Panneau\Query\ResourceQuery;
 use Panneau\Query\Sort;
@@ -50,6 +51,29 @@ class EloquentRepositoryTest extends TestCase
     private function createPost(array $attributes = []): Post
     {
         return Post::query()->create($attributes + ['title' => 'A post', 'team_id' => 1]);
+    }
+
+    public function test_preload_fields_eager_loads_the_relations_named_after_fields(): void
+    {
+        $author = Author::query()->create(['name' => 'Ada']);
+        $posts = [$this->createPost(['author_id' => $author->id]), $this->createPost(['author_id' => $author->id])];
+        $loaded = Post::query()->whereKey(array_map(fn (Post $post): int => $post->id, $posts))->get()->all();
+
+        $this->posts->preloadFields($loaded, [
+            Text::make('title'),
+            Relation::make('author'),
+            // Read by a closure: never guessed
+            Relation::make('tags')->multiple()->resolveUsing(fn (Post $post): array => []),
+            // Not a relation, although a method of the model
+            Text::make('archive'),
+        ]);
+
+        foreach ($loaded as $post) {
+            $this->assertTrue($post->relationLoaded('author'));
+            $this->assertFalse($post->relationLoaded('tags'));
+            $this->assertSame('Ada', $post->author?->name);
+        }
+        $this->assertSame('A post', $loaded[0]->title);
     }
 
     public function test_it_refuses_a_class_that_is_not_a_model(): void

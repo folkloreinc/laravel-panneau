@@ -26,3 +26,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0020](0020-oauth-providers.md) | OAuth providers with Socialite, linked to users by their verified email | Proposed |
 | [0021](0021-resource-types.md) | Resource types are classes the resource lists, and the item's type picks its fields | Proposed |
 | [0022](0022-agents-on-laravel-mcp-and-laravel-ai.md) | Agents on laravel/mcp and laravel/ai, over operations shared with the controllers | Proposed |
+| [0023](0023-preloading-list-values.md) | Lists read the fields they ask for, and repositories preload what those fields read | Proposed |

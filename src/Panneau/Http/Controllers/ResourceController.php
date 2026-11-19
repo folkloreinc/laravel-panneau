@@ -80,7 +80,8 @@ final class ResourceController
             ];
         }
         $references = $this->mediaReferences($request);
-        $references->preload($resource, $items);
+        // What the values of the page read, in one query for each relation, library or resource
+        $this->serializer->preload($resource, $items, $query->fields, $references);
 
         return new JsonResponse([
             'data' => array_map(

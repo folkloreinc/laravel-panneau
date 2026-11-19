@@ -386,6 +386,14 @@ abstract class Field
     }
 
     /**
+     * Whether `resolveUsing()` reads the value, rather than the property of the field's name.
+     */
+    public function isComputed(): bool
+    {
+        return $this->resolveUsing !== null;
+    }
+
+    /**
      * Required, in every mode, or only to create (or update) the item with `mode`. In the other
      * mode, the field can be left empty.
      */
