@@ -56,6 +56,8 @@ class Repeater extends Field
     protected function typeDefinition(): array
     {
         if ($this->types !== null) {
+            // Each block type is built once per request (#246). The repeater isn't: it would keep
+            // the definition of a block type changed after it, and has little to build
             return ['types' => array_map(fn (BlockType $type): array => $type->toDefinition(), $this->types)];
         }
 

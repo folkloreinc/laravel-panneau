@@ -2,6 +2,8 @@
 
 namespace Panneau\Fields;
 
+use Panneau\Resources\FieldCache;
+
 /**
  * A type of block of a repeater, with its own fields.
  */
@@ -37,6 +39,7 @@ final class BlockType
     public function fields(array $fields): self
     {
         $this->fields = $fields;
+        FieldCache::forgetInRequest($this);
 
         return $this;
     }
@@ -52,14 +55,27 @@ final class BlockType
     public function icon(string $icon): self
     {
         $this->icon = $icon;
+        FieldCache::forgetInRequest($this);
 
         return $this;
     }
 
     /**
+     * The block type in the protocol's definition, built once per request and locale (#246): a
+     * block type given to several repeaters, such as those of each type of a resource or of the
+     * blocks that hold blocks, is built once.
+     *
      * @return array<string, mixed>
      */
     public function toDefinition(): array
+    {
+        return FieldCache::rememberInRequest($this, 'definition', fn (): array => $this->buildDefinition());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildDefinition(): array
     {
         return array_filter([
             'id' => $this->id,

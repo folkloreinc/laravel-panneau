@@ -13,6 +13,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Changed
 
+- The definition builds each block type once per request and locale (#246), with its fields and blocks: a list of `BlockType` instances given to several repeaters, such as those of each type of a resource and of the blocks that hold blocks, is built once rather than for each place. `GET /definition` has an `ETag`, a hash of the definition by user, context and locale. The protocol has no `304` for it yet: the definition is still sent each time.
 - The built-in actions that aren't extension points are closed before the API freezes (#241): `EditAction`, `ShowAction` and `RestoreAction` are `final`, and so are the `id()`, `handle()`, `inverse()`, `supportsDryRun()` and `destructive()` of `DeleteAction`, whose subclasses still change its label, icon and confirmation. **To upgrade:** replace a subclass of `EditAction` or `ShowAction` with `EditAction::make()` or `ShowAction::make()` and their `url()`, `route()`, `label()` and `placement()`, and a subclass of `DeleteAction` that changes what it does with an `Action` of its own, declared with another id.
 
 ## [5.0.0-alpha.26] - 2026-11-19

@@ -2,6 +2,7 @@
 
 namespace Panneau\Tests\Feature\Http;
 
+use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
 use LogicException;
 use Panneau\Navigation\MenuItem;
@@ -31,6 +32,35 @@ class DefinitionEndpointTest extends HttpTestCase
         $this->app->setLocale('fr');
 
         $this->getJson(self::API.'/definition')->assertJsonPath('locale', 'fr');
+    }
+
+    public function test_the_definition_has_a_version_by_user_context_and_locale(): void
+    {
+        $etag = $this->getJson(self::API.'/definition')->assertOk()->headers->get('ETag');
+
+        $this->assertIsString($etag);
+        $this->assertMatchesRegularExpression('/^"[0-9a-f]{32}"$/', $etag);
+        // The same definition has the same version
+        $this->assertSame($etag, $this->getJson(self::API.'/definition')->headers->get('ETag'));
+        $this->assertNotSame($etag, $this->getJson(self::API.'/definition', ['Panneau-Context' => 'season=2026'])->headers->get('ETag'));
+
+        $this->app->setLocale('fr');
+        $french = $this->getJson(self::API.'/definition')->headers->get('ETag');
+        $this->assertNotSame($etag, $french);
+
+        $this->actingAs(new GenericUser(['id' => 2, 'name' => 'Grace', 'email' => 'grace@example.com']));
+        $this->assertNotSame($french, $this->getJson(self::API.'/definition')->headers->get('ETag'));
+    }
+
+    public function test_the_definition_is_sent_even_when_it_has_not_changed(): void
+    {
+        $etag = (string) $this->getJson(self::API.'/definition')->headers->get('ETag');
+
+        // The protocol has no 304 for the definition yet
+        $this->getJson(self::API.'/definition', ['If-None-Match' => $etag])
+            ->assertOk()
+            ->assertHeader('ETag', $etag)
+            ->assertJsonPath('resources.0.id', 'posts');
     }
 
     public function test_the_theme(): void
