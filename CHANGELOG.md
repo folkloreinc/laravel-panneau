@@ -10,6 +10,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 - Parents of pages and resources (#35, panneau-js decision 0093): `Page::parent('activity')` names the page that a page belongs to, and `Page::parent(resource: JobsResource::class)` the resource whose list it belongs to; a resource names a page with its `parent()` method. The definition writes them as `parent`, which `@panneau/*` shows above the title of the page, as a back link or breadcrumbs. A parent that names a page that isn't declared, `home`, a page with `params`, a resource that isn't registered or the page itself, and parents that come back to where they started, throw a `LogicException` when the definition is built. Nothing changes for a definition without them.
 
+### Changed
+
+- The built-in actions that aren't extension points are closed before the API freezes (#241): `EditAction`, `ShowAction` and `RestoreAction` are `final`, and so are the `id()`, `handle()`, `inverse()`, `supportsDryRun()` and `destructive()` of `DeleteAction`, whose subclasses still change its label, icon and confirmation. **To upgrade:** replace a subclass of `EditAction` or `ShowAction` with `EditAction::make()` or `ShowAction::make()` and their `url()`, `route()`, `label()` and `placement()`, and a subclass of `DeleteAction` that changes what it does with an `Action` of its own, declared with another id.
+
 ## [5.0.0-alpha.26] - 2026-11-19
 
 Goes with `@panneau/*` `5.0.0-alpha.44`, which reads the shared block types of the definition (panneau-js decision 0094). Earlier versions show the repeaters whose blocks are shared without blocks to add: upgrade both together.

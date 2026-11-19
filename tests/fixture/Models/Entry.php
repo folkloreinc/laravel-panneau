@@ -14,7 +14,7 @@ class Entry extends Model
 
     protected function casts(): array
     {
-        return ['starts_on' => 'date:Y-m-d'];
+        return ['starts_on' => 'date:Y-m-d', 'blocks' => 'array'];
     }
 
     public function author(): BelongsTo

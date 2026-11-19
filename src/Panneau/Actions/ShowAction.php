@@ -8,7 +8,7 @@ namespace Panneau\Actions;
  * resource opens its items in the panel (`open()` returns `panel`). For a link to the item on
  * the site, declare a link of its own, `LinkAction::make('site')->url(...)`.
  */
-class ShowAction extends BuiltInLink
+final class ShowAction extends BuiltInLink
 {
     public function id(): string
     {

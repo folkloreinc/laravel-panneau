@@ -26,11 +26,11 @@ interface Panneau
     public function resource(string $id): ?Resource;
 
     /**
-     * Declares pages of the app shell: `Panneau\Navigation\Page` builders, or pages in the
-     * protocol's shape keyed by id, or a closure that returns them, called each time the
-     * definition is built (in the request's locale), through the container, with the user as
-     * `$user`. They are added to those of `panneau.pages` and of earlier calls, and replace a
-     * page of the same id. The page `home` is the home page of the app.
+     * Declares pages of the app shell: `Panneau\Navigation\Page` builders, the canonical form,
+     * or pages in the protocol's shape keyed by id, or a closure that returns them, called each
+     * time the definition is built (in the request's locale), through the container, with the
+     * user as `$user`. They are added to those of `panneau.pages` and of earlier calls, and
+     * replace a page of the same id. The page `home` is the home page of the app.
      *
      * @param  array<array-key, Page|array<string, mixed>>|Closure  $pages
      */
@@ -38,9 +38,9 @@ interface Panneau
 
     /**
      * Declares a menu of the app shell, such as `main`, the sidebar: `Panneau\Navigation\MenuItem`
-     * builders, or items in the protocol's shape, or a closure that returns them, called like
-     * those of `pages()`. It replaces the menu of the same name, of `panneau.menus` or of an
-     * earlier call.
+     * builders, the canonical form, or items in the protocol's shape, or a closure that returns
+     * them, called like those of `pages()`. It replaces the menu of the same name, of
+     * `panneau.menus` or of an earlier call.
      *
      * @param  list<MenuItem|array<string, mixed>>|Closure  $items
      */

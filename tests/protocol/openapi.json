@@ -5271,6 +5271,11 @@
                     "icon": {
                         "type": "string"
                     },
+                    "parent": {
+                        "description": "The page of `pages` that the list of the resource belongs to (decision 0093), such as the dashboard page that a log is reached from: the app shows it above the title of the list and of its items, and keeps it current in the menus when the resource is not in them. Not `home`, nor a page with `params`.",
+                        "type": "string",
+                        "minLength": 1
+                    },
                     "itemTitle": {
                         "description": "The field used as the title of an item, in lists and pickers.",
                         "type": "string"
@@ -5593,6 +5598,28 @@
                     },
                     "label": {
                         "type": "string"
+                    },
+                    "parent": {
+                        "description": "What the page belongs to (decision 0093): another page of `pages`, or the list of a resource (`{ \"resource\": \"jobs\" }`). The app shows it above the title of the page, and keeps it current in the menus when the page is not in them. Not `home`, nor a page with `params`.",
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "resource": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    }
+                                },
+                                "required": [
+                                    "resource"
+                                ],
+                                "additionalProperties": {}
+                            }
+                        ]
                     },
                     "props": {
                         "type": "object",

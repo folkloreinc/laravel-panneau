@@ -11,11 +11,14 @@ use Panneau\Actions\ActionResult;
 use Panneau\Actions\ActionScope;
 use Panneau\Actions\ActionValues;
 use Panneau\Actions\ClientAction;
+use Panneau\Actions\DeleteAction;
 use Panneau\Actions\EditAction;
 use Panneau\Actions\LinkAction;
+use Panneau\Actions\RestoreAction;
 use Panneau\Actions\ShowAction;
 use Panneau\Uploads\Upload;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use TestApp\Panneau\Actions\PublishPosts;
 
 class ActionTest extends TestCase
@@ -153,6 +156,23 @@ class ActionTest extends TestCase
             'redirect' => '/posts',
             'download' => ['url' => 'https://example.com/export.csv', 'filename' => 'export.csv', 'expiresAt' => '2026-10-15T18:00:00+00:00'],
         ], $result->toArray(['1', '2', '3']));
+    }
+
+    public function test_the_built_in_actions_are_not_extension_points(): void
+    {
+        // The links are replaced with make(), and restore is only the undo of delete
+        foreach ([EditAction::class, ShowAction::class, RestoreAction::class] as $class) {
+            $this->assertTrue((new ReflectionClass($class))->isFinal(), $class.' is final');
+        }
+        // A subclass of delete changes how it looks, never what it does
+        $delete = new ReflectionClass(DeleteAction::class);
+        $this->assertFalse($delete->isFinal());
+        foreach (['id', 'destructive', 'supportsDryRun', 'inverse', 'handle'] as $method) {
+            $this->assertTrue($delete->getMethod($method)->isFinal(), 'DeleteAction::'.$method.'() is final');
+        }
+        foreach (['label', 'icon', 'confirm'] as $method) {
+            $this->assertFalse($delete->getMethod($method)->isFinal(), 'DeleteAction::'.$method.'() can be overridden');
+        }
     }
 
     public function test_redirect_to_a_route(): void

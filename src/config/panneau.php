@@ -27,8 +27,8 @@ return [
 
     // Pages of the app shell, by id, in the shape of the protocol's pages: a component that a JS
     // plugin registers, at {path}/pages/{id} (or its own "path"). The page "home" is the home
-    // page of the app. Pages can also be declared with Panneau::pages([...]) in a service
-    // provider, with Panneau\Navigation\Page, or with a closure, for labels in the request's
+    // page of the app. The canonical form is Panneau::pages([...]) in a service provider, with
+    // the builders of Panneau\Navigation\Page, or with a closure, for labels in the request's
     // locale or pages that depend on the user. A page declared there replaces the one of the
     // same id here.
     //
@@ -42,10 +42,10 @@ return [
     // sidebar: without it, the app lists every resource, then the pages without params. Types:
     // "resources" (every resource), "resource" (a class or an id), "page" (an id of "pages",
     // without params), "link" (a "url", "external" or not), "separator" and "group" (with
-    // "children"); other types are a plugin's. Menus can also be declared with
-    // Panneau::menu('main', [...]) in a service provider, with Panneau\Navigation\MenuItem, or
-    // with a closure, for labels in the request's locale or menus that depend on the user. A
-    // menu declared there replaces the one of the same name here.
+    // "children"); other types are a plugin's. The canonical form is Panneau::menu('main', [...])
+    // in a service provider, with the builders of Panneau\Navigation\MenuItem, or with a
+    // closure, for labels in the request's locale or menus that depend on the user. A menu
+    // declared there replaces the one of the same name here.
     //
     //     'menus' => [
     //         'main' => [
