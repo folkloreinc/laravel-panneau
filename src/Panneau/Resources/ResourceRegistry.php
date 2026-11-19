@@ -265,12 +265,21 @@ final class ResourceRegistry
     }
 
     /**
-     * The actions of a resource, resolved. The ids `show` and `edit` are reserved for links
-     * (`ShowAction`, `EditAction`, or a `LinkAction` with its own target).
+     * The actions of a resource, resolved once per request (#244), like its fields: the
+     * abilities of each item of a list go through them. The ids `show` and `edit` are reserved
+     * for links (`ShowAction`, `EditAction`, or a `LinkAction` with its own target).
      *
      * @return list<ActionDeclaration>
      */
     public function actions(Resource $resource): array
+    {
+        return $this->container->make(FieldCache::class)->remember($resource, 'registry.actions', fn (): array => $this->resolveActions($resource));
+    }
+
+    /**
+     * @return list<ActionDeclaration>
+     */
+    private function resolveActions(Resource $resource): array
     {
         return array_map(function (string|ActionDeclaration $action) use ($resource): ActionDeclaration {
             $instance = $action instanceof ActionDeclaration ? $action : $this->container->make($action);
