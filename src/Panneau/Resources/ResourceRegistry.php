@@ -39,17 +39,17 @@ final class ResourceRegistry
     private ?array $resources = null;
 
     /**
+     * The repository of each resource, for the life of the process: it only depends on the
+     * resource's `repository()` or `model()`. What depends on the request (the locale, the user,
+     * the context), such as the lists and the actions, is kept in the request's `RequestCache`.
+     *
      * @var array<string, ResourceRepository>
      */
     private array $repositories = [];
 
     /**
-     * @var array<string, ResourceList>
-     */
-    private array $lists = [];
-
-    /**
-     * The checked duplication of each resource, in a list (null is none).
+     * The checked duplication of each resource, in a list (null is none), for the life of the
+     * process: it only depends on the resource's `duplication()` and its repository.
      *
      * @var WeakMap<\Panneau\Resources\Resource, array{?Duplication}>
      */
@@ -164,18 +164,21 @@ final class ResourceRegistry
         return $this->repositories[$resource->id()] ??= $this->makeRepository($resource);
     }
 
+    /**
+     * The list of a resource, built once per request (#245), like its fields: `list()` can
+     * translate labels and read the user or the context.
+     */
     public function list(Resource $resource): ResourceList
     {
-        if (! isset($this->lists[$resource->id()])) {
+        return $this->container->make(RequestCache::class)->remember($resource, 'registry.list', function () use ($resource): ResourceList {
             // The fields a list sorts by when it doesn't declare its sorts
             $repository = $this->repository($resource);
-            $this->lists[$resource->id()] = $resource->makeList()->sortableFields(array_values(array_filter(
+
+            return $resource->makeList()->sortableFields(array_values(array_filter(
                 $resource->allFields(),
                 fn (Field $field): bool => $field->isSortable() && (! $repository instanceof SortsFields || $repository->sortsBy($field)),
             )));
-        }
-
-        return $this->lists[$resource->id()];
+        });
     }
 
     /**
@@ -273,7 +276,7 @@ final class ResourceRegistry
      */
     public function actions(Resource $resource): array
     {
-        return $this->container->make(FieldCache::class)->remember($resource, 'registry.actions', fn (): array => $this->resolveActions($resource));
+        return $this->container->make(RequestCache::class)->remember($resource, 'registry.actions', fn (): array => $this->resolveActions($resource));
     }
 
     /**

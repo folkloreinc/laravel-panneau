@@ -4,7 +4,7 @@ namespace Panneau\Tests\Feature\Http;
 
 use Illuminate\Auth\GenericUser;
 use Panneau\Fields\Text;
-use Panneau\Resources\FieldCache;
+use Panneau\Resources\RequestCache;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Entry;
 use TestApp\Panneau\Resources\Entries\ArticleType;
@@ -90,7 +90,7 @@ class FieldsOncePerRequestTest extends HttpTestCase
         $resource->allFields();
         $this->assertSame(3, CountedEntriesResource::$fields);
 
-        $this->app->make(FieldCache::class)->flush();
+        $this->app->make(RequestCache::class)->flush();
         $resource->allFields();
         $this->assertSame(4, CountedEntriesResource::$fields);
     }

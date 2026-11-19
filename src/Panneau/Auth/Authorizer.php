@@ -5,7 +5,6 @@ namespace Panneau\Auth;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
@@ -14,7 +13,7 @@ use Panneau\Actions\DeleteAction;
 use Panneau\Actions\RestoreAction;
 use Panneau\Fields\Field;
 use Panneau\Http\Controllers\ResourceController;
-use Panneau\Resources\FieldCache;
+use Panneau\Resources\RequestCache;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use WeakMap;
@@ -26,7 +25,7 @@ use WeakMap;
  *
  * What only depends on the user and the resource (resource abilities, the actions offered, the
  * hidden fields, the policy of a class) is checked once per request (#244), in the request's
- * `FieldCache`: it is flushed when a request is handled, a user is authenticated or the context
+ * `RequestCache`: it is flushed when a request is handled, a user is authenticated or the context
  * is resolved. On each item, an ability is checked once through the Gate.
  */
 final class Authorizer
@@ -39,7 +38,8 @@ final class Authorizer
     private bool $allowWithoutPolicies = false;
 
     /**
-     * Whether each resource has a duplicate route, with the number of routes it was found with.
+     * Whether each resource has a duplicate route, with the number of routes it was found with:
+     * kept for the life of the process, since it only depends on the routes.
      *
      * @var array<string, array{int, bool}>
      */
@@ -49,7 +49,6 @@ final class Authorizer
         private readonly Gate $gate,
         private readonly ResourceRegistry $resources,
         private readonly ?Router $router = null,
-        private readonly ?Container $container = null,
     ) {}
 
     /**
@@ -408,7 +407,7 @@ final class Authorizer
      */
     private function policyFor(string $class): ?object
     {
-        return $this->cache()->remember($this, 'authorizer.policy:'.$class, function () use ($class): ?object {
+        return RequestCache::rememberInRequest($this, 'authorizer.policy:'.$class, function () use ($class): ?object {
             $policy = $this->gate->getPolicyFor($class);
 
             return is_object($policy) ? $policy : null;
@@ -444,10 +443,10 @@ final class Authorizer
     {
         $key = 'authorizer.'.$key;
         if ($user === null) {
-            return $this->cache()->remember($resource, $key.'|guest', $build);
+            return RequestCache::rememberInRequest($resource, $key.'|guest', $build);
         }
         /** @var WeakMap<Authenticatable, array<string, mixed>> $users */
-        $users = $this->cache()->remember($resource, 'authorizer.users', fn (): WeakMap => new WeakMap);
+        $users = RequestCache::rememberInRequest($resource, 'authorizer.users', fn (): WeakMap => new WeakMap);
         if (isset($users[$user]) && array_key_exists($key, $users[$user])) {
             /** @var T */
             return $users[$user][$key];
@@ -457,10 +456,5 @@ final class Authorizer
         $users[$user] = [...$users[$user] ?? [], $key => $value];
 
         return $value;
-    }
-
-    private function cache(): FieldCache
-    {
-        return ($this->container ?? \Illuminate\Container\Container::getInstance())->make(FieldCache::class);
     }
 }

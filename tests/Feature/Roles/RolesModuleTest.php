@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Orchestra\Testbench\Attributes\WithMigration;
 use Panneau\Navigation\Page;
+use Panneau\Roles\Contracts\RoleStore;
 use Panneau\Roles\RoleManager;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Concerns\ValidatesProtocol;
@@ -153,6 +154,18 @@ class RolesModuleTest extends TestCase
         $pages = $this->getJson(self::API.'/definition')->json('pages');
         $this->assertArrayNotHasKey('abilities', $pages['stats']);
         $this->assertSame(['view' => false], $pages['billing']['abilities']);
+    }
+
+    public function test_the_roles_of_a_user_are_read_again_on_each_request(): void
+    {
+        // A user object a long-lived process keeps, whose roles another process changes (#245)
+        $user = $this->user(2, ['client']);
+        $this->actingAs($user);
+        $this->assertSame(['view' => false], $this->getJson(self::API.'/definition')->json('pages.billing.abilities'));
+
+        $this->app->make(RoleStore::class)->syncRoles($user, ['manager']);
+
+        $this->assertNull($this->getJson(self::API.'/definition')->json('pages.billing.abilities'));
     }
 
     public function test_clients_reach_only_the_contests_of_their_team_on_every_route(): void

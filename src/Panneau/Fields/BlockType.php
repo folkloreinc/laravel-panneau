@@ -2,7 +2,7 @@
 
 namespace Panneau\Fields;
 
-use Panneau\Resources\FieldCache;
+use Panneau\Resources\RequestCache;
 
 /**
  * A type of block of a repeater, with its own fields.
@@ -39,7 +39,7 @@ final class BlockType
     public function fields(array $fields): self
     {
         $this->fields = $fields;
-        FieldCache::forgetInRequest($this);
+        RequestCache::forgetInRequest($this);
 
         return $this;
     }
@@ -55,7 +55,7 @@ final class BlockType
     public function icon(string $icon): self
     {
         $this->icon = $icon;
-        FieldCache::forgetInRequest($this);
+        RequestCache::forgetInRequest($this);
 
         return $this;
     }
@@ -69,7 +69,7 @@ final class BlockType
      */
     public function toDefinition(): array
     {
-        return FieldCache::rememberInRequest($this, 'definition', fn (): array => $this->buildDefinition());
+        return RequestCache::rememberInRequest($this, 'definition', fn (): array => $this->buildDefinition());
     }
 
     /**

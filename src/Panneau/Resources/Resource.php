@@ -87,7 +87,7 @@ abstract class Resource
      */
     public function flushFields(): void
     {
-        Container::getInstance()->make(FieldCache::class)->forget($this);
+        RequestCache::forgetInRequest($this);
     }
 
     /**
@@ -98,7 +98,7 @@ abstract class Resource
      */
     private function remember(string $key, Closure $build): mixed
     {
-        return Container::getInstance()->make(FieldCache::class)->remember($this, $key, $build);
+        return RequestCache::rememberInRequest($this, $key, $build);
     }
 
     /**
