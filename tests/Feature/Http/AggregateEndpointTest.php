@@ -2,12 +2,18 @@
 
 namespace Panneau\Tests\Feature\Http;
 
+use Illuminate\Auth\GenericUser;
+use Illuminate\Cache\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
+use Panneau\Fields\Number;
 use Panneau\Http\Problem;
+use Panneau\Lists\ResourceList;
 use Panneau\Support\Facade as Panneau;
 use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Models\Author;
 use TestApp\Models\Run;
+use TestApp\Models\TaxedRun;
 use TestApp\Panneau\Resources\RunsResource;
 use TestApp\Policies\RunPolicy;
 
@@ -236,6 +242,96 @@ class AggregateEndpointTest extends HttpTestCase
             ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
             ->assertJsonPath('type', Problem::VALIDATION)
             ->assertJsonPath('errors.'.$key.'.0', $message);
+    }
+
+    public function test_an_aggregate_in_memory_over_too_many_items_is_a_422(): void
+    {
+        $this->app['config']->set('panneau.aggregates.max_in_memory', 3);
+
+        // Watchers are counted in memory: 4 runs are too many
+        $this->getJson(self::API.'/resources/runs/aggregate?group=watchers')
+            ->assertUnprocessable()
+            ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
+            ->assertJsonPath('type', Problem::VALIDATION)
+            ->assertJsonPath('errors.group.0', 'Too many items to aggregate (4, at most 3): narrow the filters of the list.');
+        // Fewer with the filters of the list
+        $this->assertSame(2, $this->aggregate('group=labels&filter[status]=failed')['total']);
+        // Grouped in SQL, any number of items
+        $this->assertSame(4, $this->aggregate('group=status')['total']);
+    }
+
+    public function test_a_sum_in_memory_over_too_many_items_is_a_422_on_the_measure(): void
+    {
+        Panneau::resources([new class extends RunsResource
+        {
+            public function id(): string
+            {
+                return 'taxed-runs';
+            }
+
+            public function model(): string
+            {
+                return TaxedRun::class;
+            }
+
+            public function fields(): array
+            {
+                return [...parent::fields(), Number::make('taxed_tokens')];
+            }
+
+            public function list(ResourceList $list): ResourceList
+            {
+                $list = parent::list($list);
+                $declared = $list->getAggregates() ?? [];
+
+                return $list->aggregates([...$declared['sum'] ?? [], 'taxed_tokens'], $declared['groupBy'] ?? [], $declared['dates'] ?? [], [...$list->getAggregatesInMemory(), 'taxed_tokens']);
+            }
+        }]);
+        $aggregate = fn (string $query): array => $this->getJson(self::API.'/resources/taxed-runs/aggregate?'.$query)->assertOk()->json();
+        $this->assertSame(['value' => 193], $aggregate('measure=sum:taxed_tokens'));
+
+        $this->app['config']->set('panneau.aggregates.max_in_memory', 3);
+        $this->getJson(self::API.'/resources/taxed-runs/aggregate?measure=sum:taxed_tokens&group=status')
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.measure.0', 'Too many items to aggregate (4, at most 3): narrow the filters of the list.')
+            ->assertJsonMissingPath('errors.group');
+        $this->assertSame(['value' => 4], $aggregate('measure=count'));
+    }
+
+    public function test_aggregates_are_rate_limited_for_each_user(): void
+    {
+        $this->app['config']->set('panneau.aggregates.rate_limit', 2);
+
+        $this->aggregate();
+        $this->aggregate('group=status');
+        $response = $this->getJson(self::API.'/resources/runs/aggregate')
+            ->assertStatus(429)
+            ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
+            ->assertHeader('Retry-After')
+            ->assertJsonPath('status', 429);
+        $this->assertGreaterThan(0, (int) $response->headers->get('Retry-After'));
+        // Invalid queries count too
+        $this->getJson(self::API.'/resources/runs/aggregate?group=nope')->assertStatus(429);
+
+        $this->actingAs(new GenericUser(['id' => 2, 'name' => 'Grace']));
+        $this->aggregate();
+    }
+
+    public function test_no_rate_limit_on_aggregates(): void
+    {
+        $this->app['config']->set('panneau.aggregates.rate_limit', null);
+
+        foreach (range(1, 310) as $attempt) {
+            $this->getJson(self::API.'/resources/runs/aggregate')->assertOk();
+        }
+    }
+
+    public function test_the_project_can_define_the_rate_limiter_of_aggregates(): void
+    {
+        $this->app->make(RateLimiter::class)->for('panneau-aggregates', fn (): Limit => Limit::perMinute(1));
+
+        $this->aggregate();
+        $this->getJson(self::API.'/resources/runs/aggregate')->assertStatus(429);
     }
 
     public function test_a_resource_without_aggregates_is_a_404(): void

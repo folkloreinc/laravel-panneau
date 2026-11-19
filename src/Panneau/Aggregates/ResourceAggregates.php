@@ -8,6 +8,8 @@ use Illuminate\Validation\ValidationException;
 use LogicException;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\Repositories\Aggregates;
+use Panneau\Contracts\Repositories\ReportsInMemoryAggregates;
+use Panneau\Exceptions\TooManyItemsToAggregateException;
 use Panneau\Fields\Field;
 use Panneau\Fields\Relation;
 use Panneau\Query\ResourceQuery;
@@ -57,18 +59,22 @@ final class ResourceAggregates
 
     /**
      * The aggregates the list of a resource declares, checked: each one names a field of the
-     * resource of the right type, and the repository implements `Aggregates`. Null without them.
+     * resource of the right type, the repository implements `Aggregates`, and it doesn't
+     * aggregate the field in memory unless the list allows it (`aggregates(inMemory:)`, decision
+     * 0024). Null without them.
      *
      * @return array{sum: list<string>, groupBy: list<string>, dates: list<string>}|null
      */
     public function declared(Resource $resource): ?array
     {
-        $aggregates = $this->resources->list($resource)->getAggregates();
+        $list = $this->resources->list($resource);
+        $aggregates = $list->getAggregates();
         if ($aggregates === null) {
             return null;
         }
-        if (! $this->resources->repository($resource) instanceof Aggregates) {
-            throw new LogicException(sprintf('The list of "%s" declares aggregates, but its repository %s doesn\'t implement %s.', $resource->id(), $this->resources->repository($resource)::class, Aggregates::class));
+        $repository = $this->resources->repository($resource);
+        if (! $repository instanceof Aggregates) {
+            throw new LogicException(sprintf('The list of "%s" declares aggregates, but its repository %s doesn\'t implement %s.', $resource->id(), $repository::class, Aggregates::class));
         }
         foreach ($aggregates as $key => $names) {
             foreach ($names as $name) {
@@ -84,10 +90,28 @@ final class ResourceAggregates
                 if ($problem !== null) {
                     throw new LogicException(sprintf('The field "%s" of "%s" in the aggregates %s %s.', $name, $resource->id(), $key, $problem));
                 }
+                if ($repository instanceof ReportsInMemoryAggregates && ! in_array($name, $list->getAggregatesInMemory(), true) && $this->inMemory($repository, $key, $name)) {
+                    throw new LogicException(sprintf('The field "%s" of "%s" in the aggregates %s is aggregated in memory by %s, over every matching item: aggregate a column, or allow it with aggregates(inMemory: [\'%s\']), up to panneau.aggregates.max_in_memory items.', $name, $resource->id(), $key, $repository::class, $name));
+                }
             }
         }
 
         return $aggregates;
+    }
+
+    /**
+     * Whether a repository aggregates a field of the aggregates in memory: summed, grouped by its
+     * values, or by the periods of its dates.
+     *
+     * @param  'sum'|'groupBy'|'dates'  $key
+     */
+    private function inMemory(ReportsInMemoryAggregates $repository, string $key, string $name): bool
+    {
+        return match ($key) {
+            'sum' => $repository->aggregatesInMemory(Measure::sum($name)),
+            'groupBy' => $repository->aggregatesInMemory(Measure::count(), Group::field($name)),
+            'dates' => $repository->aggregatesInMemory(Measure::count(), Group::period(Interval::Day, $name)),
+        };
     }
 
     /**
@@ -177,8 +201,13 @@ final class ResourceAggregates
      *   options, then of their labels), at most `MAX_PARTS`, the rest in `other`. Each part has
      *   its `key`, and its label: that of its option for a `select`, with its tone, that of the
      *   related item for a `relation`.
+     * - An aggregate that the repository would compute in memory over too many items
+     *   (`TooManyItemsToAggregateException`) is a `ValidationException`, keyed by `measure` or
+     *   `group`.
      *
      * @return array<string, mixed>
+     *
+     * @throws ValidationException
      */
     public function aggregate(Resource $resource, Request $request, ResourceQuery $query, Measure $measure, ?Group $group): array
     {
@@ -186,7 +215,14 @@ final class ResourceAggregates
         if (! $repository instanceof Aggregates) {
             throw new LogicException(sprintf('The repository of "%s" doesn\'t implement %s.', $resource->id(), Aggregates::class));
         }
-        $result = $repository->aggregate($query, $measure, $group);
+        try {
+            $result = $repository->aggregate($query, $measure, $group);
+        } catch (TooManyItemsToAggregateException $exception) {
+            // On the field that is aggregated in memory: the measure, or else the group
+            $key = $group === null || ($repository instanceof ReportsInMemoryAggregates && $repository->aggregatesInMemory($measure)) ? 'measure' : 'group';
+
+            throw ValidationException::withMessages([$key => [__('Too many items to aggregate (:count, at most :max): narrow the filters of the list.', ['count' => $exception->count, 'max' => $exception->max])]]);
+        }
         if ($group === null) {
             return ['value' => $result->total];
         }

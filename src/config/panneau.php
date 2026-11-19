@@ -216,6 +216,20 @@ return [
         'rate_limit' => 60,
     ],
 
+    // The aggregates of the lists, `GET {path}/api/resources/{resource}/aggregate`, which the
+    // series, breakdown, metric and stat widgets on a resource read: one request per aggregate.
+    'aggregates' => [
+        // Requests per minute for a user (or an IP address), through the `panneau-aggregates`
+        // rate limiter. Over it, a 429 with Retry-After. Null or 0: no limit. Define your own
+        // `panneau-aggregates` limiter with RateLimiter::for() to limit differently.
+        'rate_limit' => 300,
+
+        // The most items that EloquentRepository reads to compute an aggregate in memory (the
+        // fields of `aggregates(inMemory: [...])`). Over it, the aggregate is a 422 that asks to
+        // narrow the filters. Null or 0: no limit.
+        'max_in_memory' => 10000,
+    ],
+
     // What URLs embed, for `embed` fields: `GET {path}/api/embeds?url=`. The default resolver
     // asks the oEmbed endpoint of the provider whose schemes match the URL; other URLs can't be
     // embedded. Bind Panneau\Contracts\EmbedResolver to use another service.

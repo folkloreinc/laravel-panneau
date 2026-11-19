@@ -5,16 +5,19 @@ namespace Panneau\Tests\Feature\Repositories;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Panneau\Aggregates\AggregateResult;
 use Panneau\Aggregates\Group;
 use Panneau\Aggregates\Interval;
 use Panneau\Aggregates\Measure;
+use Panneau\Exceptions\TooManyItemsToAggregateException;
 use Panneau\Query\ResourceQuery;
 use Panneau\Repositories\EloquentRepository;
 use Panneau\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Models\Author;
 use TestApp\Models\Run;
+use TestApp\Models\TaxedRun;
 
 /**
  * `EloquentRepository::aggregate()` (panneau-js decision 0084): a `GROUP BY` in SQL, and the same
@@ -122,6 +125,119 @@ class EloquentAggregatesTest extends TestCase
         // A search without search fields finds nothing
         $this->assertSame(0, self::inSql()->aggregate(new ResourceQuery(scope: ['team_id' => 1], search: 'Run'), Measure::count())->total);
         $this->assertSame(4, self::inSql()->aggregate(new ResourceQuery(scope: ['team_id' => 1], search: 'Run', searchFields: ['title']), Measure::count())->total);
+    }
+
+    /**
+     * @return array<string, array{class-string<Run>, Measure, Group|null, bool}>
+     */
+    public static function inMemory(): array
+    {
+        return [
+            'a count' => [Run::class, Measure::count(), null, false],
+            'a sum of a column' => [Run::class, Measure::sum('tokens'), null, false],
+            'a sum of money' => [Run::class, Measure::sum('amount'), null, false],
+            'a sum of an accessor' => [TaxedRun::class, Measure::sum('taxed_tokens'), null, true],
+            'per day of a datetime' => [Run::class, Measure::count(), Group::period('day', 'ran_at'), false],
+            'by a value' => [Run::class, Measure::count(), Group::field('status'), false],
+            'by a boolean' => [Run::class, Measure::count(), Group::field('retried'), false],
+            'by a BelongsTo relation' => [Run::class, Measure::count(), Group::field('author'), false],
+            'by a BelongsToMany relation' => [Run::class, Measure::count(), Group::field('watchers'), true],
+            'by a column cast to an array' => [Run::class, Measure::count(), Group::field('labels'), true],
+            'by the values of a datetime' => [Run::class, Measure::count(), Group::field('ran_at'), true],
+            'by a value, with a sum of an accessor' => [TaxedRun::class, Measure::sum('taxed_tokens'), Group::field('status'), true],
+        ];
+    }
+
+    /**
+     * @param  class-string<Run>  $model
+     */
+    #[DataProvider('inMemory')]
+    public function test_it_tells_which_aggregates_it_computes_in_memory(string $model, Measure $measure, ?Group $group, bool $expected): void
+    {
+        $this->assertSame($expected, (new EloquentRepository($model))->aggregatesInMemory($measure, $group));
+    }
+
+    public function test_dates_are_computed_in_memory_on_databases_without_a_truncation_of_dates(): void
+    {
+        $repository = new class(Run::class) extends EloquentRepository
+        {
+            protected function truncatedDate(Builder $builder, string $column, Interval $interval): ?string
+            {
+                return null;
+            }
+        };
+
+        $this->assertTrue($repository->aggregatesInMemory(Measure::count(), Group::period('week', 'ran_at')));
+        $this->assertFalse($repository->aggregatesInMemory(Measure::count(), Group::field('status')));
+    }
+
+    /**
+     * The queries of an aggregate, in SQL.
+     *
+     * @return list<string>
+     */
+    private function queriesOf(callable $aggregate): array
+    {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $aggregate();
+        DB::disableQueryLog();
+
+        return array_map(fn (array $query): string => $query['query'], DB::getQueryLog());
+    }
+
+    public function test_the_rows_read_in_memory_have_only_the_columns_that_the_fields_read(): void
+    {
+        $query = new ResourceQuery(scope: ['team_id' => 1]);
+
+        $queries = $this->queriesOf(fn () => self::inSql()->aggregate($query, Measure::count(), Group::field('labels')));
+        $this->assertStringStartsWith('select "runs"."id", "runs"."labels" from "runs"', $queries[1]);
+
+        // The amount and currency of money, and the key that the related items are loaded by
+        $queries = $this->queriesOf(fn () => self::inSql()->aggregate($query, Measure::sum('amount'), Group::field('watchers')));
+        $this->assertStringStartsWith('select "runs"."id", "runs"."amount_cents", "runs"."currency" from "runs"', $queries[1]);
+        $this->assertStringContainsString('"author_run"', $queries[2]);
+
+        // The columns of the dates of other databases
+        $queries = $this->queriesOf(fn () => self::inPhp()->aggregate($query, Measure::sum('tokens'), Group::period('day', 'ran_at')));
+        $this->assertStringStartsWith('select "runs"."id", "runs"."tokens", "runs"."ran_at" from "runs"', $queries[1]);
+
+        // An accessor can read any column
+        $queries = $this->queriesOf(fn () => (new EloquentRepository(TaxedRun::class))->aggregate($query, Measure::sum('taxed_tokens')));
+        $this->assertStringStartsWith('select * from "runs"', $queries[1]);
+    }
+
+    public function test_an_accessor_is_summed_in_memory(): void
+    {
+        $this->assertSame(193, (new EloquentRepository(TaxedRun::class))->aggregate(new ResourceQuery(scope: ['team_id' => 1]), Measure::sum('taxed_tokens'))->total);
+    }
+
+    public function test_aggregates_in_memory_read_at_most_max_in_memory_items(): void
+    {
+        $query = new ResourceQuery(scope: ['team_id' => 1]);
+        $this->app['config']->set('panneau.aggregates.max_in_memory', 4);
+        $this->assertSame(4, self::inSql()->aggregate($query, Measure::count(), Group::field('labels'))->total);
+
+        $this->app['config']->set('panneau.aggregates.max_in_memory', 3);
+        // In SQL, any number of items
+        $this->assertSame(4, self::inSql()->aggregate($query, Measure::count(), Group::field('status'))->total);
+        // Within the filters of the query
+        $this->assertSame(2, self::inSql()->aggregate(new ResourceQuery(scope: ['team_id' => 1], filters: ['status' => 'failed']), Measure::count(), Group::field('labels'))->total);
+
+        $queries = [];
+        try {
+            $queries = $this->queriesOf(fn () => self::inSql()->aggregate($query, Measure::count(), Group::field('labels')));
+            $this->fail('No exception.');
+        } catch (TooManyItemsToAggregateException $exception) {
+            $this->assertSame(4, $exception->count);
+            $this->assertSame(3, $exception->max);
+        }
+        // Counted, not read
+        $this->assertSame([], array_filter(DB::getQueryLog(), fn (array $logged): bool => str_starts_with($logged['query'], 'select "runs"."id"')));
+        $this->assertSame([], $queries);
+
+        $this->app['config']->set('panneau.aggregates.max_in_memory', null);
+        $this->assertSame(4, self::inSql()->aggregate($query, Measure::count(), Group::field('labels'))->total);
     }
 
     /**

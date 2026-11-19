@@ -75,6 +75,11 @@ final class ResourceList
     private ?array $aggregates = null;
 
     /**
+     * @var list<string>
+     */
+    private array $aggregatesInMemory = [];
+
+    /**
      * @param  list<string|Column>  $columns  Field names, or columns.
      */
     public function columns(array $columns): self
@@ -306,16 +311,30 @@ final class ResourceList
      * `EloquentRepository` does. The fields a user can't see are left out for them. The
      * definition checks the fields and their types when it is built.
      *
+     * - `$inMemory`: the fields of the aggregates that the repository may aggregate in memory,
+     *   over every matching item, rather than in its data store (decision 0024): with
+     *   `EloquentRepository`, accessors, relations other than `BelongsTo`, columns cast to a
+     *   structure, and the dates of a database without a truncation of dates. The definition
+     *   refuses the others when it is built, if the repository implements
+     *   `Panneau\Contracts\Repositories\ReportsInMemoryAggregates`. They read at most
+     *   `panneau.aggregates.max_in_memory` items: over it, the aggregate is a `422`.
+     *
      * @param  list<string>  $sum
      * @param  list<string>  $groupBy
      * @param  list<string>  $dates
+     * @param  list<string>  $inMemory
      */
-    public function aggregates(array $sum = [], array $groupBy = [], array $dates = []): self
+    public function aggregates(array $sum = [], array $groupBy = [], array $dates = [], array $inMemory = []): self
     {
         if ($sum === [] && $groupBy === [] && $dates === []) {
             throw new InvalidArgumentException('The aggregates of a list need a field to sum, to group by, or a date.');
         }
+        $unknown = array_diff($inMemory, $sum, $groupBy, $dates);
+        if ($unknown !== []) {
+            throw new InvalidArgumentException(sprintf('The aggregates of a list compute in memory "%s", which they don\'t sum, group by or have as a date.', implode('", "', $unknown)));
+        }
         $this->aggregates = ['sum' => $sum, 'groupBy' => $groupBy, 'dates' => $dates];
+        $this->aggregatesInMemory = array_values(array_unique($inMemory));
 
         return $this;
     }
@@ -328,6 +347,16 @@ final class ResourceList
     public function getAggregates(): ?array
     {
         return $this->aggregates;
+    }
+
+    /**
+     * The fields of the aggregates that may be aggregated in memory: `aggregates(inMemory:)`.
+     *
+     * @return list<string>
+     */
+    public function getAggregatesInMemory(): array
+    {
+        return $this->aggregatesInMemory;
     }
 
     /**

@@ -3,12 +3,16 @@
 namespace Panneau\Tests\Feature\Definition;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use InvalidArgumentException;
 use LogicException;
 use Panneau\Dashboard\Widget;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Fields\DateTime;
 use Panneau\Fields\Field;
 use Panneau\Fields\Money;
 use Panneau\Fields\Number;
+use Panneau\Fields\Relation;
+use Panneau\Fields\Select;
 use Panneau\Fields\Text;
 use Panneau\Lists\ResourceList;
 use Panneau\Navigation\Page;
@@ -19,6 +23,7 @@ use Panneau\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Dashboard\OverdueWidget;
 use TestApp\Models\Run;
+use TestApp\Models\TaxedRun;
 use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Panneau\Resources\RunsResource;
@@ -72,18 +77,21 @@ class AggregatesTest extends TestCase
      * @param  list<string>  $sum
      * @param  list<string>  $groupBy
      * @param  list<string>  $dates
+     * @param  list<string>  $inMemory
+     * @param  bool|class-string<Run>  $model  An Eloquent model (`Run` for true), or an array.
      */
-    private static function resourceWith(array $fields, array $sum = [], array $groupBy = [], array $dates = [], bool $model = true): Resource
+    private static function resourceWith(array $fields, array $sum = [], array $groupBy = [], array $dates = [], bool|string $model = true, array $inMemory = []): Resource
     {
-        return new class($fields, $sum, $groupBy, $dates, $model) extends Resource
+        return new class($fields, $sum, $groupBy, $dates, $model, $inMemory) extends Resource
         {
             /**
              * @param  list<Field>  $declared
              * @param  list<string>  $sum
              * @param  list<string>  $groupBy
              * @param  list<string>  $dates
+             * @param  list<string>  $inMemory
              */
-            public function __construct(private array $declared, private array $sum, private array $groupBy, private array $dates, private bool $eloquent) {}
+            public function __construct(private array $declared, private array $sum, private array $groupBy, private array $dates, private bool|string $eloquent, private array $inMemory) {}
 
             public function id(): string
             {
@@ -92,12 +100,12 @@ class AggregatesTest extends TestCase
 
             public function model(): ?string
             {
-                return $this->eloquent ? Run::class : null;
+                return is_string($this->eloquent) ? $this->eloquent : ($this->eloquent ? Run::class : null);
             }
 
             public function repository(): ?string
             {
-                return $this->eloquent ? null : ArrayRepository::class;
+                return $this->eloquent !== false ? null : ArrayRepository::class;
             }
 
             public function fields(): array
@@ -107,7 +115,7 @@ class AggregatesTest extends TestCase
 
             public function list(ResourceList $list): ResourceList
             {
-                return $list->aggregates($this->sum, $this->groupBy, $this->dates);
+                return $list->aggregates($this->sum, $this->groupBy, $this->dates, $this->inMemory);
             }
         };
     }
@@ -123,6 +131,10 @@ class AggregatesTest extends TestCase
             'a sum of several currencies' => [self::resourceWith([Money::make('amount')->currencies(['CAD', 'USD'])], sum: ['amount']), 'The field "amount" of "logs" in the aggregates sum is a money field of several currencies: amounts add up only in one currency().'],
             'a date that is text' => [self::resourceWith([Text::make('title')], dates: ['title']), 'The field "title" of "logs" in the aggregates dates must be a date or a datetime to be grouped by period.'],
             'a group of money' => [self::resourceWith([Money::make('amount')->currency('CAD')], groupBy: ['amount']), 'The field "amount" of "logs" in the aggregates groupBy is a money, whose values don\'t group the items.'],
+            // Aggregated in memory, over every matching item, without inMemory (decision 0024)
+            'a group by a BelongsToMany relation' => [self::resourceWith([Relation::make('watchers')->resource(AuthorsResource::class)->multiple()], groupBy: ['watchers']), 'The field "watchers" of "logs" in the aggregates groupBy is aggregated in memory by Panneau\Repositories\EloquentRepository, over every matching item: aggregate a column, or allow it with aggregates(inMemory: [\'watchers\']), up to panneau.aggregates.max_in_memory items.'],
+            'a group by a column cast to an array' => [self::resourceWith([Select::make('labels')->options(['urgent' => 'Urgent'])->multiple(), Text::make('tool')], groupBy: ['tool', 'labels'], inMemory: ['tool']), 'The field "labels" of "logs" in the aggregates groupBy is aggregated in memory'],
+            'a sum of an accessor' => [self::resourceWith([Number::make('taxed_tokens')], sum: ['taxed_tokens'], model: TaxedRun::class), 'The field "taxed_tokens" of "logs" in the aggregates sum is aggregated in memory'],
             'a repository without aggregates' => [self::resourceWith([Text::make('title')], groupBy: ['title'], model: false), 'The list of "logs" declares aggregates, but its repository TestApp\Repositories\Adapters\ArrayRepository doesn\'t implement Panneau\Contracts\Repositories\Aggregates.'],
         ];
     }
@@ -138,9 +150,31 @@ class AggregatesTest extends TestCase
         $this->definition();
     }
 
+    public function test_the_list_allows_aggregates_in_memory(): void
+    {
+        Panneau::resources([self::resourceWith(
+            [Relation::make('watchers')->resource(AuthorsResource::class)->multiple(), Select::make('labels')->options(['urgent' => 'Urgent'])->multiple(), Number::make('taxed_tokens'), DateTime::make('ran_at')],
+            sum: ['taxed_tokens'],
+            groupBy: ['watchers', 'labels'],
+            dates: ['ran_at'],
+            model: TaxedRun::class,
+            inMemory: ['taxed_tokens', 'watchers', 'labels'],
+        )]);
+
+        $this->assertSame(['sum' => ['taxed_tokens'], 'groupBy' => ['watchers', 'labels'], 'dates' => ['ran_at']], $this->resource('logs')['list']['aggregates']);
+    }
+
+    public function test_aggregates_in_memory_are_aggregates_of_the_list(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The aggregates of a list compute in memory "watchers", which they don\'t sum, group by or have as a date.');
+
+        (new ResourceList)->aggregates(groupBy: ['status'], inMemory: ['watchers']);
+    }
+
     public function test_aggregates_need_a_field(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The aggregates of a list need a field to sum, to group by, or a date.');
 
         (new ResourceList)->aggregates();

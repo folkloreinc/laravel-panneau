@@ -72,6 +72,8 @@ class RunsResource extends Resource
                 sum: ['cost', 'tokens', 'amount', 'margin'],
                 groupBy: ['status', 'tool', 'retried', 'author', 'watchers', 'labels'],
                 dates: ['ran_at', 'day'],
+                // Several items each: counted in PHP
+                inMemory: ['watchers', 'labels'],
             );
     }
 
