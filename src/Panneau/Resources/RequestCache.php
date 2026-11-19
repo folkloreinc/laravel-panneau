@@ -7,15 +7,18 @@ use Illuminate\Container\Container;
 use WeakMap;
 
 /**
- * The fields and types of the resources, built once per request (#234): Panneau reads them many
- * times per request, for the definition, each item and each check. Scoped to the request, by
- * locale, since labels are translated. Flushed when a request is handled, when a user is
- * authenticated and when the context is resolved, which fields can depend on. The actions of the
- * resources, and what the `Authorizer` checks once per resource, are kept here too (#244).
+ * What Panneau derives from the resources, built once per request (#245): their fields and
+ * types (#234), lists and actions, what the `Authorizer` checks once per resource (#244), the
+ * roles of users, and the definitions of block types (#246). Panneau reads them many times per
+ * request, for the definition, each item and each check. Scoped to the request, by locale, since
+ * labels are translated. Flushed when a request is handled, when a user is authenticated and when
+ * the context is resolved, which they can depend on: a long-lived process (Octane, a queue
+ * worker) builds them again for each request. What only depends on the config, such as the
+ * repository of a resource, is kept by the `ResourceRegistry` for the life of the process.
  *
  * @internal
  */
-final class FieldCache
+final class RequestCache
 {
     /**
      * @var WeakMap<object, array<string, mixed>>

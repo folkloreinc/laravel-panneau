@@ -7,7 +7,7 @@ use Panneau\Fields\BlockType;
 use Panneau\Fields\Repeater;
 use Panneau\Fields\Text;
 use Panneau\Fields\Textarea;
-use Panneau\Resources\FieldCache;
+use Panneau\Resources\RequestCache;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceType;
 use Panneau\Support\Facade as Panneau;
@@ -54,7 +54,7 @@ class BlockTypesOncePerRequestTest extends TestCase
 
         $this->assertSame(2, CountedTextarea::$definitions);
 
-        $this->app->make(FieldCache::class)->flush();
+        $this->app->make(RequestCache::class)->flush();
         $this->app->make(DefinitionBuilder::class)->build();
 
         $this->assertSame(3, CountedTextarea::$definitions);

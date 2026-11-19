@@ -2,6 +2,7 @@
 
 namespace Panneau\Resources;
 
+use LogicException;
 use Panneau\Contracts\Repositories\PreloadsFields;
 use Panneau\Fields\Field;
 use Panneau\Fields\Link;
@@ -74,9 +75,11 @@ final class ItemSerializer
     /**
      * @param  list<string>|null  $fields  Only these values. Null: every value.
      * @param  array<string, bool>  $abilities
-     * @param  MediaReferences|null  $references  Finds the media of `media` values, within the
-     *                                            scope of their library for the request. Defaults
-     *                                            to the current request.
+     * @param  MediaReferences|null  $references  Finds the media of `media` values and the pages
+     *                                            of `link` values, within the scope of their
+     *                                            resource for the request it was made with. Needed
+     *                                            when the item has such values: the serializer
+     *                                            never reads the request the container holds.
      * @param  list<string>  $hidden  Fields the user can't see: their values are left out.
      * @return array<string, mixed>
      */
@@ -104,13 +107,11 @@ final class ItemSerializer
             if ($field instanceof Relation && array_key_exists($field->name(), $values)) {
                 $values[$field->name()] = $this->references($field, $values[$field->name()]);
             }
-            if ($field instanceof Media && array_key_exists($field->name(), $values)) {
-                $references ??= new MediaReferences($this->resources, request());
-                $values[$field->name()] = $references->references($field, $values[$field->name()]);
+            if ($field instanceof Media && array_key_exists($field->name(), $values) && ! self::isEmpty($values[$field->name()])) {
+                $values[$field->name()] = self::needs($references, $field)->references($field, $values[$field->name()]);
             }
-            if ($field instanceof Link && array_key_exists($field->name(), $values)) {
-                $references ??= new MediaReferences($this->resources, request());
-                $values[$field->name()] = $this->link($field, $values[$field->name()], $references);
+            if ($field instanceof Link && array_key_exists($field->name(), $values) && ! self::isEmpty($values[$field->name()])) {
+                $values[$field->name()] = $this->link($field, $values[$field->name()], self::needs($references, $field));
             }
         }
         if ($resource instanceof MediaResource) {
@@ -123,6 +124,30 @@ final class ItemSerializer
             'abilities' => count($abilities) > 0 ? $abilities : (object) [],
             ...array_diff_key($values, ['id' => true, 'version' => true, 'abilities' => true]),
         ];
+    }
+
+    /**
+     * Whether a value has nothing to find: no media, no page and no file.
+     */
+    private static function isEmpty(mixed $value): bool
+    {
+        return $value === null || $value === '' || $value === [];
+    }
+
+    /**
+     * The references of the request, which a value of a `media` or `link` field needs: the
+     * scope of the resources of its media and pages is the request's (#245).
+     */
+    private static function needs(?MediaReferences $references, Field $field): MediaReferences
+    {
+        if ($references === null) {
+            throw new LogicException(sprintf(
+                'The value of the field "%s" references media or pages: serialize it with the MediaReferences of the request whose scope applies.',
+                $field->name(),
+            ));
+        }
+
+        return $references;
     }
 
     /**

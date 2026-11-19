@@ -38,8 +38,8 @@ use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\ResolveContext;
 use Panneau\Navigation\Navigation;
 use Panneau\Repositories\RepositoryAdapters;
-use Panneau\Resources\FieldCache;
 use Panneau\Resources\ItemSerializer;
+use Panneau\Resources\RequestCache;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Roles\Contracts\RoleStore;
 use Panneau\Roles\DatabaseRoleStore;
@@ -71,7 +71,7 @@ class ServiceProvider extends BaseServiceProvider
         // The values of the current request, filled by the ResolveContext middleware
         $this->app->scoped(Context::class, fn (): Context => new Context);
         // The fields and types of the resources, built once per request and locale (#234)
-        $this->app->scoped(FieldCache::class, fn ($app): FieldCache => new FieldCache(fn (): string => (string) $app->getLocale()));
+        $this->app->scoped(RequestCache::class, fn ($app): RequestCache => new RequestCache(fn (): string => (string) $app->getLocale()));
         $this->app->singleton(ItemSerializer::class);
         $this->app->singleton(Authorizer::class);
         $this->app->singletonIf(UploadStorage::class, S3UploadStorage::class);
@@ -101,8 +101,8 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->make(Router::class)->aliasMiddleware('panneau.interface-locale', ApplyInterfaceLocale::class);
         // Fields can depend on the user: build them again for the next request, or another user
         $this->app->make(Dispatcher::class)->listen([RequestHandled::class, Authenticated::class, Logout::class], function (): void {
-            if ($this->app->resolved(FieldCache::class)) {
-                $this->app->make(FieldCache::class)->flush();
+            if ($this->app->resolved(RequestCache::class)) {
+                $this->app->make(RequestCache::class)->flush();
             }
         });
         // Defined when the rate limiter is first resolved: a limiter of the same name that the

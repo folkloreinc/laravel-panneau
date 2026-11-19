@@ -4,11 +4,11 @@ namespace Panneau\Roles;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
+use Panneau\Resources\RequestCache;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Roles\Contracts\RoleStore;
 use Stringable;
-use WeakMap;
 
 /**
  * The roles module (decision 0014): the roles of config, the roles and grants of users, and the
@@ -22,20 +22,11 @@ final class RoleManager
      */
     public const ASSIGN = 'roles.assign';
 
-    /**
-     * The roles and grants of each user, read once.
-     *
-     * @var WeakMap<Authenticatable, array{roles: list<string>, grants: list<string>}>
-     */
-    private WeakMap $users;
-
     public function __construct(
         private readonly Config $config,
         private readonly RoleStore $store,
         private readonly ResourceRegistry $resources,
-    ) {
-        $this->users = new WeakMap;
-    }
+    ) {}
 
     /**
      * The roles of config, by id.
@@ -114,7 +105,7 @@ final class RoleManager
     public function syncRoles(Authenticatable $user, array $roles): void
     {
         $this->store->syncRoles($user, array_values(array_intersect($roles, array_keys($this->roles()))));
-        unset($this->users[$user]);
+        RequestCache::forgetInRequest($user);
     }
 
     /**
@@ -125,7 +116,7 @@ final class RoleManager
     public function syncGrants(Authenticatable $user, array $permissions): void
     {
         $this->store->syncGrants($user, array_values(array_intersect($permissions, $this->grantable())));
-        unset($this->users[$user]);
+        RequestCache::forgetInRequest($user);
     }
 
     /**
@@ -241,14 +232,11 @@ final class RoleManager
      */
     private function read(Authenticatable $user): array
     {
-        if (! isset($this->users[$user])) {
-            $this->users[$user] = [
-                'roles' => array_values(array_intersect($this->store->roles($user), array_keys($this->roles()))),
-                'grants' => array_values(array_intersect($this->store->grants($user), $this->grantable())),
-            ];
-        }
-
-        return $this->users[$user];
+        // Once per request (#245): a user object kept by a long-lived process reads them again
+        return RequestCache::rememberInRequest($user, 'roles.user', fn (): array => [
+            'roles' => array_values(array_intersect($this->store->roles($user), array_keys($this->roles()))),
+            'grants' => array_values(array_intersect($this->store->grants($user), $this->grantable())),
+        ]);
     }
 
     /**
