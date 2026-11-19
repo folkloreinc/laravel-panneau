@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
+use Panneau\Actions\ClientAction;
 use Panneau\Actions\DeleteAction;
 use Panneau\Actions\RestoreAction;
 use Panneau\Fields\Field;
@@ -85,11 +86,12 @@ final class Authorizer
 
     /**
      * Whether the user can run an action on an item: the action's `authorize()`, or the
-     * policy method named after the action (`publishPages`), or `update`.
+     * policy method named after the action (`publishPages`), or `update`. A client action has no
+     * `authorize()`: the policy answers for it.
      */
-    public function allowsAction(?Authenticatable $user, Resource $resource, Action $action, object $item): bool
+    public function allowsAction(?Authenticatable $user, Resource $resource, Action|ClientAction $action, object $item): bool
     {
-        $allowed = $action->authorize($user, $item);
+        $allowed = $action instanceof Action ? $action->authorize($user, $item) : null;
         if ($allowed !== null) {
             return $allowed;
         }
@@ -284,11 +286,12 @@ final class Authorizer
     /**
      * Whether the action is offered to the user at all: its `authorizeResource()`, and with the
      * resource, the `deleteAny()` of its policy for the built-in `delete`, or the `runAction()`
-     * of its policy, which receives `null` for the item.
+     * of its policy, which receives `null` for the item. A client action has no
+     * `authorizeResource()`: only the policy's `runAction()` can refuse it.
      */
-    public function allowsActionOnResource(?Authenticatable $user, Action $action, ?Resource $resource = null): bool
+    public function allowsActionOnResource(?Authenticatable $user, Action|ClientAction $action, ?Resource $resource = null): bool
     {
-        if (! $action->authorizeResource($user)) {
+        if ($action instanceof Action && ! $action->authorizeResource($user)) {
             return false;
         }
         if ($resource === null) {
@@ -322,8 +325,8 @@ final class Authorizer
 
     /**
      * The abilities of an item: `view`, `update`, `delete`, `duplicate`, and the ids of the
-     * server actions on items or selections that the user can run on it. The app shows the
-     * built-in actions of an item by its abilities.
+     * server and client actions on items or selections that the user can run on it. The app
+     * shows the built-in actions of an item, and its server and client actions, by its abilities.
      *
      * @return array<string, bool>
      */
@@ -335,7 +338,7 @@ final class Authorizer
         }
         $abilities['duplicate'] = $this->allowsDuplicateWhenViewed($user, $resource, $item, $abilities['view']);
         foreach ($this->resources->actions($resource) as $action) {
-            if ($action instanceof Action && $action->appliesToItems()) {
+            if (($action instanceof Action || $action instanceof ClientAction) && $action->appliesToItems()) {
                 $abilities[$action->id()] = $this->allowsActionOnResource($user, $action, $resource)
                     && $this->allowsAction($user, $resource, $action, $item);
             }

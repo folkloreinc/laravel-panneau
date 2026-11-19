@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Fixed
+
+- Client actions on items show again (#214): each item's `abilities` has the id of every `ClientAction` whose scope has `item` or `selection`, and the definition gives it `"abilities": { "run": … }`, as for a server action. The app shows an action that isn't built in nor a link only when the item allows it, so these actions never showed. They're authorized by the policy as server actions are: `runAction()` for the resource, and on each item the method named after the action (`copyLink`), `runAction()`, or `update`. To keep a client action on items that `update` would hide, give the policy a method named after it.
+
 ## [5.0.0-alpha.25] - 2026-11-19
 
 Goes with `@panneau/*` `5.0.0-alpha.43`, as 5.0.0-alpha.24: nothing changes in the protocol.
