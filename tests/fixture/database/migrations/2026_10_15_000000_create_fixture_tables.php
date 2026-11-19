@@ -97,6 +97,8 @@ return new class extends Migration
             $table->text('summary')->nullable();
             $table->foreignId('author_id')->nullable();
             $table->string('secret')->nullable();
+            // The blocks of the landing pages of the conformance app
+            $table->json('blocks')->nullable();
             $table->timestamps();
         });
 

@@ -263,10 +263,11 @@ abstract class Resource
 
     /**
      * The summary above the list (panneau-js decision 0084): widgets, in the grid of a dashboard,
-     * between the header of the list page and the list, or a `Summary` with its options
-     * (`listCollapsed()`, a period). The widgets on this resource follow the list's filters and
-     * search; those with data of their own get them in their `WidgetRequest`. Empty, the default,
-     * is no summary.
+     * between the header of the list page and the list. Return a `Summary::make([...])`, the
+     * canonical form, with its options (`listCollapsed()`, a period); a list of widgets is the
+     * short form of a summary without options. The widgets on this resource follow the list's
+     * filters and search; those with data of their own get them in their `WidgetRequest`. Empty,
+     * the default, is no summary.
      *
      * @return list<Widget>|Summary
      */

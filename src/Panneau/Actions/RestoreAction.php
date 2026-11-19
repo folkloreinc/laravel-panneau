@@ -12,7 +12,7 @@ use Panneau\Contracts\Repositories\Restorable;
  * `delete` there, offered nowhere (`"placement": []`), and finds its items among the deleted
  * ones, by their ids. Authorized by the policy's `restore` method, or `delete` without one.
  */
-class RestoreAction extends Action
+final class RestoreAction extends Action
 {
     public function id(): string
     {
@@ -24,12 +24,17 @@ class RestoreAction extends Action
         return __('Restore');
     }
 
-    public function icon(): ?string
+    public function icon(): string
     {
         return 'undo-2';
     }
 
-    public function placement(): ?array
+    /**
+     * Offered nowhere: it runs as the undo of `delete`.
+     *
+     * @return list<ActionPlacement>
+     */
+    public function placement(): array
     {
         return [];
     }

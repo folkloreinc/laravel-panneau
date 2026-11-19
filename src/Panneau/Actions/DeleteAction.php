@@ -8,8 +8,9 @@ use Panneau\Exceptions\ItemInUseException;
 
 /**
  * The built-in `delete` action, on items and selections, which every resource has without
- * declaring it: declare it, or a subclass, to change its label or confirmation. Authorized by
- * the policy's `delete` method. Runs the resource's `deleting` hook before each deletion. Answers dry runs.
+ * declaring it: declare a subclass to change its label, icon or confirmation. What it does is
+ * final: its id, its run, its dry runs and its undo. Authorized by the policy's `delete` method.
+ * Runs the resource's `deleting` hook before each deletion. Answers dry runs.
  *
  * On a resource with a trash (a `Restorable` repository: a model with `SoftDeletes`), it is
  * undoable: the definition declares it `undoable`, the app runs it without a confirmation, and its
@@ -22,7 +23,7 @@ use Panneau\Exceptions\ItemInUseException;
  */
 class DeleteAction extends Action
 {
-    public function id(): string
+    final public function id(): string
     {
         return 'delete';
     }
@@ -37,7 +38,7 @@ class DeleteAction extends Action
         return 'trash';
     }
 
-    public function destructive(): bool
+    final public function destructive(): bool
     {
         return true;
     }
@@ -47,7 +48,7 @@ class DeleteAction extends Action
         return true;
     }
 
-    public function supportsDryRun(): bool
+    final public function supportsDryRun(): bool
     {
         return true;
     }
@@ -55,14 +56,14 @@ class DeleteAction extends Action
     /**
      * `restore` while it runs on a repository with a trash.
      */
-    public function inverse(): ?string
+    final public function inverse(): ?string
     {
         return parent::inverse() ?? (
             $this->running() && $this->context()->repository instanceof Restorable ? 'restore' : null
         );
     }
 
-    public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult
+    final public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult
     {
         $context = $this->context();
         foreach ($items as $item) {

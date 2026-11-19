@@ -12,6 +12,7 @@ use Panneau\Resources\ResourceType;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Concerns\ValidatesProtocol;
 use Panneau\Tests\TestCase;
+use TestApp\Conformance\ConformanceLandingsResource;
 use TestApp\Models\Entry;
 
 /**
@@ -35,6 +36,22 @@ class SharedBlockTypesTest extends TestCase
         $this->assertSame(['text', 'stack'], array_column($definition['blockTypeSets']['blocks'], 'id'));
         // The stack holds blocks that appear once: they stay in its field
         $this->assertSame(['text'], array_column($definition['blockTypeSets']['blocks'][1]['fields'][0]['types'], 'id'));
+    }
+
+    public function test_the_conformance_app_has_types_that_share_their_blocks(): void
+    {
+        // So that CI's conformance run sees `blockTypeSets` and `typeSet`
+        Panneau::resources([ConformanceLandingsResource::class]);
+
+        $definition = $this->app->make(DefinitionBuilder::class)->build();
+
+        $this->assertValidDefinition($definition);
+        $landings = collect($definition['resources'])->firstWhere('id', 'landings');
+        $this->assertSame(['landing', 'promo'], array_column($landings['types'], 'id'));
+        foreach ($landings['types'] as $type) {
+            $this->assertContains(['name' => 'blocks', 'type' => 'repeater', 'typeSet' => 'blocks'], $type['fields']);
+        }
+        $this->assertSame(['text', 'stack'], array_column($definition['blockTypeSets']['blocks'], 'id'));
     }
 }
 

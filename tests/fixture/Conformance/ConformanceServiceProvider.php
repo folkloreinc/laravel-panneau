@@ -32,7 +32,7 @@ use TestApp\Policies\RunPolicy;
 
 /**
  * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
- * direct uploads, pages and a main menu, a dashboard and a dashboard page, a context with an optional param, the password reset
+ * direct uploads, types that share their blocks, pages and a main menu, a dashboard and a dashboard page, a context with an optional param, the password reset
  * and the email verification of the `panneau` auth mode, behind a bearer token (`Authorization:
  * Bearer conformance`).
  */
@@ -93,8 +93,9 @@ class ConformanceServiceProvider extends ServiceProvider
         Gate::policy(Run::class, RunPolicy::class);
 
         // The runs: a log with aggregates (panneau-js decision 0084), which the kit counts, sums
-        // and groups
-        Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class, RunsResource::class]);
+        // and groups. The landing pages: types that share their blocks (panneau-js decision 0094),
+        // sent once in `blockTypeSets`
+        Panneau::resources([ConformancePostsResource::class, AuthorsResource::class, TagsResource::class, ImagesResource::class, RunsResource::class, ConformanceLandingsResource::class]);
         Panneau::pages([
             // Parents (panneau-js decision 0093): a page in a dashboard page, and a page with
             // params in the list of a resource

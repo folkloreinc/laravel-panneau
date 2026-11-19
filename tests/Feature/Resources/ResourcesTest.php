@@ -3,8 +3,12 @@
 namespace Panneau\Tests\Feature\Resources;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use LogicException;
+use Panneau\Actions\Action;
+use Panneau\Actions\ActionResult;
+use Panneau\Actions\ActionValues;
 use Panneau\Actions\ClientAction;
 use Panneau\Actions\DeleteAction;
 use Panneau\Actions\EditAction;
@@ -162,11 +166,16 @@ class ResourcesTest extends TestCase
     public function test_the_ids_of_the_built_in_links_are_reserved_for_links(): void
     {
         $actions = [
-            new class extends DeleteAction
+            new class extends Action
             {
                 public function id(): string
                 {
                     return 'edit';
+                }
+
+                public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult
+                {
+                    return $result;
                 }
             },
             ClientAction::make('show')->component('show-modal'),
