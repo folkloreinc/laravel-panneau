@@ -238,6 +238,22 @@ class AggregateEndpointTest extends HttpTestCase
             ->assertJsonPath('errors.'.$key.'.0', $message);
     }
 
+    public function test_an_aggregate_in_memory_over_too_many_items_is_a_422(): void
+    {
+        $this->app['config']->set('panneau.aggregates.max_in_memory', 3);
+
+        // Watchers are counted in memory: 4 runs are too many
+        $this->getJson(self::API.'/resources/runs/aggregate?group=watchers')
+            ->assertUnprocessable()
+            ->assertHeader('Content-Type', Problem::CONTENT_TYPE)
+            ->assertJsonPath('type', Problem::VALIDATION)
+            ->assertJsonPath('errors.group.0', 'Too many items to aggregate (4, at most 3): narrow the filters of the list.');
+        // Fewer with the filters of the list
+        $this->assertSame(2, $this->aggregate('group=labels&filter[status]=failed')['total']);
+        // Grouped in SQL, any number of items
+        $this->assertSame(4, $this->aggregate('group=status')['total']);
+    }
+
     public function test_a_resource_without_aggregates_is_a_404(): void
     {
         $this->getJson(self::API.'/resources/posts/aggregate')

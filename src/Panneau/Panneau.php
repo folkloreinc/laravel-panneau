@@ -338,7 +338,9 @@ class Panneau implements PanneauContract
             'actions' => fn () => $router->post('resources/{resource}/actions/{action}', ActionController::class)->name('resources.actions'),
             'check' => fn () => $router->post('resources/{resource}/fields/{field}/check', FieldCheckController::class)->name('resources.fields.check'),
             // Before the item's route, which would read `aggregate` as an id
-            'aggregate' => fn () => $router->get('resources/{resource}/aggregate', AggregateController::class)->name('resources.aggregate'),
+            'aggregate' => fn () => $router->get('resources/{resource}/aggregate', AggregateController::class)
+                ->middleware(ThrottleRequests::using(AggregateController::RATE_LIMITER))
+                ->name('resources.aggregate'),
             'show' => fn () => $router->get('resources/{resource}/{id}', [ResourceController::class, 'show'])->name('resources.show'),
             'update' => fn () => $router->patch('resources/{resource}/{id}', [ResourceController::class, 'update'])->name('resources.update'),
             'destroy' => fn () => $router->delete('resources/{resource}/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy'),

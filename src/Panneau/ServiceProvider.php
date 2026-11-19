@@ -29,6 +29,7 @@ use Panneau\Contracts\EmbedResolver;
 use Panneau\Contracts\UploadStorage;
 use Panneau\Dashboard\Dashboard;
 use Panneau\Embeds\OEmbedResolver;
+use Panneau\Http\Controllers\AggregateController;
 use Panneau\Http\Controllers\EmbedController;
 use Panneau\Http\Controllers\PasswordResetController;
 use Panneau\Http\Controllers\SearchController;
@@ -109,6 +110,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->callAfterResolving(RateLimiter::class, function (RateLimiter $limiter): void {
             $limiter->for(SearchController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.search.rate_limit'));
             $limiter->for(EmbedController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.embeds.rate_limit'));
+            $limiter->for(AggregateController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.aggregates.rate_limit'));
             // Each route of the auth has its own budget
             $limiter->for(PasswordResetController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.auth.rate_limit', perRoute: true));
         });

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -32,9 +33,11 @@ use Panneau\Contracts\Repositories\ChunkedQuery;
 use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Contracts\Repositories\PreloadsFields;
+use Panneau\Contracts\Repositories\ReportsInMemoryAggregates;
 use Panneau\Contracts\Repositories\Searchable;
 use Panneau\Contracts\Repositories\SortsFields;
 use Panneau\Contracts\ResourceRepository;
+use Panneau\Exceptions\TooManyItemsToAggregateException;
 use Panneau\Fields\DateRange;
 use Panneau\Fields\Field;
 use Panneau\Fields\Money;
@@ -84,7 +87,7 @@ use UnexpectedValueException;
  *
  * @template TModel of Model
  */
-class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, Duplicable, PreloadsFields, ResourceRepository, Searchable, SortsFields
+class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, Duplicable, PreloadsFields, ReportsInMemoryAggregates, ResourceRepository, Searchable, SortsFields
 {
     /**
      * The parameter of a cursor with the number of its page, which no column can be named.
@@ -328,11 +331,10 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
     public function aggregate(ResourceQuery $query, Measure $measure, ?Group $group = null): AggregateResult
     {
         $builder = $this->aggregateQuery($query);
-        $model = $builder->getModel();
-        $sum = $measure->field !== null ? $this->aggregateColumn($model, $measure->field) : null;
-        if ($measure->field !== null && $sum === null) {
+        if ($this->computesInMemory($builder, $measure, $group)) {
             return $this->aggregateInPhp($builder, $measure, $group);
         }
+        $sum = $measure->field !== null ? $this->aggregateColumn($builder->getModel(), $measure->field) : null;
         $value = $sum !== null
             ? 'sum('.$builder->getQuery()->getGrammar()->wrap($builder->qualifyColumn($sum)).')'
             : 'count(*)';
@@ -343,8 +345,31 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
         }
 
         return $group->interval !== null
-            ? $this->aggregatePeriods($builder, $value, $measure, $group, $group->interval)
-            : $this->aggregateParts($builder, $value, $measure, $group);
+            ? $this->aggregatePeriods($builder, $value, $group, $group->interval)
+            : $this->aggregateParts($builder, $value, $group);
+    }
+
+    /**
+     * Whether an aggregate is computed in PHP, over every matching row: a sum of a field without
+     * a column (see `aggregateColumn()`), a group by a period of a date without a column or on a
+     * database without a truncation of dates (see `truncatedDate()`), or by the values of a field
+     * that isn't a scalar column or the foreign key of a `BelongsTo` relation.
+     */
+    public function aggregatesInMemory(Measure $measure, ?Group $group = null): bool
+    {
+        return $this->computesInMemory($this->newModel()->newQuery(), $measure, $group);
+    }
+
+    /**
+     * The most rows that an aggregate computed in PHP reads: `panneau.aggregates.max_in_memory`.
+     * Over it, `aggregate()` throws a `TooManyItemsToAggregateException` before reading them.
+     * Null: no limit.
+     */
+    protected function maxAggregatedInMemory(): ?int
+    {
+        $max = config('panneau.aggregates.max_in_memory');
+
+        return is_numeric($max) && (int) $max > 0 ? (int) $max : null;
     }
 
     /**
@@ -399,6 +424,48 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
     }
 
     /**
+     * The columns that reading a field of the models needs, when an aggregate is computed in
+     * PHP: its column, the amount and currency columns of an `AsMoney` attribute, the key of a
+     * relation. Null when they can't be known, for an accessor or a cast class that may read other
+     * attributes: the rows are then read with every column. Override it for attributes kept
+     * elsewhere.
+     *
+     * @param  TModel  $model
+     * @return list<string>|null
+     */
+    protected function aggregatedColumns(Model $model, string $field): ?array
+    {
+        if ($model->hasGetMutator($field) || $model->hasAttributeGetMutator($field)) {
+            return null;
+        }
+        $relation = $this->relation($model, $field);
+        if ($relation !== null) {
+            return match (true) {
+                $relation instanceof MorphTo => [$relation->getForeignKeyName(), $relation->getMorphType()],
+                $relation instanceof BelongsTo => [$relation->getForeignKeyName()],
+                $relation instanceof BelongsToMany => [$relation->getParentKeyName()],
+                $relation instanceof HasOneOrMany => [$relation->getLocalKeyName()],
+                default => null,
+            };
+        }
+        $cast = $model->getCasts()[$field] ?? null;
+        if ($cast === null) {
+            return [$field];
+        }
+        $money = AsMoney::fromCast($cast);
+        if ($money !== null) {
+            return $money->currencyColumn !== null ? [$money->amount, $money->currencyColumn] : [$money->amount];
+        }
+        $class = explode(':', $cast, 2)[0];
+
+        // Built-in casts (`datetime`, `array`…, not class names), enums and the casts of
+        // Eloquent read their own attribute only
+        return ! str_contains($class, '\\') || enum_exists($class) || str_starts_with($class, 'Illuminate\\Database\\Eloquent\\Casts\\')
+            ? [$field]
+            : null;
+    }
+
+    /**
      * The SQL expression of the first day of the period of a date column, as `Y-m-d`, for the
      * database of the query: MySQL, MariaDB, PostgreSQL or SQLite. Null for others, whose dates
      * are grouped in PHP.
@@ -429,12 +496,12 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
     /**
      * @param  Builder<TModel>  $builder
      */
-    private function aggregatePeriods(Builder $builder, string $value, Measure $measure, Group $group, Interval $interval): AggregateResult
+    private function aggregatePeriods(Builder $builder, string $value, Group $group, Interval $interval): AggregateResult
     {
         $column = $this->aggregateColumn($builder->getModel(), $group->field);
         $period = $column !== null ? $this->truncatedDate($builder, $column, $interval) : null;
         if ($column === null || $period === null) {
-            return $this->aggregateInPhp($builder, $measure, $group);
+            throw new LogicException(sprintf('The periods of "%s" are computed in memory.', $group->field));
         }
         $rows = $builder->toBase()
             ->whereNotNull($builder->qualifyColumn($column))
@@ -455,19 +522,11 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
     /**
      * @param  Builder<TModel>  $builder
      */
-    private function aggregateParts(Builder $builder, string $value, Measure $measure, Group $group): AggregateResult
+    private function aggregateParts(Builder $builder, string $value, Group $group): AggregateResult
     {
         $model = $builder->getModel();
         $relation = $this->relation($model, $group->field);
-        $cast = $model->getCasts()[$group->field] ?? null;
-        $column = match (true) {
-            $relation instanceof BelongsTo => $relation->getForeignKeyName(),
-            $relation === null && ($cast === null || in_array(strtolower($cast), self::SCALAR_CASTS, true) || is_subclass_of($cast, BackedEnum::class)) => $this->aggregateColumn($model, $group->field),
-            default => null,
-        };
-        if ($column === null) {
-            return $this->aggregateInPhp($builder, $measure, $group);
-        }
+        $column = $this->partsColumn($model, $group->field) ?? throw new LogicException(sprintf('The parts of "%s" are computed in memory.', $group->field));
         $wrapped = $builder->getQuery()->getGrammar()->wrap($builder->qualifyColumn($column));
         $rows = $builder->toBase()
             ->selectRaw($wrapped.' as panneau_key, '.$value.' as panneau_value')
@@ -495,15 +554,79 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
     }
 
     /**
-     * Aggregates the matching rows in PHP, chunk by chunk: for values of several items, accessors
-     * and relations, and dates on databases without a truncation of dates. Values are read as
-     * attributes of the models, so casts, accessors and relations apply.
+     * Whether an aggregate of the items of a query is computed in PHP (see `aggregatesInMemory()`).
      *
      * @param  Builder<TModel>  $builder
+     */
+    private function computesInMemory(Builder $builder, Measure $measure, ?Group $group): bool
+    {
+        $model = $builder->getModel();
+        if ($measure->field !== null && $this->aggregateColumn($model, $measure->field) === null) {
+            return true;
+        }
+        if ($group === null) {
+            return false;
+        }
+        if ($group->interval === null) {
+            return $this->partsColumn($model, $group->field) === null;
+        }
+        $column = $this->aggregateColumn($model, $group->field);
+
+        return $column === null || $this->truncatedDate($builder, $column, $group->interval) === null;
+    }
+
+    /**
+     * The column whose values group the items in SQL: the foreign key of a `BelongsTo` relation,
+     * or a column with no cast, a scalar cast or an enum. Null for a field grouped in PHP.
+     *
+     * @param  TModel  $model
+     */
+    private function partsColumn(Model $model, string $field): ?string
+    {
+        $relation = $this->relation($model, $field);
+        $cast = $model->getCasts()[$field] ?? null;
+
+        return match (true) {
+            $relation instanceof BelongsTo => $relation->getForeignKeyName(),
+            $relation === null && ($cast === null || in_array(strtolower($cast), self::SCALAR_CASTS, true) || is_subclass_of($cast, BackedEnum::class)) => $this->aggregateColumn($model, $field),
+            default => null,
+        };
+    }
+
+    /**
+     * Aggregates the matching rows in PHP, chunk by chunk: for values of several items, accessors
+     * and relations, and dates on databases without a truncation of dates. Values are read as
+     * attributes of the models, so casts, accessors and relations apply. Only the columns that
+     * the fields read are selected (see `aggregatedColumns()`), and no row is read when more of
+     * them match than `maxAggregatedInMemory()`.
+     *
+     * @param  Builder<TModel>  $builder
+     *
+     * @throws TooManyItemsToAggregateException
      */
     private function aggregateInPhp(Builder $builder, Measure $measure, ?Group $group): AggregateResult
     {
         $model = $builder->getModel();
+        $max = $this->maxAggregatedInMemory();
+        if ($max !== null) {
+            $count = (clone $builder)->toBase()->count();
+            if ($count > $max) {
+                throw new TooManyItemsToAggregateException($count, $max);
+            }
+        }
+        $columns = [$model->getKeyName()];
+        foreach (array_filter([$measure->field, $group?->field]) as $field) {
+            $read = $this->aggregatedColumns($model, $field);
+            if ($read === null) {
+                $columns = null;
+
+                break;
+            }
+            $columns = [...$columns, ...$read];
+        }
+        if ($columns !== null) {
+            $builder->select(array_map(fn (string $column): string => $builder->qualifyColumn($column), array_values(array_unique($columns))));
+        }
         if ($group !== null && $this->relation($model, $group->field) !== null) {
             $builder->with($group->field);
         }

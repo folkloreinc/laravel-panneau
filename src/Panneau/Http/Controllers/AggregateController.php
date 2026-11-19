@@ -19,13 +19,19 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * a period or by a field, in the shape of a widget (panneau-js decision 0084). Authorized as the
  * list: the items the user can list (`viewAny`, and the scope of the resource), with the list's
  * filters and search. A list without aggregates is a `404`, a measure or a group that it doesn't
- * declare a `422`.
+ * declare a `422`, as an aggregate computed in memory over too many items. Rate-limited by the
+ * `panneau-aggregates` limiter (`panneau.aggregates.rate_limit`).
  *
  * @internal
  */
 final class AggregateController
 {
     use ReadsRouteParameters;
+
+    /**
+     * Name of the rate limiter of the route.
+     */
+    public const RATE_LIMITER = 'panneau-aggregates';
 
     public function __construct(
         private readonly ResourceRegistry $resources,
