@@ -81,6 +81,7 @@ In the order the contests platform moves its admin ([its tranches](https://githu
 - [x] Combined widgets: `Widget::metric()`, `Widget::table()`, a `series` of several lines (`split()`, `sources()`), number formats, `hideEmpty()`, `goodWhen()` and `WidgetPeriod::previous()` (panneau-js decision 0089, [#228](https://github.com/folkloreinc/laravel-panneau/pull/228)) — unreleased — 5.0.0-alpha.23
 - [x] Actions in their tones: `tone()` on an action colors its icon in rows and its outline in the header of an item (panneau-js decision 0091, [#231](https://github.com/folkloreinc/laravel-panneau/issues/231)) — unreleased — 5.0.0-alpha.24
 - [x] The fields of a resource built once per request, by locale, rather than for each item and each check ([#234](https://github.com/folkloreinc/laravel-panneau/issues/234)) — unreleased — 5.0.0-alpha.25
+- [x] The abilities of a list checked once per resource, and each ability once per item ([#244](https://github.com/folkloreinc/laravel-panneau/issues/244)) — unreleased
 - [x] Shared block types: the lists of block types that repeat in a definition are sent once, in `blockTypeSets` (panneau-js decision 0094, [#237](https://github.com/folkloreinc/laravel-panneau/pull/237)) — unreleased — 5.0.0-alpha.26
 - [ ] Preview, drafts and revisions
 - [ ] Realtime collaboration support (signed tokens for a Yjs server)

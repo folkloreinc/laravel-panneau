@@ -14,6 +14,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 ### Changed
 
 - The built-in actions that aren't extension points are closed before the API freezes (#241): `EditAction`, `ShowAction` and `RestoreAction` are `final`, and so are the `id()`, `handle()`, `inverse()`, `supportsDryRun()` and `destructive()` of `DeleteAction`, whose subclasses still change its label, icon and confirmation. **To upgrade:** replace a subclass of `EditAction` or `ShowAction` with `EditAction::make()` or `ShowAction::make()` and their `url()`, `route()`, `label()` and `placement()`, and a subclass of `DeleteAction` that changes what it does with an `Action` of its own, declared with another id.
+- The abilities of a list are checked once per resource (#244): the actions of a resource are resolved once per request, and `viewAny`, `create`, `deleteAny`, each action's `authorizeResource()` and `runAction()`, each type's `canCreate()` and the hidden fields once per request and user, rather than for each item. On each item, each ability goes through the Gate once: actions that fall back to `update` share its answer. A list of 20 posts with six actions went from 562 resolutions of the policy and 80 of actions to 83 and 4. These answers are forgotten with the fields: after a request, a login or logout, the resolution of the context, and `$resource->flushFields()`. The `create` ability behind `duplicate` was kept with the user object across requests; it is now checked again on each request.
 
 ## [5.0.0-alpha.26] - 2026-11-19
 

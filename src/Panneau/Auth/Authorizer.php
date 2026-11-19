@@ -5,6 +5,7 @@ namespace Panneau\Auth;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Str;
 use Panneau\Actions\Action;
@@ -13,6 +14,7 @@ use Panneau\Actions\DeleteAction;
 use Panneau\Actions\RestoreAction;
 use Panneau\Fields\Field;
 use Panneau\Http\Controllers\ResourceController;
+use Panneau\Resources\FieldCache;
 use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use WeakMap;
@@ -21,6 +23,11 @@ use WeakMap;
  * Authorizes every operation through Policies: the policy of the item, or of the resource's
  * `itemClass()` for `viewAny` and `create`. Without a policy, everything is denied, unless
  * `Panneau::allowWithoutPolicies()` was called.
+ *
+ * What only depends on the user and the resource (resource abilities, the actions offered, the
+ * hidden fields, the policy of a class) is checked once per request (#244), in the request's
+ * `FieldCache`: it is flushed when a request is handled, a user is authenticated or the context
+ * is resolved. On each item, an ability is checked once through the Gate.
  */
 final class Authorizer
 {
@@ -30,13 +37,6 @@ final class Authorizer
     public const ITEM_ABILITIES = ['view', 'update', 'delete'];
 
     private bool $allowWithoutPolicies = false;
-
-    /**
-     * The `create` ability of each resource, by user.
-     *
-     * @var WeakMap<Authenticatable, array<string, bool>>|null
-     */
-    private ?WeakMap $creates = null;
 
     /**
      * Whether each resource has a duplicate route, with the number of routes it was found with.
@@ -49,6 +49,7 @@ final class Authorizer
         private readonly Gate $gate,
         private readonly ResourceRegistry $resources,
         private readonly ?Router $router = null,
+        private readonly ?Container $container = null,
     ) {}
 
     /**
@@ -64,12 +65,14 @@ final class Authorizer
      */
     public function allowsResource(?Authenticatable $user, Resource $resource, string $ability): bool
     {
-        $class = $resource->itemClass();
-        if ($class === null || $this->gate->getPolicyFor($class) === null) {
-            return $this->allowWithoutPolicies;
-        }
+        return $this->remember($user, $resource, 'resource:'.$ability, function () use ($user, $resource, $ability): bool {
+            $class = $resource->itemClass();
+            if ($class === null || $this->policyFor($class) === null) {
+                return $this->allowWithoutPolicies;
+            }
 
-        return $this->gate->forUser($user)->allows($ability, $class);
+            return $this->gate->forUser($user)->allows($ability, $class);
+        });
     }
 
     /**
@@ -77,11 +80,19 @@ final class Authorizer
      */
     public function allowsItem(?Authenticatable $user, Resource $resource, string $ability, object $item): bool
     {
+        return $this->checkItem($resource, $item, $ability, $this->itemChecks($user, $item));
+    }
+
+    /**
+     * @param  Closure(string, ?string=): bool  $allows
+     */
+    private function checkItem(Resource $resource, object $item, string $ability, Closure $allows): bool
+    {
         if (! $this->hasPolicy($resource, $item)) {
             return $this->allowWithoutPolicies;
         }
 
-        return $this->gate->forUser($user)->allows($ability, $item);
+        return $allows($ability);
     }
 
     /**
@@ -91,35 +102,40 @@ final class Authorizer
      */
     public function allowsAction(?Authenticatable $user, Resource $resource, Action|ClientAction $action, object $item): bool
     {
+        return $this->checkAction($user, $resource, $action, $item, $this->itemChecks($user, $item));
+    }
+
+    /**
+     * @param  Closure(string, ?string=): bool  $allows
+     */
+    private function checkAction(?Authenticatable $user, Resource $resource, Action|ClientAction $action, object $item, Closure $allows): bool
+    {
         $allowed = $action instanceof Action ? $action->authorize($user, $item) : null;
         if ($allowed !== null) {
             return $allowed;
         }
         if ($action instanceof DeleteAction) {
             // The ability the app shows the built-in delete by
-            return $this->allowsItem($user, $resource, 'delete', $item);
+            return $this->checkItem($resource, $item, 'delete', $allows);
         }
         if ($action instanceof RestoreAction) {
             // The undo of delete: the policy's `restore`, or whoever could delete the item
-            $policy = $this->hasPolicy($resource, $item) ? $this->gate->getPolicyFor($item) : null;
+            $policy = $this->hasPolicy($resource, $item) ? $this->policyFor($item::class) : null;
 
-            return $this->allowsItem($user, $resource, is_object($policy) && method_exists($policy, 'restore') ? 'restore' : 'delete', $item);
+            return $this->checkItem($resource, $item, $policy !== null && method_exists($policy, 'restore') ? 'restore' : 'delete', $allows);
         }
-        if (! $this->hasPolicy($resource, $item)) {
+        $policy = $this->itemPolicy($resource, $item);
+        if ($policy === null) {
             return $this->allowWithoutPolicies;
         }
-        $policy = $this->gate->getPolicyFor($item) ?? $this->gate->getPolicyFor((string) $resource->itemClass());
         // A policy with `runAction($user, ?object $item, string $action)` answers every action of
         // its resource
-        if (is_object($policy) && method_exists($policy, 'runAction')) {
-            return $this->gate->forUser($user)->allows('runAction', [$item, $action->id()]);
+        if (method_exists($policy, 'runAction')) {
+            return $allows('runAction', $action->id());
         }
         $method = Str::camel($action->id());
 
-        return $this->gate->forUser($user)->allows(
-            is_object($policy) && method_exists($policy, $method) ? $method : 'update',
-            $item,
-        );
+        return $allows(method_exists($policy, $method) ? $method : 'update');
     }
 
     /**
@@ -130,13 +146,15 @@ final class Authorizer
      */
     public function allowsDeleteAny(?Authenticatable $user, Resource $resource): bool
     {
-        $class = $resource->itemClass();
-        $policy = $class !== null ? $this->gate->getPolicyFor($class) : null;
-        if (! is_object($policy) || ! method_exists($policy, 'deleteAny')) {
-            return true;
-        }
+        return $this->remember($user, $resource, 'deleteAny', function () use ($user, $resource): bool {
+            $class = $resource->itemClass();
+            $policy = $class !== null ? $this->policyFor($class) : null;
+            if ($policy === null || ! method_exists($policy, 'deleteAny')) {
+                return true;
+            }
 
-        return $this->gate->forUser($user)->allows('deleteAny', $class);
+            return $this->gate->forUser($user)->allows('deleteAny', $class);
+        });
     }
 
     /**
@@ -178,14 +196,16 @@ final class Authorizer
      */
     public function hiddenFields(?Authenticatable $user, Resource $resource, ?string $type = null): array
     {
-        $hidden = [];
-        foreach ($resource->typeFields($type) as $field) {
-            if (! $this->canSeeField($user, $field)) {
-                $hidden[] = $field->name();
+        return $this->remember($user, $resource, 'hiddenFields:'.($type ?? ''), function () use ($user, $resource, $type): array {
+            $hidden = [];
+            foreach ($resource->typeFields($type) as $field) {
+                if (! $this->canSeeField($user, $field)) {
+                    $hidden[] = $field->name();
+                }
             }
-        }
 
-        return $hidden;
+            return $hidden;
+        });
     }
 
     /**
@@ -225,49 +245,36 @@ final class Authorizer
      */
     public function allowsDuplicate(?Authenticatable $user, Resource $resource, object $item): bool
     {
-        return $this->allowsDuplicateWhenViewed($user, $resource, $item, $this->allowsItem($user, $resource, 'view', $item));
+        $allows = $this->itemChecks($user, $item);
+
+        return $this->allowsDuplicateWhenViewed($user, $resource, $item, $this->checkItem($resource, $item, 'view', $allows), $allows);
     }
 
     /**
      * `allowsDuplicate()`, with the `view` ability already checked. False when the app has no
      * route to duplicate the resource's items (`resourceRoutes(only: [...])` without
      * `duplicate`), and for an item of a type the user can't create, such as a singleton.
+     *
+     * @param  Closure(string, ?string=): bool  $allows
      */
-    private function allowsDuplicateWhenViewed(?Authenticatable $user, Resource $resource, object $item, bool $canView): bool
+    private function allowsDuplicateWhenViewed(?Authenticatable $user, Resource $resource, object $item, bool $canView, Closure $allows): bool
     {
         if (! $canView || ! $this->resources->duplicable($resource) || ! $this->duplicateRouted($resource)) {
             return false;
         }
-        $type = $resource->resourceType($resource->typeOf($item));
-        if ($type !== null && ! $type->canCreate($user)) {
+        $type = $resource->typeOf($item);
+        if ($type !== null && ! $this->remember($user, $resource, 'createType:'.$type, fn (): bool => $resource->resourceType($type)?->canCreate($user) ?? true)) {
             return false;
         }
-        if (! $this->hasPolicy($resource, $item)) {
+        $policy = $this->itemPolicy($resource, $item);
+        if ($policy === null) {
             return $this->allowWithoutPolicies;
         }
-        $policy = $this->gate->getPolicyFor($item) ?? $this->gate->getPolicyFor((string) $resource->itemClass());
 
-        return is_object($policy) && method_exists($policy, 'duplicate')
-            ? $this->gate->forUser($user)->allows('duplicate', $item)
-            : $this->allowsCreate($user, $resource);
-    }
-
-    /**
-     * `create` on the resource, once per user: the fallback of `duplicate` on each item.
-     */
-    private function allowsCreate(?Authenticatable $user, Resource $resource): bool
-    {
-        if ($user === null) {
-            return $this->allowsResource($user, $resource, 'create');
-        }
-        $this->creates ??= new WeakMap;
-        $allowed = $this->creates[$user] ?? [];
-        if (! isset($allowed[$resource->id()])) {
-            $allowed[$resource->id()] = $this->allowsResource($user, $resource, 'create');
-            $this->creates[$user] = $allowed;
-        }
-
-        return $allowed[$resource->id()];
+        // `create` on the resource is checked once per request
+        return method_exists($policy, 'duplicate')
+            ? $allows('duplicate')
+            : $this->allowsResource($user, $resource, 'create');
     }
 
     /**
@@ -291,23 +298,26 @@ final class Authorizer
      */
     public function allowsActionOnResource(?Authenticatable $user, Action|ClientAction $action, ?Resource $resource = null): bool
     {
-        if ($action instanceof Action && ! $action->authorizeResource($user)) {
-            return false;
-        }
         if ($resource === null) {
-            return true;
-        }
-        if ($action instanceof DeleteAction) {
-            return $this->allowsDeleteAny($user, $resource);
-        }
-        $class = $resource->itemClass();
-        $policy = $class !== null ? $this->gate->getPolicyFor($class) : null;
-        if (is_object($policy) && method_exists($policy, 'runAction')) {
-            // The Gate finds the policy by the class, and passes it the rest: no item, the action
-            return $this->gate->forUser($user)->allows('runAction', [$class, null, $action->id()]);
+            return ! $action instanceof Action || $action->authorizeResource($user);
         }
 
-        return true;
+        return $this->remember($user, $resource, 'action:'.$action->id(), function () use ($user, $action, $resource): bool {
+            if ($action instanceof Action && ! $action->authorizeResource($user)) {
+                return false;
+            }
+            if ($action instanceof DeleteAction) {
+                return $this->allowsDeleteAny($user, $resource);
+            }
+            $class = $resource->itemClass();
+            $policy = $class !== null ? $this->policyFor($class) : null;
+            if ($policy !== null && method_exists($policy, 'runAction')) {
+                // The Gate finds the policy by the class, and passes it the rest: no item, the action
+                return $this->gate->forUser($user)->allows('runAction', [$class, null, $action->id()]);
+            }
+
+            return true;
+        });
     }
 
     /**
@@ -332,15 +342,16 @@ final class Authorizer
      */
     public function itemAbilities(?Authenticatable $user, Resource $resource, object $item): array
     {
+        $allows = $this->itemChecks($user, $item);
         $abilities = [];
         foreach (self::ITEM_ABILITIES as $ability) {
-            $abilities[$ability] = $this->allowsItem($user, $resource, $ability, $item);
+            $abilities[$ability] = $this->checkItem($resource, $item, $ability, $allows);
         }
-        $abilities['duplicate'] = $this->allowsDuplicateWhenViewed($user, $resource, $item, $abilities['view']);
+        $abilities['duplicate'] = $this->allowsDuplicateWhenViewed($user, $resource, $item, $abilities['view'], $allows);
         foreach ($this->resources->actions($resource) as $action) {
             if (($action instanceof Action || $action instanceof ClientAction) && $action->appliesToItems()) {
                 $abilities[$action->id()] = $this->allowsActionOnResource($user, $action, $resource)
-                    && $this->allowsAction($user, $resource, $action, $item);
+                    && $this->checkAction($user, $resource, $action, $item, $allows);
             }
         }
 
@@ -378,9 +389,78 @@ final class Authorizer
 
     private function hasPolicy(Resource $resource, object $item): bool
     {
+        return $this->itemPolicy($resource, $item) !== null;
+    }
+
+    /**
+     * The policy of an item, or else of the resource's `itemClass()`.
+     */
+    private function itemPolicy(Resource $resource, object $item): ?object
+    {
         $class = $resource->itemClass();
 
-        return $this->gate->getPolicyFor($item) !== null
-            || ($class !== null && $this->gate->getPolicyFor($class) !== null);
+        return $this->policyFor($item::class) ?? ($class !== null ? $this->policyFor($class) : null);
+    }
+
+    /**
+     * The policy of a class, resolved once per request to read its methods: the Gate resolves it
+     * again for each check.
+     */
+    private function policyFor(string $class): ?object
+    {
+        return $this->cache()->remember($this, 'authorizer.policy:'.$class, function () use ($class): ?object {
+            $policy = $this->gate->getPolicyFor($class);
+
+            return is_object($policy) ? $policy : null;
+        });
+    }
+
+    /**
+     * Checks abilities on an item through the Gate, each once: an ability, with the id of an
+     * action for `runAction`.
+     *
+     * @return Closure(string, ?string=): bool
+     */
+    private function itemChecks(?Authenticatable $user, object $item): Closure
+    {
+        $gate = $this->gate->forUser($user);
+        $checked = [];
+
+        return function (string $ability, ?string $action = null) use ($gate, $item, &$checked): bool {
+            return $checked[$ability.'|'.($action ?? '')] ??= $gate->allows($ability, $action === null ? $item : [$item, $action]);
+        };
+    }
+
+    /**
+     * A result that depends on the user and the resource, built once per request. Kept with the
+     * resource, so that `flushFields()` forgets it too, by user.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $build
+     * @return T
+     */
+    private function remember(?Authenticatable $user, Resource $resource, string $key, Closure $build): mixed
+    {
+        $key = 'authorizer.'.$key;
+        if ($user === null) {
+            return $this->cache()->remember($resource, $key.'|guest', $build);
+        }
+        /** @var WeakMap<Authenticatable, array<string, mixed>> $users */
+        $users = $this->cache()->remember($resource, 'authorizer.users', fn (): WeakMap => new WeakMap);
+        if (isset($users[$user]) && array_key_exists($key, $users[$user])) {
+            /** @var T */
+            return $users[$user][$key];
+        }
+        $value = $build();
+        // Read again: building can remember other results of the same user
+        $users[$user] = [...$users[$user] ?? [], $key => $value];
+
+        return $value;
+    }
+
+    private function cache(): FieldCache
+    {
+        return ($this->container ?? \Illuminate\Container\Container::getInstance())->make(FieldCache::class);
     }
 }

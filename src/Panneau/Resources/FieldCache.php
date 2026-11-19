@@ -9,7 +9,8 @@ use WeakMap;
  * The fields and types of the resources, built once per request (#234): Panneau reads them many
  * times per request, for the definition, each item and each check. Scoped to the request, by
  * locale, since labels are translated. Flushed when a request is handled, when a user is
- * authenticated and when the context is resolved, which fields can depend on.
+ * authenticated and when the context is resolved, which fields can depend on. The actions of the
+ * resources, and what the `Authorizer` checks once per resource, are kept here too (#244).
  *
  * @internal
  */
