@@ -119,7 +119,8 @@ final class DefinitionBuilder
         }
         $definition['user'] = $user !== null ? $this->user($user) : null;
 
-        return $definition;
+        // The lists of block types that repeat, sent once (panneau-js decision 0094)
+        return BlockTypeSets::share($definition);
     }
 
     /**

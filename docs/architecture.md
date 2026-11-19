@@ -497,6 +497,10 @@ Sessions::make('sessions')->venues(VenuesResource::class)->append([Money::make('
   - What doesn't read as a number stays as it is, and `-v` lists it by its shape (`99,99 $`, an `a` for each letter), never its value. `--dry-run` counts and lists without writing. Rows are read and written by their `id`, without their models; running it again changes nothing.
 - **From 1.x.** `--check` lists two date fields of a file named as a start and an end (`starts_at` and `ends_at`), and `Number` fields with a currency in their strings (a `$` suffix): neither change is automatic (see the [migration guide](migration.md)).
 
+### Shared block types
+
+A `Repeater` with `types()` (blocks) is declared once in PHP, but each place it is used puts it in the definition: each type of a resource, each resource, and each block that holds blocks. The definition sends the lists of block types that repeat once, in `blockTypeSets`, and the repeaters name them with `typeSet` ([panneau-js decision 0094](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0094-shared-block-types.md)); clients resolve them into `types`. Nothing to declare: lists with the same content are shared, under the name of the first field that has them (`blocks`, `blocks-2`).
+
 ### Compound fields
 
 A compound field ([panneau-js decision 0065](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0065-compound-fields.md)) is a type of a plugin made of sub-fields. In PHP, it is a subclass of `Group` or `Repeater` whose `type()` isn't built in: the definition gives that type, its `fields`, and `multiple` for a repeater, and the field validates, saves and serializes as the group or the repeater it is. The app lays it out with the type's plugin, or shows a group or a repeater without it.
