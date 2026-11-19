@@ -45,11 +45,31 @@ class ResourceListTest extends HttpTestCase
         $this->assertSame((string) $post->id, $item['id']);
         $this->assertIsString($item['version']);
         $this->assertSame(
-            ['view' => true, 'update' => false, 'delete' => false, 'duplicate' => true, 'publish-posts' => true, 'archive-posts' => false, 'feature-posts' => false, 'unfeature-posts' => false],
+            ['view' => true, 'update' => false, 'delete' => false, 'duplicate' => true, 'publish-posts' => true, 'archive-posts' => false, 'feature-posts' => false, 'unfeature-posts' => false, 'copy-link' => false],
             $item['abilities'],
         );
         $this->assertArrayNotHasKey('secret', $item);
         $this->assertArrayNotHasKey('team_id', $item);
+    }
+
+    public function test_items_have_the_abilities_of_their_client_actions(): void
+    {
+        // The app shows a client action on an item only when its abilities allow it (#214).
+        // Without a policy method named after it, the policy's `update` decides, as for a server
+        // action.
+        $this->createPost(['title' => 'Open']);
+        $this->createPost(['title' => 'Locked']);
+
+        $abilities = fn (): array => array_column(
+            array_map(fn (array $item): array => ['title' => $item['title'], 'copy-link' => $item['abilities']['copy-link'] ?? null], $this->getJson(self::API.'/resources/posts')->assertOk()->json('data')),
+            'copy-link',
+            'title',
+        );
+
+        $this->assertSame(['Open' => true, 'Locked' => false], $abilities());
+
+        PostPolicy::$denied = ['update'];
+        $this->assertSame(['Open' => false, 'Locked' => false], $abilities());
     }
 
     public function test_items_have_the_abilities_of_the_built_in_actions(): void

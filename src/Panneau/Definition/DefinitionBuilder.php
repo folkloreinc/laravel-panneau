@@ -7,6 +7,7 @@ use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Foundation\Application;
 use LogicException;
 use Panneau\Actions\Action;
+use Panneau\Actions\ClientAction;
 use Panneau\Actions\DeleteAction;
 use Panneau\Aggregates\ResourceAggregates;
 use Panneau\Auth\Authorizer;
@@ -548,7 +549,7 @@ final class DefinitionBuilder
     public function action(ActionDeclaration $action, ?Authenticatable $user = null, bool $canViewResource = true, ?Resource $resource = null): array
     {
         $definition = $action->toDefinition();
-        if ($action instanceof Action) {
+        if ($action instanceof Action || $action instanceof ClientAction) {
             $definition['abilities'] = ['run' => $canViewResource && $this->authorizer->allowsActionOnResource($user, $action, $resource)];
         }
         if (isset($definition['fields']) && is_array($definition['fields'])) {
