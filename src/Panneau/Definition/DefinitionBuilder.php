@@ -91,6 +91,7 @@ final class DefinitionBuilder
         if ($widgets !== [] && ! isset($pages['home'])) {
             $pages['home'] = ['component' => 'dashboard'];
         }
+        $pages = $this->checkedParents($definition['resources'], $pages);
         if ($pages !== []) {
             $definition['pages'] = $pages;
         }
@@ -184,6 +185,72 @@ final class DefinitionBuilder
 
             return $item;
         }, $items);
+    }
+
+    /**
+     * The `parent` of resources and pages (panneau-js decision 0093), checked as the protocol's
+     * `lintDefinition()` checks it: a page of `pages` that a link leads to (neither `home` nor a
+     * page with `params`), or for a page, a registered resource, whose class becomes its id, and
+     * no chain that comes back to where it started. The app would stop the chain without a word.
+     * A page that a closure leaves out for a user is missing for them too: hide it with
+     * `Page::can()`, which keeps it in the definition.
+     *
+     * @param  list<array<string, mixed>>  $resources
+     * @param  array<string, array<string, mixed>>  $pages
+     * @return array<string, array<string, mixed>>
+     */
+    private function checkedParents(array $resources, array $pages): array
+    {
+        $checkPage = function (string $parent, string $child) use ($pages): void {
+            if (! isset($pages[$parent])) {
+                throw new LogicException(sprintf('%s has the parent "%s", which is not a page declared in panneau.pages or with Panneau::pages().', $child, $parent));
+            }
+            if ($parent === 'home') {
+                throw new LogicException(sprintf('%s has the parent "home": the home page is never a parent.', $child));
+            }
+            if (($pages[$parent]['params'] ?? []) !== []) {
+                throw new LogicException(sprintf('%s has the parent "%s", which has params: no link leads to a page about one thing.', $child, $parent));
+            }
+        };
+        // Each resource and page by a key, and the key of its parent
+        $parentOf = [];
+        foreach ($resources as $resource) {
+            if (isset($resource['parent'])) {
+                $checkPage($resource['parent'], sprintf('The resource "%s"', $resource['id']));
+                $parentOf['resource:'.$resource['id']] = 'page:'.$resource['parent'];
+            }
+        }
+        foreach ($pages as $id => $page) {
+            $parent = $page['parent'] ?? null;
+            if (is_string($parent)) {
+                if ($parent === $id) {
+                    throw new LogicException(sprintf('The page "%s" is not its own parent.', $id));
+                }
+                $checkPage($parent, sprintf('The page "%s"', $id));
+                $parentOf['page:'.$id] = 'page:'.$parent;
+            } elseif (is_array($parent)) {
+                $resource = is_string($parent['resource'] ?? null) ? $this->resources->resolve($parent['resource']) : null;
+                if ($resource === null) {
+                    throw new LogicException(sprintf('The page "%s" has the parent resource %s, which is not registered.', $id, json_encode($parent['resource'] ?? null)));
+                }
+                $pages[$id]['parent'] = ['resource' => $resource->id()];
+                $parentOf['page:'.$id] = 'resource:'.$resource->id();
+            }
+        }
+        foreach (array_keys($parentOf) as $start) {
+            $chain = [$start];
+            $current = $parentOf[$start];
+            while (isset($parentOf[$current]) && $current !== $start && ! in_array($current, $chain, true)) {
+                $chain[] = $current;
+                $current = $parentOf[$current];
+            }
+            if ($current === $start) {
+                $names = array_map(fn (string $key): string => '"'.explode(':', $key, 2)[1].'"', [...$chain, $start]);
+                throw new LogicException(sprintf('The parents of the %s come back to it: %s.', str_replace(':', ' "', $start).'"', implode(' → ', $names)));
+            }
+        }
+
+        return $pages;
     }
 
     /**
@@ -397,7 +464,7 @@ final class DefinitionBuilder
             $definition['kind'] = $resource->kind();
         }
         $definition['label'] = ['singular' => $resource->singularLabel(), 'plural' => $resource->pluralLabel()];
-        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'itemTitle' => $resource->itemTitle(), 'itemSubtitle' => $resource->itemSubtitle(), 'itemImage' => $resource->itemImage()] as $key => $value) {
+        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'parent' => $resource->parent(), 'itemTitle' => $resource->itemTitle(), 'itemSubtitle' => $resource->itemSubtitle(), 'itemImage' => $resource->itemImage()] as $key => $value) {
             if ($value !== null) {
                 $definition[$key] = $value;
             }

@@ -225,6 +225,10 @@ final class Navigation
         if (! is_array($params) || ! array_is_list($params) || array_filter($params, fn (mixed $param): bool => ! is_string($param) || preg_match(Page::PARAM_PATTERN, $param) !== 1) !== []) {
             throw new LogicException(sprintf('The page "%s" has the params %s: params are a list of names such as "id".', $id, json_encode($params)));
         }
+        $parent = $page['parent'] ?? null;
+        if ($parent !== null && ! (is_string($parent) && $parent !== '') && ! (is_array($parent) && is_string($parent['resource'] ?? null) && $parent['resource'] !== '')) {
+            throw new LogicException(sprintf('The page "%s" has the parent %s: a parent is the id of a page, or ["resource" => ...] (panneau-js decision 0093).', $id, json_encode($parent)));
+        }
         // Null values and empty maps are left out, so that `props` isn't sent as a JSON list
         $page = array_filter($page, fn (mixed $value): bool => $value !== null && $value !== []);
 

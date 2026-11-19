@@ -33,6 +33,11 @@ final class Page
     private ?string $path = null;
 
     /**
+     * @var string|array{resource: string}|null
+     */
+    private string|array|null $parent = null;
+
+    /**
      * @var array<string, mixed>
      */
     private array $props = [];
@@ -114,6 +119,26 @@ final class Page
     public function path(string $path): self
     {
         $this->path = $path;
+
+        return $this;
+    }
+
+    /**
+     * What the page belongs to, in the definition's `parent` (panneau-js decision 0093): another
+     * page, by id (`parent('activity')`), or the list of a resource, by class or id
+     * (`parent(resource: JobsResource::class)`), such as the page of a job with params. The app
+     * shows it above the title of the page, and keeps it current in the menus when the page
+     * isn't in them. Not `home`, nor a page with `params`. The definition checks that it exists.
+     */
+    public function parent(?string $page = null, ?string $resource = null): self
+    {
+        if (($page === null) === ($resource === null) || $page === '' || $resource === '') {
+            throw new InvalidArgumentException(sprintf('The page "%s" needs one parent: a page, parent(\'activity\'), or a resource, parent(resource: JobsResource::class).', $this->id));
+        }
+        if ($page === $this->id) {
+            throw new InvalidArgumentException(sprintf('The page "%s" is not its own parent.', $this->id));
+        }
+        $this->parent = $page ?? ['resource' => (string) $resource];
 
         return $this;
     }
@@ -243,6 +268,7 @@ final class Page
             'component' => $this->component,
             'path' => $this->path,
             'label' => $this->label,
+            'parent' => $this->parent,
             // Left out when empty, so that it isn't sent as a JSON list
             'props' => $this->props !== [] ? $this->props : null,
             'params' => $this->params !== [] ? $this->params : null,

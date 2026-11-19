@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Added
+
+- Parents of pages and resources (#35, panneau-js decision 0093): `Page::parent('activity')` names the page that a page belongs to, and `Page::parent(resource: JobsResource::class)` the resource whose list it belongs to; a resource names a page with its `parent()` method. The definition writes them as `parent`, which `@panneau/*` shows above the title of the page, as a back link or breadcrumbs. A parent that names a page that isn't declared, `home`, a page with `params`, a resource that isn't registered or the page itself, and parents that come back to where they started, throw a `LogicException` when the definition is built. Nothing changes for a definition without them.
+
 ## [5.0.0-alpha.26] - 2026-11-19
 
 Goes with `@panneau/*` `5.0.0-alpha.44`, which reads the shared block types of the definition (panneau-js decision 0094). Earlier versions show the repeaters whose blocks are shared without blocks to add: upgrade both together.
