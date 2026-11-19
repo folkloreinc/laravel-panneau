@@ -430,7 +430,7 @@
             ],
             "get": {
                 "operationId": "getResourceAggregate",
-                "description": "The count or the sum of the items of the list that the user can list, with the filters and the search of the list, in the shape of a widget (decision 0084). Only what `list.aggregates` declares is aggregated: a resource without it is a `404`, and an undeclared field, or a measure or a group in the wrong format, a `422` with `errors` keyed by `measure` or `group`. Without a group, a `StatWidgetData`. By a period, a `SeriesWidgetData`: a point per period, at 0 without items, from the period of the `from` bound of the `date-range` filter whose id is the date field to the period of its `to` bound, or without a bound, of the first or the last item; at most 366 points, the latest, and their sum in `total`. By a field, a `BreakdownWidgetData`: a part per value, the largest first, at most 10, the rest in `other`, each with its `key` (`null` for the items without a value), the label and the tone of its option for a `select`, and the measure of every item in `total`.",
+                "description": "The count or the sum of the items of the list that the user can list, with the filters and the search of the list, in the shape of a widget (decision 0084). Only what `list.aggregates` declares is aggregated: a resource without it is a `404`, and an undeclared field, or a measure or a group in the wrong format, a `422` with `errors` keyed by `measure` or `group`. Without a group, a `StatWidgetData`. By a period, a `SeriesWidgetData`: a point per period, at 0 without items, from the period of the `from` bound of the `date-range` filter whose id is the date field to the period of its `to` bound, or without a bound, of the first or the last item; at most 366 points, the latest, and their sum in `total`. By a field, a `BreakdownWidgetData`: a part per value, the largest first, at most 10, the rest in `other`, each with its `key` (`null` for the items without a value), the label and the tone of its option for a `select`, and the measure of every item in `total`. A backend can refuse an aggregate over too many items with a `422`, its message keyed by `measure` or `group` (the user narrows the filters), and limit how often a user asks: a `429`.",
                 "parameters": [
                     {
                         "name": "filter",
@@ -528,6 +528,16 @@
                     },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests: `Retry-After` gives the seconds to wait.",
                         "content": {
                             "application/problem+json": {
                                 "schema": {

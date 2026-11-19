@@ -24,4 +24,4 @@ Nothing in the declaration said which aggregates took that path: `$list->aggrega
 - A list whose aggregates group by a `BelongsToMany` relation or a column cast to an array, or sum an accessor, must add those fields to `inMemory`, or the definition throws: it is a breaking change for those lists, and the message says what to add. On SQL Server, every date of `dates` must be allowed too.
 - A custom repository gets the same check by implementing `ReportsInMemoryAggregates`, and can throw `TooManyItemsToAggregateException` to get the same `422`.
 - Every aggregate computed in memory makes one more query, the count, which costs less than reading rows it would refuse.
-- The `429` of the aggregate route needs the protocol to document it (panneau-js `openapi.json`).
+- The protocol documents the `429` of the aggregate route, and the `422` over too many items ([folkloreinc/panneau-js#364](https://github.com/folkloreinc/panneau-js/pull/364)).
