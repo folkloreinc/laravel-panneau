@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+### Changed
+
+- The lists of block types that repeat in a definition are sent once (panneau-js decision 0093): in `blockTypeSets`, which a `repeater` names with `typeSet` rather than repeating its `types`, such as the blocks of every type of a resource, and those of the blocks that hold blocks. A list that appears once stays in its field. A site with 11 types of pages and 27 block types went from a 2.2 MB definition to 162 KB. Clients older than `@panneau/*` 5.0.0-alpha.44 don't read `typeSet`: upgrade them together.
+
 ## [5.0.0-alpha.25] - 2026-11-19
 
 Goes with `@panneau/*` `5.0.0-alpha.43`, as 5.0.0-alpha.24: nothing changes in the protocol.
