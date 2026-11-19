@@ -126,9 +126,9 @@ abstract class MediaResource extends Resource
      *
      * @internal Declare fields in `fields()`, and configure the file with `file()`.
      */
-    public function allFields(): array
+    protected function buildAllFields(): array
     {
-        $fields = $this->fields();
+        $fields = $this->declaredFields();
         foreach ($fields as $field) {
             if (in_array($field->name(), [self::FILE, self::MEDIA], true)) {
                 throw new LogicException(sprintf(
