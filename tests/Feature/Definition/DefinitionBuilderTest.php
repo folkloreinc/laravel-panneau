@@ -267,6 +267,8 @@ class DefinitionBuilderTest extends TestCase
             'kind' => 'client',
             'scope' => ['item'],
             'component' => 'copy-link',
+            // As a server action, without a user who can view the resource
+            'abilities' => ['run' => false],
         ], $actions['copy-link']);
     }
 

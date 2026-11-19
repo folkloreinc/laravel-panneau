@@ -3,7 +3,7 @@
 namespace Panneau\Definition;
 
 /**
- * Shares the lists of block types that repeat in a definition (panneau-js decision 0093): a
+ * Shares the lists of block types that repeat in a definition (panneau-js decision 0094): a
  * `repeater` whose `types` appear elsewhere names them with `typeSet`, a key of the
  * definition's `blockTypeSets`. The blocks of every type of a resource, and of the blocks that
  * hold blocks, are then sent once.

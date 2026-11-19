@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The lists of block types that repeat in a definition are sent once (panneau-js decision
- * 0093).
+ * 0094).
  */
 class BlockTypeSetsTest extends TestCase
 {

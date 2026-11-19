@@ -4230,7 +4230,7 @@
                         }
                     },
                     "typeSet": {
-                        "description": "`repeater`: the key of its block types in the definition's `blockTypeSets`, in place of `types` (decision 0093). Clients resolve it into `types` when they read the definition.",
+                        "description": "`repeater`: the key of its block types in the definition's `blockTypeSets`, in place of `types` (decision 0094). Clients resolve it into `types` when they read the definition.",
                         "type": "string",
                         "minLength": 1
                     },
@@ -6859,7 +6859,7 @@
                         }
                     },
                     "blockTypeSets": {
-                        "description": "Lists of block types shared by `repeater` fields, by key (decision 0093): a repeater names one with `typeSet` rather than repeating its `types`, such as the blocks of every type of page. Their block types can hold repeaters that name other sets, never their own.",
+                        "description": "Lists of block types shared by `repeater` fields, by key (decision 0094): a repeater names one with `typeSet` rather than repeating its `types`, such as the blocks of every type of page. Their block types can hold repeaters that name other sets, never their own.",
                         "type": "object",
                         "propertyNames": {
                             "type": "string",

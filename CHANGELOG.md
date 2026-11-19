@@ -8,7 +8,11 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ### Changed
 
-- The lists of block types that repeat in a definition are sent once (panneau-js decision 0093): in `blockTypeSets`, which a `repeater` names with `typeSet` rather than repeating its `types`, such as the blocks of every type of a resource, and those of the blocks that hold blocks. A list that appears once stays in its field. A site with 11 types of pages and 27 block types went from a 2.2 MB definition to 162 KB. Clients older than `@panneau/*` 5.0.0-alpha.44 don't read `typeSet`: upgrade them together.
+- The lists of block types that repeat in a definition are sent once (panneau-js decision 0094): in `blockTypeSets`, which a `repeater` names with `typeSet` rather than repeating its `types`, such as the blocks of every type of a resource, and those of the blocks that hold blocks. A list that appears once stays in its field. A site with 11 types of pages and 27 block types went from a 2.2 MB definition to 162 KB. Clients older than `@panneau/*` 5.0.0-alpha.44 don't read `typeSet`: upgrade them together.
+
+### Fixed
+
+- Client actions on items show again (#214): each item's `abilities` has the id of every `ClientAction` whose scope has `item` or `selection`, and the definition gives it `"abilities": { "run": … }`, as for a server action. The app shows an action that isn't built in nor a link only when the item allows it, so these actions never showed. They're authorized by the policy as server actions are: `runAction()` for the resource, and on each item the method named after the action (`copyLink`), `runAction()`, or `update`. To keep a client action on items that `update` would hide, give the policy a method named after it.
 
 ## [5.0.0-alpha.25] - 2026-11-19
 

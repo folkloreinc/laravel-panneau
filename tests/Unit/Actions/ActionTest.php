@@ -53,6 +53,14 @@ class ActionTest extends TestCase
         ClientAction::make('copy')->toDefinition();
     }
 
+    public function test_client_actions_say_whether_they_run_on_items(): void
+    {
+        // Those that do get an ability on each item (#214)
+        $this->assertTrue(ClientAction::make('copy')->appliesToItems());
+        $this->assertTrue(ClientAction::make('copy')->scope([ActionScope::Selection])->appliesToItems());
+        $this->assertFalse(ClientAction::make('import')->scope([ActionScope::Resource])->appliesToItems());
+    }
+
     public function test_link_actions_can_use_a_route(): void
     {
         $this->assertSame(

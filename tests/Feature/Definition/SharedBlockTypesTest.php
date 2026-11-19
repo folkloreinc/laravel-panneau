@@ -15,7 +15,7 @@ use Panneau\Tests\TestCase;
 use TestApp\Models\Entry;
 
 /**
- * The blocks of every type of a resource are sent once (panneau-js decision 0093).
+ * The blocks of every type of a resource are sent once (panneau-js decision 0094).
  */
 class SharedBlockTypesTest extends TestCase
 {
