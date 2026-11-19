@@ -3,6 +3,7 @@
 namespace Panneau\Resources;
 
 use Closure;
+use Illuminate\Container\Container;
 use WeakMap;
 
 /**
@@ -58,5 +59,36 @@ final class FieldCache
     public function flush(): void
     {
         $this->values = new WeakMap;
+    }
+
+    /**
+     * `remember()` in the cache of the current request, for objects that aren't resolved from
+     * the container, such as the definition of a block type (#246). Outside an app, such as a
+     * field built in a unit test, `$build` runs each time.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $build
+     * @return T
+     */
+    public static function rememberInRequest(object $owner, string $key, Closure $build): mixed
+    {
+        $container = Container::getInstance();
+        if (! $container->bound(self::class)) {
+            return $build();
+        }
+
+        return $container->make(self::class)->remember($owner, $key, $build);
+    }
+
+    /**
+     * `forget()` in the cache of the current request, when it has been built.
+     */
+    public static function forgetInRequest(object $owner): void
+    {
+        $container = Container::getInstance();
+        if ($container->resolved(self::class)) {
+            $container->make(self::class)->forget($owner);
+        }
     }
 }
