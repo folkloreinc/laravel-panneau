@@ -1122,14 +1122,14 @@
                 "perPage": {
                     "type": "integer",
                     "exclusiveMinimum": 0,
-                    "maximum": 9007199254740991
+                    "maximum": 100
                 },
                 "perPageOptions": {
                     "type": "array",
                     "items": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 100
                     }
                 },
                 "pagination": {
@@ -1250,7 +1250,7 @@
                 "perPage": {
                     "type": "integer",
                     "exclusiveMinimum": 0,
-                    "maximum": 9007199254740991
+                    "maximum": 100
                 }
             },
             "required": [
