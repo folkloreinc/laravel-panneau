@@ -30,6 +30,14 @@ abstract class Node
     }
 
     /**
+     * The condition that shows the node and the fields inside it, if any.
+     */
+    public function getVisibleWhen(): ?Condition
+    {
+        return $this->visibleWhen;
+    }
+
+    /**
      * Width on a 12-column grid, inside a `Row`.
      */
     public function width(int $width): static

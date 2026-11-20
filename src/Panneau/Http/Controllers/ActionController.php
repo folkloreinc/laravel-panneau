@@ -73,6 +73,7 @@ final class ActionController
             $action->fields(),
             is_array($payload['values'] ?? null) ? $payload['values'] : [],
             $this->validationContext($request, FormMode::Create, uploads: $uploads),
+            $action->layout(),
         );
 
         $repository = $this->resources->repository($resource);

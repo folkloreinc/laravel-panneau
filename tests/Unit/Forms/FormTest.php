@@ -40,6 +40,10 @@ use Panneau\Forms\Form;
 use Panneau\Forms\FormMode;
 use Panneau\Forms\SaveContext;
 use Panneau\Forms\ValidationContext;
+use Panneau\Layout\Field as LayoutField;
+use Panneau\Layout\Section;
+use Panneau\Layout\Tab;
+use Panneau\Layout\Tabs;
 use Panneau\Tests\TestCase;
 use TestApp\Models\PostStatus;
 
@@ -95,6 +99,69 @@ class FormTest extends TestCase
 
         $this->assertSame(['body' => 'Body'], $this->validate($fields, ['body' => 'Body'], $context));
         $this->assertArrayHasKey('title', $this->errors($fields, ['title' => ''], $context));
+    }
+
+    public function test_fields_take_the_conditions_of_the_layout_nodes_that_contain_them(): void
+    {
+        $fields = [
+            Select::make('type')->options(['article' => 'Article', 'event' => 'Event']),
+            Boolean::make('featured'),
+            Date::make('starts_at')->required(),
+            Text::make('place')->required(),
+        ];
+        $layout = [
+            Tabs::make([
+                Tab::make('Content', [LayoutField::make('type'), LayoutField::make('featured')]),
+                Tab::make('Event', [
+                    LayoutField::make('starts_at'),
+                    // Inside two nodes with conditions: both must be true
+                    Section::make('Place', [LayoutField::make('place')])->visibleWhen(Condition::field('featured')->equals(true)),
+                ])->visibleWhen(Condition::field('type')->equals('event')),
+            ]),
+        ];
+        $validate = fn (array $input, ?ValidationContext $context = null): array => Form::validate(
+            $this->app['validator'], $fields, $input, $context ?? new ValidationContext, $layout,
+        );
+
+        // Hidden: neither validated nor kept
+        $this->assertSame(['type' => 'article'], $validate(['type' => 'article', 'starts_at' => 'not a date', 'place' => 'Montreal']));
+        $this->assertSame(['type' => 'event', 'starts_at' => '2026-01-01'], $validate(['type' => 'event', 'starts_at' => '2026-01-01']));
+        // Visible: validated
+        try {
+            $validate(['type' => 'event', 'featured' => true]);
+            $this->fail('The fields of a visible node are validated.');
+        } catch (ValidationException $exception) {
+            $this->assertEqualsCanonicalizing(['starts_at', 'place'], array_keys($exception->errors()));
+        }
+
+        // A partial update reads the conditions with the item's values
+        $article = new ValidationContext(FormMode::Update, partial: true, item: (object) ['type' => 'article', 'featured' => false]);
+        $event = new ValidationContext(FormMode::Update, partial: true, item: (object) ['type' => 'event', 'featured' => false]);
+        $this->assertSame([], $validate(['starts_at' => ''], $article));
+        // The section of `place` is hidden while the item isn't featured
+        $this->assertSame([], $validate(['place' => ''], $event));
+        $this->expectException(ValidationException::class);
+        $validate(['starts_at' => ''], $event);
+    }
+
+    public function test_a_field_in_several_layout_nodes_applies_when_one_of_them_is_visible(): void
+    {
+        $fields = [
+            Select::make('type')->options(['article' => 'Article', 'event' => 'Event', 'page' => 'Page']),
+            Text::make('summary')->required(),
+        ];
+        $hiddenTwice = [
+            Tab::make('Article', [LayoutField::make('summary')])->visibleWhen(Condition::field('type')->equals('article')),
+            Tab::make('Event', [LayoutField::make('summary')])->visibleWhen(Condition::field('type')->equals('event')),
+        ];
+        $alsoUnconditional = [...$hiddenTwice, Tab::make('Content', [LayoutField::make('summary')])];
+        $validate = fn (array $layout, array $input): array => Form::validate($this->app['validator'], $fields, $input, new ValidationContext, $layout);
+
+        $this->assertSame(['type' => 'page'], $validate($hiddenTwice, ['type' => 'page', 'summary' => 'Hi']));
+        $this->assertSame(['type' => 'event', 'summary' => 'Hi'], $validate($hiddenTwice, ['type' => 'event', 'summary' => 'Hi']));
+        $this->assertSame(['type' => 'page', 'summary' => 'Hi'], $validate($alsoUnconditional, ['type' => 'page', 'summary' => 'Hi']));
+        // A field that no node places has no conditions of the layout
+        $this->assertSame(['type' => 'page', 'summary' => 'Hi'], $validate([Tab::make('Content', [LayoutField::make('type')])], ['type' => 'page', 'summary' => 'Hi']));
     }
 
     public function test_partial_updates_read_conditions_with_the_values_of_the_item(): void

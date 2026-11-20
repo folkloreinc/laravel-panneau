@@ -10,6 +10,7 @@ use Panneau\Http\Problem;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Author;
 use TestApp\Models\Post;
+use TestApp\Panneau\Resources\PostsWithHiddenTabResource;
 use TestApp\Panneau\Resources\PostsWithSecretResource;
 use TestApp\Policies\PostPolicy;
 
@@ -109,6 +110,29 @@ class ResourceItemTest extends HttpTestCase
             ->assertJsonPath('data.title', 'New')
             ->assertJsonPath('data.body', 'Body');
         $this->assertNull($post->refresh()->secret);
+    }
+
+    public function test_the_fields_of_a_hidden_layout_node_are_neither_validated_nor_saved(): void
+    {
+        Panneau::resources([PostsWithHiddenTabResource::class]);
+        $api = self::API.'/resources/posts-with-hidden-tab';
+
+        // A draft: the tab of `published_at` is hidden, its required field doesn't refuse the
+        // save, and its value is dropped
+        $created = $this->postJson($api, ['title' => 'Draft', 'status' => 'draft', 'published_at' => '2026-01-01T10:00:00Z'])
+            ->assertCreated();
+        $post = Post::query()->findOrFail($created->json('data.id'));
+        $this->assertNull($post->published_at);
+        $this->patchJson($api.'/'.$post->id, ['published_at' => '2026-01-01T10:00:00Z'])->assertOk();
+        $this->assertNull($post->refresh()->published_at);
+
+        // Published: the tab is shown, and its field is validated
+        $response = $this->postJson($api, ['title' => 'Published', 'status' => 'published'])->assertUnprocessable();
+        $this->assertSame(['published_at'], array_keys($response->json('errors')));
+        $this->patchJson($api.'/'.$post->id, ['status' => 'published', 'published_at' => '2026-01-01T10:00:00Z'])->assertOk();
+        $this->assertNotNull($post->refresh()->published_at);
+        // A partial update reads the condition with the item's status
+        $this->patchJson($api.'/'.$post->id, ['published_at' => null])->assertUnprocessable();
     }
 
     public function test_a_field_out_of_forms_is_given_but_never_saved(): void
