@@ -4,7 +4,9 @@ namespace Panneau\Tests\Feature\Http;
 
 use Illuminate\Testing\TestResponse;
 use Panneau\Http\Problem;
+use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Post;
+use TestApp\Panneau\Resources\PostsWithHiddenTabResource;
 use TestApp\Policies\PostPolicy;
 
 class ActionEndpointTest extends HttpTestCase
@@ -219,6 +221,22 @@ class ActionEndpointTest extends HttpTestCase
         $this->runAction('archive-posts', ['selection' => ['query' => []]])->assertStatus(422)->assertJsonStructure(['errors' => ['reason']]);
         $this->runAction('archive-posts', ['selection' => ['query' => []], 'values' => ['reason' => 'Old']])->assertOk();
         $this->assertSame('archived', $post->refresh()->status);
+    }
+
+    public function test_the_parameters_of_a_hidden_layout_node_are_neither_validated_nor_given(): void
+    {
+        Panneau::resources([PostsWithHiddenTabResource::class]);
+        $post = $this->createPost(['body' => 'Body']);
+        $run = fn (array $values): TestResponse => $this->postJson(
+            self::API.'/resources/posts-with-hidden-tab/actions/notify-posts',
+            ['selection' => ['ids' => [(string) $post->id]], 'values' => $values],
+        );
+
+        $run(['notify' => false, 'message' => 'Hidden'])->assertOk();
+        $this->assertSame('none', $post->refresh()->body);
+        $run(['notify' => true])->assertStatus(422)->assertJsonStructure(['errors' => ['message']]);
+        $run(['notify' => true, 'message' => 'Shown'])->assertOk();
+        $this->assertSame('Shown', $post->refresh()->body);
     }
 
     public function test_a_dry_run_keeps_the_limits_and_errors_of_a_run(): void

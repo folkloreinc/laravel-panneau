@@ -122,6 +122,7 @@ final class ResourceController
                 media: $references,
                 valueExists: $this->checks->lookup($resource, $request, null, $request->all(), $references, $type),
             ),
+            $resource->formLayout(),
         );
         $saving = new SaveContext(FormMode::Create, null, $uploads);
         try {
@@ -174,6 +175,7 @@ final class ResourceController
                 media: $references,
                 valueExists: $this->checks->lookup($resource, $request, $item, $request->all(), $references, $type),
             ),
+            $resource->formLayout(),
         );
         $saving = new SaveContext(FormMode::Update, $item, $uploads);
         try {
