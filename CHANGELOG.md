@@ -6,6 +6,21 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.27] - 2026-11-20
+
+Goes with `@panneau/*` `5.0.0-alpha.45`, which shows the parents of pages and resources as breadcrumbs (panneau-js decision 0093), asks lists for the `fields` they show, caps `perPage` at 100, and hides the fields of hidden layout nodes in forms (panneau-js decision 0098), as this release does on the server. Earlier versions ignore `parent` and ask lists for every field: upgrade both together. `@panneau/*` 5.0.0-alpha.45 renames its built-in plugin ids and stops checking the definition `props` of layout components (panneau-js decision 0097): see its changelog for the frontend side.
+
+A review before the API freezes: lists in a constant number of queries, abilities checked once per resource, what Panneau derives from resources kept for one request, bounded aggregates, typed widgets, the parents of pages, and the fields of hidden layout nodes neither validated nor saved.
+
+**Breaking changes, to make together:**
+
+- **Aggregates in memory** (#247): the definition throws a `LogicException` for the fields of `aggregates()` that the repository would aggregate in memory. To upgrade: add the fields the exception names to `aggregates(inMemory: [...])`, and the `aggregates` section to a published `config/panneau.php`.
+- **Built-in actions closed** (#241): `EditAction`, `ShowAction` and `RestoreAction` are `final`, and so are the `id()`, `handle()`, `inverse()`, `supportsDryRun()` and `destructive()` of `DeleteAction`. To upgrade: replace a subclass of `EditAction` or `ShowAction` with `EditAction::make()` or `ShowAction::make()`, and a subclass of `DeleteAction` that changes what it does with an `Action` of its own, under another id.
+- **`RequestCache`** (#245): `FieldCache` is renamed `RequestCache` (`@internal`). To upgrade: rename what refers to it, usually a test that flushes it.
+- **`MediaReferences` required** (#245): `ItemSerializer::serialize()` no longer reads the container's request, and throws a `LogicException` for an item with `media` or `link` values without the `MediaReferences` of the request. To upgrade: pass them where an app serializes items itself, outside the controllers of Panneau.
+- **Typed widgets** (#242): `Widget::stat()`, `series()`, `breakdown()`, `list()`, `metric()` and `table()` return `StatWidget`, `SeriesWidget`, `BreakdownWidget`, `ListWidget`, `MetricWidget` and `TableWidget`, with only their own methods. To upgrade: nothing for widgets declared with their named constructors; remove the calls of another type's methods, which Larastan now reports and PHP refuses.
+- **Fields of hidden layout nodes** (#256): the server no longer validates nor saves the values of the fields inside a tab or a section whose `visibleWhen` is false. To upgrade: a field that must be saved while its node is hidden belongs outside that node.
+
 ### Added
 
 - Lists load their values in a number of queries that doesn't grow with their items (#243, decision 0023). An item asked for some `fields` has those, with its title and image, and only their values are read (unless the resource or its type has its own `toItem()`). A repository that implements the new `Panneau\Contracts\Repositories\PreloadsFields` loads what those fields read before the page is serialized: `EloquentRepository` eager loads the relations named after them with `loadMissing()`. The pages of `link` fields and their files are found in one query for each resource or library, as the media of `media` fields already were. A list of 20 posts with a relation, a link to a page and a media went from 64 queries to 8. A list without `fields` still has every field. `Field::isComputed()` tells whether `resolveUsing()` reads a field's value.
