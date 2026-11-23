@@ -6,6 +6,8 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+- `Panneau\Agents\ResourceDescription` (#262, [decisions/0025](docs/decisions/0025-five-tools-read-first.md)): the compact description of resources for agents, built from the definition of the user. `resources()` gives the resources they can list, with the `description()` of each; `resource()` gives the fields, the filters and sorts of the list, and the server actions they can run, with the built-in `delete`, `restore` and `duplicate`. `Resource::description()` tells an agent what a resource is for.
+
 ## [5.0.0-alpha.27] - 2026-11-20
 
 Goes with `@panneau/*` `5.0.0-alpha.45`, which shows the parents of pages and resources as breadcrumbs (panneau-js decision 0093), asks lists for the `fields` they show, caps `perPage` at 100, and hides the fields of hidden layout nodes in forms (panneau-js decision 0098), as this release does on the server. Earlier versions ignore `parent` and ask lists for every field: upgrade both together. `@panneau/*` 5.0.0-alpha.45 renames its built-in plugin ids and stops checking the definition `props` of layout components (panneau-js decision 0097): see its changelog for the frontend side.
