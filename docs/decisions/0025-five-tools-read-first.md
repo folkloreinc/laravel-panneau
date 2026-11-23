@@ -3,15 +3,15 @@
 - Status: proposed
 - Date: 2026-11-23
 - Amends: [0022](0022-agents-on-laravel-mcp-and-laravel-ai.md)
-- Shared decision: [panneau-js decision NNNN](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/NNNN-five-tools-for-agents.md)
+- Shared decision: [panneau-js decision 0106](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0106-five-tools-for-agents.md)
 
 ## Context
 
 [0022](0022-agents-on-laravel-mcp-and-laravel-ai.md) plans the agents of Panneau on `laravel/mcp` and `laravel/ai`: operations shared with the controllers, one thin tool per tool of the protocol, two adapters. None of it is built.
 
-A review on 2026-11-23, before the first line of code, changed the tools. [panneau-js decision NNNN](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/NNNN-five-tools-for-agents.md) cuts the nine tools of panneau-js decision 0090 to five:
+A review on 2026-11-23, before the first line of code, changed the tools. [panneau-js decision 0106](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0106-five-tools-for-agents.md) cuts the nine tools of panneau-js decision 0090 to five:
 
-- `describe`: without `resource`, the list of resources, without their actions; with one, a compact description of the resource, in the `parts` asked for (`fields`, `list`, `actions`). It replaces the definition served as an MCP resource, and `valuesSchema`.
+- `describe`: without `resource`, the list of resources, without their actions; with one, a compact description of the resource, in the `parts` asked for (`fields`, `list`, `actions`). It replaces the resource of the definition that `describe_resource` answered, and `valuesSchema`.
 - `find_items`: without `resource`, the global search; with one, a page of its list.
 - `get_item`, with a `fields` argument.
 - `save_item`: without `id`, it creates; with `id`, it updates the item at the `version` that was read, which is required.
