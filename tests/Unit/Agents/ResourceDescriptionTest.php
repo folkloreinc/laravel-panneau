@@ -50,7 +50,7 @@ class ResourceDescriptionTest extends TestCase
             ],
             'actions' => [
                 ['id' => 'publish', 'label' => 'Publish', 'kind' => 'server', 'scope' => ['item', 'selection'], 'placement' => ['row'], 'icon' => 'send', 'confirm' => ['message' => 'Sure?'], 'fields' => [['name' => 'notify', 'type' => 'boolean', 'label' => 'Notify']], 'abilities' => ['run' => true]],
-                ['id' => 'purge', 'label' => 'Purge', 'kind' => 'server', 'scope' => ['selection'], 'destructive' => true, 'abilities' => ['run' => true]],
+                ['id' => 'purge', 'label' => 'Purge', 'kind' => 'server', 'scope' => ['selection'], 'destructive' => true, 'dryRun' => true, 'abilities' => ['run' => true]],
                 ['id' => 'archive', 'label' => 'Archive', 'kind' => 'server', 'scope' => ['selection'], 'abilities' => ['run' => false]],
                 ['id' => 'preview', 'label' => 'Preview', 'kind' => 'link', 'scope' => ['item'], 'url' => '/posts/{id}'],
                 ['id' => 'copy', 'label' => 'Copy', 'kind' => 'client', 'scope' => ['item'], 'abilities' => ['run' => true]],
@@ -98,6 +98,23 @@ class ResourceDescriptionTest extends TestCase
         ], $description['types']);
     }
 
+    public function test_it_gives_back_the_shared_block_types_of_a_repeater(): void
+    {
+        $resource = ['id' => 'landings', 'fields' => [['name' => 'blocks', 'type' => 'repeater', 'typeSet' => 'blocks']]];
+        $sets = [
+            'blocks' => [['id' => 'stack', 'label' => 'Stack', 'fields' => [['name' => 'children', 'type' => 'repeater', 'typeSet' => 'children']]]],
+            'children' => [['id' => 'text', 'label' => 'Text', 'fields' => [['name' => 'body', 'type' => 'textarea']]]],
+        ];
+
+        $description = (new ResourceDescription)->resource($resource, ['fields'], blockTypeSets: $sets);
+
+        $this->assertSame([['name' => 'blocks', 'type' => 'repeater', 'types' => [
+            ['id' => 'stack', 'label' => 'Stack', 'fields' => [['name' => 'children', 'type' => 'repeater', 'types' => [
+                ['id' => 'text', 'label' => 'Text', 'fields' => [['name' => 'body', 'type' => 'textarea']]],
+            ]]]],
+        ]]], $description['fields']);
+    }
+
     public function test_it_describes_the_list(): void
     {
         $description = (new ResourceDescription)->resource($this->posts(), ['list']);
@@ -121,8 +138,8 @@ class ResourceDescriptionTest extends TestCase
 
         $this->assertSame([
             ['id' => 'publish', 'label' => 'Publish', 'scope' => ['item', 'selection'], 'fields' => [['name' => 'notify', 'type' => 'boolean', 'label' => 'Notify']], 'confirmation' => true],
-            ['id' => 'purge', 'label' => 'Purge', 'scope' => ['selection'], 'destructive' => true, 'confirmation' => true],
-            ['id' => 'delete', 'label' => 'Delete', 'scope' => ['item', 'selection'], 'destructive' => true, 'confirmation' => true],
+            ['id' => 'purge', 'label' => 'Purge', 'scope' => ['selection'], 'destructive' => true, 'dryRun' => true, 'confirmation' => true],
+            ['id' => 'delete', 'label' => 'Delete', 'scope' => ['item', 'selection'], 'destructive' => true, 'dryRun' => true, 'confirmation' => true],
         ], $description['actions']);
     }
 
@@ -131,7 +148,7 @@ class ResourceDescriptionTest extends TestCase
         $description = (new ResourceDescription)->resource($this->posts(), ['actions'], hasTrash: true, duplicable: true);
 
         $this->assertSame([
-            ['id' => 'delete', 'label' => 'Delete', 'scope' => ['item', 'selection'], 'destructive' => true, 'undoable' => true],
+            ['id' => 'delete', 'label' => 'Delete', 'scope' => ['item', 'selection'], 'destructive' => true, 'undoable' => true, 'dryRun' => true],
             ['id' => 'restore', 'label' => 'Restore', 'scope' => ['item', 'selection']],
             ['id' => 'duplicate', 'label' => 'Duplicate', 'scope' => ['item']],
         ], array_slice($description['actions'], 2));

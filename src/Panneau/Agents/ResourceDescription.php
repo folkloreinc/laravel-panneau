@@ -47,13 +47,15 @@ final class ResourceDescription
     /**
      * A resource of the definition of the user, with the parts asked for. The built-in actions
      * depend on the resource, not only on the definition: `$hasTrash` and `$duplicable` are
-     * those of `ResourceRegistry`.
+     * those of `ResourceRegistry`. `$blockTypeSets` are those of the definition: a repeater
+     * that names its block types with `typeSet` (panneau-js decision 0094) gets them back.
      *
      * @param  array<string, mixed>  $resource
      * @param  list<string>  $parts
+     * @param  array<array-key, mixed>  $blockTypeSets
      * @return array<string, mixed>
      */
-    public function resource(array $resource, array $parts = self::PARTS, bool $hasTrash = false, bool $duplicable = false): array
+    public function resource(array $resource, array $parts = self::PARTS, bool $hasTrash = false, bool $duplicable = false, array $blockTypeSets = []): array
     {
         $unknown = array_diff($parts, self::PARTS);
         if ($unknown !== []) {
@@ -67,12 +69,12 @@ final class ResourceDescription
             'abilities' => $resource['abilities'] ?? null,
         ];
         if (in_array('fields', $parts, true)) {
-            $description['fields'] = $this->fields($resource['fields'] ?? []);
+            $description['fields'] = $this->fields($resource['fields'] ?? [], $blockTypeSets);
             $description['types'] = array_map(fn (array $type): array => self::withoutEmpty([
                 'id' => $type['id'] ?? null,
                 'label' => $type['label'] ?? null,
                 'description' => $type['description'] ?? null,
-                'fields' => $this->fields($type['fields'] ?? []),
+                'fields' => $this->fields($type['fields'] ?? [], $blockTypeSets),
                 'create' => ($type['abilities']['create'] ?? true) === false ? false : null,
             ]), self::listOf($resource['types'] ?? []));
         }
@@ -80,7 +82,7 @@ final class ResourceDescription
             $description['list'] = $this->list(is_array($resource['list'] ?? null) ? $resource['list'] : []);
         }
         if (in_array('actions', $parts, true)) {
-            $description['actions'] = $this->actions($resource, $hasTrash, $duplicable);
+            $description['actions'] = $this->actions($resource, $hasTrash, $duplicable, $blockTypeSets);
         }
 
         return self::withoutEmpty($description);
@@ -90,15 +92,17 @@ final class ResourceDescription
      * The fields the user can see, with what an agent needs to write their values: nested
      * fields of groups and repeaters the same way.
      *
+     * @param  array<array-key, mixed>  $blockTypeSets
      * @return list<array<string, mixed>>
      */
-    private function fields(mixed $fields): array
+    private function fields(mixed $fields, array $blockTypeSets): array
     {
         $described = [];
         foreach (self::listOf($fields) as $field) {
             if (($field['abilities']['view'] ?? true) === false) {
                 continue;
             }
+            $types = $field['types'] ?? (is_string($field['typeSet'] ?? null) ? ($blockTypeSets[$field['typeSet']] ?? []) : []);
             $described[] = self::withoutEmpty([
                 'name' => $field['name'] ?? null,
                 'type' => $field['type'] ?? null,
@@ -115,12 +119,12 @@ final class ResourceDescription
                 'multiple' => ($field['multiple'] ?? false) === true ?: null,
                 'options' => self::options($field['options'] ?? []),
                 'resource' => $field['resource'] ?? null,
-                'fields' => isset($field['fields']) ? $this->fields($field['fields']) : null,
+                'fields' => isset($field['fields']) ? $this->fields($field['fields'], $blockTypeSets) : null,
                 'types' => array_map(fn (array $type): array => self::withoutEmpty([
                     'id' => $type['id'] ?? null,
                     'label' => $type['label'] ?? null,
-                    'fields' => $this->fields($type['fields'] ?? []),
-                ]), self::listOf($field['types'] ?? [])),
+                    'fields' => $this->fields($type['fields'] ?? [], $blockTypeSets),
+                ]), self::listOf($types)),
             ]);
         }
 
@@ -155,9 +159,10 @@ final class ResourceDescription
      * declare: link and client actions run in the app, not by an agent.
      *
      * @param  array<array-key, mixed>  $resource
+     * @param  array<array-key, mixed>  $blockTypeSets
      * @return list<array<string, mixed>>
      */
-    private function actions(array $resource, bool $hasTrash, bool $duplicable): array
+    private function actions(array $resource, bool $hasTrash, bool $duplicable, array $blockTypeSets): array
     {
         $declared = self::listOf($resource['actions'] ?? []);
         $ids = array_column($declared, 'id');
@@ -187,9 +192,11 @@ final class ResourceDescription
                 'id' => $id,
                 'label' => $action['label'] ?? self::BUILT_IN_LABELS[$id] ?? null,
                 'scope' => $action['scope'] ?? null,
-                'fields' => $this->fields($action['fields'] ?? []),
+                'fields' => $this->fields($action['fields'] ?? [], $blockTypeSets),
                 'destructive' => $destructive ?: null,
                 'undoable' => $undoable ?: null,
+                // The built-in delete always answers a dry run
+                'dryRun' => (($action['dryRun'] ?? false) === true || $id === 'delete') ?: null,
                 'confirmation' => (isset($action['confirm']) && $action['confirm'] !== false) || ($destructive && ! $undoable) ?: null,
             ]);
         }

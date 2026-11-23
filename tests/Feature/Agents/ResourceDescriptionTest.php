@@ -8,6 +8,7 @@ use Panneau\Definition\DefinitionBuilder;
 use Panneau\Resources\ResourceRegistry;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\TestCase;
+use TestApp\Conformance\ConformanceLandingsResource;
 use TestApp\Panneau\Resources\ArticlesResource;
 use TestApp\Panneau\Resources\DocumentsResource;
 use TestApp\Panneau\Resources\ImagesResource;
@@ -34,8 +35,25 @@ class ResourceDescriptionTest extends TestCase
         ]]], $description['fields'][5]['types']);
         $this->assertSame(['sorts' => ['title']], $description['list']);
         $this->assertSame([
-            ['id' => 'delete', 'label' => 'Delete', 'scope' => ['item', 'selection'], 'destructive' => true, 'confirmation' => true],
+            ['id' => 'delete', 'label' => 'Delete', 'scope' => ['item', 'selection'], 'destructive' => true, 'dryRun' => true, 'confirmation' => true],
         ], $description['actions']);
         $this->assertSame([['id' => 'articles', 'label' => ['singular' => 'article', 'plural' => 'articles'], 'abilities' => ['viewAny' => true, 'create' => true]]], (new ResourceDescription)->resources(['resources' => [$definition]]));
+    }
+
+    public function test_it_gives_back_the_block_types_the_definition_shares(): void
+    {
+        Panneau::resources([ConformanceLandingsResource::class]);
+        Panneau::allowWithoutPolicies();
+
+        $definition = $this->app->make(DefinitionBuilder::class)->build(new GenericUser(['id' => 1]));
+        $this->assertArrayHasKey('blockTypeSets', $definition);
+        $description = (new ResourceDescription)->resource($definition['resources'][0], ['fields'], blockTypeSets: $definition['blockTypeSets']);
+
+        $this->assertCount(2, $description['types']);
+        foreach ($description['types'] as $type) {
+            $blocks = array_column($type['fields'], null, 'name')['blocks'];
+            $this->assertSame(['text', 'stack'], array_column($blocks['types'], 'id'));
+            $this->assertSame([['id' => 'text', 'label' => 'Text', 'fields' => [['name' => 'body', 'type' => 'textarea']]]], $blocks['types'][1]['fields'][0]['types']);
+        }
     }
 }
