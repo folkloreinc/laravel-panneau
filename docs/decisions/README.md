@@ -25,9 +25,10 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0019](0019-passkeys.md) | Passkeys on laravel/passkeys | Proposed |
 | [0020](0020-oauth-providers.md) | OAuth providers with Socialite, linked to users by their verified email | Proposed |
 | [0021](0021-resource-types.md) | Resource types are classes the resource lists, and the item's type picks its fields | Proposed |
-| [0022](0022-agents-on-laravel-mcp-and-laravel-ai.md) | Agents on laravel/mcp and laravel/ai, over operations shared with the controllers | Proposed; amended by [0025](0025-five-tools-read-first.md), [0026](0026-agents-as-built.md) and [0027](0027-token-lifetime-and-encrypted-confirmations.md) |
+| [0022](0022-agents-on-laravel-mcp-and-laravel-ai.md) | Agents on laravel/mcp and laravel/ai, over operations shared with the controllers | Proposed; amended by [0025](0025-five-tools-read-first.md), [0026](0026-agents-as-built.md), [0027](0027-token-lifetime-and-encrypted-confirmations.md) and [0028](0028-oauth-for-the-mcp-server.md) |
 | [0023](0023-preloading-list-values.md) | Lists read the fields they ask for, and repositories preload what those fields read | Proposed |
 | [0024](0024-bounded-aggregates.md) | Aggregates computed in memory are opt-in, bounded and rate-limited | Proposed |
 | [0025](0025-five-tools-read-first.md) | Five tools for agents, built on one operation each, shipped read first | Proposed |
-| [0026](0026-agents-as-built.md) | The agents as built: laravel/mcp 1, Sanctum first, plain JSON Schema, and examples | Proposed; amended by [0027](0027-token-lifetime-and-encrypted-confirmations.md) |
+| [0026](0026-agents-as-built.md) | The agents as built: laravel/mcp 1, Sanctum first, plain JSON Schema, and examples | Proposed; amended by [0027](0027-token-lifetime-and-encrypted-confirmations.md) and [0028](0028-oauth-for-the-mcp-server.md) |
 | [0027](0027-token-lifetime-and-encrypted-confirmations.md) | Agent tokens can expire through Sanctum, and confirmations are encrypted by Laravel | Proposed |
+| [0028](0028-oauth-for-the-mcp-server.md) | OAuth for the MCP server, with Passport, beside personal tokens | Proposed |

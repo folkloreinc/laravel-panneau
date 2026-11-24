@@ -16,6 +16,9 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\TwoFactorAuthenticationProvider as FortifyTwoFactorProvider;
+use Laravel\Mcp\Server as McpServer;
+use Laravel\Passport\Passport;
+use Panneau\Agents\Mcp\OAuth;
 use Panneau\Auth\Authorizer;
 use Panneau\Console\AgentTokenCommand;
 use Panneau\Console\ConvertAddressesCommand;
@@ -118,6 +121,13 @@ class ServiceProvider extends BaseServiceProvider
             // Each route of the auth has its own budget
             $limiter->for(PasswordResetController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.auth.rate_limit', perRoute: true));
         });
+
+        // OAuth for the MCP server (decision 0028), once the project's providers have set theirs
+        if ($this->app['config']->get('panneau.agents.mcp.enabled') === true
+            && $this->app['config']->get('panneau.agents.mcp.oauth.enabled') === true
+            && class_exists(Passport::class) && class_exists(McpServer::class)) {
+            $this->app->booted(fn () => OAuth::configure($this->app));
+        }
 
         $migrations = __DIR__.'/../../database/migrations';
         $this->publishesMigrations([$migrations => database_path('migrations')], 'panneau-migrations');
