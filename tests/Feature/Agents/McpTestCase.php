@@ -54,16 +54,20 @@ abstract class McpTestCase extends HttpTestCase
     }
 
     /**
-     * A JSON-RPC request to the MCP server, with a bearer token.
+     * A JSON-RPC request to the MCP server, with a bearer token, at the prefix of a context
+     * (`author/4`).
      *
      * @param  array<string, mixed>  $params
+     * @param  array<string, string>  $headers
      * @return TestResponse<Response>
      */
-    protected function rpc(?string $token, string $method, array $params = []): TestResponse
+    protected function rpc(?string $token, string $method, array $params = [], string $context = '', array $headers = []): TestResponse
     {
         $this->app['auth']->forgetGuards();
-        $headers = $token !== null ? ['Authorization' => 'Bearer '.$token] : [];
+        if ($token !== null) {
+            $headers['Authorization'] = 'Bearer '.$token;
+        }
 
-        return $this->postJson('/panneau/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => $method, 'params' => $params], $headers);
+        return $this->postJson(rtrim('/panneau/mcp/'.$context, '/'), ['jsonrpc' => '2.0', 'id' => 1, 'method' => $method, 'params' => $params], $headers);
     }
 }

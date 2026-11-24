@@ -5,6 +5,8 @@ namespace Panneau\Console;
 use Illuminate\Auth\AuthManager;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Panneau\Context\ContextParam;
+use Panneau\Context\ContextRegistry;
 use Panneau\Http\Middleware\AuthorizeAgents;
 
 /**
@@ -23,7 +25,7 @@ final class AgentTokenCommand extends Command
 
     protected $description = 'Create a personal token of a user for the MCP server of the agents';
 
-    public function handle(AuthManager $auth): int
+    public function handle(AuthManager $auth, ContextRegistry $context): int
     {
         $config = $this->laravel['config'];
         $guard = $config->get('panneau.auth.guard');
@@ -56,6 +58,14 @@ final class AgentTokenCommand extends Command
         $path = trim((string) $config->get('panneau.path', 'panneau'), '/').'/'.trim((string) $config->get('panneau.agents.mcp.path', 'mcp'), '/');
         $this->components->info('The token is shown once: keep it now.');
         $this->components->twoColumnDetail('Server', url($path));
+        if ($context->declared()) {
+            // The params can depend on the user
+            $names = array_map(fn (ContextParam $param): string => $param->name(), $context->params($user));
+            $this->components->twoColumnDetail('Context', sprintf(
+                'followed by the context, as in the app: %s',
+                url($path.'/'.implode('/', array_map(fn (string $name): string => $name.'/{'.$name.'}', $names))),
+            ));
+        }
         $this->components->twoColumnDetail('Abilities', implode(', ', $abilities));
         $this->line($token);
 
