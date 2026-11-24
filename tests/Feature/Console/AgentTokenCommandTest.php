@@ -5,6 +5,7 @@ namespace Panneau\Tests\Feature\Console;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Laravel\Passport\Token;
 use Laravel\Sanctum\PersonalAccessToken;
 use Orchestra\Testbench\Attributes\WithMigration;
 use Panneau\Context\ContextParam;
@@ -133,6 +134,20 @@ class PassportUser extends Authenticatable
      */
     public function createToken(string $name, array $scopes = []): object
     {
-        return (object) ['accessToken' => 'passport-token'];
+        // As Passport's PersonalAccessTokenResult: the JWT, and the stored token
+        return new class($name, $scopes)
+        {
+            public string $accessToken = 'passport-token';
+
+            /**
+             * @param  array<int, string>  $scopes
+             */
+            public function __construct(private readonly string $name, private readonly array $scopes) {}
+
+            public function getToken(): Token
+            {
+                return (new Token)->forceFill(['id' => 'a-token', 'name' => $this->name, 'scopes' => $this->scopes, 'created_at' => now()]);
+            }
+        };
     }
 }
