@@ -9,6 +9,7 @@ use Illuminate\Validation\ValidationException;
 use MessageFormatter;
 use Panneau\Actions\Action;
 use Panneau\Actions\Confirm;
+use Panneau\Actions\DeleteAction;
 use Panneau\Agents\Confirmation;
 use Panneau\Agents\ResourceDescription;
 use Panneau\Agents\ToolCall;
@@ -69,6 +70,14 @@ final class RunAction extends BaseTool
     public function readOnly(): bool
     {
         return false;
+    }
+
+    /**
+     * An action can delete items, or change items that its selection only names by a query.
+     */
+    public function destructive(): bool
+    {
+        return true;
     }
 
     public function inputSchema(): array
@@ -230,7 +239,8 @@ final class RunAction extends BaseTool
     }
 
     /**
-     * The action's own confirmation message, with `{count}`, or a sentence with its label.
+     * The action's own confirmation message, with `{count}`, or a sentence with its label, which
+     * says when the action destroys what can't be undone.
      *
      * @param  array<string, mixed>|null  $described
      */
@@ -245,6 +255,15 @@ final class RunAction extends BaseTool
             return is_string($formatted) ? $formatted : $message;
         }
         $label = is_string($described['label'] ?? null) ? $described['label'] : $id;
+        $final = ($described['destructive'] ?? false) === true && ($described['undoable'] ?? false) !== true;
+        if ($final && $action instanceof DeleteAction && $count !== null) {
+            return trans_choice('Delete :count item? This can\'t be undone.|Delete :count items? This can\'t be undone.', $count);
+        }
+        if ($final) {
+            return $count === null
+                ? __('Run “:action”? This can\'t be undone.', ['action' => $label])
+                : trans_choice('Run “:action” on :count item? This can\'t be undone.|Run “:action” on :count items? This can\'t be undone.', $count, ['action' => $label]);
+        }
 
         return $count === null
             ? __('Run “:action”?', ['action' => $label])

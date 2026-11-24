@@ -55,6 +55,13 @@ class Tags extends Field
         return count($this->options) > 0 ? ['options' => $this->options] : [];
     }
 
+    public function example(): mixed
+    {
+        $values = array_map(fn (array $option): string => (string) $option['value'], $this->options);
+
+        return $this->allowCustom || $values === [] ? ['news', 'culture'] : array_slice($values, 0, 2);
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return ['array'];

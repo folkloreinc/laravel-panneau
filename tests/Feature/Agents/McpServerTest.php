@@ -67,6 +67,24 @@ class McpServerTest extends HttpTestCase
         $this->assertFalse($tools['run_action']['annotations']['readOnlyHint']);
     }
 
+    public function test_the_annotations_of_the_tools(): void
+    {
+        $this->actingAs(new TokenUser(['id' => 1], ['mcp:use', 'panneau:write']));
+        $annotations = array_map(
+            fn (array $annotations): array => array_diff_key($annotations, ['title' => true]),
+            array_column($this->listTools(), 'annotations', 'name'),
+        );
+
+        $read = ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false];
+        $this->assertEquals([
+            'describe' => $read,
+            'find_items' => $read,
+            'get_item' => $read,
+            'save_item' => ['readOnlyHint' => false, 'destructiveHint' => false, 'openWorldHint' => false],
+            'run_action' => ['readOnlyHint' => false, 'destructiveHint' => true, 'openWorldHint' => false],
+        ], $annotations);
+    }
+
     public function test_describe(): void
     {
         PanneauServer::tool($this->tool(Describe::class), ['resource' => 'posts', 'parts' => ['list']])
@@ -170,6 +188,11 @@ class WritingTool implements Tool
     }
 
     public function readOnly(): bool
+    {
+        return false;
+    }
+
+    public function destructive(): bool
     {
         return false;
     }

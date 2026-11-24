@@ -149,6 +149,13 @@ class DateRange extends Field
         return $zone;
     }
 
+    public function example(): mixed
+    {
+        return $this->hasTime()
+            ? ['start' => '2026-11-04T19:00:00-05:00', 'end' => '2026-11-04T21:00:00-05:00']
+            : ['start' => '2026-11-04', 'end' => '2026-11-06'];
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         $required = $this->isRequired($context->mode);

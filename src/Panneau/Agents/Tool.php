@@ -32,6 +32,12 @@ interface Tool
     public function readOnly(): bool;
 
     /**
+     * Whether a call can delete or overwrite more than what it is given: `destructiveHint` over
+     * MCP. Only meaningful for a tool that writes.
+     */
+    public function destructive(): bool;
+
+    /**
      * Runs the tool. An error is a result, never an exception.
      */
     public function handle(ToolCall $call): ToolResult;

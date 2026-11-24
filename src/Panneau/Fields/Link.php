@@ -287,6 +287,26 @@ class Link extends Field
         };
     }
 
+    /**
+     * A link of the first type that takes a URL: `url`, `email` or `tel`.
+     */
+    public function example(): mixed
+    {
+        $urls = ['url' => 'https://example.com', 'email' => 'mailto:hello@example.com', 'tel' => 'tel:+15145550199'];
+        foreach ($this->getTypes() as $type) {
+            if (isset($urls[$type['id']])) {
+                $link = ['type' => $type['id'], 'url' => $urls[$type['id']]];
+                if ($this->getLinkLabel() === 'required') {
+                    $link['label'] = $this->localized ? 'Example' : [app()->getLocale() => 'Example'];
+                }
+
+                return $link;
+            }
+        }
+
+        return null;
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return ['array'];

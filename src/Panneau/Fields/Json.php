@@ -17,6 +17,11 @@ class Json extends Field
         return 'json';
     }
 
+    public function example(): mixed
+    {
+        return ['key' => 'value'];
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return ['array'];

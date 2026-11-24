@@ -2,6 +2,7 @@
 
 namespace Panneau\Operations;
 
+use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -31,11 +32,14 @@ final class Search
      * @param  array<string, mixed>  $parameters  As in the query string: `q`, `resources` and
      *                                            `limit`.
      * @param  Request  $request  For the scope of the resources and the media of the values.
+     * @param  (Closure(resource): (list<string>|null))|null  $fields  The fields of the items of
+     *                                                                 each resource. Without it,
+     *                                                                 or for null: every field.
      * @return array{data: list<array{resource: string, items: list<array<string, mixed>>, total: int}>}
      *
      * @throws ValidationException When the parameters are invalid.
      */
-    public function handle(?Authenticatable $user, array $parameters, Request $request): array
+    public function handle(?Authenticatable $user, array $parameters, Request $request, ?Closure $fields = null): array
     {
         // Resources the user can't list are not searchable: naming one is the same 422 as
         // naming a resource that doesn't exist
@@ -63,12 +67,13 @@ final class Search
             }
             $left -= count($items);
             $references->preload($resource, $items);
+            $only = $fields !== null ? $fields($resource) : null;
             $data[] = [
                 'resource' => $id,
                 'items' => array_map(fn (object $item): array => $this->serializer->serialize(
                     $resource,
                     $item,
-                    null,
+                    $only,
                     $this->authorizer->itemAbilities($user, $resource, $item),
                     $references,
                     $this->authorizer->hiddenFields($user, $resource, $resource->typeOf($item)),

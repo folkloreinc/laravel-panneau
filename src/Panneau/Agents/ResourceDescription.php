@@ -127,6 +127,8 @@ final class ResourceDescription
                 'multiple' => ($field['multiple'] ?? false) === true ?: null,
                 'options' => self::options($field['options'] ?? []),
                 'resource' => $field['resource'] ?? null,
+                // Not in the definition of the app: `describe` adds it from the field
+                'example' => $field['example'] ?? null,
                 'fields' => isset($field['fields']) ? $this->fields($field['fields'], $blockTypeSets) : null,
                 'types' => array_map(fn (array $type): array => self::withoutEmpty([
                     'id' => $type['id'] ?? null,

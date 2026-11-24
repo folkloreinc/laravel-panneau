@@ -16,9 +16,9 @@ use Panneau\Http\Middleware\AuthorizeAgents;
 
 /**
  * A tool of Panneau served by `laravel/mcp`: its name, description and raw JSON Schema, and
- * annotations from `readOnly()`. A call carries the token of the connection as its agent. A
- * result is structured content; a problem is an error with the problem's JSON. Only loaded with
- * `laravel/mcp`.
+ * annotations from `readOnly()` and `destructive()`. A call carries the token of the connection as
+ * its agent. A result is structured content; a problem is an error with the problem's JSON. Only
+ * loaded with `laravel/mcp`.
  */
 final class McpTool extends Tool
 {
@@ -46,7 +46,7 @@ final class McpTool extends Tool
     {
         return $this->tool->readOnly()
             ? ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false]
-            : ['readOnlyHint' => false, 'openWorldHint' => false];
+            : ['readOnlyHint' => false, 'destructiveHint' => $this->tool->destructive(), 'openWorldHint' => false];
     }
 
     /**

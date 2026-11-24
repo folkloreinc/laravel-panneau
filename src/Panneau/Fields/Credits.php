@@ -94,6 +94,24 @@ class Credits extends Repeater
     }
 
     /**
+     * One credit: a person, or their name, their roles, and the fields of `append()` that give
+     * an example.
+     */
+    public function example(): mixed
+    {
+        $credit = $this->people !== null ? ['person' => '1'] : ['name' => 'Ada Lovelace'];
+        $credit['roles'] = $this->roles !== null ? ['1'] : 'Director';
+        $credit['featured'] = true;
+        foreach ($this->appended as $field) {
+            if ($field->example() !== null) {
+                $credit[$field->name()] = $field->example();
+            }
+        }
+
+        return [$credit];
+    }
+
+    /**
      * @return list<Field>
      */
     private function buildFields(): array

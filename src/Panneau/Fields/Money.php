@@ -60,6 +60,11 @@ class Money extends Field
         return $currencies !== [] ? $currencies : Currency::CODES;
     }
 
+    public function example(): mixed
+    {
+        return ['amount' => 1250, 'currency' => $this->allowed()[0] ?? 'CAD'];
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return [function (string $attribute, mixed $value, Closure $fail): void {
