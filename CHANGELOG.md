@@ -7,6 +7,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 ## [Unreleased]
 
 - `Panneau\Agents\ResourceDescription` (#262, [decisions/0025](docs/decisions/0025-five-tools-read-first.md)): the compact description of resources for agents, built from the definition of the user. `resources()` gives the resources they can list, with the `description()` of each; `resource()` gives the fields, the filters and sorts of the list, and the server actions they can run, with the built-in `delete`, `restore` and `duplicate`. `Resource::description()` tells an agent what a resource is for.
+- The read tools of agents (#265, [decisions/0025](docs/decisions/0025-five-tools-read-first.md)): `Panneau\Agents\Tool`, called with a `ToolCall` (the user, the arguments, the request) and answering a `ToolResult` (data, or the problem the API would answer), and the tools `describe`, `find_items` and `get_item` (`Panneau\Agents\Tools`), with the arguments and results of the protocol. A wrong argument, or one of the other mode, is a `422` with `errors` by argument. The labels of the built-in actions in a resource description are translated (`Delete`, `Restore`, `Duplicate`). `Problem::body()` and `Problem::bodyFromThrowable()` give the body of a problem without a response.
 
 ## [5.0.0-alpha.27] - 2026-11-20
 
