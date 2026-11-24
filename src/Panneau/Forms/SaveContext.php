@@ -3,6 +3,7 @@
 namespace Panneau\Forms;
 
 use Closure;
+use Panneau\Agents\AgentCaller;
 use Panneau\Uploads\Upload;
 use Throwable;
 
@@ -32,11 +33,14 @@ final class SaveContext
     /**
      * @param  object|null  $item  The item being updated, as it was before this save. Null on create.
      * @param  (Closure(mixed): ?Upload)|null  $uploads  Resolves an upload reference for the user.
+     * @param  AgentCaller|null  $agent  The agent that saves the item through a tool, for the
+     *                                   fields and revisions that record it. Null outside tools.
      */
     public function __construct(
         public readonly FormMode $mode = FormMode::Create,
         public readonly ?object $item = null,
         private readonly ?Closure $uploads = null,
+        public readonly ?AgentCaller $agent = null,
     ) {}
 
     /**

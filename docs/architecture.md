@@ -961,7 +961,7 @@ Panneau::menu('main', fn (Context $context): array => [
 
 ## Agents
 
-See [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), amended by [decisions/0025](decisions/0025-five-tools-read-first.md). Agents call tools as the signed-in user: `describe`, `find_items` and `get_item` (`Panneau\Agents\Tools`), listed in `panneau.agents.tools`, run the same operations as the API.
+See [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), amended by [decisions/0025](decisions/0025-five-tools-read-first.md). Agents call tools as the signed-in user: `describe`, `find_items`, `get_item` and `save_item` (`Panneau\Agents\Tools`), listed in `panneau.agents.tools`, run the same operations as the API.
 
 - **The MCP server** ([#267](https://github.com/folkloreinc/laravel-panneau/issues/267)), off by default, needs `laravel/mcp` (`^1.2`) and a token guard, `laravel/sanctum` by default:
 
@@ -972,9 +972,11 @@ See [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), am
   ```
 
   `Panneau::mcpRoutes()` registers nothing while `panneau.agents.mcp.enabled` is false, and throws a `LogicException` when it is on without `laravel/mcp`. **The MCP server works for a Panneau without contexts**: it doesn't send one yet, and the scope of a resource that reads the context would be wrong without it, so `Panneau::mcpRoutes()` throws a `LogicException` for a Panneau that declares a context, and the server answers a `501` problem for a context declared after the routes. The route has no session: a session cookie without a token is a `401`. The route has `auth:{panneau.agents.mcp.guard}`, `panneau.agents` (the `viewPanneau` gate, `usePanneauAgents` when the project defines it, and a token with the `mcp:use` ability, else a `403` problem), the language of the interface, and the `panneau-agents` rate limiter (`panneau.agents.rate_limit` calls a minute per user). The user model needs `tokenCan()` and `createToken()`: Sanctum's `HasApiTokens`.
-- **Tools.** `PanneauServer` serves an `McpTool` for each tool, with its own JSON Schema and a `readOnlyHint`. A result is structured content; a problem is an error whose text is the problem's JSON. A tool that writes is left out of a connection whose token doesn't have `panneau:write` (no tool writes yet).
+- **Tools.** `PanneauServer` serves an `McpTool` for each tool, with its own JSON Schema and a `readOnlyHint`. A result is structured content; a problem is an error whose text is the problem's JSON. A tool that writes is left out of a connection whose token doesn't have `panneau:write`: `laravel/mcp` answers a call of it by name with "tool not found". A call carries the connection as an `AgentCaller` (for a personal token, its id and name).
+- **`save_item`** ([#272](https://github.com/folkloreinc/laravel-panneau/issues/272)) creates an item with `CreateItem` (its `type` merged into the values, as in the body of `POST`), or changes one with `UpdateItem` when it has an `id`. Its `version` is the `If-Match`, quoted, so that it matches only that version: a stale one is the `412` problem with the current item, as the API answers. A `version` of `null` is the empty tag, which only an item without a version matches: an item of a repository with versions is never saved without its check. `id` without `version`, `version` without `id`, and `type` with `id` are `422` problems by argument. The result is the item as `get_item` gives it, with its new `version`.
+- **Who called.** `SaveContext::$agent` is the `AgentCaller` of a save through a tool, null through the API, for the fields, hooks and revisions that record it (`CreateItem` and `UpdateItem` take it as their last argument). After each call of a tool that writes that succeeds, the base tool dispatches `Panneau\Events\AgentToolCalled`, with the user, the agent, the tool, the resource and the ids of the items: Panneau keeps no log of its own.
 - **Personal tokens.** `php artisan panneau:agent-token {user} {--write} {--name=}` finds the user (an id or an email) on the provider of `panneau.auth.guard`, creates a token with `mcp:use` (and `panneau:write` with `--write`) through `createToken()`, and shows it once with the URL of the server.
-- **Not built yet:** OAuth and the connections of the account page, the context of the URL, the tools that write, the assistant inside Panneau.
+- **Not built yet:** OAuth and the connections of the account page, the context of the URL, `run_action` and its confirmations, the assistant inside Panneau.
 
 ## Auth
 

@@ -10,7 +10,7 @@ use Panneau\Operations\ShowItem;
 /**
  * `get_item`: an item of a resource, with its `version`.
  */
-final class GetItem extends ReadTool
+final class GetItem extends BaseTool
 {
     public function __construct(
         ValidatorFactory $validator,
@@ -29,6 +29,11 @@ final class GetItem extends ReadTool
     {
         return 'Gets an item of a resource by its id, with every field you can see, or only `fields`. '
             .'Its `version` is what `save_item` needs to change it. Find ids with `find_items`.';
+    }
+
+    public function readOnly(): bool
+    {
+        return true;
     }
 
     public function inputSchema(): array

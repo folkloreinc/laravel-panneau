@@ -4,12 +4,15 @@ namespace Panneau\Tests\Feature\Agents;
 
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use LogicException;
 use Orchestra\Testbench\Attributes\WithMigration;
 use Panneau\Context\ContextParam;
+use Panneau\Events\AgentToolCalled;
 use Panneau\Support\Facade as Panneau;
+use TestApp\Models\Post;
 use TestApp\Panneau\Resources\AuthorsResource;
 
 /**
@@ -32,6 +35,40 @@ class McpRoutesTest extends McpTestCase
             ->assertOk()
             ->assertJsonPath('result.isError', false)
             ->assertJsonPath('result.structuredContent.data.0.title', 'Featured');
+    }
+
+    public function test_a_token_that_writes_saves_items_as_its_agent(): void
+    {
+        Event::fake([AgentToolCalled::class]);
+        $token = $this->createUser()->createToken('assistant', ['mcp:use', 'panneau:write']);
+
+        $this->rpc($token->plainTextToken, 'tools/list')
+            ->assertOk()
+            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item'])
+            ->assertJsonPath('result.tools.3.annotations.readOnlyHint', false);
+
+        $values = ['title' => 'By an agent', 'status' => 'draft', 'preview_password' => 'a long secret'];
+        $this->rpc($token->plainTextToken, 'tools/call', ['name' => 'save_item', 'arguments' => ['resource' => 'posts', 'values' => $values]])
+            ->assertOk()
+            ->assertJsonPath('result.isError', false)
+            ->assertJsonPath('result.structuredContent.title', 'By an agent');
+
+        $this->assertSame(1, Post::query()->where('title', 'By an agent')->count());
+        Event::assertDispatched(AgentToolCalled::class, fn (AgentToolCalled $event): bool => $event->agent?->id === (string) $token->accessToken->getKey()
+            && $event->agent->name === 'assistant');
+    }
+
+    public function test_a_token_that_reads_can_not_call_save_item(): void
+    {
+        $token = $this->createUser()->createToken('agent', ['mcp:use'])->plainTextToken;
+
+        // Not registered for the token: laravel/mcp answers that the tool doesn't exist
+        $this->rpc($token, 'tools/call', ['name' => 'save_item', 'arguments' => ['resource' => 'posts', 'values' => ['title' => 'Refused', 'status' => 'draft', 'preview_password' => 'a long secret']]])
+            ->assertStatus(400)
+            ->assertJsonPath('error.code', -32602)
+            ->assertJsonPath('error.message', 'Tool [save_item] not found.');
+
+        $this->assertSame(0, Post::query()->count());
     }
 
     public function test_without_a_token_it_is_unauthorized(): void

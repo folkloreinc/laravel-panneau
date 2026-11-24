@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * `describe`: the resources the user can list, or one of them, from their definition.
  */
-final class Describe extends ReadTool
+final class Describe extends BaseTool
 {
     public function __construct(
         ValidatorFactory $validator,
@@ -35,6 +35,11 @@ final class Describe extends ReadTool
         return 'Describes the content you can work with. Without `resource`, lists the resources you can read. '
             .'With `resource`, describes it: its fields, the filters and sorts of its list, and its actions (`parts` picks some of them). '
             .'Call it before `find_items` to know which filters, sorts and fields a resource takes.';
+    }
+
+    public function readOnly(): bool
+    {
+        return true;
     }
 
     public function inputSchema(): array

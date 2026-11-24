@@ -9,14 +9,16 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Tool;
+use Panneau\Agents\AgentCaller;
 use Panneau\Agents\Tool as PanneauTool;
 use Panneau\Agents\ToolCall;
 use Panneau\Http\Middleware\AuthorizeAgents;
 
 /**
  * A tool of Panneau served by `laravel/mcp`: its name, description and raw JSON Schema, and
- * annotations from `readOnly()`. A result is structured content; a problem is an error with the
- * problem's JSON. Only loaded with `laravel/mcp`.
+ * annotations from `readOnly()`. A call carries the token of the connection as its agent. A
+ * result is structured content; a problem is an error with the problem's JSON. Only loaded with
+ * `laravel/mcp`.
  */
 final class McpTool extends Tool
 {
@@ -83,7 +85,8 @@ final class McpTool extends Tool
 
     public function handle(Request $request, HttpRequest $http): Response|ResponseFactory
     {
-        $result = $this->tool->handle(new ToolCall($request->user() ?? $http->user(), $request->all(), $http));
+        $user = $request->user() ?? $http->user();
+        $result = $this->tool->handle(new ToolCall($user, $request->all(), $http, AgentCaller::fromUser($user)));
         if ($result->problem !== null) {
             return Response::error((string) json_encode($result->problem, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
