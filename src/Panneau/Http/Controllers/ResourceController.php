@@ -2,32 +2,22 @@
 
 namespace Panneau\Http\Controllers;
 
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Contracts\Validation\Factory as ValidationFactory;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Validation\ValidationException;
 use Panneau\Auth\Authorizer;
-use Panneau\Contracts\Repositories\Duplicable;
-use Panneau\Definition\DefinitionBuilder;
-use Panneau\Exceptions\VersionConflictException;
-use Panneau\Fields\Slug;
-use Panneau\Forms\Form;
-use Panneau\Forms\FormMode;
-use Panneau\Forms\SaveContext;
-use Panneau\Http\Controllers\Concerns\ResolvesResources;
+use Panneau\Http\Controllers\Concerns\ReadsRouteParameters;
 use Panneau\Media\MediaReferences;
+use Panneau\Operations\Concerns\ResolvesItems;
+use Panneau\Operations\Concerns\SerializesItems;
+use Panneau\Operations\CreateItem;
+use Panneau\Operations\DeleteItem;
+use Panneau\Operations\DuplicateItem;
 use Panneau\Operations\ListItems;
 use Panneau\Operations\ShowItem;
-use Panneau\Resources\FieldChecks;
+use Panneau\Operations\UpdateItem;
 use Panneau\Resources\ItemSerializer;
-use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
-use Panneau\Uploads\Uploads;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Throwable;
 
 /**
  * The resource endpoints: list, show, create, update, duplicate and delete.
@@ -36,18 +26,20 @@ use Throwable;
  */
 final class ResourceController
 {
-    use ResolvesResources;
+    use ReadsRouteParameters;
+    use ResolvesItems;
+    use SerializesItems;
 
     public function __construct(
         private readonly ResourceRegistry $resources,
         private readonly Authorizer $authorizer,
         private readonly ItemSerializer $serializer,
-        private readonly DefinitionBuilder $definition,
-        private readonly ValidationFactory $validator,
-        private readonly Uploads $uploads,
-        private readonly FieldChecks $checks,
         private readonly ListItems $listItems,
         private readonly ShowItem $showItem,
+        private readonly CreateItem $createItem,
+        private readonly UpdateItem $updateItem,
+        private readonly DuplicateItem $duplicateItem,
+        private readonly DeleteItem $deleteItem,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -75,119 +67,28 @@ final class ResourceController
 
     public function store(Request $request): JsonResponse
     {
-        $resource = $this->findResource($this->routeParameter($request, 'resource'));
-        $this->authorizeResource($request, $resource, 'create');
-        $type = $this->creatableType($request, $resource);
-
-        $uploads = $this->uploadResolver($request);
-        $references = $this->mediaReferences($request);
-        // The values of fields the user can't see or edit are ignored (panneau-js decision 0046)
-        $fields = $this->authorizer->writableFields($request->user(), $resource, $type);
-        $values = Form::validate(
-            $this->validator,
-            $fields,
+        $created = $this->createItem->handle(
+            $request->user(),
+            $this->routeParameter($request, 'resource'),
             $request->all(),
-            $this->validationContext(
-                $request,
-                FormMode::Create,
-                uploads: $uploads,
-                media: $references,
-                valueExists: $this->checks->lookup($resource, $request, null, $request->all(), $references, $type),
-            ),
-            $resource->formLayout(),
+            $request,
         );
-        $saving = new SaveContext(FormMode::Create, null, $uploads);
-        try {
-            $values = Form::prepare($fields, $values, $saving);
-            if ($type !== null) {
-                $values[Resource::ITEM_TYPE] = $type;
-            }
-            $values = $resource->creating($values, $request);
-            $item = $this->resources->repository($resource)->create($values, $resource->repositoryScope($request));
-        } catch (Throwable $exception) {
-            $saving->failed();
 
-            throw $exception;
-        }
-        $saving->saved($item);
-        $resource->created($item, $values, $request);
-        $resource->saved($item, $values, $request);
-
-        return $this->itemResponse($request, $resource, $item, 201, $references);
+        return $this->itemResponse($request, $created['item'], 201, $created['references']);
     }
 
     public function update(Request $request): JsonResponse
     {
-        $resource = $this->findResource($this->routeParameter($request, 'resource'));
-        $repository = $this->resources->repository($resource);
-        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
-        $this->authorizeItem($request, $resource, 'update', $item);
-
-        $version = $repository->version($item);
-        if ($version !== null && ! $this->matches($request->header('If-Match'), $version)) {
-            throw new VersionConflictException($this->item($request, $resource, $item));
-        }
-
-        $uploads = $this->uploadResolver($request);
-        $references = $this->mediaReferences($request);
-        // The fields of the item's type, which never changes: the `type` field is left out of
-        // forms, so its value is ignored
-        $type = $resource->typeOf($item);
-        $fields = $this->authorizer->writableFields($request->user(), $resource, $type);
-        $values = Form::validate(
-            $this->validator,
-            $fields,
+        $updated = $this->updateItem->handle(
+            $request->user(),
+            $this->routeParameter($request, 'resource'),
+            $this->routeParameter($request, 'id'),
             $request->all(),
-            $this->validationContext(
-                $request,
-                FormMode::Update,
-                partial: true,
-                item: $item,
-                uploads: $uploads,
-                media: $references,
-                valueExists: $this->checks->lookup($resource, $request, $item, $request->all(), $references, $type),
-            ),
-            $resource->formLayout(),
+            $request->header('If-Match'),
+            $request,
         );
-        $saving = new SaveContext(FormMode::Update, $item, $uploads);
-        try {
-            $values = Form::prepare($fields, $values, $saving);
-            $values = $resource->updating($item, $values, $request);
-            $item = $repository->update($item, $values);
-        } catch (Throwable $exception) {
-            $saving->failed();
 
-            throw $exception;
-        }
-        $saving->saved($item);
-        $resource->updated($item, $values, $request);
-        $resource->saved($item, $values, $request);
-
-        return $this->itemResponse($request, $resource, $item, references: $references);
-    }
-
-    /**
-     * The type of a new item, in a resource with types (panneau-js decision 0077): the `type` of
-     * the body, one of the resource's types, that the user can create. Null for a resource
-     * without types.
-     */
-    private function creatableType(Request $request, Resource $resource): ?string
-    {
-        if (! $resource->hasTypes()) {
-            return null;
-        }
-        $id = $request->input(Resource::ITEM_TYPE);
-        $type = is_string($id) ? $resource->resourceType($id) : null;
-        if ($type === null) {
-            throw ValidationException::withMessages([
-                Resource::ITEM_TYPE => [__('The type is not a type of this resource.')],
-            ]);
-        }
-        if (! $type->canCreate($request->user())) {
-            throw new AuthorizationException(__('Items of this type can\'t be created.'));
-        }
-
-        return $type->id();
+        return $this->itemResponse($request, $updated['item'], references: $updated['references']);
     }
 
     /**
@@ -196,113 +97,34 @@ final class ResourceController
      */
     public function duplicate(Request $request): JsonResponse
     {
-        $resource = $this->findResource($this->routeParameter($request, 'resource'));
-        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
-        $repository = $this->resources->repository($resource);
-        // The copy is answered in full: never for an item the user can't view
-        $this->authorizeItem($request, $resource, 'view', $item);
-        $duplication = $this->resources->duplication($resource);
-        if ($duplication === null || ! $repository instanceof Duplicable || ! $this->authorizer->allowsDuplicate($request->user(), $resource, $item)) {
-            throw new AuthorizationException;
-        }
+        $copy = $this->duplicateItem->handle(
+            $request->user(),
+            $this->routeParameter($request, 'resource'),
+            $this->routeParameter($request, 'id'),
+            $request,
+        );
 
-        try {
-            $copy = $repository->duplicate(
-                $item,
-                $resource->repositoryScope($request),
-                $duplication,
-                $this->copyValues($request, $resource, $item),
-                fn (object $copy) => $resource->duplicating($item, $copy, $request),
-                fn (object $copy) => $resource->duplicated($item, $copy, $request),
-            );
-        } catch (UniqueConstraintViolationException) {
-            // A unique value that isn't a unique slug: nothing is saved
-            throw new ConflictHttpException(__('The copy has a value that another item already has.'));
-        }
-
-        return $this->itemResponse($request, $resource, $copy, 201);
-    }
-
-    /**
-     * The values of the copy of an item: a free value for each unique slug.
-     *
-     * @return array<string, mixed>
-     */
-    private function copyValues(Request $request, Resource $resource, object $item): array
-    {
-        $exists = $this->checks->lookup($resource, $request, $item, [], $this->mediaReferences($request));
-        $values = [];
-        foreach ($resource->itemFields($item) as $field) {
-            if ($field instanceof Slug && $field->isUnique()) {
-                $values[$field->name()] = $field->copyValue(
-                    $field->resolve($item),
-                    fn (string $value, ?string $locale): bool => $exists($field->name(), $value, $locale, $field->uniqueScope()),
-                );
-            }
-        }
-
-        return $values;
+        return $this->itemResponse($request, $copy, 201);
     }
 
     public function destroy(Request $request): Response
     {
-        $resource = $this->findResource($this->routeParameter($request, 'resource'));
-        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
-        $this->authorizeItem($request, $resource, 'delete', $item);
-
-        $resource->deleting($item);
-        $this->resources->repository($resource)->delete($item);
-        $resource->deleted($item);
+        $this->deleteItem->handle(
+            $request->user(),
+            $this->routeParameter($request, 'resource'),
+            $this->routeParameter($request, 'id'),
+            $request,
+        );
 
         return new Response(status: 204);
     }
 
-    /**
-     * @param  list<string>|null  $fields
-     * @return array<string, mixed>
-     */
-    private function item(Request $request, Resource $resource, object $item, ?array $fields = null, ?MediaReferences $references = null): array
+    private function itemResponse(Request $request, object $item, int $status = 200, ?MediaReferences $references = null): JsonResponse
     {
-        return $this->serializer->serialize(
-            $resource,
-            $item,
-            $fields,
-            $this->authorizer->itemAbilities($request->user(), $resource, $item),
-            $references ?? $this->mediaReferences($request),
-            $this->authorizer->hiddenFields($request->user(), $resource, $resource->typeOf($item)),
-        );
-    }
-
-    private function itemResponse(Request $request, Resource $resource, object $item, int $status = 200, ?MediaReferences $references = null): JsonResponse
-    {
-        $data = $this->item($request, $resource, $item, references: $references);
+        $resource = $this->findResource($this->routeParameter($request, 'resource'));
+        $data = $this->serializeItem($request->user(), $resource, $item, $references ?? $this->mediaReferences($request));
         $headers = is_string($data['version']) ? ['ETag' => '"'.$data['version'].'"'] : [];
 
         return new JsonResponse(['data' => $data], $status, $headers);
-    }
-
-    /**
-     * Whether an `If-Match` header matches a version. No header always matches: the check is
-     * up to the client.
-     */
-    private function matches(?string $header, string $version): bool
-    {
-        if ($header === null || trim($header) === '') {
-            return true;
-        }
-        foreach (explode(',', $header) as $tag) {
-            $tag = trim($tag);
-            if ($tag === '*') {
-                return true;
-            }
-            if (str_starts_with($tag, 'W/')) {
-                $tag = substr($tag, 2);
-            }
-            if (trim($tag, '"') === $version) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
