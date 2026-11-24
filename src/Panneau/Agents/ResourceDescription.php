@@ -2,6 +2,7 @@
 
 namespace Panneau\Agents;
 
+use Illuminate\Contracts\Translation\Translator;
 use InvalidArgumentException;
 use Panneau\Resources\Resource;
 
@@ -9,13 +10,20 @@ use Panneau\Resources\Resource;
  * The compact description of resources that the `describe` tool gives an agent (decision 0025):
  * what an agent needs to read and write items, built from the definition of the user, so that
  * what they can't see or do isn't in it. Nothing of the UI: no layout, columns, icons or
- * placements. Pure: an array in, an array out.
+ * placements. Pure: an array in, an array out, with the labels of the built-in actions
+ * translated by the translator it is given.
  */
 final class ResourceDescription
 {
     public const PARTS = ['fields', 'list', 'actions'];
 
-    private const BUILT_IN_LABELS = ['delete' => 'Delete', 'restore' => 'Restore', 'duplicate' => 'Duplicate'];
+    /**
+     * @param  Translator|null  $translator  Translates the labels of the built-in actions, in
+     *                                       the current locale. Null: they stay in English.
+     */
+    public function __construct(
+        private readonly ?Translator $translator = null,
+    ) {}
 
     /**
      * The resources the user can list, from the `resources` of their definition.
@@ -190,7 +198,7 @@ final class ResourceDescription
             $undoable = ($action['undoable'] ?? false) === true;
             $actions[] = self::withoutEmpty([
                 'id' => $id,
-                'label' => $action['label'] ?? self::BUILT_IN_LABELS[$id] ?? null,
+                'label' => $action['label'] ?? $this->builtInLabel($id),
                 'scope' => $action['scope'] ?? null,
                 'fields' => $this->fields($action['fields'] ?? [], $blockTypeSets),
                 'destructive' => $destructive ?: null,
@@ -202,6 +210,26 @@ final class ResourceDescription
         }
 
         return $actions;
+    }
+
+    /**
+     * The label of a built-in action: its translation is the project's, as for every label of
+     * the package.
+     */
+    private function builtInLabel(mixed $id): ?string
+    {
+        $label = match ($id) {
+            'delete' => 'Delete',
+            'restore' => 'Restore',
+            'duplicate' => 'Duplicate',
+            default => null,
+        };
+        if ($label === null || $this->translator === null) {
+            return $label;
+        }
+        $translated = $this->translator->get($label);
+
+        return is_string($translated) ? $translated : $label;
     }
 
     /**

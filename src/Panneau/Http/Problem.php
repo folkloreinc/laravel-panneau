@@ -64,6 +64,26 @@ final class Problem
         array $extra = [],
         array $headers = [],
     ): JsonResponse {
+        return new JsonResponse(
+            self::body($status, $title, $type, $detail, $extra),
+            $status,
+            array_merge($headers, ['Content-Type' => self::CONTENT_TYPE]),
+        );
+    }
+
+    /**
+     * The body of a problem, as `response()` sends it.
+     *
+     * @param  array<string, mixed>  $extra  Extension members: `errors`, `current`…
+     * @return array<string, mixed>
+     */
+    public static function body(
+        int $status,
+        ?string $title = null,
+        string $type = 'about:blank',
+        ?string $detail = null,
+        array $extra = [],
+    ): array {
         $body = [
             'type' => $type,
             'title' => $title ?? (Response::$statusTexts[$status] ?? 'Error'),
@@ -73,11 +93,7 @@ final class Problem
             $body['detail'] = $detail;
         }
 
-        return new JsonResponse(
-            array_merge($body, $extra),
-            $status,
-            array_merge($headers, ['Content-Type' => self::CONTENT_TYPE]),
-        );
+        return array_merge($body, $extra);
     }
 
     /**
@@ -138,6 +154,19 @@ final class Problem
             ),
             default => self::response(500, detail: $debug ? $exception->getMessage() : null),
         };
+    }
+
+    /**
+     * The body of the problem for an exception, as `fromThrowable()` sends it: for what isn't
+     * an HTTP response, such as the result of a tool.
+     *
+     * @return array<string, mixed>
+     */
+    public static function bodyFromThrowable(Throwable $exception, bool $debug = false): array
+    {
+        $body = self::fromThrowable($exception, $debug)->getData(true);
+
+        return is_array($body) ? $body : [];
     }
 
     private static function customMessage(string $message, string $default): ?string
