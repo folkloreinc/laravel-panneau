@@ -3,11 +3,14 @@
 namespace Panneau\Agents;
 
 use DateTimeInterface;
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use Laravel\Passport\Client;
+use Laravel\Passport\ClientRepository;
+use Laravel\Passport\HasApiTokens as PassportTokens;
 use Laravel\Passport\Passport;
 use Laravel\Passport\Token;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -106,6 +109,37 @@ final class Connections
     }
 
     /**
+     * Whether a personal token can be made for the user: the user's model has `createToken()`,
+     * a lifetime in the config is one its package can store, and with Passport, a personal access
+     * client exists for the user's provider, as Passport's `ClientRepository` resolves it. One
+     * query with Passport, none with Sanctum: the definition asks it.
+     */
+    public function canCreateTokens(object $user): bool
+    {
+        if (! method_exists($user, 'createToken')) {
+            return false;
+        }
+        try {
+            $expiresAt = $this->expiry();
+        } catch (InvalidArgumentException) {
+            return false;
+        }
+        if ($expiresAt !== null && ! self::takesExpiry($user)) {
+            return false;
+        }
+        if (! class_exists(Passport::class) || ! in_array(PassportTokens::class, class_uses_recursive($user), true) || ! method_exists($user, 'getProviderName')) {
+            return true;
+        }
+        try {
+            Container::getInstance()->make(ClientRepository::class)->personalAccessClient($user->getProviderName());
+        } catch (RuntimeException|LogicException) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Makes a personal token of the user for the MCP server, with `createToken()` of the user's
      * model (Sanctum's `HasApiTokens`, or Passport's): `mcp:use`, and `panneau:write` when it
      * writes. Sanctum stores the expiry; Passport sets the lifetime of its personal tokens
@@ -119,7 +153,7 @@ final class Connections
             throw new LogicException(sprintf('%s has no createToken(): use the HasApiTokens trait of laravel/sanctum (or laravel/passport).', $user::class));
         }
         // Sanctum takes the expiry as its third argument; Passport has none
-        if ($expiresAt !== null && (new \ReflectionMethod($user, 'createToken'))->getNumberOfParameters() < 3) {
+        if ($expiresAt !== null && ! self::takesExpiry($user)) {
             throw new LogicException(sprintf('%s::createToken() takes no expiry: with laravel/passport, the lifetime of personal tokens is set by Passport::personalAccessTokensExpireIn().', $user::class));
         }
 
@@ -144,6 +178,15 @@ final class Connections
         }
 
         return new ConnectionToken($plainText, $this->tokenConnection($model));
+    }
+
+    /**
+     * Whether `createToken()` of the user's model takes an expiry: Sanctum's third argument,
+     * which Passport's hasn't.
+     */
+    private static function takesExpiry(object $user): bool
+    {
+        return (new \ReflectionMethod($user, 'createToken'))->getNumberOfParameters() >= 3;
     }
 
     /**

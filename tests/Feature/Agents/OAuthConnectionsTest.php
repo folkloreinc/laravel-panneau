@@ -123,10 +123,31 @@ class OAuthConnectionsTest extends OAuthTestCase
         $this->rpc((string) $created->json('token'), 'tools/list')->assertUnauthorized();
     }
 
-    public function test_the_definition_gives_the_url_of_the_mcp_server(): void
+    public function test_without_a_personal_access_client_no_token_is_offered(): void
     {
+        $user = $this->createOAuthUser();
+        $this->signIn($user);
+
+        $this->getJson('/panneau/api/definition')
+            ->assertOk()
+            ->assertJsonPath('agents.mcp', ['url' => 'http://localhost/panneau/mcp', 'tokens' => false]);
+        $this->postJson('/panneau/api/account/connections/tokens', ['name' => 'Claude'])
+            ->assertStatus(409)
+            ->assertJsonPath('type', 'about:blank')
+            ->assertJsonPath('detail', 'This account can\'t make personal tokens.');
+        $this->assertSame(0, Token::query()->count());
+
+        $this->app->make(ClientRepository::class)->createPersonalAccessGrantClient('Personal', 'users');
+        $this->getJson('/panneau/api/definition')->assertOk()->assertJsonPath('agents.mcp.tokens', true);
+    }
+
+    public function test_a_lifetime_in_the_config_makes_no_passport_token(): void
+    {
+        $this->app->make(ClientRepository::class)->createPersonalAccessGrantClient('Personal', 'users');
+        $this->app['config']->set('panneau.agents.mcp.token_lifetime', 7);
         $this->signIn($this->createOAuthUser());
 
-        $this->getJson('/panneau/api/definition')->assertOk()->assertJsonPath('agents.mcp.url', 'http://localhost/panneau/mcp');
+        $this->getJson('/panneau/api/definition')->assertOk()->assertJsonPath('agents.mcp.tokens', false);
+        $this->postJson('/panneau/api/account/connections/tokens', ['name' => 'Claude'])->assertStatus(409);
     }
 }

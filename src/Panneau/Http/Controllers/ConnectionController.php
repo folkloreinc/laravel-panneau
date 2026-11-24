@@ -11,12 +11,14 @@ use Illuminate\Http\Response;
 use LogicException;
 use Panneau\Agents\Connection;
 use Panneau\Agents\Connections;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * The connections of the account to the MCP server (decision 0029), with
  * `panneau.agents.mcp.enabled`: `GET /account/connections`, `POST /account/connections/tokens`
- * (a personal token, whose plain text is answered once) and `DELETE /account/connections/{id}`.
+ * (a personal token, whose plain text is answered once, or a `409` problem when none can be
+ * made: `agents.mcp.tokens` of the definition is false) and `DELETE /account/connections/{id}`.
  * The user passes the `usePanneauAgents` gate when the project defines it.
  *
  * @internal
@@ -42,6 +44,10 @@ final class ConnectionController
             'name' => ['required', 'string', 'max:255'],
             'write' => ['sometimes', 'boolean'],
         ]);
+        if (! $this->connections->canCreateTokens($user)) {
+            // Passport without a personal access client, for example: the definition says so
+            throw new ConflictHttpException(__('This account can\'t make personal tokens.'));
+        }
         $token = $this->connections->createToken(
             $user,
             $input['name'],

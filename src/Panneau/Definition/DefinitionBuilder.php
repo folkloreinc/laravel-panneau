@@ -12,6 +12,7 @@ use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Actions\ClientAction;
 use Panneau\Actions\DeleteAction;
+use Panneau\Agents\Connections;
 use Panneau\Aggregates\ResourceAggregates;
 use Panneau\Auth\Authorizer;
 use Panneau\Context\ContextResolver;
@@ -455,10 +456,10 @@ final class DefinitionBuilder
     /**
      * The agents of the user (decision 0029): the absolute URL of the MCP server, without the
      * prefix of a context, when `panneau.agents.mcp.enabled` is on, `Panneau::mcpRoutes()`
-     * registered it, and the user passes `usePanneauAgents` when the project defines it. Null
-     * otherwise.
+     * registered it, and the user passes `usePanneauAgents` when the project defines it, with
+     * `tokens`: whether the account can make a personal token for it. Null otherwise.
      *
-     * @return array{mcp: array{url: string}}|null
+     * @return array{mcp: array{url: string, tokens: bool}}|null
      */
     public function agents(Authenticatable $user): ?array
     {
@@ -474,7 +475,10 @@ final class DefinitionBuilder
             return null;
         }
 
-        return ['mcp' => ['url' => $this->app->make(UrlGenerator::class)->route('panneau.mcp', [], true)]];
+        return ['mcp' => [
+            'url' => $this->app->make(UrlGenerator::class)->route('panneau.mcp', [], true),
+            'tokens' => $this->app->make(Connections::class)->canCreateTokens($user),
+        ]];
     }
 
     public function apiBaseUrl(): string

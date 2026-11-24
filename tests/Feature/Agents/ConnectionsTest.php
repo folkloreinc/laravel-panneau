@@ -211,12 +211,24 @@ class ConnectionsTest extends McpTestCase
 
         $on = $this->getJson('/panneau/api/definition')
             ->assertOk()
-            ->assertJsonPath('agents', ['mcp' => ['url' => 'http://localhost/panneau/mcp']]);
+            ->assertJsonPath('agents', ['mcp' => ['url' => 'http://localhost/panneau/mcp', 'tokens' => true]]);
 
         // The ETag follows the content
         $this->app['config']->set('panneau.agents.mcp.enabled', false);
         $off = $this->getJson('/panneau/api/definition')->assertOk()->assertJsonMissingPath('agents');
         $this->assertNotSame($on->headers->get('ETag'), $off->headers->get('ETag'));
+    }
+
+    public function test_without_a_model_that_makes_tokens_none_is_offered(): void
+    {
+        $this->signIn($this->createUser());
+        $this->app['config']->set('auth.providers.users.model', NoTokensUser::class);
+        $this->actingAs(NoTokensUser::query()->firstOrFail())->withSession(['panneau.auth.password_confirmed_at' => time()]);
+
+        $this->getJson('/panneau/api/definition')->assertOk()->assertJsonPath('agents.mcp.tokens', false);
+        $this->postJson('/panneau/api/account/connections/tokens', ['name' => 'Claude'])
+            ->assertStatus(409)
+            ->assertJsonPath('detail', 'This account can\'t make personal tokens.');
     }
 
     public function test_the_definition_has_no_agents_without_the_route(): void
@@ -228,4 +240,12 @@ class ConnectionsTest extends McpTestCase
 
         $this->getJson('/panneau/api/definition')->assertOk()->assertJsonMissingPath('agents');
     }
+}
+
+/**
+ * A user whose model can't make tokens.
+ */
+class NoTokensUser extends \Illuminate\Foundation\Auth\User
+{
+    protected $table = 'users';
 }

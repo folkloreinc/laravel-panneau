@@ -152,6 +152,16 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "No personal token can be made for this account (`agents.mcp.tokens` of the definition is false): with Passport, the project has no personal access client.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "Invalid values: messages are in `errors`, keyed by dot path.",
                         "content": {
