@@ -942,6 +942,7 @@ Panneau::menu('main', fn (Context $context): array => [
   - dashboard widgets;
   - auth and account, in the `panneau` mode (see [Auth](#auth));
   - **not built yet:** preview.
+- **Operations.** What the controllers do lives in `Panneau\Operations`, so that the agent tools do exactly what the API does ([decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md)). An operation is resolved by the container, and its `handle()` takes the user, the resource (or its id) and its parameters as an array, with the request for the hooks of `Resource` that read it (the scope, the media). It authorizes, queries and serializes, and throws the exceptions that `RenderProblems` renders as problems. The controllers read the request, call the operation and answer. The reads are built: `ListItems`, `ShowItem` (which also takes `fields`, and gives the version of the `ETag`) and `Search`. **Not built yet:** the writes and the actions.
 - **Authorization.** Every operation calls the Policy of the item, or of `itemClass()` for `viewAny` and `create`. Actions authorize each item (see [Actions](#actions)). A resource without a policy is denied, unless the project calls `Panneau::allowWithoutPolicies()`.
 - **Validation.** Requests validate against the field rules, and only `validated()` data reaches the repository.
 - **Query.** Filters, sorts and search only accept what the resource's list declares. The query string can't reach arbitrary columns.

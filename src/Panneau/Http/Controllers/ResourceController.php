@@ -3,7 +3,6 @@
 namespace Panneau\Http\Controllers;
 
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -11,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 use Panneau\Auth\Authorizer;
-use Panneau\Contracts\Repositories\CursorPaginated;
 use Panneau\Contracts\Repositories\Duplicable;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\VersionConflictException;
@@ -21,7 +19,8 @@ use Panneau\Forms\FormMode;
 use Panneau\Forms\SaveContext;
 use Panneau\Http\Controllers\Concerns\ResolvesResources;
 use Panneau\Media\MediaReferences;
-use Panneau\Query\ResourceQuery;
+use Panneau\Operations\ListItems;
+use Panneau\Operations\ShowItem;
 use Panneau\Resources\FieldChecks;
 use Panneau\Resources\ItemSerializer;
 use Panneau\Resources\Resource;
@@ -45,60 +44,33 @@ final class ResourceController
         private readonly ItemSerializer $serializer,
         private readonly DefinitionBuilder $definition,
         private readonly ValidationFactory $validator,
-        private readonly Config $config,
         private readonly Uploads $uploads,
         private readonly FieldChecks $checks,
+        private readonly ListItems $listItems,
+        private readonly ShowItem $showItem,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
-        $resource = $this->findResource($this->routeParameter($request, 'resource'));
-        $this->authorizeResource($request, $resource, 'viewAny');
-
-        $query = ResourceQuery::fromParameters(
+        return new JsonResponse($this->listItems->handle(
+            $request->user(),
+            $this->routeParameter($request, 'resource'),
             $request->query(),
-            $this->resources->queryOptions(
-                $resource,
-                (int) $this->config->get('panneau.list.per_page', 20),
-                (int) $this->config->get('panneau.list.max_per_page', 100),
-            ),
-            $resource->repositoryScope($request),
-        );
-        $repository = $this->resources->repository($resource);
-        if ($repository instanceof CursorPaginated && $this->resources->cursorPaginated($resource)) {
-            $page = $repository->cursorQuery($query);
-            $items = $page->items;
-            $meta = $page->meta();
-        } else {
-            $page = $repository->query($query);
-            $items = array_values($page->items());
-            $meta = [
-                'page' => $page->currentPage(),
-                'perPage' => $page->perPage(),
-                'total' => $page->total(),
-                'lastPage' => max(1, $page->lastPage()),
-            ];
-        }
-        $references = $this->mediaReferences($request);
-        // What the values of the page read, in one query for each relation, library or resource
-        $this->serializer->preload($resource, $items, $query->fields, $references);
-
-        return new JsonResponse([
-            'data' => array_map(
-                fn (object $item): array => $this->item($request, $resource, $item, $query->fields, $references),
-                $items,
-            ),
-            'meta' => $meta,
-        ]);
+            $request,
+        ));
     }
 
     public function show(Request $request): JsonResponse
     {
-        $resource = $this->findResource($this->routeParameter($request, 'resource'));
-        $item = $this->findItem($resource, $this->routeParameter($request, 'id'), $request);
-        $this->authorizeItem($request, $resource, 'view', $item);
+        $item = $this->showItem->handle(
+            $request->user(),
+            $this->routeParameter($request, 'resource'),
+            $this->routeParameter($request, 'id'),
+            $request,
+        );
+        $headers = $item['version'] !== null ? ['ETag' => '"'.$item['version'].'"'] : [];
 
-        return $this->itemResponse($request, $resource, $item);
+        return new JsonResponse(['data' => $item['data']], 200, $headers);
     }
 
     public function store(Request $request): JsonResponse
