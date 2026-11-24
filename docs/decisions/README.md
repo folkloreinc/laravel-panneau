@@ -29,3 +29,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0023](0023-preloading-list-values.md) | Lists read the fields they ask for, and repositories preload what those fields read | Proposed |
 | [0024](0024-bounded-aggregates.md) | Aggregates computed in memory are opt-in, bounded and rate-limited | Proposed |
 | [0025](0025-five-tools-read-first.md) | Five tools for agents, built on one operation each, shipped read first | Proposed |
+| [0026](0026-agents-as-built.md) | The agents as built: laravel/mcp 1, Sanctum first, plain JSON Schema, and examples | Proposed |
