@@ -5,6 +5,8 @@ namespace Panneau\Console;
 use Illuminate\Auth\AuthManager;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Panneau\Auth\EmailVerification;
+use Panneau\Auth\TwoFactor;
 use Panneau\Context\ContextParam;
 use Panneau\Context\ContextRegistry;
 use Panneau\Http\Middleware\AuthorizeAgents;
@@ -13,6 +15,8 @@ use Panneau\Http\Middleware\AuthorizeAgents;
  * Creates a personal token of a user for the MCP server of the agents (decision 0025), until
  * the account page does: `mcp:use`, and `panneau:write` with `--write`. The token is made by
  * `createToken()` of the user's model (Sanctum's `HasApiTokens`, or Passport's), and shown once.
+ * A user the MCP server would refuse, whose address isn't verified or who must set up two-factor
+ * authentication, gets no token.
  *
  *     php artisan panneau:agent-token ada@example.com
  */
@@ -25,7 +29,7 @@ final class AgentTokenCommand extends Command
 
     protected $description = 'Create a personal token of a user for the MCP server of the agents';
 
-    public function handle(AuthManager $auth, ContextRegistry $context): int
+    public function handle(AuthManager $auth, ContextRegistry $context, EmailVerification $verification, TwoFactor $twoFactor): int
     {
         $config = $this->laravel['config'];
         $guard = $config->get('panneau.auth.guard');
@@ -36,6 +40,16 @@ final class AgentTokenCommand extends Command
             : $provider->retrieveById($id));
         if (! $user instanceof Authenticatable) {
             $this->components->error(sprintf('No user "%s".', $id));
+
+            return self::FAILURE;
+        }
+        if ($verification->mustVerify($user)) {
+            $this->components->error(sprintf('The email address of "%s" is not verified: they verify it in Panneau first.', $id));
+
+            return self::FAILURE;
+        }
+        if ($twoFactor->mustSetUp($user)) {
+            $this->components->error(sprintf('"%s" must set up two-factor authentication: they set it up in Panneau first.', $id));
 
             return self::FAILURE;
         }
