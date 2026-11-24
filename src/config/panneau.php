@@ -380,6 +380,10 @@ return [
             // The token guard of the clients, on the users of panneau.auth.guard. Tokens need
             // the `mcp:use` ability, and `panneau:write` for the tools that write.
             'guard' => 'sanctum',
+            // Days until a token made by `panneau:agent-token` expires, when its --days isn't
+            // given. Null: tokens made on the command line never expire, unless this or --days
+            // says so. Sanctum's own `sanctum.expiration` still applies on top.
+            'token_lifetime' => null,
         ],
 
         // Calls per minute for a user, through the `panneau-agents` rate limiter. Over it, a 429

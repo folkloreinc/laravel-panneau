@@ -4,15 +4,17 @@ namespace Panneau\Agents;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Encryption\Encrypter;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Contracts\Encryption\StringEncrypter;
 use Illuminate\Support\Carbon;
 use Panneau\Context\Context;
 
 /**
  * The confirmation of an action that `run_action` asks for before running it (decision 0022):
- * a token signed with the key of the app, for one user, one connection, the values of the
- * current context, and the exact arguments it previewed, valid for 5 minutes. Nothing is stored: the token holds its payload,
- * base64url of JSON, and the HMAC of that JSON.
+ * a token for one user, one connection, the values of the current context, and the exact
+ * arguments it previewed, valid for 5 minutes. Nothing is stored: the token is the JSON of its
+ * claims, encrypted by Laravel's encrypter with the key of the app (decision 0027), so the agent
+ * can neither read nor change it.
  *
  * @internal
  */
@@ -21,7 +23,7 @@ final class Confirmation
     public const TTL = 300;
 
     public function __construct(
-        private readonly Encrypter $encrypter,
+        private readonly StringEncrypter $encrypter,
         private readonly Container $container,
     ) {}
 
@@ -31,31 +33,25 @@ final class Confirmation
      */
     public function sign(?Authenticatable $user, ?AgentCaller $agent, string $resource, string $action, ?array $selection, array $values): string
     {
-        $payload = (string) json_encode([
+        return $this->encrypter->encryptString((string) json_encode([
             ...$this->claims($user, $agent, $resource, $action, $selection, $values),
             'expires' => Carbon::now()->getTimestamp() + self::TTL,
-        ]);
-
-        return self::base64url($payload).'.'.$this->signature($payload);
+        ]));
     }
 
     /**
-     * Whether a token was signed for these arguments, and hasn't expired.
+     * Whether a token was made for these arguments, and hasn't expired.
      *
      * @param  array<array-key, mixed>|null  $selection
      * @param  array<array-key, mixed>  $values
      */
     public function verify(string $token, ?Authenticatable $user, ?AgentCaller $agent, string $resource, string $action, ?array $selection, array $values): bool
     {
-        $parts = explode('.', $token);
-        if (count($parts) !== 2) {
+        try {
+            $claims = json_decode($this->encrypter->decryptString($token), true);
+        } catch (DecryptException) {
             return false;
         }
-        $payload = base64_decode(strtr($parts[0], '-_', '+/'), true);
-        if ($payload === false || ! hash_equals($this->signature($payload), $parts[1])) {
-            return false;
-        }
-        $claims = json_decode($payload, true);
         if (! is_array($claims) || ! is_int($claims['expires'] ?? null) || $claims['expires'] < Carbon::now()->getTimestamp()) {
             return false;
         }
@@ -99,15 +95,5 @@ final class Confirmation
         }
 
         return $value;
-    }
-
-    private function signature(string $payload): string
-    {
-        return hash_hmac('sha256', $payload, $this->encrypter->getKey());
-    }
-
-    private static function base64url(string $value): string
-    {
-        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
     }
 }
