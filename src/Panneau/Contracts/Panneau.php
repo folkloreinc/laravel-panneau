@@ -102,6 +102,16 @@ interface Panneau
     public function routes(bool $app = true): void;
 
     /**
+     * Registers the MCP server of the agents at `{path}/{agents.mcp.path}`, when
+     * `panneau.agents.mcp.enabled` is true: `POST` with a bearer token of the guard of
+     * `panneau.agents.mcp.guard`, the `panneau.agents` middleware, the language of the interface
+     * and the `panneau-agents` rate limiter. Disabled, it registers nothing.
+     *
+     * @throws \LogicException When it is enabled without `laravel/mcp`.
+     */
+    public function mcpRoutes(): void;
+
+    /**
      * Registers the upload routes, `uploads/sign` and `uploads/{upload}/complete`, in the
      * caller's route group: for projects that mount parts of the API under their own prefix and
      * middleware. Nothing is registered when uploads are not enabled.

@@ -1,5 +1,8 @@
 <?php
 
+use Panneau\Agents\Tools\Describe;
+use Panneau\Agents\Tools\FindItems;
+use Panneau\Agents\Tools\GetItem;
 use Panneau\Auth\ResetUserPassword;
 use Panneau\Auth\UpdateUserPassword;
 use Panneau\Auth\UpdateUserProfileInformation;
@@ -356,6 +359,29 @@ return [
     'files' => [
         // Seconds a temporary URL of a private file lives.
         'url_ttl' => 3600,
+    ],
+
+    // The agents (decisions 0022 and 0025): tools that a model calls as the signed-in user.
+    'agents' => [
+        // The tools of the agents, Panneau\Agents\Tool classes resolved by the container. A
+        // project adds its own, or leaves one out.
+        'tools' => [Describe::class, FindItems::class, GetItem::class],
+
+        // The MCP server, at `{path}/{agents.mcp.path}`, registered by Panneau::mcpRoutes().
+        // It needs laravel/mcp, and a token guard such as laravel/sanctum.
+        'mcp' => [
+            // Off: Panneau::mcpRoutes() registers nothing.
+            'enabled' => false,
+            // Path of the server, under panneau.path.
+            'path' => 'mcp',
+            // The token guard of the clients, on the users of panneau.auth.guard. Tokens need
+            // the `mcp:use` ability, and `panneau:write` for the tools that write.
+            'guard' => 'sanctum',
+        ],
+
+        // Calls per minute for a user, through the `panneau-agents` rate limiter. Over it, a 429
+        // with Retry-After. Null or 0: no limit.
+        'rate_limit' => 60,
     ],
 
     // The roles module (decision 0014). Off by default: projects with their own policies or

@@ -8,13 +8,15 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 use Laravel\Passkeys\PasskeyAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * A user of the skeleton's `users` table that verifies its email address, and can have
- * two-factor authentication (with Fortify's columns) and passkeys.
+ * two-factor authentication (with Fortify's columns), passkeys, and Sanctum's tokens.
  */
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
+    use HasApiTokens;
     use Notifiable;
     use PasskeyAuthenticatable;
     use TwoFactorAuthenticatable;

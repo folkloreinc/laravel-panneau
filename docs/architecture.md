@@ -959,6 +959,23 @@ Panneau::menu('main', fn (Context $context): array => [
   - Parameter errors are keyed by their path inside `values` (`note`, not `values.note`), like the errors of a form.
 - **Contract tests.** Feature tests validate every response against the protocol's OpenAPI document.
 
+## Agents
+
+See [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), amended by [decisions/0025](decisions/0025-five-tools-read-first.md). Agents call tools as the signed-in user: `describe`, `find_items` and `get_item` (`Panneau\Agents\Tools`), listed in `panneau.agents.tools`, run the same operations as the API.
+
+- **The MCP server** ([#267](https://github.com/folkloreinc/laravel-panneau/issues/267)), off by default, needs `laravel/mcp` (`^1.2`) and a token guard, `laravel/sanctum` by default:
+
+  ```php
+  // config/panneau.php: 'agents' => ['mcp' => ['enabled' => true]]
+  Panneau::routes();
+  Panneau::mcpRoutes(); // POST {path}/mcp
+  ```
+
+  `Panneau::mcpRoutes()` registers nothing while `panneau.agents.mcp.enabled` is false, and throws a `LogicException` when it is on without `laravel/mcp`. The route has `auth:{panneau.agents.mcp.guard}`, `panneau.agents` (the `viewPanneau` gate, `usePanneauAgents` when the project defines it, and a token with the `mcp:use` ability, else a `403` problem), the language of the interface, and the `panneau-agents` rate limiter (`panneau.agents.rate_limit` calls a minute per user). The user model needs `tokenCan()` and `createToken()`: Sanctum's `HasApiTokens`.
+- **Tools.** `PanneauServer` serves an `McpTool` for each tool, with its own JSON Schema and a `readOnlyHint`. A result is structured content; a problem is an error whose text is the problem's JSON. A tool that writes is left out of a connection whose token doesn't have `panneau:write` (no tool writes yet).
+- **Personal tokens.** `php artisan panneau:agent-token {user} {--write} {--name=}` finds the user (an id or an email) on the provider of `panneau.auth.guard`, creates a token with `mcp:use` (and `panneau:write` with `--write`) through `createToken()`, and shows it once with the URL of the server.
+- **Not built yet:** OAuth and the connections of the account page, the context of the URL, the tools that write, the assistant inside Panneau.
+
 ## Auth
 
 See [decisions/0005](decisions/0005-auth.md) and the [shared decision](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0012-authentication.md).

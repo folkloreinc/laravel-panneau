@@ -13,6 +13,10 @@ use Illuminate\Routing\Route;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
 use InvalidArgumentException;
+use Laravel\Mcp\Facades\Mcp;
+use Laravel\Mcp\Server as McpServer;
+use LogicException;
+use Panneau\Agents\Mcp\PanneauServer;
 use Panneau\Auth\Authorizer;
 use Panneau\Context\ContextParam;
 use Panneau\Context\ContextRegistry;
@@ -44,6 +48,7 @@ use Panneau\Http\Controllers\TwoFactorController;
 use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\ApplyInterfaceLocale;
 use Panneau\Http\Middleware\Authenticate;
+use Panneau\Http\Middleware\AuthorizeAgents;
 use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Http\Middleware\RequirePassword;
 use Panneau\Http\Middleware\ResolveContext;
@@ -181,6 +186,34 @@ class Panneau implements PanneauContract
         }
 
         $this->moveSiteRoutesAfter($router, $before, trim($outerPrefix.'/'.($group['prefix'] ?? ''), '/'));
+    }
+
+    public function mcpRoutes(): void
+    {
+        $config = $this->container->make(Config::class);
+        if ($config->get('panneau.agents.mcp.enabled') !== true) {
+            return;
+        }
+        if (! class_exists(McpServer::class)) {
+            throw new LogicException('The MCP server of the agents needs laravel/mcp: composer require laravel/mcp');
+        }
+        $guard = $config->get('panneau.agents.mcp.guard');
+        $domain = $config->get('panneau.domain');
+        $prefix = trim((string) $config->get('panneau.path', 'panneau'), '/').'/'.trim((string) $config->get('panneau.agents.mcp.path', 'mcp'), '/');
+
+        $this->container->make(Router::class)->group(array_filter([
+            'prefix' => trim($prefix, '/'),
+            'domain' => is_string($domain) ? $domain : null,
+            'middleware' => [
+                RenderProblems::class,
+                'auth:'.(is_string($guard) && $guard !== '' ? $guard : 'sanctum'),
+                AuthorizeAgents::class,
+                ApplyInterfaceLocale::class,
+                ThrottleRequests::using(AuthorizeAgents::RATE_LIMITER),
+            ],
+        ]), function (): void {
+            Mcp::web('', PanneauServer::class)->name('panneau.mcp');
+        });
     }
 
     /**
