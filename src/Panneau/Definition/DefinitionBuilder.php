@@ -2,9 +2,12 @@
 
 namespace Panneau\Definition;
 
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Routing\Router;
 use LogicException;
 use Panneau\Actions\Action;
 use Panneau\Actions\ClientAction;
@@ -117,6 +120,11 @@ final class DefinitionBuilder
         $theme = $this->theme();
         if ($theme !== null) {
             $definition['theme'] = $theme;
+        }
+        // Left out when the MCP server is off, so that definitions stay as they were
+        $agents = $user !== null ? $this->agents($user) : null;
+        if ($agents !== null) {
+            $definition['agents'] = $agents;
         }
         $definition['user'] = $user !== null ? $this->user($user) : null;
 
@@ -442,6 +450,31 @@ final class DefinitionBuilder
         }
 
         return $locales;
+    }
+
+    /**
+     * The agents of the user (decision 0029): the absolute URL of the MCP server, without the
+     * prefix of a context, when `panneau.agents.mcp.enabled` is on, `Panneau::mcpRoutes()`
+     * registered it, and the user passes `usePanneauAgents` when the project defines it. Null
+     * otherwise.
+     *
+     * @return array{mcp: array{url: string}}|null
+     */
+    public function agents(Authenticatable $user): ?array
+    {
+        if ($this->config->get('panneau.agents.mcp.enabled') !== true) {
+            return null;
+        }
+        $router = $this->app->make(Router::class);
+        if (! $router->has('panneau.mcp')) {
+            return null;
+        }
+        $gate = $this->app->make(Gate::class)->forUser($user);
+        if ($gate->has('usePanneauAgents') && $gate->denies('usePanneauAgents')) {
+            return null;
+        }
+
+        return ['mcp' => ['url' => $this->app->make(UrlGenerator::class)->route('panneau.mcp', [], true)]];
     }
 
     public function apiBaseUrl(): string

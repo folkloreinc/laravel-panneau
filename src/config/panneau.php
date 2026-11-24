@@ -386,7 +386,8 @@ return [
             'token_lifetime' => null,
             // OAuth for the clients that can't take a pasted token (decision 0028), with
             // laravel/passport: the guard above is then a `passport` guard. Passport's own
-            // lifetimes are a year for both tokens.
+            // lifetimes are a year for both tokens. The two lifetimes below are Passport's: they
+            // apply to every Passport token of the application, not only to the MCP server's.
             'oauth' => [
                 'enabled' => false,
                 // Minutes until an access token expires. Null: Passport's own. 60 is

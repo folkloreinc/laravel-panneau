@@ -33,6 +33,7 @@ use Panneau\Http\Controllers\ActionController;
 use Panneau\Http\Controllers\AggregateController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\AuthController;
+use Panneau\Http\Controllers\ConnectionController;
 use Panneau\Http\Controllers\ContextOptionsController;
 use Panneau\Http\Controllers\DashboardWidgetController;
 use Panneau\Http\Controllers\DefinitionController;
@@ -251,6 +252,14 @@ class Panneau implements PanneauContract
         $router->patch('account', [AccountController::class, 'update'])->withoutMiddleware(ResolveContext::class)->name('account.update');
         $router->put('account/password', [AccountController::class, 'password'])
             ->withoutMiddleware(ResolveContext::class)->middleware($throttle)->name('account.password');
+        // The connections of the account to the MCP server (decision 0029)
+        if ($this->container->make(Config::class)->get('panneau.agents.mcp.enabled') === true) {
+            $router->prefix('account/connections')->as('account.connections')->withoutMiddleware(ResolveContext::class)->group(function (Router $router): void {
+                $router->get('', [ConnectionController::class, 'index']);
+                $router->post('tokens', [ConnectionController::class, 'store'])->middleware(RequirePassword::class)->name('.tokens.store');
+                $router->delete('{connection}', [ConnectionController::class, 'destroy'])->middleware(RequirePassword::class)->name('.destroy');
+            });
+        }
         $providers = array_column($auth['providers'] ?? [], 'id');
         if ($providers !== []) {
             // Another provider than those of the config is a 404 problem of the controller

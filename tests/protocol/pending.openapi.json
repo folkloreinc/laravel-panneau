@@ -1,0 +1,229 @@
+{
+    "$comment": "Operations of laravel-panneau that the protocol doesn't document yet (decision 0029), in the shape of openapi.json. The contract tests check them as they check those of openapi.json: `#` refs point into this file, others name openapi.json. Remove each one once tests/protocol/openapi.json has it.",
+    "components": {
+        "schemas": {
+            "Connection": {
+                "type": "object",
+                "description": "A connection of the current user to the MCP server: a personal token, or an OAuth client they authorized.",
+                "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "write",
+                    "createdAt",
+                    "lastUsedAt",
+                    "expiresAt"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Opaque: `token:{id}` or `client:{id}`."
+                    },
+                    "type": {
+                        "enum": [
+                            "token",
+                            "client"
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "write": {
+                        "type": "boolean",
+                        "description": "Whether its agents can use the tools that write (`panneau:write`)."
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "description": "ISO 8601."
+                    },
+                    "lastUsedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "ISO 8601, or null when unknown."
+                    },
+                    "expiresAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "ISO 8601, or null for never."
+                    }
+                },
+                "additionalProperties": {}
+            }
+        }
+    },
+    "paths": {
+        "/account/connections": {
+            "get": {
+                "operationId": "listConnections",
+                "responses": {
+                    "200": {
+                        "description": "The connections of the current user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Connection"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed: the user doesn't pass `usePanneauAgents`, or the problems of every operation of the account.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/account/connections/tokens": {
+            "post": {
+                "operationId": "createConnectionToken",
+                "responses": {
+                    "201": {
+                        "description": "The token, in plain text once, and its connection.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "token",
+                                        "connection"
+                                    ],
+                                    "properties": {
+                                        "token": {
+                                            "type": "string",
+                                            "minLength": 1
+                                        },
+                                        "connection": {
+                                            "$ref": "#/components/schemas/Connection"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed: the user doesn't pass `usePanneauAgents`, or the problems of every operation of the account.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/account/connections/{connection}": {
+            "delete": {
+                "operationId": "revokeConnection",
+                "responses": {
+                    "204": {
+                        "description": "Revoked."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed: the user doesn't pass `usePanneauAgents`, or the problems of every operation of the account.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not a connection of the user.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
