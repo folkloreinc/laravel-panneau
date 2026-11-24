@@ -7,12 +7,17 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Http\Request;
+use Panneau\Context\ContextRegistry;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * The `panneau.agents` middleware of the MCP server, after the token guard: the user passes the
  * `viewPanneau` gate, and `usePanneauAgents` when the project defines it, and the token of the
  * connection has the `mcp:use` ability. Otherwise a `403` problem.
+ *
+ * The server doesn't send a context yet (decision 0025): a Panneau that declares one gets a
+ * `501` problem, rather than items scoped without it.
  */
 final class AuthorizeAgents
 {
@@ -31,7 +36,10 @@ final class AuthorizeAgents
      */
     public const WRITE = 'panneau:write';
 
-    public function __construct(private readonly Gate $gate) {}
+    public function __construct(
+        private readonly Gate $gate,
+        private readonly ContextRegistry $context,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -45,6 +53,9 @@ final class AuthorizeAgents
         }
         if (! self::tokenCan($user, self::USE)) {
             throw new AuthorizationException(__('The token can not use the MCP server.'));
+        }
+        if ($this->context->declared()) {
+            throw new HttpException(501, __('The MCP server doesn\'t serve a Panneau with a context yet.'));
         }
 
         return $next($request);

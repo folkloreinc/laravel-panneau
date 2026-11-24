@@ -107,7 +107,10 @@ interface Panneau
      * `panneau.agents.mcp.guard`, the `panneau.agents` middleware, the language of the interface
      * and the `panneau-agents` rate limiter. Disabled, it registers nothing.
      *
-     * @throws \LogicException When it is enabled without `laravel/mcp`.
+     * The server works for a Panneau without a context: until it sends one, it refuses a Panneau
+     * that declares one (a `501` problem for a context declared after the routes).
+     *
+     * @throws \LogicException When it is enabled without `laravel/mcp`, or with a context.
      */
     public function mcpRoutes(): void;
 

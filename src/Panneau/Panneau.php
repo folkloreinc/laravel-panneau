@@ -197,6 +197,10 @@ class Panneau implements PanneauContract
         if (! class_exists(McpServer::class)) {
             throw new LogicException('The MCP server of the agents needs laravel/mcp: composer require laravel/mcp');
         }
+        // Its tools would run without the context the scopes of the resources read
+        if ($this->container->make(ContextRegistry::class)->declared()) {
+            throw new LogicException('The MCP server of the agents doesn\'t serve a Panneau with a context yet: turn off panneau.agents.mcp.enabled.');
+        }
         $guard = $config->get('panneau.agents.mcp.guard');
         $domain = $config->get('panneau.domain');
         $prefix = trim((string) $config->get('panneau.path', 'panneau'), '/').'/'.trim((string) $config->get('panneau.agents.mcp.path', 'mcp'), '/');
