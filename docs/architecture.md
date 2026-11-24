@@ -961,7 +961,7 @@ Panneau::menu('main', fn (Context $context): array => [
 
 ## Agents
 
-See [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), amended by [decisions/0025](decisions/0025-five-tools-read-first.md). Agents call tools as the signed-in user: `describe`, `find_items`, `get_item`, `save_item` and `run_action` (`Panneau\Agents\Tools`), listed in `panneau.agents.tools`, run the same operations as the API.
+See [decisions/0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), amended by [decisions/0025](decisions/0025-five-tools-read-first.md) and [decisions/0026](decisions/0026-agents-as-built.md). Agents call tools as the signed-in user: `describe`, `find_items`, `get_item`, `save_item` and `run_action` (`Panneau\Agents\Tools`), listed in `panneau.agents.tools`, run the same operations as the API.
 
 - **The MCP server** ([#267](https://github.com/folkloreinc/laravel-panneau/issues/267)), off by default, needs `laravel/mcp` (`^1.2`) and a token guard, `laravel/sanctum` by default:
 
