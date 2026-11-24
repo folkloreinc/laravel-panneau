@@ -122,10 +122,16 @@ class RunActionTest extends HttpTestCase
         $other = $this->createPost();
         $arguments = ['resource' => 'action-posts', 'action' => 'publish-posts', 'selection' => ['ids' => [(string) $post->id]], 'values' => ['notify' => true, 'note' => 'Hi']];
         $token = $this->data($arguments, $this->agent)['confirmation'];
-        $tampered = substr($token, 0, -1).(str_ends_with($token, 'a') ? 'b' : 'a');
+        $middle = intdiv(strlen($token), 2);
+        $tampered = substr_replace($token, $token[$middle] === 'a' ? 'b' : 'a', $middle, 1);
+        // Claims the agent couldn't read or encrypt: the hash of other arguments
+        $claims = json_decode(decrypt($token, false), true);
+        $forged = encrypt((string) json_encode([...$claims, 'arguments' => hash('sha256', 'other')]), false);
 
         $refused = [
             'a character changed' => [[...$arguments, 'confirmation' => $tampered], 1, $this->agent],
+            'other claims' => [[...$arguments, 'confirmation' => $forged], 1, $this->agent],
+            'not encrypted' => [[...$arguments, 'confirmation' => base64_encode((string) json_encode($claims))], 1, $this->agent],
             'another user' => [[...$arguments, 'confirmation' => $token], 2, $this->agent],
             'another connection' => [[...$arguments, 'confirmation' => $token], 1, new AgentCaller('8')],
             'no connection' => [[...$arguments, 'confirmation' => $token], 1, null],
