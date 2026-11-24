@@ -54,6 +54,11 @@ class Embed extends Field
         return $this->rule('providers', $checked, $message, mode: $mode);
     }
 
+    public function example(): mixed
+    {
+        return ['url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'];
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return ['array'];

@@ -7,11 +7,16 @@ use Illuminate\Contracts\Validation\Factory as ValidatorFactory;
 use Panneau\Agents\ResourceDescription;
 use Panneau\Agents\ToolCall;
 use Panneau\Definition\DefinitionBuilder;
+use Panneau\Fields\Field;
+use Panneau\Fields\Group;
+use Panneau\Resources\Resource;
 use Panneau\Resources\ResourceRegistry;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * `describe`: the resources the user can list, or one of them, from their definition.
+ * `describe`: the resources the user can list, or one of them, from their definition. The fields
+ * of a resource give the `example` of their value (`Field::example()`), which the definition of
+ * the app doesn't carry.
  */
 final class Describe extends BaseTool
 {
@@ -100,11 +105,63 @@ final class Describe extends BaseTool
         }
 
         return $this->description->resource(
-            $described,
+            $this->withExamples($described, $resource),
             $arguments['parts'] ?? ResourceDescription::PARTS,
             $this->resources->hasTrash($resource),
             $this->resources->duplicable($resource),
             is_array($definition['blockTypeSets'] ?? null) ? $definition['blockTypeSets'] : [],
         );
+    }
+
+    /**
+     * The definition of a resource, with the `example` of each field that gives one, found by
+     * name among the fields of the resource, of its types, and of their groups.
+     *
+     * @param  array<string, mixed>  $definition
+     * @return array<string, mixed>
+     */
+    private function withExamples(array $definition, Resource $resource): array
+    {
+        $definition['fields'] = self::examples($definition['fields'] ?? [], $resource->allFields());
+        $types = [];
+        foreach ($resource->resourceTypes() as $type) {
+            $types[$type->id()] = $resource->fieldsOfType($type);
+        }
+        foreach (is_array($definition['types'] ?? null) ? $definition['types'] : [] as $index => $type) {
+            if (is_array($type) && isset($types[$type['id'] ?? null])) {
+                $definition['types'][$index]['fields'] = self::examples($type['fields'] ?? [], $types[$type['id']]);
+            }
+        }
+
+        return $definition;
+    }
+
+    /**
+     * @param  list<Field>  $fields
+     */
+    private static function examples(mixed $definitions, array $fields): mixed
+    {
+        if (! is_array($definitions)) {
+            return $definitions;
+        }
+        $byName = [];
+        foreach ($fields as $field) {
+            $byName[$field->name()] = $field;
+        }
+        foreach ($definitions as $index => $definition) {
+            $field = is_array($definition) && is_string($definition['name'] ?? null) ? ($byName[$definition['name']] ?? null) : null;
+            if ($field === null) {
+                continue;
+            }
+            $example = $field->example();
+            if ($example !== null) {
+                $definitions[$index]['example'] = $example;
+            }
+            if ($field instanceof Group && isset($definition['fields'])) {
+                $definitions[$index]['fields'] = self::examples($definition['fields'], $field->getFields());
+            }
+        }
+
+        return $definitions;
     }
 }

@@ -76,6 +76,19 @@ class Duration extends Field
         return $unit;
     }
 
+    /**
+     * An hour and a half, in the unit of the value.
+     */
+    public function example(): mixed
+    {
+        return match ($this->settings['unit'] ?? 'seconds') {
+            'minutes' => 90,
+            'hours' => 2,
+            'days' => 3,
+            default => 5400,
+        };
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return ['integer', 'min:0'];

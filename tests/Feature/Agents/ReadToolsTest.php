@@ -75,6 +75,17 @@ class ReadToolsTest extends HttpTestCase
 
         $this->assertSame('posts', $data[0]['resource']);
         $this->assertSame(['A summer'], array_column($data[0]['items'], 'title'));
+        // The fields of the list's columns, without the abilities
+        $this->assertSame(['id', 'version', 'title', 'status', 'published_at'], array_keys($data[0]['items'][0]));
+    }
+
+    public function test_find_items_lists_the_columns_of_a_resource_without_their_abilities(): void
+    {
+        $this->createPost(['title' => 'Hello']);
+
+        $item = $this->data(FindItems::class, ['resource' => 'posts'])['data'][0];
+
+        $this->assertSame(['id', 'version', 'title', 'status', 'published_at'], array_keys($item));
     }
 
     public function test_find_items_lists_a_resource(): void
@@ -92,7 +103,7 @@ class ReadToolsTest extends HttpTestCase
         ]);
 
         $this->assertSame(['A summer', 'B summer'], array_column($result['data'], 'title'));
-        $this->assertSame(['id', 'version', 'abilities', 'title'], array_keys($result['data'][0]));
+        $this->assertSame(['id', 'version', 'title'], array_keys($result['data'][0]));
         $this->assertSame(['page' => 1, 'perPage' => 50, 'total' => 2, 'lastPage' => 1], $result['meta']);
     }
 

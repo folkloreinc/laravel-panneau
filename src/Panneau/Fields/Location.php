@@ -44,6 +44,11 @@ class Location extends Field
         )]);
     }
 
+    public function example(): mixed
+    {
+        return ['lat' => 45.5017, 'lng' => -73.5673];
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return ['array'];

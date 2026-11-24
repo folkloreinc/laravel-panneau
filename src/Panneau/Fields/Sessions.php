@@ -62,6 +62,21 @@ class Sessions extends Repeater
     }
 
     /**
+     * One session, with the fields that give an example: its dates, its venue.
+     */
+    public function example(): mixed
+    {
+        $session = [];
+        foreach ($this->fields as $field) {
+            if ($field->example() !== null) {
+                $session[$field->name()] = $field->example();
+            }
+        }
+
+        return [$session];
+    }
+
+    /**
      * Adds fields to each session, after `dates` and `venue`.
      *
      * @param  list<Field>  $fields

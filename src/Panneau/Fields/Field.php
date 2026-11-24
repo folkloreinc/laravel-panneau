@@ -608,6 +608,15 @@ abstract class Field
     }
 
     /**
+     * An example of a value that isn't a plain scalar, exactly as saving accepts it: the
+     * `example` of the field that the `describe` tool gives agents. Null: none.
+     */
+    public function example(): mixed
+    {
+        return null;
+    }
+
+    /**
      * The field in the protocol's definition.
      *
      * @return array<string, mixed>

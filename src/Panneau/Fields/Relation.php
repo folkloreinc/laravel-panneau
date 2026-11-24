@@ -62,6 +62,14 @@ class Relation extends Field
         ], fn (mixed $value): bool => $value !== null);
     }
 
+    /**
+     * An item id, or a list of them: ids are strings.
+     */
+    public function example(): mixed
+    {
+        return $this->multiple ? ['1', '2'] : '1';
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return $this->multiple ? ['array'] : [$this->idRule($context)];

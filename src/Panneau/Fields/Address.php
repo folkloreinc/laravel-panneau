@@ -194,6 +194,22 @@ class Address extends Field
         return $normalized;
     }
 
+    /**
+     * An address in the country of the field, or the first it allows.
+     */
+    public function example(): mixed
+    {
+        $country = $this->settings['country'] ?? null;
+        $allowed = $this->allowedCountries();
+        $country = is_string($country) ? $country : (in_array('CA', $allowed, true) ? 'CA' : ($allowed[0] ?? 'CA'));
+
+        return match ($country) {
+            'CA' => ['street' => '123 Main St', 'city' => 'Montréal', 'region' => 'QC', 'postalCode' => 'H2X 1Y4', 'country' => 'CA'],
+            'US' => ['street' => '123 Main St', 'city' => 'New York', 'region' => 'NY', 'postalCode' => '10001', 'country' => 'US'],
+            default => ['street' => '123 Main St', 'city' => 'Paris', 'country' => $country],
+        };
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         $rules = ['array'];

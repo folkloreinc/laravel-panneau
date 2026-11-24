@@ -7,10 +7,14 @@ use Illuminate\Contracts\Validation\Factory as ValidatorFactory;
 use Panneau\Agents\ToolCall;
 use Panneau\Operations\ListItems;
 use Panneau\Operations\Search;
+use Panneau\Resources\Resource;
+use Panneau\Resources\ResourceRegistry;
 use Panneau\Search\SearchQuery;
 
 /**
- * `find_items`: the global search, or the list of a resource.
+ * `find_items`: the global search, or the list of a resource. Its items are lighter than those of
+ * the API: the fields of the list's columns by default, and without their `abilities`, which
+ * `get_item` gives.
  */
 final class FindItems extends BaseTool
 {
@@ -26,6 +30,7 @@ final class FindItems extends BaseTool
         Config $config,
         private readonly ListItems $listItems,
         private readonly Search $search,
+        private readonly ResourceRegistry $resources,
     ) {
         parent::__construct($validator, $config);
     }
@@ -39,7 +44,8 @@ final class FindItems extends BaseTool
     {
         return 'Finds items. Without `resource`, searches every searchable resource for `q`, at most `limit` items each. '
             .'With `resource`, lists its items, a page at a time: `filter`, `sort`, `q`, `page` or `cursor`, `perPage` (at most 50) and `fields`. '
-            .'Call `describe` with the resource first to know its filters, sorts and fields, then `get_item` to read an item in full.';
+            .'Items come with the fields of the list\'s columns, without their abilities. '
+            .'Call `describe` with the resource first to know its filters, sorts and fields, then `get_item` to read an item in full, with its abilities.';
     }
 
     public function readOnly(): bool
@@ -118,16 +124,57 @@ final class FindItems extends BaseTool
                 $parameters['limit'] = (string) $arguments['limit'];
             }
 
-            return $this->search->handle($call->user, $parameters, $call->request);
+            $result = $this->search->handle($call->user, $parameters, $call->request, $this->columnFields(...));
+            foreach ($result['data'] as $index => $group) {
+                $result['data'][$index]['items'] = self::withoutAbilities($group['items']);
+            }
+
+            return $result;
         }
 
         $parameters = array_intersect_key($arguments, array_flip(['filter', 'sort', 'q', 'page', 'cursor']));
         $parameters['perPage'] = $arguments['perPage']
             ?? min((int) $this->config->get('panneau.list.per_page', 20), self::MAX_PER_PAGE);
-        if (isset($arguments['fields'])) {
-            $parameters['fields'] = implode(',', $arguments['fields']);
+        $resource = $this->resources->find($arguments['resource']);
+        $fields = $arguments['fields'] ?? ($resource !== null ? $this->columnFields($resource) : null);
+        if ($fields !== null) {
+            $parameters['fields'] = implode(',', $fields);
         }
 
-        return $this->listItems->handle($call->user, $arguments['resource'], $parameters, $call->request);
+        $result = $this->listItems->handle($call->user, $resource ?? $arguments['resource'], $parameters, $call->request);
+        $result['data'] = self::withoutAbilities($result['data']);
+
+        return $result;
+    }
+
+    /**
+     * The fields of the columns of a resource's list, or null when it declares none: every field.
+     *
+     * @return list<string>|null
+     */
+    private function columnFields(Resource $resource): ?array
+    {
+        $fields = [];
+        foreach ($this->resources->list($resource)->getColumns() ?? [] as $column) {
+            $field = $column->field();
+            if ($field !== null && ! in_array($field, $fields, true)) {
+                $fields[] = $field;
+            }
+        }
+
+        return $fields !== [] ? $fields : null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    private static function withoutAbilities(array $items): array
+    {
+        return array_map(function (array $item): array {
+            unset($item['abilities']);
+
+            return $item;
+        }, $items);
     }
 }

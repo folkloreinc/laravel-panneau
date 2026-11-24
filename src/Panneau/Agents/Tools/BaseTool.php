@@ -25,6 +25,14 @@ abstract class BaseTool implements Tool
         protected readonly Config $config,
     ) {}
 
+    /**
+     * A tool that writes changes what it is given only, by default.
+     */
+    public function destructive(): bool
+    {
+        return false;
+    }
+
     final public function handle(ToolCall $call): ToolResult
     {
         try {

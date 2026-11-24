@@ -4,6 +4,7 @@ namespace Panneau\Fields;
 
 use ArrayObject;
 use Closure;
+use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use LogicException;
@@ -12,6 +13,7 @@ use Panneau\Fields\Concerns\ValidatesEachLocale;
 use Panneau\Forms\RuleSet;
 use Panneau\Forms\ValidationContext;
 use Panneau\Media\MediaTransform;
+use Panneau\Resources\ResourceRegistry;
 
 /**
  * Media of libraries: resources of kind `media` (`MediaResource`). One media, or a list with
@@ -144,6 +146,19 @@ class Media extends Field
         }
 
         return $definition;
+    }
+
+    /**
+     * An id, or a list of them: with the library of the media when the field allows several.
+     */
+    public function example(): mixed
+    {
+        $entry = '1';
+        if ($this->transforms && count($this->resources) > 1) {
+            $entry = ['id' => '1', 'resource' => Container::getInstance()->make(ResourceRegistry::class)->idOf($this->resources[0])];
+        }
+
+        return $this->multiple ? [$entry] : $entry;
     }
 
     protected function valueRules(ValidationContext $context): array

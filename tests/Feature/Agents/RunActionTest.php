@@ -73,7 +73,7 @@ class RunActionTest extends HttpTestCase
         $asked = $this->data($arguments);
 
         $this->assertSame('confirmation_required', $asked['status']);
-        $this->assertSame('Run “Delete” on 2 items?', $asked['message']);
+        $this->assertSame('Delete 2 items? This can\'t be undone.', $asked['message']);
         $this->assertSame(['succeeded' => 1, 'failed' => 0, 'skipped' => 1], $asked['preview']['summary']);
         $this->assertSame(2, Post::query()->count());
 
@@ -102,6 +102,18 @@ class RunActionTest extends HttpTestCase
         $this->assertSame('published', $first->refresh()->status);
         $this->assertSame('Notified', $first->body);
         $this->assertSame(1, Post::query()->where('status', 'published')->count());
+    }
+
+    public function test_the_default_message_says_when_an_action_can_not_be_undone(): void
+    {
+        $ids = [(string) $this->createPost()->id];
+        $message = fn (string $action): string => $this->data(['resource' => 'action-posts', 'action' => $action, 'selection' => ['ids' => $ids]])['message'];
+
+        $this->assertSame('Delete 1 item? This can\'t be undone.', $message('delete'));
+        $this->assertSame('Run “Purge posts” on 1 item? This can\'t be undone.', $message('purge-posts'));
+        // An action that isn't destructive keeps the sentence with its label
+        $this->assertSame('Run “Review posts” on 1 item?', $message('review-posts'));
+        $this->assertSame(1, Post::query()->count());
     }
 
     public function test_a_confirmation_is_refused_for_other_arguments(): void
@@ -290,7 +302,7 @@ class ActionPostsResource extends PostsResource
 
     public function actions(): array
     {
-        return [...parent::actions(), RecordAgent::class];
+        return [...parent::actions(), RecordAgent::class, PurgePosts::class, ReviewPosts::class];
     }
 }
 
@@ -310,6 +322,40 @@ class RecordAgent extends Action
     {
         self::$agents[] = $this->context()->agent;
 
+        return $result;
+    }
+}
+
+/**
+ * An action that destroys what can't be undone, without a message of its own.
+ */
+class PurgePosts extends Action
+{
+    public function destructive(): bool
+    {
+        return true;
+    }
+
+    public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult
+    {
+        $items->each(fn (Post $post): ?bool => $post->delete());
+
+        return $result;
+    }
+}
+
+/**
+ * An action that asks first, without a message of its own.
+ */
+class ReviewPosts extends Action
+{
+    public function confirm(): bool
+    {
+        return true;
+    }
+
+    public function handle(Collection $items, ActionValues $values, ActionResult $result): ActionResult
+    {
         return $result;
     }
 }
