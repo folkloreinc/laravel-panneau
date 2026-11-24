@@ -67,7 +67,7 @@ final class ActionController
 
         $payload = $this->validatePayload($request, $action);
         // A dry run comes before the parameters: its values are not validated.
-        $uploads = $this->uploadResolver($request);
+        $uploads = $this->uploadResolver($request->user());
         $values = $dryRun ? [] : Form::validate(
             $this->validator,
             $action->fields(),
