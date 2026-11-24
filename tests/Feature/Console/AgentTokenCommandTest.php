@@ -5,6 +5,8 @@ namespace Panneau\Tests\Feature\Console;
 use Illuminate\Support\Facades\Artisan;
 use Laravel\Sanctum\PersonalAccessToken;
 use Orchestra\Testbench\Attributes\WithMigration;
+use Panneau\Context\ContextParam;
+use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Feature\Agents\McpTestCase;
 
 /**
@@ -20,6 +22,7 @@ class AgentTokenCommandTest extends McpTestCase
         $this->assertSame(0, Artisan::call('panneau:agent-token', ['user' => 'ada@example.com']));
         $output = Artisan::output();
         $this->assertStringContainsString('/panneau/mcp', $output);
+        $this->assertStringNotContainsString('Context', $output);
 
         $this->assertMatchesRegularExpression('/^\d+\|\S+$/m', $output);
         preg_match('/^\d+\|\S+$/m', $output, $match);
@@ -39,6 +42,16 @@ class AgentTokenCommandTest extends McpTestCase
         $token = PersonalAccessToken::query()->sole();
         $this->assertSame('Claude', $token->name);
         $this->assertSame(['mcp:use', 'panneau:write'], $token->abilities);
+    }
+
+    public function test_with_a_context_it_says_the_url_is_followed_by_it(): void
+    {
+        $this->createUser();
+        Panneau::context([ContextParam::make('client')->options(['4' => 'Acme']), ContextParam::make('season')->options(['2026' => '2026'])]);
+
+        $this->assertSame(0, Artisan::call('panneau:agent-token', ['user' => 'ada@example.com']));
+
+        $this->assertStringContainsString('/panneau/mcp/client/{client}/season/{season}', Artisan::output());
     }
 
     public function test_an_unknown_user_fails(): void

@@ -3,13 +3,15 @@
 namespace Panneau\Agents;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Support\Carbon;
+use Panneau\Context\Context;
 
 /**
  * The confirmation of an action that `run_action` asks for before running it (decision 0022):
- * a token signed with the key of the app, for one user, one connection, and the exact
- * arguments it previewed, valid for 5 minutes. Nothing is stored: the token holds its payload,
+ * a token signed with the key of the app, for one user, one connection, the values of the
+ * current context, and the exact arguments it previewed, valid for 5 minutes. Nothing is stored: the token holds its payload,
  * base64url of JSON, and the HMAC of that JSON.
  *
  * @internal
@@ -20,6 +22,7 @@ final class Confirmation
 
     public function __construct(
         private readonly Encrypter $encrypter,
+        private readonly Container $container,
     ) {}
 
     /**
@@ -73,6 +76,8 @@ final class Confirmation
         return [
             'user' => is_int($identifier) || is_string($identifier) ? (string) $identifier : null,
             'agent' => $agent?->id,
+            // A confirmation made on one context is refused on another
+            'context' => $this->container->make(Context::class)->all(),
             'resource' => $resource,
             'action' => $action,
             'arguments' => hash('sha256', (string) json_encode(self::canonical(['selection' => $selection, 'values' => $values]))),

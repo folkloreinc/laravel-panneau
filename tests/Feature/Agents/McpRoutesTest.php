@@ -7,13 +7,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
-use LogicException;
 use Orchestra\Testbench\Attributes\WithMigration;
-use Panneau\Context\ContextParam;
 use Panneau\Events\AgentToolCalled;
 use Panneau\Support\Facade as Panneau;
 use TestApp\Models\Post;
-use TestApp\Panneau\Resources\AuthorsResource;
 
 /**
  * The routes of the MCP server: a bearer token with `mcp:use`, the gates, the rate limiter.
@@ -122,7 +119,7 @@ class McpRoutesTest extends McpTestCase
         $route = $this->app['router']->getRoutes()->getByName('panneau.mcp');
 
         $this->assertNotNull($route);
-        $this->assertSame('panneau/mcp', $route->uri());
+        $this->assertSame('panneau/mcp/{panneauContext?}', $route->uri());
         $this->assertContains('auth:sanctum', $route->gatherMiddleware());
     }
 
@@ -143,27 +140,6 @@ class McpRoutesTest extends McpTestCase
         $this->assertSame((string) $user->getKey(), $this->get('/test-whoami')->getContent());
         $this->forgetSession();
         $this->rpc(null, 'tools/list')->assertStatus(401);
-    }
-
-    public function test_a_panneau_with_a_context_is_refused(): void
-    {
-        Panneau::context([ContextParam::make('author')->resource(AuthorsResource::class)->required()]);
-
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('doesn\'t serve a Panneau with a context');
-        Panneau::mcpRoutes();
-    }
-
-    public function test_a_context_declared_after_the_routes_is_a_501(): void
-    {
-        $token = $this->createUser()->createToken('agent', ['mcp:use'])->plainTextToken;
-        $this->createPost(['title' => 'Of any author']);
-        Panneau::context([ContextParam::make('author')->resource(AuthorsResource::class)->required()]);
-
-        $this->rpc($token, 'tools/call', ['name' => 'find_items', 'arguments' => ['resource' => 'posts']])
-            ->assertStatus(501)
-            ->assertJsonPath('status', 501)
-            ->assertDontSee('Of any author');
     }
 
     /**
