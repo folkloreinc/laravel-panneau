@@ -8,32 +8,39 @@ use Illuminate\Validation\ValidationException;
 use Panneau\Agents\Tool;
 use Panneau\Agents\ToolCall;
 use Panneau\Agents\ToolResult;
+use Panneau\Events\AgentToolCalled;
 use Throwable;
 
 /**
- * What the read tools share: arguments validated against their rules, the arguments that
- * aren't declared refused, and errors turned into results with the problem the API answers.
+ * What the tools of Panneau share: arguments validated against their rules, the arguments that
+ * aren't declared refused, and errors turned into results with the problem the API answers. A
+ * tool that writes dispatches `AgentToolCalled` after each call that succeeds.
  *
  * @internal
  */
-abstract class ReadTool implements Tool
+abstract class BaseTool implements Tool
 {
     public function __construct(
         protected readonly ValidatorFactory $validator,
         protected readonly Config $config,
     ) {}
 
-    public function readOnly(): bool
-    {
-        return true;
-    }
-
     final public function handle(ToolCall $call): ToolResult
     {
         try {
             $arguments = $this->validated($call->arguments);
+            $data = $this->run($call, $arguments);
+            if (! $this->readOnly()) {
+                event(new AgentToolCalled(
+                    $call->user,
+                    $call->agent,
+                    $this->name(),
+                    is_string($arguments['resource'] ?? null) ? $arguments['resource'] : null,
+                    $this->touchedItems($arguments, $data),
+                ));
+            }
 
-            return ToolResult::data($this->run($call, $arguments));
+            return ToolResult::data($data);
         } catch (Throwable $exception) {
             $result = ToolResult::fromThrowable($exception, (bool) $this->config->get('app.debug', false));
             if (($result->status() ?? 500) >= 500) {
@@ -68,6 +75,19 @@ abstract class ReadTool implements Tool
      * @return array<string, mixed>
      */
     abstract protected function run(ToolCall $call, array $arguments): array;
+
+    /**
+     * The ids of the items a call of a tool that writes created or changed, for
+     * `AgentToolCalled`.
+     *
+     * @param  array<string, mixed>  $arguments  Validated.
+     * @param  array<string, mixed>  $data  The result of the call.
+     * @return list<string>
+     */
+    protected function touchedItems(array $arguments, array $data): array
+    {
+        return [];
+    }
 
     /**
      * @param  array<string, mixed>  $arguments

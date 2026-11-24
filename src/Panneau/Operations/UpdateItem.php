@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Panneau\Agents\AgentCaller;
 use Panneau\Auth\Authorizer;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Exceptions\VersionConflictException;
@@ -52,6 +53,8 @@ final class UpdateItem
      *                                Null (or empty) always matches.
      * @param  Request  $request  For the scope of the resource, the media of the values and the
      *                            hooks of the resource.
+     * @param  AgentCaller|null  $agent  The agent that saves the item through a tool, given to
+     *                                   the fields in the `SaveContext`.
      * @return array{item: object, references: MediaReferences} The updated item, and the media
      *                                                          found while validating it, to serialize it.
      *
@@ -61,7 +64,7 @@ final class UpdateItem
      * @throws VersionConflictException When the item's version doesn't match `$ifMatch`.
      * @throws ValidationException When the values aren't valid.
      */
-    public function handle(?Authenticatable $user, Resource|string $resource, string $id, array $values, ?string $ifMatch, Request $request): array
+    public function handle(?Authenticatable $user, Resource|string $resource, string $id, array $values, ?string $ifMatch, Request $request, ?AgentCaller $agent = null): array
     {
         $resource = $this->findResource($resource);
         $repository = $this->resources->repository($resource);
@@ -96,7 +99,7 @@ final class UpdateItem
             ),
             $resource->formLayout(),
         );
-        $saving = new SaveContext(FormMode::Update, $item, $uploads);
+        $saving = new SaveContext(FormMode::Update, $item, $uploads, $agent);
         try {
             $validated = Form::prepare($fields, $validated, $saving);
             $validated = $resource->updating($item, $validated, $request);

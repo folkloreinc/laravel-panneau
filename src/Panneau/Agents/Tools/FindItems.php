@@ -12,7 +12,7 @@ use Panneau\Search\SearchQuery;
 /**
  * `find_items`: the global search, or the list of a resource.
  */
-final class FindItems extends ReadTool
+final class FindItems extends BaseTool
 {
     /**
      * The most items a page holds (`AGENT_MAX_PER_PAGE` of the protocol).
@@ -40,6 +40,11 @@ final class FindItems extends ReadTool
         return 'Finds items. Without `resource`, searches every searchable resource for `q`, at most `limit` items each. '
             .'With `resource`, lists its items, a page at a time: `filter`, `sort`, `q`, `page` or `cursor`, `perPage` (at most 50) and `fields`. '
             .'Call `describe` with the resource first to know its filters, sorts and fields, then `get_item` to read an item in full.';
+    }
+
+    public function readOnly(): bool
+    {
+        return true;
     }
 
     public function inputSchema(): array

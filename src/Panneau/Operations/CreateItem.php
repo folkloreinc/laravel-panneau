@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Panneau\Agents\AgentCaller;
 use Panneau\Auth\Authorizer;
 use Panneau\Definition\DefinitionBuilder;
 use Panneau\Forms\Form;
@@ -46,6 +47,8 @@ final class CreateItem
      *                                        request.
      * @param  Request  $request  For the scope of the resource, the media of the values and the
      *                            hooks of the resource.
+     * @param  AgentCaller|null  $agent  The agent that saves the item through a tool, given to
+     *                                   the fields in the `SaveContext`.
      * @return array{item: object, references: MediaReferences} The new item, and the media found
      *                                                          while validating it, to serialize it.
      *
@@ -53,7 +56,7 @@ final class CreateItem
      * @throws AuthorizationException When the user can't create the item.
      * @throws ValidationException When the values aren't valid.
      */
-    public function handle(?Authenticatable $user, Resource|string $resource, array $values, Request $request): array
+    public function handle(?Authenticatable $user, Resource|string $resource, array $values, Request $request, ?AgentCaller $agent = null): array
     {
         $resource = $this->findResource($resource);
         if (! $this->authorizer->allowsResource($user, $resource, 'create')) {
@@ -78,7 +81,7 @@ final class CreateItem
             ),
             $resource->formLayout(),
         );
-        $saving = new SaveContext(FormMode::Create, null, $uploads);
+        $saving = new SaveContext(FormMode::Create, null, $uploads, $agent);
         try {
             $validated = Form::prepare($fields, $validated, $saving);
             if ($type !== null) {

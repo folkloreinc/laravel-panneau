@@ -3,6 +3,7 @@
 use Panneau\Agents\Tools\Describe;
 use Panneau\Agents\Tools\FindItems;
 use Panneau\Agents\Tools\GetItem;
+use Panneau\Agents\Tools\SaveItem;
 use Panneau\Auth\ResetUserPassword;
 use Panneau\Auth\UpdateUserPassword;
 use Panneau\Auth\UpdateUserProfileInformation;
@@ -364,8 +365,9 @@ return [
     // The agents (decisions 0022 and 0025): tools that a model calls as the signed-in user.
     'agents' => [
         // The tools of the agents, Panneau\Agents\Tool classes resolved by the container. A
-        // project adds its own, or leaves one out.
-        'tools' => [Describe::class, FindItems::class, GetItem::class],
+        // project adds its own, or leaves one out. The tools that write, such as `save_item`,
+        // are only served to a token with `panneau:write`.
+        'tools' => [Describe::class, FindItems::class, GetItem::class, SaveItem::class],
 
         // The MCP server, at `{path}/{agents.mcp.path}`, registered by Panneau::mcpRoutes().
         // It needs laravel/mcp, and a token guard such as laravel/sanctum.
