@@ -30,17 +30,6 @@ abstract class BaseTool implements Tool
         try {
             $arguments = $this->validated($call->arguments);
             $data = $this->run($call, $arguments);
-            if (! $this->readOnly()) {
-                event(new AgentToolCalled(
-                    $call->user,
-                    $call->agent,
-                    $this->name(),
-                    is_string($arguments['resource'] ?? null) ? $arguments['resource'] : null,
-                    $this->touchedItems($arguments, $data),
-                ));
-            }
-
-            return ToolResult::data($data);
         } catch (Throwable $exception) {
             $result = ToolResult::fromThrowable($exception, (bool) $this->config->get('app.debug', false));
             if (($result->status() ?? 500) >= 500) {
@@ -48,6 +37,33 @@ abstract class BaseTool implements Tool
             }
 
             return $result;
+        }
+        if (! $this->readOnly()) {
+            $this->called($call, $arguments, $data);
+        }
+
+        return ToolResult::data($data);
+    }
+
+    /**
+     * Dispatches `AgentToolCalled` for a call that wrote. What it wrote is saved: a listener that
+     * throws is reported, and never turns the result into an error that the agent would retry.
+     *
+     * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>  $data
+     */
+    private function called(ToolCall $call, array $arguments, array $data): void
+    {
+        try {
+            event(new AgentToolCalled(
+                $call->user,
+                $call->agent,
+                $this->name(),
+                is_string($arguments['resource'] ?? null) ? $arguments['resource'] : null,
+                $this->touchedItems($arguments, $data),
+            ));
+        } catch (Throwable $exception) {
+            report($exception);
         }
     }
 

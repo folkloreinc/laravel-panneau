@@ -3,6 +3,8 @@
 namespace Panneau\Tests\Feature\Agents;
 
 use Illuminate\Auth\GenericUser;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Panneau\Agents\AgentCaller;
@@ -17,11 +19,13 @@ use Panneau\Fields\Text;
 use Panneau\Forms\SaveContext;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Feature\Http\HttpTestCase;
+use RuntimeException;
 use TestApp\Models\Entry;
 use TestApp\Models\Post;
 use TestApp\Panneau\Resources\EntriesResource;
 use TestApp\Panneau\Resources\PostsResource;
 use TestApp\Policies\PostPolicy;
+use Throwable;
 
 /**
  * `save_item`, the tool that creates and changes items, called as its user.
@@ -154,6 +158,32 @@ class SaveItemTest extends HttpTestCase
             && $event->tool === 'save_item'
             && $event->resource === 'agent-posts'
             && $event->items === [(string) $item['id']]);
+    }
+
+    public function test_a_listener_that_throws_does_not_fail_a_save(): void
+    {
+        $this->withoutExceptionHandling();
+        $reported = [];
+        $this->app->instance(ExceptionHandler::class, new class($reported) extends Handler
+        {
+            /** @param  list<Throwable>  $reported */
+            public function __construct(private array &$reported) {}
+
+            public function report(Throwable $e): void
+            {
+                $this->reported[] = $e;
+            }
+        });
+        Event::listen(AgentToolCalled::class, function (): void {
+            throw new RuntimeException('The listener failed.');
+        });
+
+        $item = $this->data(['resource' => 'agent-posts', 'values' => ['title' => 'Saved once']]);
+
+        $this->assertSame('Saved once', $item['title']);
+        $this->assertSame(1, Post::query()->where('title', 'Saved once')->count());
+        $this->assertCount(1, $reported);
+        $this->assertSame('The listener failed.', $reported[0]->getMessage());
     }
 
     public function test_a_read_or_a_failed_call_dispatches_nothing(): void
