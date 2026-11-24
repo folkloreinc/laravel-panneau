@@ -17,6 +17,7 @@ use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\TwoFactorAuthenticationProvider as FortifyTwoFactorProvider;
 use Panneau\Auth\Authorizer;
+use Panneau\Console\AgentTokenCommand;
 use Panneau\Console\ConvertAddressesCommand;
 use Panneau\Console\ConvertMoneyCommand;
 use Panneau\Console\ConvertPhonesCommand;
@@ -35,6 +36,7 @@ use Panneau\Http\Controllers\PasswordResetController;
 use Panneau\Http\Controllers\SearchController;
 use Panneau\Http\Middleware\ApplyInterfaceLocale;
 use Panneau\Http\Middleware\Authenticate;
+use Panneau\Http\Middleware\AuthorizeAgents;
 use Panneau\Http\Middleware\ResolveContext;
 use Panneau\Navigation\Navigation;
 use Panneau\Repositories\RepositoryAdapters;
@@ -99,6 +101,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
         $this->app->make(Router::class)->aliasMiddleware('panneau.context', ResolveContext::class);
         $this->app->make(Router::class)->aliasMiddleware('panneau.interface-locale', ApplyInterfaceLocale::class);
+        $this->app->make(Router::class)->aliasMiddleware('panneau.agents', AuthorizeAgents::class);
         // Fields can depend on the user: build them again for the next request, or another user
         $this->app->make(Dispatcher::class)->listen([RequestHandled::class, Authenticated::class, Logout::class], function (): void {
             if ($this->app->resolved(RequestCache::class)) {
@@ -111,6 +114,7 @@ class ServiceProvider extends BaseServiceProvider
             $limiter->for(SearchController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.search.rate_limit'));
             $limiter->for(EmbedController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.embeds.rate_limit'));
             $limiter->for(AggregateController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.aggregates.rate_limit'));
+            $limiter->for(AuthorizeAgents::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.agents.rate_limit'));
             // Each route of the auth has its own budget
             $limiter->for(PasswordResetController::RATE_LIMITER, fn (Request $request): Limit => $this->perMinute($request, 'panneau.auth.rate_limit', perRoute: true));
         });
@@ -129,7 +133,7 @@ class ServiceProvider extends BaseServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, ConvertPhonesCommand::class, ConvertMoneyCommand::class, ConvertAddressesCommand::class]);
+            $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, AgentTokenCommand::class, ConvertPhonesCommand::class, ConvertMoneyCommand::class, ConvertAddressesCommand::class]);
         }
     }
 
@@ -150,7 +154,7 @@ class ServiceProvider extends BaseServiceProvider
     /**
      * A limit of requests per minute from a config key, for each user, or each IP address
      * without one: the global search (`panneau.search.rate_limit`), embeds
-     * (`panneau.embeds.rate_limit`), and the password reset and the email verification
+     * (`panneau.embeds.rate_limit`), the agents (`panneau.agents.rate_limit`), and the password reset and the email verification
      * (`panneau.auth.rate_limit`, per route).
      */
     private function perMinute(Request $request, string $key, bool $perRoute = false): Limit
