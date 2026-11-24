@@ -15,7 +15,9 @@ use Illuminate\Routing\Router;
 use InvalidArgumentException;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Server as McpServer;
+use Laravel\Passport\Passport;
 use LogicException;
+use Panneau\Agents\Mcp\OAuth;
 use Panneau\Agents\Mcp\PanneauServer;
 use Panneau\Auth\Authorizer;
 use Panneau\Context\ContextParam;
@@ -217,6 +219,13 @@ class Panneau implements PanneauContract
         ]), function (): void {
             Mcp::web('{'.ResolveContext::PATH_PARAMETER.'?}', PanneauServer::class)->name('panneau.mcp');
         });
+
+        if ($config->get('panneau.agents.mcp.oauth.enabled') === true) {
+            if (! class_exists(Passport::class)) {
+                throw new LogicException('OAuth for the MCP server of the agents needs laravel/passport: composer require laravel/passport');
+            }
+            OAuth::routes($this->container->make(Router::class));
+        }
     }
 
     /**

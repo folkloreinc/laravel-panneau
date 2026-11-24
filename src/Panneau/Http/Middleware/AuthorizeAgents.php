@@ -16,7 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * The `panneau.agents` middleware of the MCP server, after the token guard: the user passes the
  * `viewPanneau` gate, and `usePanneauAgents` when the project defines it, and the token of the
- * connection has the `mcp:use` ability. Otherwise a `403` problem.
+ * connection has the `mcp:use` ability, or `panneau:write`, which reads too. Otherwise a `403`
+ * problem.
  *
  * A token lives longer than a session: the checks of `panneau.auth` on the user apply too, with
  * their problems, on every route, since the server has no page to fix them. A user whose address
@@ -63,7 +64,8 @@ final class AuthorizeAgents
         if ($this->twoFactor->mustSetUp($user)) {
             throw new TwoFactorRequiredException;
         }
-        if (! self::tokenCan($user, self::USE)) {
+        // A token that can write can read
+        if (! self::tokenCan($user, self::USE) && ! self::tokenCan($user, self::WRITE)) {
             throw new AuthorizationException(__('The token can not use the MCP server.'));
         }
 

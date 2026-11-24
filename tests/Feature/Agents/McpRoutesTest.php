@@ -68,6 +68,22 @@ class McpRoutesTest extends McpTestCase
         $this->assertSame(0, Post::query()->count());
     }
 
+    public function test_a_token_that_writes_can_read_without_mcp_use(): void
+    {
+        $token = $this->createUser()->createToken('assistant', ['panneau:write'])->plainTextToken;
+
+        $this->rpc($token, 'tools/list')
+            ->assertOk()
+            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action']);
+    }
+
+    public function test_without_oauth_there_is_no_route_of_oauth(): void
+    {
+        $this->assertFalse(Route::has('mcp.oauth.register'));
+        $this->assertFalse(Route::has('mcp.oauth.protected-resource.nested'));
+        $this->get('/.well-known/oauth-protected-resource')->assertNotFound();
+    }
+
     public function test_without_a_token_it_is_unauthorized(): void
     {
         $this->rpc(null, 'tools/list')->assertStatus(401)->assertJsonPath('status', 401);

@@ -371,7 +371,7 @@ return [
         'tools' => [Describe::class, FindItems::class, GetItem::class, SaveItem::class, RunAction::class],
 
         // The MCP server, at `{path}/{agents.mcp.path}`, registered by Panneau::mcpRoutes().
-        // It needs laravel/mcp, and a token guard such as laravel/sanctum.
+        // It needs laravel/mcp, and a token guard: laravel/sanctum, or laravel/passport for OAuth.
         'mcp' => [
             // Off: Panneau::mcpRoutes() registers nothing.
             'enabled' => false,
@@ -384,6 +384,17 @@ return [
             // given. Null: tokens made on the command line never expire, unless this or --days
             // says so. Sanctum's own `sanctum.expiration` still applies on top.
             'token_lifetime' => null,
+            // OAuth for the clients that can't take a pasted token (decision 0028), with
+            // laravel/passport: the guard above is then a `passport` guard. Passport's own
+            // lifetimes are a year for both tokens.
+            'oauth' => [
+                'enabled' => false,
+                // Minutes until an access token expires. Null: Passport's own. 60 is
+                // recommended: the client refreshes it.
+                'access_token_lifetime' => null,
+                // Days until a refresh token expires. Null: Passport's own.
+                'refresh_token_lifetime' => null,
+            ],
         ],
 
         // Calls per minute for a user, through the `panneau-agents` rate limiter. Over it, a 429
