@@ -56,6 +56,17 @@ class McpServerTest extends HttpTestCase
         $this->assertStringContainsString('"properties":{}', (string) json_encode((new McpTool(new WritingTool))->toArray()));
     }
 
+    public function test_the_tools_that_write_are_listed_for_a_token_that_writes(): void
+    {
+        $this->actingAs(new TokenUser(['id' => 1], ['mcp:use']));
+        $this->assertSame(['describe', 'find_items', 'get_item'], array_column($this->listTools(), 'name'));
+
+        $this->actingAs(new TokenUser(['id' => 1], ['mcp:use', 'panneau:write']));
+        $tools = array_column($this->listTools(), null, 'name');
+        $this->assertSame(['describe', 'find_items', 'get_item', 'save_item', 'run_action'], array_keys($tools));
+        $this->assertFalse($tools['run_action']['annotations']['readOnlyHint']);
+    }
+
     public function test_describe(): void
     {
         PanneauServer::tool($this->tool(Describe::class), ['resource' => 'posts', 'parts' => ['list']])

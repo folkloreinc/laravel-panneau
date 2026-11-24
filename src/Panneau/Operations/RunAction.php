@@ -12,6 +12,7 @@ use Panneau\Actions\Action;
 use Panneau\Actions\ActionContext;
 use Panneau\Actions\ActionResult;
 use Panneau\Actions\ActionValues;
+use Panneau\Agents\AgentCaller;
 use Panneau\Auth\Authorizer;
 use Panneau\Contracts\Repositories\Restorable;
 use Panneau\Contracts\ResourceRepository;
@@ -55,6 +56,8 @@ final class RunAction
      *                                         and `dryRun`.
      * @param  Request  $request  For the scope of the resource, the media of the values, and
      *                            the context of the action.
+     * @param  AgentCaller|null  $agent  The connection of the agent, for a run through a tool:
+     *                                   the action reads it in its context.
      * @return array<string, mixed> The result of the action, or the counts of a dry run, as
      *                              the body of the response.
      *
@@ -66,17 +69,23 @@ final class RunAction
      * @throws ValidationException When the payload or the values aren't valid, or the
      *                             selection is over `panneau.actions.sync_limit`.
      */
-    public function handle(?Authenticatable $user, Resource|string $resource, string $action, array $payload, Request $request): array
+    public function handle(?Authenticatable $user, Resource|string $resource, string $action, array $payload, Request $request, ?AgentCaller $agent = null): array
     {
-        $resource = $this->findResource($resource);
-        $action = $this->resources->action($resource, $action);
-        if (! $action instanceof Action) {
-            throw new NotFoundHttpException;
-        }
-        if (! $this->authorizer->allowsResource($user, $resource, 'viewAny')
-            || ! $this->authorizer->allowsActionOnResource($user, $action, $resource)) {
-            throw new AuthorizationException;
-        }
+        return $this->run($user, $resource, $action, $payload, $request, $agent)['result'];
+    }
+
+    /**
+     * Runs an action as handle() does, and tells the ids of the items it succeeded on, which
+     * the result doesn't list: none for a dry run.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{result: array<string, mixed>, items: list<string>}
+     *
+     * @throws NotFoundHttpException|AuthorizationException|BadRequestHttpException|ValidationException As handle().
+     */
+    public function run(?Authenticatable $user, Resource|string $resource, string $action, array $payload, Request $request, ?AgentCaller $agent = null): array
+    {
+        [$resource, $action] = $this->authorizedAction($user, $resource, $action);
 
         // Refused before anything else: an action that doesn't answer dry runs never runs on one.
         $dryRun = filter_var($payload['dryRun'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -106,10 +115,10 @@ final class RunAction
 
         if ($dryRun) {
             // The items the action would run on count as succeeded; nothing runs.
-            return $result->toArray($ids);
+            return ['result' => $result->toArray($ids), 'items' => []];
         }
 
-        $action->setContext(new ActionContext($resource, $repository, $scope, $request, $user));
+        $action->setContext(new ActionContext($resource, $repository, $scope, $request, $user, $agent));
         $values = new ActionValues($values, $uploads);
         $result = $action->handle(collect($items), $values, $result);
         // What can be undone says how: the inverse action, on the items that succeeded, up to
@@ -119,7 +128,85 @@ final class RunAction
             $result->undo($inverse, $action->inverseParams());
         }
 
-        return $result->toArray($ids);
+        return ['result' => $result->toArray($ids), 'items' => $result->succeededIds($ids)];
+    }
+
+    /**
+     * How many items the selection of a payload holds, checked as a run checks it (the user,
+     * the payload, the values and `panneau.actions.sync_limit`), without running the action:
+     * the number of distinct ids, or the total of the query. Items the user can't run the
+     * action on are counted. Null for an action on the whole resource.
+     *
+     * @param  array<string, mixed>  $payload  As for handle(); `dryRun` is ignored.
+     *
+     * @throws NotFoundHttpException|AuthorizationException|ValidationException As handle().
+     */
+    public function count(?Authenticatable $user, Resource|string $resource, string $action, array $payload, Request $request): ?int
+    {
+        [$resource, $action] = $this->authorizedAction($user, $resource, $action);
+        unset($payload['dryRun']);
+        $this->validatePayload($payload, $action);
+        Form::validate(
+            $this->validator,
+            $action->fields(),
+            is_array($payload['values'] ?? null) ? $payload['values'] : [],
+            $this->validationContext($request, FormMode::Create, uploads: $this->uploadResolver($user)),
+            $action->layout(),
+        );
+        $selection = $payload['selection'] ?? null;
+        if (! is_array($selection)) {
+            return null;
+        }
+        $limit = max(1, (int) $this->config->get('panneau.actions.sync_limit', 500));
+        if (isset($selection['ids']) && is_array($selection['ids'])) {
+            $count = count(array_unique(array_map(strval(...), $selection['ids'])));
+        } elseif ($action->findsDeletedItems()) {
+            throw ValidationException::withMessages(['selection' => [__('The selection needs ids.')]]);
+        } else {
+            $count = $this->resources->repository($resource)->query($this->selectionQuery($resource, $selection, $resource->repositoryScope($request), 1))->total();
+        }
+        $this->ensureWithinLimit($count, $limit);
+
+        return $count;
+    }
+
+    /**
+     * The resource and its action, when the user can list the resource and run the action.
+     *
+     * @return array{resource, Action}
+     */
+    private function authorizedAction(?Authenticatable $user, Resource|string $resource, string $action): array
+    {
+        $resource = $this->findResource($resource);
+        $action = $this->resources->action($resource, $action);
+        if (! $action instanceof Action) {
+            throw new NotFoundHttpException;
+        }
+        if (! $this->authorizer->allowsResource($user, $resource, 'viewAny')
+            || ! $this->authorizer->allowsActionOnResource($user, $action, $resource)) {
+            throw new AuthorizationException;
+        }
+
+        return [$resource, $action];
+    }
+
+    /**
+     * The list query of a selection by query, on its first page of `$perPage` items.
+     *
+     * @param  array<string, mixed>  $selection
+     * @param  array<string, mixed>  $scope
+     */
+    private function selectionQuery(Resource $resource, array $selection, array $scope, int $perPage): ResourceQuery
+    {
+        $query = is_array($selection['query'] ?? null) ? $selection['query'] : [];
+
+        return ResourceQuery::fromParameters(
+            ['filter' => $query['filter'] ?? [], 'q' => $query['q'] ?? null],
+            $this->resources->queryOptions($resource),
+            $scope,
+        )
+            ->withExcept(array_values(array_map(strval(...), is_array($selection['except'] ?? null) ? $selection['except'] : [])))
+            ->withPage(1, $perPage);
     }
 
     /**
@@ -221,15 +308,7 @@ final class RunAction
             throw ValidationException::withMessages(['selection' => [__('The selection needs ids.')]]);
         }
 
-        $query = is_array($selection['query'] ?? null) ? $selection['query'] : [];
-        $resourceQuery = ResourceQuery::fromParameters(
-            ['filter' => $query['filter'] ?? [], 'q' => $query['q'] ?? null],
-            $this->resources->queryOptions($resource),
-            $scope,
-        )
-            ->withExcept(array_values(array_map(strval(...), is_array($selection['except'] ?? null) ? $selection['except'] : [])))
-            ->withPage(1, $limit);
-        $page = $repository->query($resourceQuery);
+        $page = $repository->query($this->selectionQuery($resource, $selection, $scope, $limit));
         $this->ensureWithinLimit($page->total(), $limit);
 
         foreach ($page->items() as $item) {

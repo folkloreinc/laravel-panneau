@@ -38,7 +38,7 @@ abstract class BaseTool implements Tool
 
             return $result;
         }
-        if (! $this->readOnly()) {
+        if (! $this->readOnly() && $this->wrote($arguments, $data)) {
             $this->called($call, $arguments, $data);
         }
 
@@ -91,6 +91,18 @@ abstract class BaseTool implements Tool
      * @return array<string, mixed>
      */
     abstract protected function run(ToolCall $call, array $arguments): array;
+
+    /**
+     * Whether a call of a tool that writes wrote something: one that only previewed dispatches
+     * no `AgentToolCalled`.
+     *
+     * @param  array<string, mixed>  $arguments  Validated.
+     * @param  array<string, mixed>  $data  The result of the call.
+     */
+    protected function wrote(array $arguments, array $data): bool
+    {
+        return true;
+    }
 
     /**
      * The ids of the items a call of a tool that writes created or changed, for

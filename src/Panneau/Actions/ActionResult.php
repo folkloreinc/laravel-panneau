@@ -161,14 +161,8 @@ final class ActionResult
      */
     public function toArray(array $ids = []): array
     {
-        $succeeded = $this->succeeded;
-        foreach ($ids as $id) {
-            if (! isset($this->results[$id])) {
-                $succeeded[$id] = true;
-            }
-        }
+        $undoItems = $this->succeededIds($ids);
         $statuses = array_count_values(array_map(fn (array $result): string => $result['status'], $this->results));
-        $undoItems = array_map(strval(...), array_keys($succeeded));
         $undo = $this->undo !== null && count($undoItems) > 0 && count($undoItems) <= Action::UNDO_LIMIT
             ? array_filter([
                 'action' => $this->undo['action'],
@@ -180,7 +174,7 @@ final class ActionResult
         return array_filter([
             'message' => $this->message,
             'summary' => [
-                'succeeded' => count($succeeded),
+                'succeeded' => count($undoItems),
                 'failed' => $statuses['failed'] ?? 0,
                 'skipped' => $statuses['skipped'] ?? 0,
             ],
@@ -190,6 +184,24 @@ final class ActionResult
             'download' => $this->download,
             'undo' => $undo,
         ], fn (mixed $value): bool => $value !== null);
+    }
+
+    /**
+     * The ids of the items that succeeded.
+     *
+     * @param  list<string>  $ids  The ids of the items the action ran on, as for toArray().
+     * @return list<string>
+     */
+    public function succeededIds(array $ids = []): array
+    {
+        $succeeded = $this->succeeded;
+        foreach ($ids as $id) {
+            if (! isset($this->results[$id])) {
+                $succeeded[$id] = true;
+            }
+        }
+
+        return array_map(strval(...), array_keys($succeeded));
     }
 
     private function idOf(object|string $item): string
