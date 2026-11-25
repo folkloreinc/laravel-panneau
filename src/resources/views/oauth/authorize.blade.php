@@ -1,5 +1,6 @@
 @php
-    // The consent page of OAuth for the MCP server (decision 0028), set with Passport::authorizationView()
+    // The consent page of OAuth for the MCP server (decision 0028), set with Passport::authorizationView(),
+    // in the language of the interface the user chose (ApplyInterfaceLocale on its route)
     $ids = array_map(fn ($scope) => $scope->id, $scopes);
     $writes = in_array(\Panneau\Http\Middleware\AuthorizeAgents::WRITE, $ids, true);
     $others = array_filter($scopes, fn ($scope) => ! in_array($scope->id, \Panneau\Agents\Mcp\OAuthMetadata::SCOPES, true));
@@ -11,7 +12,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>{{ __('Authorize :client', ['client' => $client->name]) }} · {{ $panneau }}</title>
+    <title>{{ __('panneau::oauth.title', ['client' => $client->name]) }} · {{ $panneau }}</title>
     <style>
         :root { color-scheme: light dark; --text: #1a1a1a; --muted: #5f6368; --background: #f5f5f4; --surface: #fff; --border: #d6d3d1; --primary: #1a1a1a; --on-primary: #fff; }
         @media (prefers-color-scheme: dark) {
@@ -35,8 +36,8 @@
 <body>
     <main>
         <p class="panneau">{{ $panneau }}</p>
-        <h1>{{ __(':client wants to connect to your account', ['client' => $client->name]) }}</h1>
-        <p>{{ $writes ? __('It will be able to read and change your content.') : __('It will be able to read your content.') }}</p>
+        <h1>{{ __('panneau::oauth.heading', ['client' => $client->name]) }}</h1>
+        <p>{{ $writes ? __('panneau::oauth.writes') : __('panneau::oauth.reads') }}</p>
         @if ($others !== [])
             <ul>
                 @foreach ($others as $scope)
@@ -44,7 +45,7 @@
                 @endforeach
             </ul>
         @endif
-        <p class="muted">{{ __('It will act as :user, with your permissions.', ['user' => $user->email ?? $user->getAuthIdentifier()]) }}</p>
+        <p class="muted">{{ __('panneau::oauth.user', ['user' => $user->email ?? $user->getAuthIdentifier()]) }}</p>
         <div class="buttons">
             <form method="post" action="{{ route('passport.authorizations.deny') }}">
                 @csrf
@@ -52,14 +53,14 @@
                 <input type="hidden" name="state" value="{{ $request->state }}">
                 <input type="hidden" name="client_id" value="{{ $client->getKey() }}">
                 <input type="hidden" name="auth_token" value="{{ $authToken }}">
-                <button type="submit" class="refuse">{{ __('Refuse') }}</button>
+                <button type="submit" class="refuse">{{ __('panneau::oauth.refuse') }}</button>
             </form>
             <form method="post" action="{{ route('passport.authorizations.approve') }}">
                 @csrf
                 <input type="hidden" name="state" value="{{ $request->state }}">
                 <input type="hidden" name="client_id" value="{{ $client->getKey() }}">
                 <input type="hidden" name="auth_token" value="{{ $authToken }}">
-                <button type="submit" class="authorize">{{ __('Authorize') }}</button>
+                <button type="submit" class="authorize">{{ __('panneau::oauth.authorize') }}</button>
             </form>
         </div>
     </main>

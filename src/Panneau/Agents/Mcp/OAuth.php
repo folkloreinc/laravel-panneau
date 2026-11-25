@@ -9,6 +9,7 @@ use Illuminate\Routing\Router;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Passport\Contracts\AuthorizationViewResponse;
 use Laravel\Passport\Passport;
+use Panneau\Http\Middleware\ApplyInterfaceLocale;
 use Panneau\Http\Middleware\AuthorizeAgents;
 
 /**
@@ -55,10 +56,11 @@ final class OAuth
     {
         Mcp::oauthRoutes();
 
-        // Guests of Passport's authorization go to the login of Panneau's auth mode
+        // Guests of Passport's authorization go to the login of Panneau's auth mode, and its
+        // consent page is in the language of the interface the user chose
         foreach ($router->getRoutes()->getRoutes() as $route) {
             if ($route->getName() === 'passport.authorizations.authorize') {
-                $route->middleware(RedirectGuestsToLogin::class);
+                $route->middleware([RedirectGuestsToLogin::class, ApplyInterfaceLocale::class]);
             }
         }
 
