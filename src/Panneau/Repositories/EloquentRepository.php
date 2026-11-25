@@ -42,6 +42,7 @@ use Panneau\Fields\Field;
 use Panneau\Fields\Money;
 use Panneau\Query\CursorPage;
 use Panneau\Query\ResourceQuery;
+use Panneau\Query\SearchTerms;
 use Panneau\Query\Sort;
 use Panneau\Resources\Duplication;
 use ReflectionMethod;
@@ -62,7 +63,9 @@ use UnexpectedValueException;
  * - Sorts are on the column named after the sort, or the start column of an `AsDateRange`
  *   attribute, the amount column of an `AsMoney` one. Lists that don't declare their sorts sort
  *   by the attributes that have a column (see `sortsBy()`).
- * - Search is a `LIKE` on the search fields. A search with no search fields matches nothing.
+ * - Search keeps the items that have every word of the search, each in any of the search
+ *   fields, whatever its case and its accents (see `applySearch()`). A search with no search
+ *   fields matches nothing.
  *   Models that use `Laravel\Scout\Searchable` are searched through Scout instead, within the
  *   same scope, ids, exclusions and filters (see `scoutSearch()`).
  * - Lists paged with cursors use `cursorPaginate()`, on the columns of the sorts and the key:
@@ -764,20 +767,70 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
     }
 
     /**
+     * Keeps the items that have every word of the search, each in any of the fields, whatever
+     * its case and its accents (see `searchedColumn()`). A field is a column, or a JSON path
+     * (`title->fr`). The words are those of `SearchTerms::words()`: split on whitespace, and
+     * `SearchTerms::MAX_WORDS` at most.
+     *
      * @param  Builder<TModel>  $builder
      * @param  list<string>  $fields
      */
     protected function applySearch(Builder $builder, string $search, array $fields): void
     {
-        // Wildcards in the search are escaped with "!", which every database accepts
-        $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
-        $operator = $builder->getModel()->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $driver = $builder->getModel()->getConnection()->getDriverName();
         $grammar = $builder->getQuery()->getGrammar();
-        $builder->where(function (Builder $query) use ($fields, $pattern, $operator, $grammar): void {
-            foreach ($fields as $field) {
-                $query->orWhereRaw($grammar->wrap($field).' '.$operator." ? escape '!'", [$pattern]);
-            }
-        });
+        $operator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $collates = in_array($driver, ['mysql', 'mariadb'], true);
+        $columns = array_map(fn (string $field): string => $this->searchedColumn($driver, $grammar->wrap($field)), $fields);
+        foreach (SearchTerms::words($search) as $word) {
+            // The collation of MySQL ignores the accents of both sides; the others get the word without them
+            $word = $collates ? $word : SearchTerms::withoutAccents($word);
+            // Wildcards in the search are escaped with "!", which every database accepts
+            $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $word).'%';
+            $builder->where(function (Builder $query) use ($columns, $pattern, $operator): void {
+                foreach ($columns as $column) {
+                    $query->orWhereRaw($column.' '.$operator." ? escape '!'", [$pattern]);
+                }
+            });
+        }
+    }
+
+    /**
+     * The SQL of a searched column, compared whatever its case and its accents, with nothing to
+     * install in the database:
+     *
+     * - MySQL and MariaDB: the `utf8mb4_unicode_ci` collation, which ignores both;
+     * - PostgreSQL: `translate()` of the accented Latin letters to their base letter, under an
+     *   `ILIKE` (the `unaccent` extension isn't needed);
+     * - SQLite: the same letters, replaced one by one, under its `LIKE`, which ignores the case
+     *   of ASCII letters;
+     * - others: the column as it is, compared the way its collation does.
+     *
+     * The letters are the accented Latin ones of `SearchTerms::letters()`. On PostgreSQL and
+     * SQLite, the word compared has lost the same accents and no others, and the case of the
+     * other letters is left to the database. No index serves these comparisons: they read every
+     * row of the query.
+     *
+     * Override it to search another way, such as `unaccent()` or a column kept without accents
+     * and indexed; the words then arrive without the accents of `SearchTerms::letters()` on every
+     * database but MySQL and MariaDB.
+     *
+     * @param  string  $column  The wrapped column, or the expression of a JSON path.
+     */
+    protected function searchedColumn(string $driver, string $column): string
+    {
+        $letters = SearchTerms::letters();
+
+        return match ($driver) {
+            'mysql', 'mariadb' => 'convert('.$column.' using utf8mb4) collate utf8mb4_unicode_ci',
+            'pgsql' => sprintf("translate((%s)::text, '%s', '%s')", $column, implode('', array_keys($letters)), implode('', $letters)),
+            'sqlite' => array_reduce(
+                array_keys($letters),
+                fn (string $sql, string $letter): string => sprintf("replace(%s, '%s', '%s')", $sql, $letter, $letters[$letter]),
+                $column,
+            ),
+            default => $column,
+        };
     }
 
     /**

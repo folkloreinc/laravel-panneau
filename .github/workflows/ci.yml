@@ -84,6 +84,64 @@ jobs:
             - name: Run tests
               run: vendor/bin/phpunit
 
+    search:
+        name: Search on MySQL, MariaDB and PostgreSQL
+        runs-on: ubuntu-24.04
+        services:
+            mysql:
+                image: mysql:8.4
+                env:
+                    MYSQL_ROOT_PASSWORD: panneau
+                    MYSQL_DATABASE: panneau_search_test
+                ports: ['3306:3306']
+                options: >-
+                    --health-cmd="mysqladmin ping --silent"
+                    --health-interval=5s --health-timeout=5s --health-retries=20
+            mariadb:
+                image: mariadb:11.4
+                env:
+                    MARIADB_ROOT_PASSWORD: panneau
+                    MARIADB_DATABASE: panneau_search_test
+                ports: ['3307:3306']
+                options: >-
+                    --health-cmd="healthcheck.sh --connect --innodb_initialized"
+                    --health-interval=5s --health-timeout=5s --health-retries=20
+            postgres:
+                image: postgres:17
+                env:
+                    POSTGRES_PASSWORD: panneau
+                    POSTGRES_DB: panneau_search_test
+                ports: ['5432:5432']
+                options: >-
+                    --health-cmd="pg_isready"
+                    --health-interval=5s --health-timeout=5s --health-retries=20
+        env:
+            PANNEAU_TEST_MYSQL_URL: mysql://root:panneau@127.0.0.1:3306/panneau_search_test
+            PANNEAU_TEST_MARIADB_URL: mariadb://root:panneau@127.0.0.1:3307/panneau_search_test
+            PANNEAU_TEST_PGSQL_URL: pgsql://postgres:panneau@127.0.0.1:5432/panneau_search_test
+        steps:
+            - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+            - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+              with:
+                  php-version: '8.4'
+                  extensions: pdo_mysql, pdo_pgsql
+                  coverage: none
+
+            - name: Cache Composer downloads
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+              with:
+                  path: ~/.cache/composer/files
+                  key: composer-${{ runner.os }}-search-${{ hashFiles('composer.json') }}
+                  restore-keys: composer-${{ runner.os }}-search-
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-interaction --no-progress
+
+            # The same tests as on SQLite, on each database: a skipped test is a failure here
+            - name: Run the search tests
+              run: vendor/bin/phpunit --filter 'SearchTest' --fail-on-skipped tests/Feature/Repositories
+
     conformance:
         name: Protocol conformance
         runs-on: ubuntu-24.04
