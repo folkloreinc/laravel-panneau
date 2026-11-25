@@ -19,6 +19,14 @@ class TestCase extends BaseTestCase
     protected const API = '/panneau/api';
 
     /**
+     * The tests ignore the skeleton's .env: `testbench workbench:build`, which serves the
+     * conformance app, writes one (with `APP_URL=http://localhost:8000`) that would change them.
+     *
+     * @var bool
+     */
+    protected $loadEnvironmentVariables = false;
+
+    /**
      * Checks every response of the Panneau API against the protocol's OpenAPI document.
      *
      * @param  string  $method
@@ -43,12 +51,17 @@ class TestCase extends BaseTestCase
     }
 
     /**
-     * The rate limiters count in the cache: in memory, whatever the skeleton's .env says (the
-     * conformance app's `testbench serve` writes one).
+     * The rate limiters count in the cache: in memory, rather than in the skeleton's default
+     * store, the database, which has no cache table. The tests use the in-memory database of
+     * Testbench, even when the skeleton has the `database.sqlite` of the conformance app.
      */
     protected function getEnvironmentSetUp($app): void
     {
-        $app['config']->set('cache.default', 'array');
+        $config = $app['config'];
+        $config->set('cache.default', 'array');
+        if ($config->get('database.default') === 'sqlite' && $config->get('database.connections.sqlite.database') === $app->databasePath('database.sqlite')) {
+            $config->set('database.default', 'testing');
+        }
     }
 
     protected function getPackageProviders($app): array

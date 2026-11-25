@@ -5,11 +5,13 @@ namespace Panneau\Agents;
 use DateTimeInterface;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use Laravel\Passport\Client;
 use Laravel\Passport\ClientRepository;
+use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens as PassportTokens;
 use Laravel\Passport\Passport;
 use Laravel\Passport\Token;
@@ -283,15 +285,15 @@ final class Connections
      */
     private function passportConnections(object $user): array
     {
-        if (! method_exists($user, 'tokens')) {
+        if (! $user instanceof OAuthenticatable) {
             return [];
         }
         $now = Carbon::now();
         /** @var array<string, non-empty-list<array{Token, Carbon|null}>> $byClient */
         $byClient = [];
         $connections = [];
-        foreach ($user->tokens()->with(['client', 'refreshToken'])->where('revoked', false)->get()->all() as $token) {
-            if (! $token instanceof Token || ! self::forAgents($token->getAttribute('scopes'))) {
+        foreach (self::passportTokens($user)->with(['client', 'refreshToken'])->where('revoked', false)->get()->all() as $token) {
+            if (! self::forAgents($token->getAttribute('scopes'))) {
                 continue;
             }
             $client = $token->getRelationValue('client');
@@ -356,20 +358,37 @@ final class Connections
         return $value instanceof DateTimeInterface ? Carbon::instance($value) : null;
     }
 
+    /**
+     * The OAuth tokens of the user: those of its id from the clients of its provider, or of no
+     * provider, as Passport's guard accepts them. Not `$user->tokens()` of Passport, which keeps
+     * the clients without a provider, those of the dynamic registration, only when the provider
+     * of `auth.guards.api` is the user's.
+     *
+     * @return Builder<Token>
+     */
+    private static function passportTokens(OAuthenticatable $user): Builder
+    {
+        $provider = $user->getProviderName();
+
+        return Passport::token()->newQuery()
+            ->where('user_id', $user->getAuthIdentifier())
+            ->whereHas('client', fn (Builder $query) => $query->where(
+                fn (Builder $query) => $query->whereNull('provider')->orWhere('provider', $provider),
+            ));
+    }
+
     private function revokePassport(object $user, string $type, string $key): void
     {
-        if (! method_exists($user, 'tokens')) {
+        if (! $user instanceof OAuthenticatable) {
             return;
         }
-        $tokens = $user->tokens()->with('refreshToken');
+        $tokens = self::passportTokens($user)->with('refreshToken');
         $tokens = $type === Connection::CLIENT ? $tokens->where('client_id', $key) : $tokens->whereKey($key);
         foreach ($tokens->get()->all() as $token) {
-            if ($token instanceof Token) {
-                $token->refreshToken?->revoke();
-                $token->revoke();
-            }
+            $token->refreshToken?->revoke();
+            $token->revoke();
         }
-        if ($type === Connection::CLIENT && method_exists($user, 'getAuthIdentifier')) {
+        if ($type === Connection::CLIENT) {
             Passport::authCode()->newQuery()
                 ->where('user_id', $user->getAuthIdentifier())
                 ->where('client_id', $key)

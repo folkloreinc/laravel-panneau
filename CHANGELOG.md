@@ -6,6 +6,8 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+- With Passport and no `api` guard, the connections of the account list the OAuth clients of `POST /oauth/register` that the user authorized, and revoke them: they were missing, and their revocation was a `404` (#298).
+- The OAuth consent page is in the language of the interface the user chose, with the package's translations in English and French (`panneau::oauth`, published with the `panneau-lang` tag) (#298).
 - The optional keys of the definition of `@panneau/*` 5.0.0-alpha.51 (#295): `Resource::itemStatus()` names the field that holds the state of items, which relation pickers and cards show as a badge (`itemStatus`, panneau-js decision 0103); `Resource::languageSwitch()` gives the form one language switch for its localized fields (`form.languageSwitch`, panneau-js decision 0108); `Filter::primary()` shows a filter first in the toolbar of the list, or with `false` behind "More filters"; `BlockType::description()` and `BlockType::itemTitle()` describe a block type in the menu of types and title its blocks in their collapsed header (panneau-js decision 0109). None is sent unless set, so definitions don't change. The example of `panneau.theme` in `config/panneau.php` names `lockDensity` (panneau-js decision 0104), which the theme already passed through.
 
 ## [5.0.0-alpha.28] - 2026-11-25

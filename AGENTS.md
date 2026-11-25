@@ -56,6 +56,8 @@ composer test
   tests/conformance/build.sh <panneau-js checkout> build/conformance.mjs
   node tests/conformance/run.mjs build/conformance.mjs http://127.0.0.1:8000/panneau/api
   ```
+
+  `workbench:build` leaves a `.env` and a `database.sqlite` in Testbench's skeleton, which the tests ignore; `vendor/bin/testbench workbench:purge-skeleton` removes them.
 - **Every change comes with tests.** A bug fix adds a regression test that fails without the fix.
 - Before pushing, run `composer lint`, `composer analyse` and `composer test`, and say in the PR what you ran.
 
