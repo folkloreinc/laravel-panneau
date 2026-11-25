@@ -6,9 +6,9 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
-**To upgrade:** a published `config/panneau.php` that lists `agents.tools` adds `Panneau\Agents\Tools\UploadFile::class` to get the new tool. A project with the MCP server enabled and without direct uploads gets the `panneau_uploads` table on its next `php artisan migrate`, and schedules `panneau:prune-uploads`.
+**To upgrade:** nothing, unless your published `config/panneau.php` lists `agents.tools`: add `Panneau\Agents\Tools\UploadFile::class` there to get the tool. The new keys `panneau.agents.uploads.url_ttl` and `panneau.agents.uploads.max_size` have defaults.
 
-- Agents upload files: the `upload_file` tool gives the upload that a file field, or the file of a media, takes in `save_item` (`{ "upload": "upl_…" }`). A small file is sent in the call, in base64 (`panneau.agents.uploads.max_content_size`, 5 MB by default); a larger one goes to a presigned URL with one `PUT`, then the tool completes it, with `panneau.uploads.enabled`. The tool is served to a token with `panneau:write`, and authorized by the `uploadPanneauFiles` gate. Without direct uploads, on a local disk, a project gets files in the call: values reference uploads as soon as the MCP server is enabled. `describe` gives the example of the value of a file field (#303, [decisions/0032](docs/decisions/0032-upload-file-tool.md), [docs/mcp.md](docs/mcp.md#files)).
+- A sixth tool for agents, `upload_file`, adds a file to a media library without the file going through the model: it answers a signed URL of Panneau, valid 15 minutes, that the agent sends the file to with one `PUT` (`curl -T file "$url"`), without a token. The file becomes a media as in the admin (policy, accepted types and size, scope, mediatheque ingest), and its `id` is the value of a media field in `save_item`. Served to tokens with `panneau:write`; the route, `PUT {path}/mcp/upload`, is registered by `Panneau::mcpRoutes()`. It doesn't use the direct uploads, and works on a local disk. See [decision 0032](docs/decisions/0032-upload-file-tool.md) (#303).
 
 ## [5.0.0-alpha.29] - 2026-11-25
 

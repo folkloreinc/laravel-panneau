@@ -10,7 +10,7 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0004](0004-install-command.md) | `panneau:install` replaces the generated boilerplate | Accepted |
 | [0005](0005-auth.md) | Auth modes and guards | Accepted |
 | [0006](0006-supported-versions.md) | PHP 8.3+ and Laravel 12+ | Accepted |
-| [0007](0007-direct-uploads.md) | Panneau owns direct uploads | Accepted; media items from an upload are settled by 0009; amended by [0032](0032-upload-file-tool.md) |
+| [0007](0007-direct-uploads.md) | Panneau owns direct uploads | Accepted; media items from an upload are settled by 0009 |
 | [0008](0008-field-preparation.md) | Fields prepare their values before the repository saves them | Accepted |
 | [0009](0009-media-libraries.md) | Media libraries are resources | Accepted; a `media` field on several libraries follows [panneau-js decision 0027](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0027-media-picker.md) ([#95](https://github.com/folkloreinc/laravel-panneau/issues/95)) |
 | [0010](0010-global-search.md) | The global search goes through the repositories, and through Scout for searchable models | Accepted |
@@ -35,4 +35,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0029](0029-account-connections.md) | The connections of the account, and the agents key of the definition | Proposed |
 | [0030](0030-next-for-the-oauth-guest.md) | A guest of the OAuth authorization goes to the app with `next` | Proposed |
 | [0031](0031-search-words.md) | A search finds every word, in any field, whatever its case and its accents | Proposed |
-| [0032](0032-upload-file-tool.md) | A sixth tool, `upload_file`, gives agents the uploads of file fields | Proposed |
+| [0032](0032-upload-file-tool.md) | A sixth tool, `upload_file`, sends the files of agents to a media library by a signed URL | Proposed |

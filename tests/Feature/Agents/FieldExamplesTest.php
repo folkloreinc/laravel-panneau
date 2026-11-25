@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Storage;
 use Panneau\Agents\ToolCall;
 use Panneau\Agents\Tools\Describe;
 use Panneau\Agents\Tools\SaveItem;
-use Panneau\Agents\Tools\UploadFile;
 use Panneau\Contracts\EmbedResolver;
 use Panneau\Fields\Credits;
 use Panneau\Fields\Field;
@@ -26,7 +25,6 @@ use TestApp\Panneau\Resources\AuthorsResource;
 use TestApp\Panneau\Resources\DocumentsResource;
 use TestApp\Panneau\Resources\ImagesResource;
 use TestApp\Panneau\Resources\PostsResource;
-use TestApp\Panneau\Resources\ReportsResource;
 use TestApp\Panneau\Resources\TagsResource;
 
 /**
@@ -35,12 +33,6 @@ use TestApp\Panneau\Resources\TagsResource;
  */
 class FieldExamplesTest extends HttpTestCase
 {
-    protected function defineEnvironment($app): void
-    {
-        // The server makes the uploads of `upload_file`, on a local disk here
-        $app['config']->set('panneau.agents.mcp.enabled', true);
-    }
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -49,7 +41,7 @@ class FieldExamplesTest extends HttpTestCase
         Panneau::allowWithoutPolicies();
         Panneau::resources([
             ExamplePostsResource::class, ExampleCompoundsResource::class,
-            ImagesResource::class, DocumentsResource::class, ArticlesResource::class, ReportsResource::class,
+            ImagesResource::class, DocumentsResource::class, ArticlesResource::class,
         ]);
         $this->app->instance(EmbedResolver::class, new class implements EmbedResolver
         {
@@ -112,33 +104,6 @@ class FieldExamplesTest extends HttpTestCase
         $examples = $this->examples($this->describedFields('articles'));
 
         $this->assertSaved('articles', ['title' => 'Examples', 'attachment' => $examples['attachment']]);
-    }
-
-    /**
-     * The one example that can't save as it is: its id stands for an upload of the user, which
-     * only `upload_file` makes. It has the shape of the tool's `value`, and saves with its id.
-     */
-    public function test_files_give_the_example_of_an_upload_that_saves_once_it_is_one_of_the_user(): void
-    {
-        Storage::fake('local');
-        Storage::fake('files');
-        $examples = $this->examples($this->describedFields('reports'));
-
-        $this->assertSame(['terms', 'cover', 'attachments'], array_keys($examples));
-        $this->assertSame(['upload'], array_keys($examples['terms']));
-        $this->assertMatchesRegularExpression('/^upl_[0-9a-z]{26}$/', $examples['terms']['upload']);
-        $this->assertSame([$examples['terms']], $examples['attachments']);
-        // As it is, it is nobody's upload
-        $refused = $this->app->make(SaveItem::class)->handle($this->toolCall(['resource' => 'reports', 'values' => ['title' => 'Examples', 'terms' => $examples['terms']]]));
-        $this->assertSame(422, $refused->status());
-        $this->assertSame(['terms'], array_keys($refused->problem['errors'] ?? []));
-
-        $upload = $this->app->make(UploadFile::class)->handle($this->toolCall(['name' => 'terms.pdf', 'content' => base64_encode("%PDF-1.4\n%%EOF\n")]));
-        $this->assertFalse($upload->isError(), (string) json_encode($upload->problem));
-        $value = $upload->data['value'] ?? null;
-        $this->assertSame(array_keys($examples['terms']), array_keys($value));
-        $this->assertMatchesRegularExpression('/^upl_[0-9a-z]{26}$/', $value['upload']);
-        $this->assertSaved('reports', ['title' => 'Examples', 'terms' => $value, 'attachments' => [$value]]);
     }
 
     public function test_credits_and_sessions_give_examples_that_save(): void

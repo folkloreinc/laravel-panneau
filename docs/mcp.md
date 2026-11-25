@@ -2,7 +2,7 @@
 
 This guide turns on the MCP server of the agents in an existing Laravel project that runs Panneau 5. AI clients (Claude, ChatGPT, Cursor, an IDE…) then read and change the content of Panneau as one of its users, with that user's permissions.
 
-How the server works is in [architecture.md](architecture.md#agents) and in decisions [0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), [0025](decisions/0025-five-tools-read-first.md) to [0030](decisions/0030-next-for-the-oauth-guest.md) and [0032](decisions/0032-upload-file-tool.md). This page is the order of the steps.
+How the server works is in [architecture.md](architecture.md#agents) and in decisions [0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md) and [0025](decisions/0025-five-tools-read-first.md) to [0030](decisions/0030-next-for-the-oauth-guest.md). This page is the order of the steps.
 
 There are two ways for a client to sign in:
 
@@ -210,35 +210,15 @@ Every address must be the public address of the site, with `https`, and `scopes_
 
 ## Files
 
-An agent sets a file field, or creates a media, with the `upload_file` tool ([decision 0032](decisions/0032-upload-file-tool.md)): it sends a file, and gets the value of the field, `{ "upload": "upl_…" }`, to give `save_item`. Three things to set up, with either way of signing in:
+An agent adds a file, an image it made for one, with `upload_file`. The tool doesn't take the file: it answers a URL of the site, and the agent sends the file there itself, so the file never goes through the model.
 
-1. **The gate.** The tool is for a token that writes, whose user passes the `uploadPanneauFiles` gate, the one of [direct uploads](architecture.md#uploads). Without the gate, the tool answers a `403`, unless the project called `Panneau::allowWithoutPolicies()`.
+1. The agent calls `upload_file` with the `name` of the file, the `resource` of a media library when the user can create in several, and the other `values` of the media if any.
+2. It gets `{ "method": "PUT", "url": "https://example.com/panneau/mcp/upload?…", "expiresIn": 900 }`, and sends the file as the body of one request: `curl -T cover.png "$url"`.
+3. The answer is the new media, as `get_item` gives it. Its `id` is the value of a media field in `save_item`.
 
-   ```php
-   Gate::define('uploadPanneauFiles', fn (User $user): bool => $user->isEditor());
-   ```
+The media is created as in the admin: the policy of the library, the types and the size its file field accepts, its scope, and the ingest of the mediatheque. It needs a media library (a `MediaResource` or a `MediathequeResource`): a plain file field of a resource can't be set by an agent. It doesn't need the direct uploads (`panneau.uploads`), and works on a local disk.
 
-2. **The table.** The files are kept as uploads, in the `panneau_uploads` table. With the server on, its migration is loaded: run `php artisan migrate`.
-3. **The schedule.** An upload is temporary (`panneau.uploads.lifetime`, a day by default): the file field copies it when the item is saved. Remove the expired ones, used or not:
-
-   ```php
-   Schedule::command('panneau:prune-uploads')->hourly();
-   ```
-
-How the agent sends the file depends on the disk of the uploads (`panneau.uploads.disk`, else the default disk):
-
-- **With direct uploads** (`panneau.uploads.enabled`, on an S3-compatible disk), the agent sends a small file in the call, in base64, and a larger one to a presigned URL, with one HTTP `PUT`, then completes the upload with the tool. `panneau.uploads.max_size` bounds both.
-- **On a local disk,** or any disk without direct uploads, the agent sends the file in the call only. Nothing else to set up: the files go under `panneau.uploads.path` on the default disk, or on `panneau.uploads.disk` when it is set. Keep that disk private.
-
-A file in the call is at most `panneau.agents.uploads.max_content_size` bytes, 5 MB by default:
-
-```php
-'agents' => [
-    'uploads' => ['max_content_size' => 2 * 1024 * 1024],
-],
-```
-
-A published `config/panneau.php` that lists `agents.tools` doesn't get the tool by itself: add `Panneau\Agents\Tools\UploadFile::class` to the list. To keep agents away from files, leave it out.
+The URL needs no token: it is signed, and what it is for is encrypted in it. It is valid for `panneau.agents.uploads.url_ttl` seconds (900 by default) and can be used again until then, each `PUT` making a media: revoking a connection doesn't revoke the URLs it already got. The route is `PUT {path}/mcp/upload`, registered by `Panneau::mcpRoutes()`; it shares `panneau.agents.rate_limit`, and refuses a body over `panneau.agents.uploads.max_size` (100 MB by default) with a `413`. The web server must let a body of that size through (`client_max_body_size` on nginx), and a proxy must leave the query of the URL as it is. See [decisions/0032](decisions/0032-upload-file-tool.md).
 
 ## Sanctum or Passport
 

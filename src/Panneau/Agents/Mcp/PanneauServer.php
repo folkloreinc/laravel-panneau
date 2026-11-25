@@ -52,8 +52,9 @@ class PanneauServer extends Server
             Call `describe` first: it lists the resources, and describes a resource's fields,
             filters and sorts. Then `find_items` searches or lists items, and `get_item` reads one.
             When you can write, `save_item` creates an item or changes one at the `version` you
-            read, and `run_action` runs an action of a resource. A file field takes an upload:
-            `upload_file` sends a file and answers the `value` to give the field in `save_item`.
+            read, and `run_action` runs an action of a resource. To add a file, an
+            image for one, `upload_file` answers a URL to send it to: the answer is a new media of
+            a library, whose `id` is the value of a media field in `save_item`.
 
             An action may answer `confirmation_required`: nothing ran. Show its `message` and
             `preview` to the user, and call again with its `confirmation` only when they agree.

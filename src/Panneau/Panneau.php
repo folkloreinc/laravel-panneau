@@ -9,6 +9,7 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ValidateSignature;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
@@ -17,6 +18,7 @@ use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Server as McpServer;
 use Laravel\Passport\Passport;
 use LogicException;
+use Panneau\Agents\FileUpload;
 use Panneau\Agents\Mcp\OAuth;
 use Panneau\Agents\Mcp\PanneauServer;
 use Panneau\Auth\Authorizer;
@@ -30,6 +32,7 @@ use Panneau\Definition\InterfaceLocales;
 use Panneau\Exceptions\ContextRefusedException;
 use Panneau\Http\Controllers\AccountController;
 use Panneau\Http\Controllers\ActionController;
+use Panneau\Http\Controllers\AgentUploadController;
 use Panneau\Http\Controllers\AggregateController;
 use Panneau\Http\Controllers\AppController;
 use Panneau\Http\Controllers\AuthController;
@@ -52,6 +55,7 @@ use Panneau\Http\Controllers\UploadController;
 use Panneau\Http\Middleware\ApplyInterfaceLocale;
 use Panneau\Http\Middleware\Authenticate;
 use Panneau\Http\Middleware\AuthorizeAgents;
+use Panneau\Http\Middleware\AuthorizeAgentUpload;
 use Panneau\Http\Middleware\RenderProblems;
 use Panneau\Http\Middleware\RequirePassword;
 use Panneau\Http\Middleware\ResolveContext;
@@ -219,6 +223,22 @@ class Panneau implements PanneauContract
             'where' => [ResolveContext::PATH_PARAMETER => '.*'],
         ]), function (): void {
             Mcp::web('{'.ResolveContext::PATH_PARAMETER.'?}', PanneauServer::class)->name('panneau.mcp');
+        });
+
+        // Where an agent sends a file (decision 0032): no token, the signed URL of `upload_file`
+        // says who uploads, in which library and in which context
+        $this->container->make(Router::class)->group(array_filter([
+            'prefix' => trim($prefix, '/'),
+            'domain' => is_string($domain) ? $domain : null,
+            'middleware' => [
+                RenderProblems::class,
+                ValidateSignature::relative(),
+                AuthorizeAgentUpload::class,
+                ApplyInterfaceLocale::class,
+                ThrottleRequests::using(AuthorizeAgents::RATE_LIMITER),
+            ],
+        ]), function (Router $router): void {
+            $router->put('upload', AgentUploadController::class)->name(FileUpload::ROUTE);
         });
 
         if ($config->get('panneau.agents.mcp.oauth.enabled') === true) {

@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Panneau\Auth\EmailVerification;
 use Panneau\Auth\TwoFactor;
@@ -54,6 +55,26 @@ final class AuthorizeAgents
         if ($user === null) {
             throw new AuthenticationException('Unauthenticated.');
         }
+        $this->authorize($user);
+        // A token that can write can read
+        if (! self::tokenCan($user, self::USE) && ! self::tokenCan($user, self::WRITE)) {
+            throw new AuthorizationException(__('The token can not use the MCP server.'));
+        }
+
+        return $next($request);
+    }
+
+    /**
+     * The checks on the user, whatever they came with: the gates, a verified address and
+     * two-factor authentication. The upload of a file by an agent has no token, and checks
+     * its user with it (decision 0032).
+     *
+     * @throws AuthorizationException
+     * @throws EmailUnverifiedException
+     * @throws TwoFactorRequiredException
+     */
+    public function authorize(Authenticatable $user): void
+    {
         $gate = $this->gate->forUser($user);
         if ($gate->denies('viewPanneau') || ($gate->has('usePanneauAgents') && $gate->denies('usePanneauAgents'))) {
             throw new AuthorizationException;
@@ -64,12 +85,6 @@ final class AuthorizeAgents
         if ($this->twoFactor->mustSetUp($user)) {
             throw new TwoFactorRequiredException;
         }
-        // A token that can write can read
-        if (! self::tokenCan($user, self::USE) && ! self::tokenCan($user, self::WRITE)) {
-            throw new AuthorizationException(__('The token can not use the MCP server.'));
-        }
-
-        return $next($request);
     }
 
     /**

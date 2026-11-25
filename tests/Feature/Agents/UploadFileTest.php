@@ -2,370 +2,446 @@
 
 namespace Panneau\Tests\Feature\Agents;
 
-use Illuminate\Auth\GenericUser;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Panneau\Agents\ToolCall;
-use Panneau\Agents\ToolResult;
-use Panneau\Agents\Tools\SaveItem;
-use Panneau\Agents\Tools\UploadFile;
-use Panneau\Contracts\UploadStorage;
+use Illuminate\Testing\TestResponse;
+use Orchestra\Testbench\Attributes\WithMigration;
+use Panneau\Context\Context;
+use Panneau\Context\ContextParam;
 use Panneau\Events\AgentToolCalled;
+use Panneau\Fields\File;
+use Panneau\Resources\MediaResource;
 use Panneau\Support\Facade as Panneau;
 use Panneau\Tests\Feature\Http\Concerns\MakesUploads;
-use Panneau\Tests\Feature\Http\FakeUploadStorage;
-use Panneau\Tests\Feature\Http\HttpTestCase;
-use Panneau\Uploads\S3UploadStorage;
-use Panneau\Uploads\Upload;
-use Panneau\Uploads\Uploads;
-use Panneau\Uploads\UploadStatus;
-use TestApp\Models\Report;
-use TestApp\Panneau\Resources\ReportsResource;
+use Symfony\Component\HttpFoundation\Response;
+use TestApp\Models\Article;
+use TestApp\Models\Asset;
+use TestApp\Models\User;
+use TestApp\Panneau\Resources\ArticlesResource;
+use TestApp\Panneau\Resources\DocumentsResource;
+use TestApp\Panneau\Resources\ImagesResource;
+use TestApp\Policies\AssetPolicy;
 
 /**
- * `upload_file`, the tool that gives an agent an upload, with direct uploads enabled: a file in
- * `content`, or sent to a presigned URL then completed.
+ * `upload_file`, over the MCP server: the tool answers a signed URL of Panneau, and the file
+ * sent there with one `PUT`, without a token, becomes a media of a library.
  */
-class UploadFileTest extends HttpTestCase
+#[WithMigration]
+class UploadFileTest extends McpTestCase
 {
     use MakesUploads;
 
-    private FakeUploadStorage $storage;
+    private User $user;
+
+    private string $token;
+
+    private string $defaultGuard;
 
     protected function defineEnvironment($app): void
     {
-        $this->configureUploads($app);
+        parent::defineEnvironment($app);
+        $app['config']->set('filesystems.disks.files', ['driver' => 'local', 'root' => storage_path('app/files')]);
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // The disk stays an S3 one, which signs: the tests that store a file fake it
-        $this->storage = new FakeUploadStorage($this->app->make(S3UploadStorage::class));
-        $this->app->instance(UploadStorage::class, $this->storage);
-        $this->app->forgetInstance(Uploads::class);
-        Storage::fake('files');
+        $this->defaultGuard = $this->app['config']->get('auth.defaults.guard');
         Storage::fake('public');
+        Storage::fake('files');
         Panneau::allowWithoutPolicies();
-        Panneau::resources([ReportsResource::class]);
+        Panneau::resources([ImagesResource::class, ArticlesResource::class]);
+        RecordingLibrary::$created = [];
+        $this->user = $this->createUser();
+        $this->token = $this->user->createToken('assistant', ['mcp:use', 'panneau:write'])->plainTextToken;
     }
 
-    public function test_a_file_in_content_is_a_completed_upload(): void
+    protected function tearDown(): void
     {
-        Storage::fake('uploads');
+        Carbon::setTestNow();
 
-        $data = $this->data(['name' => 'cover.png', 'content' => base64_encode(self::png())]);
-
-        $upload = Upload::query()->sole();
-        $this->assertSame([
-            'id' => $upload->uid,
-            'status' => 'completed',
-            'name' => 'cover.png',
-            'mime' => 'image/png',
-            'size' => strlen(self::png()),
-            'value' => ['upload' => $upload->uid],
-        ], $data);
-        $this->assertStringStartsWith('upl_', $upload->uid);
-        $this->assertSame(UploadStatus::Completed, $upload->status);
-        $this->assertSame('1', $upload->user_id);
-        $this->assertSame('uploads', $upload->disk);
-        $this->assertSame('panneau-uploads/'.$upload->uid, $upload->path);
-        $this->assertSame(self::png(), Storage::disk('uploads')->get($upload->path));
+        parent::tearDown();
     }
 
-    public function test_content_can_be_a_data_url_or_base64_on_several_lines(): void
-    {
-        Storage::fake('uploads');
-
-        $data = $this->data(['name' => 'cover.png', 'content' => 'data:image/png;base64,'.base64_encode(self::png())]);
-        $this->assertSame('completed', $data['status']);
-        $this->assertSame(self::png(), Storage::disk('uploads')->get('panneau-uploads/'.$data['id']));
-
-        $data = $this->data(['name' => 'terms.pdf', 'content' => chunk_split(base64_encode(self::PDF), 20)]);
-        $this->assertSame('application/pdf', $data['mime']);
-        $this->assertSame(self::PDF, Storage::disk('uploads')->get('panneau-uploads/'.$data['id']));
-    }
-
-    public function test_content_that_is_not_base64_is_an_error(): void
-    {
-        Storage::fake('uploads');
-
-        foreach (['not base64!', 'data:image/png,'.self::PDF, 'data:image/png;base64,', '===='] as $content) {
-            $result = $this->callTool(['name' => 'cover.png', 'content' => $content]);
-
-            $this->assertErrors(['content'], $result);
-            $this->assertSame(['`content` is not a file in base64.'], $result->problem['errors']['content']);
-        }
-        $this->assertSame(0, Upload::query()->count());
-        $this->assertSame([], Storage::disk('uploads')->allFiles());
-    }
-
-    public function test_content_over_the_limit_is_an_error(): void
-    {
-        Storage::fake('uploads');
-        $this->app['config']->set('panneau.agents.uploads.max_content_size', 10);
-
-        $this->assertSame('completed', $this->data(['name' => 'a.txt', 'content' => base64_encode(str_repeat('a', 10))])['status']);
-        // Decoded, then far over the limit, which isn't decoded
-        foreach ([11, 5000] as $size) {
-            $result = $this->callTool(['name' => 'a.txt', 'content' => base64_encode(str_repeat('a', $size))]);
-
-            $this->assertErrors(['content'], $result);
-            $this->assertSame(
-                ['A file in `content` can\'t be larger than 10 bytes: send its `name` only, then the file to the `url` you get.'],
-                $result->problem['errors']['content'],
-            );
-        }
-        $this->assertSame(1, Upload::query()->count());
-        $this->assertCount(1, Storage::disk('uploads')->allFiles());
-    }
-
-    public function test_the_limit_of_content_is_never_over_the_largest_upload(): void
-    {
-        Storage::fake('uploads');
-        $this->app['config']->set('panneau.uploads.max_size', 20);
-
-        $this->assertStringContainsString('up to 20 bytes', $this->app->make(UploadFile::class)->description());
-        $this->assertErrors(['content'], $this->callTool(['name' => 'a.txt', 'content' => base64_encode(str_repeat('a', 21))]));
-        $this->assertSame('completed', $this->data(['name' => 'a.txt', 'content' => base64_encode(str_repeat('a', 20))])['status']);
-    }
-
-    public function test_the_type_is_the_one_of_the_contents_not_of_the_name(): void
-    {
-        Storage::fake('uploads');
-
-        $this->assertSame('image/png', $this->data(['name' => 'notes.pdf', 'content' => base64_encode(self::png())])['mime']);
-        $this->assertSame('application/pdf', $this->data(['name' => 'photo.png', 'content' => base64_encode(self::PDF)])['mime']);
-        $this->assertSame('text/html', $this->data(['name' => 'photo.png', 'content' => base64_encode('<!DOCTYPE html><html><body><script>alert(1)</script></body></html>')])['mime']);
-        // Plain text: the extension tells which
-        $this->assertSame('text/csv', $this->data(['name' => 'people.csv', 'content' => base64_encode("name,email\nAda,ada@example.com\n")])['mime']);
-    }
-
-    public function test_a_name_alone_starts_an_upload_with_a_presigned_put(): void
-    {
-        $data = $this->data(['name' => 'video.mp4']);
-
-        $upload = Upload::query()->sole();
-        $this->assertSame(['id', 'status', 'name', 'method', 'url', 'headers', 'expiresIn'], array_keys($data));
-        $this->assertSame($upload->uid, $data['id']);
-        $this->assertSame('open', $data['status']);
-        $this->assertSame('video.mp4', $data['name']);
-        $this->assertSame('PUT', $data['method']);
-        $this->assertStringStartsWith('https://storage.test/panneau-test/panneau-uploads/'.$upload->uid.'?', $data['url']);
-        $this->assertStringContainsString('X-Amz-Signature=', $data['url']);
-        $this->assertStringContainsString('X-Amz-Expires=900', $data['url']);
-        // A single `PUT`: no multipart upload
-        $this->assertStringNotContainsString('uploadId', $data['url']);
-        $this->assertSame(['Content-Type' => 'video/mp4'], $data['headers']);
-        $this->assertSame(900, $data['expiresIn']);
-        $this->assertSame(UploadStatus::Open, $upload->status);
-        $this->assertSame('video.mp4', $upload->name);
-        $this->assertSame('1', $upload->user_id);
-
-        $this->assertSame(['Content-Type' => 'application/octet-stream'], $this->data(['name' => 'unknown'])['headers']);
-    }
-
-    public function test_the_upload_alone_completes_it_once_the_file_is_on_the_disk(): void
-    {
-        $started = $this->data(['name' => 'video.mp4']);
-        $upload = Upload::query()->sole();
-
-        // An open upload is no value yet
-        $this->assertNull($this->app->make(Uploads::class)->resolve(['upload' => $started['id']], $this->user()));
-        $result = $this->callTool(['upload' => $started['id']]);
-        $this->assertErrors(['upload'], $result);
-        $this->assertSame(['The file is not on the storage yet: send it to the `url` of the upload first.'], $result->problem['errors']['upload']);
-        $this->assertSame(UploadStatus::Open, $upload->refresh()->status);
-
-        $this->storage->files[$upload->path] = ['size' => 2048, 'mime' => 'video/mp4'];
-        $completed = [
-            'id' => $upload->uid,
-            'status' => 'completed',
-            'name' => 'video.mp4',
-            'mime' => 'video/mp4',
-            'size' => 2048,
-            'value' => ['upload' => $upload->uid],
-        ];
-        $this->assertSame($completed, $this->data(['upload' => $started['id']]));
-        $this->assertSame(UploadStatus::Completed, $upload->refresh()->status);
-        $this->assertNotNull($this->app->make(Uploads::class)->resolve($completed['value'], $this->user()));
-
-        // Twice: the same upload, even when the disk changed since
-        $this->storage->files[$upload->path] = ['size' => 1, 'mime' => 'text/plain'];
-        $this->assertSame($completed, $this->data(['upload' => $started['id']]));
-    }
-
-    public function test_a_file_too_large_is_removed_when_the_upload_completes(): void
-    {
-        $this->app['config']->set('panneau.uploads.max_size', 1000);
-        $started = $this->data(['name' => 'video.mp4']);
-        $upload = Upload::query()->sole();
-        $this->storage->files[$upload->path] = ['size' => 1001, 'mime' => 'video/mp4'];
-
-        $result = $this->callTool(['upload' => $started['id']]);
-
-        $this->assertErrors(['upload'], $result);
-        $this->assertSame(['Files can\'t be larger than 1000 bytes: the upload was removed.'], $result->problem['errors']['upload']);
-        $this->assertSame(0, Upload::query()->count());
-        $this->assertSame([['path' => $upload->path, 'uploadId' => null]], $this->storage->deleted);
-        $this->assertSame(404, $this->callTool(['upload' => $started['id']])->status());
-    }
-
-    public function test_the_arguments_that_do_not_go_together(): void
-    {
-        $started = $this->data(['name' => 'video.mp4']);
-
-        $result = $this->callTool(['upload' => $started['id'], 'name' => 'other.mp4']);
-        $this->assertErrors(['name'], $result);
-        $this->assertSame(['`name` starts an upload: completing one takes its `upload` alone.'], $result->problem['errors']['name']);
-        $this->assertErrors(['content'], $this->callTool(['upload' => $started['id'], 'content' => base64_encode('a')]));
-        $this->assertErrors(['name', 'content'], $this->callTool(['upload' => $started['id'], 'name' => 'a.txt', 'content' => base64_encode('a')]));
-        $this->assertErrors(['name'], $this->callTool([]));
-        $this->assertErrors(['name'], $this->callTool(['content' => base64_encode('a')]));
-        $this->assertErrors(['name'], $this->callTool(['name' => str_repeat('a', 256)]));
-        $this->assertErrors(['url'], $this->callTool(['name' => 'a.png', 'url' => 'https://example.com/a.png']));
-        $this->assertSame(1, Upload::query()->count());
-    }
-
-    public function test_a_user_the_gate_denies_uploads_nothing(): void
-    {
-        $started = $this->data(['name' => 'video.mp4']);
-        Storage::fake('uploads');
-        Gate::define('uploadPanneauFiles', fn ($user): bool => false);
-
-        $this->assertSame(403, $this->callTool(['name' => 'cover.png', 'content' => base64_encode(self::png())])->status());
-        $this->assertSame(403, $this->callTool(['name' => 'video.mp4'])->status());
-        $this->assertSame(403, $this->callTool(['upload' => $started['id']])->status());
-        $this->assertSame(1, Upload::query()->count());
-        $this->assertSame([], Storage::disk('uploads')->allFiles());
-    }
-
-    public function test_without_the_gate_uploads_are_denied_unless_policies_are_off(): void
-    {
-        Storage::fake('uploads');
-        Panneau::allowWithoutPolicies(false);
-
-        $this->assertSame(403, $this->callTool(['name' => 'cover.png', 'content' => base64_encode(self::png())])->status());
-
-        Gate::define('uploadPanneauFiles', fn ($user): bool => $user->getAuthIdentifier() === 1);
-        $this->assertSame('completed', $this->data(['name' => 'cover.png', 'content' => base64_encode(self::png())])['status']);
-    }
-
-    public function test_the_upload_of_another_user_is_not_found(): void
-    {
-        $other = $this->app->make(Uploads::class)->start(new GenericUser(['id' => 2]), 'video.mp4');
-        $this->storage->files[$other->path] = ['size' => 10, 'mime' => 'video/mp4'];
-
-        $this->assertSame(404, $this->callTool(['upload' => $other->uid])->status());
-        $this->assertSame(404, $this->callTool(['upload' => 'upl_unknown'])->status());
-        $this->assertSame(UploadStatus::Open, $other->refresh()->status);
-    }
-
-    public function test_save_item_takes_the_value_as_a_file_field(): void
-    {
-        Storage::fake('uploads');
-        $terms = $this->data(['name' => 'Terms 2026.pdf', 'content' => base64_encode(self::PDF)]);
-        $cover = $this->data(['name' => 'cover.png', 'content' => base64_encode(self::png())]);
-
-        $result = $this->app->make(SaveItem::class)->handle($this->toolCall([
-            'resource' => 'reports',
-            'values' => ['title' => 'Annual', 'terms' => $terms['value'], 'attachments' => [$cover['value']]],
-        ]));
-
-        $this->assertFalse($result->isError(), (string) json_encode($result->problem));
-        $this->assertSame('Terms 2026.pdf', $result->data['terms']['name'] ?? null);
-        $this->assertSame('application/pdf', $result->data['terms']['mime'] ?? null);
-        $report = Report::query()->sole();
-        $this->assertSame('files', $report->terms['disk']);
-        $this->assertSame(self::PDF, Storage::disk('files')->get($report->terms['path']));
-        $this->assertSame(self::png(), Storage::disk('files')->get($report->attachments[0]['path']));
-
-        // `accept` is checked on the type detected in the contents: a PNG named as a PDF
-        $fake = $this->data(['name' => 'terms.pdf', 'content' => base64_encode(self::png())]);
-        $refused = $this->app->make(SaveItem::class)->handle($this->toolCall(['resource' => 'reports', 'values' => ['title' => 'Fake', 'terms' => $fake['value']]]));
-        $this->assertErrors(['terms'], $refused);
-    }
-
-    public function test_only_a_completed_upload_dispatches_the_event(): void
+    public function test_the_tool_answers_a_signed_url_and_the_put_makes_a_media(): void
     {
         Event::fake([AgentToolCalled::class]);
 
-        $started = $this->data(['name' => 'video.mp4']);
-        $this->callTool(['upload' => $started['id']]);
-        Storage::fake('uploads');
-        $this->callTool(['name' => 'cover.png', 'content' => 'not base64!']);
+        $upload = $this->start(['resource' => 'images', 'name' => 'Cover 2026.png']);
+
+        $this->assertSame(['resource', 'name', 'method', 'url', 'expiresIn'], array_keys($upload));
+        $this->assertSame('images', $upload['resource']);
+        $this->assertSame('PUT', $upload['method']);
+        $this->assertSame(900, $upload['expiresIn']);
+        $this->assertStringStartsWith('http://localhost/panneau/mcp/upload?', $upload['url']);
+        parse_str((string) parse_url($upload['url'], PHP_URL_QUERY), $query);
+        $this->assertEqualsCanonicalizing(['expires', 'upload', 'signature'], array_keys($query));
+        // What the URL is for is encrypted: it shows neither the user nor the name
+        $this->assertStringNotContainsString('Cover', $upload['url']);
+        // The tool wrote nothing
+        $this->assertSame(0, Asset::query()->count());
         Event::assertNotDispatched(AgentToolCalled::class);
 
-        $this->data(['name' => 'cover.png', 'content' => base64_encode(self::png())]);
+        // No token: the URL alone
+        $media = $this->send($upload['url'], self::png())->assertCreated()->json();
+
+        $asset = Asset::query()->sole();
+        $this->assertSame((string) $asset->getKey(), (string) $media['id']);
+        $this->assertSame('Cover 2026.png', $media['file']['name']);
+        $this->assertSame('image', $media['media']['type']);
+        $this->assertSame('image/png', $media['media']['mime']);
+        $this->assertIsString($media['version']);
+        $this->assertIsArray($media['abilities']);
+        // As the admin makes it: the scope and the type of the library, the disk of its file
+        $this->assertSame(1, (int) $asset->team_id);
+        $this->assertSame('image', $asset->type);
+        $this->assertSame('public', $asset->file['disk']);
+        $this->assertSame(self::png(), Storage::disk('public')->get($asset->file['path']));
+        // As `get_item` gives it
+        $this->assertEquals($this->callTool('get_item', ['resource' => 'images', 'id' => (string) $media['id']])->json('result.structuredContent'), $media);
+
+        $tokenId = (string) $this->user->tokens()->sole()->getKey();
         Event::assertDispatchedTimes(AgentToolCalled::class, 1);
         Event::assertDispatched(AgentToolCalled::class, fn (AgentToolCalled $event): bool => $event->tool === 'upload_file'
-            && $event->user?->getAuthIdentifier() === 1
-            && $event->resource === null
-            && $event->items === []);
-
-        $this->storage->files['panneau-uploads/'.$started['id']] = ['size' => 10, 'mime' => 'video/mp4'];
-        $this->data(['upload' => $started['id']]);
-        Event::assertDispatchedTimes(AgentToolCalled::class, 2);
+            && $event->user?->getAuthIdentifier() === $this->user->getKey()
+            && $event->agent?->id === $tokenId
+            && $event->agent->name === 'assistant'
+            && $event->resource === 'images'
+            && $event->items === [(string) $media['id']]);
     }
 
-    public function test_the_tool_writes_and_describes_both_ways(): void
+    public function test_the_values_set_the_other_fields_of_the_media(): void
     {
-        $tool = $this->app->make(UploadFile::class);
+        $upload = $this->start(['name' => 'cover.png', 'values' => ['name' => 'The cover', 'alt' => ['en' => 'A red square']]]);
 
-        $this->assertSame('upload_file', $tool->name());
-        $this->assertFalse($tool->readOnly());
-        $this->assertFalse($tool->destructive());
-        $this->assertSame(['name', 'content', 'upload'], array_keys($tool->inputSchema()['properties']));
-        $this->assertStringContainsString('up to 5242880 bytes', $tool->description());
-        $this->assertStringContainsString('HTTP `PUT`', $tool->description());
+        $media = $this->send($upload['url'], self::png())->assertCreated()->json();
+
+        $this->assertSame('The cover', $media['name']);
+        $this->assertSame('A red square', Asset::query()->sole()->alt['en']);
+
+        // The file is the body, never a value
+        $problem = $this->problem($this->callTool('upload_file', ['name' => 'cover.png', 'values' => ['file' => ['upload' => 'upl_1']]]));
+        $this->assertSame(['values'], array_keys($problem['errors']));
+        // Values that would make a URL too long for a server
+        $problem = $this->problem($this->callTool('upload_file', ['name' => 'cover.png', 'values' => ['name' => str_repeat('a', 4000)]]));
+        $this->assertSame(['values'], array_keys($problem['errors']));
     }
 
-    private function user(): GenericUser
+    public function test_the_id_of_the_media_is_the_value_of_a_media_field(): void
     {
-        return new GenericUser(['id' => 1, 'name' => 'Ada', 'email' => 'ada@example.com']);
+        $media = $this->send($this->start(['name' => 'cover.png'])['url'], self::png())->assertCreated()->json();
+
+        $this->callTool('save_item', ['resource' => 'articles', 'values' => ['title' => 'With a cover', 'cover' => (string) $media['id']]])
+            ->assertOk()
+            ->assertJsonPath('result.isError', false)
+            ->assertJsonPath('result.structuredContent.cover.id', (string) $media['id']);
+
+        $this->assertSame(1, Article::query()->count());
+    }
+
+    public function test_the_library_is_needed_when_the_user_can_create_in_several(): void
+    {
+        // One library: it is the one
+        $this->assertSame('images', $this->start(['name' => 'cover.png'])['resource']);
+
+        Panneau::resources([DocumentsResource::class]);
+        $problem = $this->problem($this->callTool('upload_file', ['name' => 'cover.png']));
+        $this->assertSame(422, $problem['status']);
+        $this->assertSame(['Name the media library, one of: `images`, `documents`.'], $problem['errors']['resource']);
+        $this->assertSame('documents', $this->start(['resource' => 'documents', 'name' => 'terms.pdf'])['resource']);
+
+        // A library the user can't create in doesn't count, and gives no URL
+        Gate::policy(LockedAsset::class, LockedAssetPolicy::class);
+        Panneau::resources([LockedLibrary::class]);
+        $problem = $this->problem($this->callTool('upload_file', ['name' => 'cover.png']));
+        $this->assertSame(['Name the media library, one of: `images`, `documents`.'], $problem['errors']['resource']);
+        $this->assertSame(403, $this->problem($this->callTool('upload_file', ['resource' => 'locked', 'name' => 'cover.png']))['status']);
+    }
+
+    public function test_a_resource_that_is_not_a_library_is_refused(): void
+    {
+        foreach (['articles', 'unknown'] as $resource) {
+            $problem = $this->problem($this->callTool('upload_file', ['resource' => $resource, 'name' => 'cover.png']));
+
+            $this->assertSame(422, $problem['status']);
+            $this->assertSame(['`'.$resource.'` is not a media library. The libraries you can add files to: `images`.'], $problem['errors']['resource']);
+        }
+        $this->assertSame(['name'], array_keys($this->problem($this->callTool('upload_file', ['resource' => 'images']))['errors']));
+        // The file never comes through the tool
+        $this->assertSame(['content'], array_keys($this->problem($this->callTool('upload_file', ['name' => 'a.png', 'content' => 'aGVsbG8=']))['errors']));
+    }
+
+    public function test_a_token_that_reads_has_no_tool(): void
+    {
+        $token = $this->user->createToken('agent', ['mcp:use'])->plainTextToken;
+
+        $this->rpc($token, 'tools/call', ['name' => 'upload_file', 'arguments' => ['name' => 'cover.png']])
+            ->assertStatus(400)
+            ->assertJsonPath('error.message', 'Tool [upload_file] not found.');
+    }
+
+    public function test_a_url_that_was_changed_is_refused(): void
+    {
+        Panneau::resources([DocumentsResource::class]);
+        $images = $this->start(['resource' => 'images', 'name' => 'cover.png']);
+        $documents = $this->start(['resource' => 'documents', 'name' => 'terms.pdf']);
+        parse_str((string) parse_url($images['url'], PHP_URL_QUERY), $query);
+        parse_str((string) parse_url($documents['url'], PHP_URL_QUERY), $other);
+        $url = fn (array $changed): string => 'http://localhost/panneau/mcp/upload?'.http_build_query([...$query, ...$changed]);
+
+        // The same URL, rebuilt, is the one that works
+        $this->send($url([]), self::png())->assertCreated();
+
+        foreach ([
+            'signature' => ['signature' => str_repeat('0', 64)],
+            'no signature' => ['signature' => null],
+            'a later expiry' => ['expires' => (int) $query['expires'] + 3600],
+            // What another URL of the same app was made for: another library
+            'another upload' => ['upload' => $other['upload']],
+            'no upload' => ['upload' => null],
+        ] as $case => $changed) {
+            $this->send($url($changed), self::PDF)->assertForbidden()->assertHeader('Content-Type', 'application/problem+json');
+            $this->assertSame(1, Asset::query()->count(), $case);
+        }
+        // Claims this app didn't encrypt, even behind a valid signature
+        $forged = url()->temporarySignedRoute('panneau.mcp.upload', now()->addMinutes(5), ['upload' => base64_encode('{"user":"1","resource":"images"}')], absolute: false);
+        $this->send(url($forged), self::png())->assertForbidden();
+        $this->assertSame(1, Asset::query()->count());
+    }
+
+    public function test_a_url_expires(): void
+    {
+        $this->app['config']->set('panneau.agents.uploads.url_ttl', 60);
+        Carbon::setTestNow('2026-11-25 12:00:00');
+        $upload = $this->start(['name' => 'cover.png']);
+        $this->assertSame(60, $upload['expiresIn']);
+
+        Carbon::setTestNow('2026-11-25 12:00:59');
+        // Within its life, the URL makes a media each time: it isn't used up
+        $this->send($upload['url'], self::png())->assertCreated();
+        $this->send($upload['url'], self::png())->assertCreated();
+
+        Carbon::setTestNow('2026-11-25 12:01:01');
+        $this->send($upload['url'], self::png())->assertForbidden();
+        $this->assertSame(2, Asset::query()->count());
+    }
+
+    public function test_the_file_is_checked_as_the_library_checks_it(): void
+    {
+        $upload = $this->start(['name' => 'cover.png']);
+
+        // `accept`: the type of the contents, whatever the name says
+        $response = $this->send($upload['url'], self::PDF)->assertStatus(422)->assertHeader('Content-Type', 'application/problem+json');
+        $this->assertSame(['file'], array_keys($response->json('errors')));
+        // `maxSize`: a million bytes for the images
+        $response = $this->send($upload['url'], self::png().str_repeat("\0", 1_000_000))->assertStatus(422);
+        $this->assertSame(['file'], array_keys($response->json('errors')));
+        // The other values are validated too
+        $invalid = $this->start(['name' => 'cover.png', 'values' => ['name' => ['not', 'a', 'string']]]);
+        $response = $this->send($invalid['url'], self::png())->assertStatus(422);
+        $this->assertSame(['name'], array_keys($response->json('errors')));
+
+        $this->assertSame(0, Asset::query()->count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
+    public function test_a_body_over_the_limit_or_empty_is_refused(): void
+    {
+        $this->app['config']->set('panneau.agents.uploads.max_size', 100);
+        $upload = $this->start(['name' => 'cover.png']);
+
+        $this->send($upload['url'], str_repeat('a', 101))->assertStatus(413)->assertHeader('Content-Type', 'application/problem+json');
+        // Whatever the length the client names
+        $this->send($upload['url'], str_repeat('a', 101), ['CONTENT_LENGTH' => '10'])->assertStatus(413);
+        $this->send($upload['url'], '')->assertStatus(400);
+        $this->assertSame(0, Asset::query()->count());
+
+        $this->send($upload['url'], self::png())->assertCreated();
+    }
+
+    public function test_the_user_is_checked_again_when_the_file_arrives(): void
+    {
+        $upload = $this->start(['name' => 'cover.png']);
+
+        // The gates of the agents
+        Gate::define('usePanneauAgents', fn (): bool => false);
+        $this->send($upload['url'], self::png())->assertForbidden();
+        Gate::define('usePanneauAgents', fn (): bool => true);
+
+        // The policy of the library
+        Gate::policy(Asset::class, LockedAssetPolicy::class);
+        $this->send($upload['url'], self::png())->assertForbidden();
+        Gate::policy(Asset::class, AssetPolicy::class);
+        $this->assertSame(0, Asset::query()->count());
+        $this->send($upload['url'], self::png())->assertCreated();
+        Asset::query()->forceDelete();
+
+        // A user who is gone
+        $this->user->delete();
+        $this->send($upload['url'], self::png())->assertForbidden();
+        $this->assertSame(0, Asset::query()->count());
+    }
+
+    public function test_a_user_who_can_not_create_gets_no_url(): void
+    {
+        Gate::policy(Asset::class, LockedAssetPolicy::class);
+
+        $problem = $this->problem($this->callTool('upload_file', ['resource' => 'images', 'name' => 'cover.png']));
+        $this->assertSame(403, $problem['status']);
+        $problem = $this->problem($this->callTool('upload_file', ['name' => 'cover.png']));
+        $this->assertSame(['There is no media library you can add files to.'], $problem['errors']['resource']);
+    }
+
+    public function test_the_media_is_made_as_the_user_in_the_context_of_the_connection(): void
+    {
+        Panneau::context(fn (): array => [ContextParam::make('season')->options(['2025' => 'Season 2025', '2026' => 'Season 2026'])]);
+        Panneau::resources([RecordingLibrary::class]);
+
+        $upload = $this->start(['resource' => 'recording', 'name' => 'cover.png'], 'season/2026');
+        // The URL has no prefix of a context: the context is in what it was made for
+        $this->assertStringStartsWith('http://localhost/panneau/mcp/upload?', $upload['url']);
+        $this->send($upload['url'], self::png())->assertCreated();
+
+        $this->assertSame([['user' => $this->user->getKey(), 'context' => ['season' => '2026']]], RecordingLibrary::$created);
+    }
+
+    public function test_the_uploads_share_the_rate_limit_of_the_user(): void
+    {
+        $upload = $this->start(['name' => 'cover.png']);
+        $this->app['config']->set('panneau.agents.rate_limit', 3);
+
+        // The call of the tool counted for one
+        $this->send($upload['url'], self::png())->assertCreated();
+        $this->send($upload['url'], self::png())->assertCreated();
+        $this->send($upload['url'], self::png())->assertStatus(429)->assertHeader('Retry-After');
+        $this->assertSame(2, Asset::query()->count());
     }
 
     /**
      * @param  array<string, mixed>  $arguments
+     * @return TestResponse<Response>
      */
-    private function toolCall(array $arguments): ToolCall
+    private function callTool(string $tool, array $arguments, string $context = ''): TestResponse
     {
-        $user = $this->user();
-        $request = Request::create('/');
-        $request->setUserResolver(fn (): GenericUser => $user);
-
-        return new ToolCall($user, $arguments, $request);
+        return $this->rpc($this->token, 'tools/call', ['name' => $tool, 'arguments' => $arguments], $context);
     }
 
     /**
+     * The answer of `upload_file`.
+     *
      * @param  array<string, mixed>  $arguments
+     * @return array{resource: string, name: string, method: string, url: string, expiresIn: int}
      */
-    private function callTool(array $arguments): ToolResult
+    private function start(array $arguments, string $context = ''): array
     {
-        return $this->app->make(UploadFile::class)->handle($this->toolCall($arguments));
+        $response = $this->callTool('upload_file', $arguments, $context)->assertOk();
+        $this->assertFalse($response->json('result.isError'), (string) $response->json('result.content.0.text'));
+
+        return $response->json('result.structuredContent');
     }
 
     /**
-     * @param  array<string, mixed>  $arguments
+     * Sends a file to a URL as `curl -T` does: the body, and no token.
+     *
+     * @param  array<string, string>  $server
+     * @return TestResponse<Response>
+     */
+    private function send(string $url, string $contents, array $server = []): TestResponse
+    {
+        // A request of its own: nothing of the call of the tool is left, not even its guard
+        $this->app['auth']->forgetGuards();
+        $this->app['config']->set('auth.defaults.guard', $this->defaultGuard);
+
+        return $this->call('PUT', $url, [], [], [], $server, $contents);
+    }
+
+    /**
+     * The problem of a tool's result.
+     *
+     * @param  TestResponse<Response>  $response
      * @return array<string, mixed>
      */
-    private function data(array $arguments): array
+    private function problem(TestResponse $response): array
     {
-        $result = $this->callTool($arguments);
-        $this->assertFalse($result->isError(), (string) json_encode($result->problem));
+        $response->assertOk()->assertJsonPath('result.isError', true);
 
-        return $result->data ?? [];
+        return (array) json_decode((string) $response->json('result.content.0.text'), true);
+    }
+}
+
+/**
+ * A library that records who creates its media, and in which context.
+ */
+class RecordingLibrary extends MediaResource
+{
+    /**
+     * @var list<array{user: mixed, context: array<string, string>}>
+     */
+    public static array $created = [];
+
+    public function id(): string
+    {
+        return 'recording';
     }
 
-    /**
-     * @param  list<string>  $arguments
-     */
-    private function assertErrors(array $arguments, ToolResult $result): void
+    public function model(): string
     {
-        $this->assertSame(422, $result->status(), (string) json_encode($result->problem));
-        $this->assertSame($arguments, array_keys($result->problem['errors'] ?? []));
+        return Asset::class;
+    }
+
+    protected function file(File $file): File
+    {
+        return $file->disk('files');
+    }
+
+    public function fields(): array
+    {
+        return [];
+    }
+
+    public function creating(array $values, Request $request): array
+    {
+        self::$created[] = ['user' => $request->user()?->getAuthIdentifier(), 'context' => app(Context::class)->all()];
+
+        return [...$values, 'team_id' => 1];
+    }
+}
+
+/**
+ * A library whose policy lets no one create.
+ */
+class LockedLibrary extends RecordingLibrary
+{
+    public function id(): string
+    {
+        return 'locked';
+    }
+
+    public function model(): string
+    {
+        return LockedAsset::class;
+    }
+}
+
+class LockedAsset extends Asset
+{
+    protected $table = 'assets';
+}
+
+class LockedAssetPolicy
+{
+    public function viewAny(Authenticatable $user): bool
+    {
+        return true;
+    }
+
+    public function create(Authenticatable $user): bool
+    {
+        return false;
     }
 }

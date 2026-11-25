@@ -12,8 +12,8 @@ use Panneau\Contracts\UploadStorage;
 use Panneau\Http\Controllers\Concerns\ReadsRouteParameters;
 use Panneau\Http\Problem;
 use Panneau\Uploads\S3Operation;
-use Panneau\Uploads\UploadCompletion;
 use Panneau\Uploads\Uploads;
+use Panneau\Uploads\UploadStatus;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -103,20 +103,32 @@ final class UploadController
             throw new NotFoundHttpException('Upload not found.');
         }
 
-        $completion = $this->uploads->complete($found);
-        if ($completion === UploadCompletion::Missing) {
-            return Problem::response(422, 'The file is not on the storage yet.', Problem::VALIDATION, extra: [
-                'errors' => ['upload' => ['Complete the upload on the storage first.']],
-            ]);
-        }
-        if ($completion === UploadCompletion::TooLarge) {
-            return Problem::response(422, 'The file is too large.', Problem::VALIDATION, extra: [
-                'errors' => ['upload' => [sprintf('Files can\'t be larger than %d bytes.', (int) $this->uploads->maxSize())]],
+        if (! $found->isCompleted()) {
+            $stat = $this->storage->stat($found->disk, $found->path);
+            if ($stat === null) {
+                return Problem::response(422, 'The file is not on the storage yet.', Problem::VALIDATION, extra: [
+                    'errors' => ['upload' => ['Complete the upload on the storage first.']],
+                ]);
+            }
+            $maxSize = $this->uploads->maxSize();
+            if ($maxSize !== null && $stat['size'] > $maxSize) {
+                $this->storage->delete($found->disk, $found->path);
+                $found->delete();
+
+                return Problem::response(422, 'The file is too large.', Problem::VALIDATION, extra: [
+                    'errors' => ['upload' => [sprintf('Files can\'t be larger than %d bytes.', $maxSize)]],
+                ]);
+            }
+            $found->forceFill([
+                'status' => UploadStatus::Completed,
+                'size' => $stat['size'],
+                'mime' => $stat['mime'],
             ]);
         }
         if (is_string($input['name'] ?? null) && $input['name'] !== '') {
-            $found->forceFill(['name' => $input['name']])->save();
+            $found->forceFill(['name' => $input['name']]);
         }
+        $found->save();
 
         return new JsonResponse(['data' => $this->uploads->toArray($found)]);
     }

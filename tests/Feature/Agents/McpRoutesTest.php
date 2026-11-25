@@ -7,11 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 use Orchestra\Testbench\Attributes\WithMigration;
 use Panneau\Events\AgentToolCalled;
 use Panneau\Support\Facade as Panneau;
-use Panneau\Uploads\Upload;
 use TestApp\Models\Post;
 
 /**
@@ -68,29 +66,6 @@ class McpRoutesTest extends McpTestCase
             ->assertJsonPath('error.message', 'Tool [save_item] not found.');
 
         $this->assertSame(0, Post::query()->count());
-    }
-
-    public function test_a_token_that_writes_uploads_a_file_on_a_local_disk(): void
-    {
-        Storage::fake('local');
-        $user = $this->createUser();
-        Gate::define('uploadPanneauFiles', fn ($user): bool => true);
-
-        // Direct uploads are off: the server alone makes the table of the uploads, and takes the file in the call
-        $this->rpc($user->createToken('assistant', ['mcp:use', 'panneau:write'])->plainTextToken, 'tools/call', ['name' => 'upload_file', 'arguments' => ['name' => 'notes.txt', 'content' => base64_encode('Hello')]])
-            ->assertOk()
-            ->assertJsonPath('result.isError', false)
-            ->assertJsonPath('result.structuredContent.status', 'completed')
-            ->assertJsonPath('result.structuredContent.mime', 'text/plain');
-
-        $upload = Upload::query()->sole();
-        $this->assertSame((string) $user->getKey(), $upload->user_id);
-        $this->assertSame('Hello', Storage::disk('local')->get($upload->path));
-
-        $this->rpc($user->createToken('agent', ['mcp:use'])->plainTextToken, 'tools/call', ['name' => 'upload_file', 'arguments' => ['name' => 'notes.txt', 'content' => base64_encode('Hello')]])
-            ->assertStatus(400)
-            ->assertJsonPath('error.message', 'Tool [upload_file] not found.');
-        $this->assertSame(1, Upload::query()->count());
     }
 
     public function test_a_token_that_writes_can_read_without_mcp_use(): void

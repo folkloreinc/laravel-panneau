@@ -374,16 +374,15 @@ return [
         // `run_action` and `upload_file`, are only served to a token with `panneau:write`.
         'tools' => [Describe::class, FindItems::class, GetItem::class, SaveItem::class, RunAction::class, UploadFile::class],
 
-        // The files of the `upload_file` tool (decision 0032), kept as the uploads above: on
-        // `uploads.disk`, under `uploads.path`, for `uploads.lifetime`, with the
-        // `uploadPanneauFiles` gate. They need the `panneau_uploads` table, and
-        // `panneau:prune-uploads` on the schedule. Without `uploads.enabled`, the tool only takes
-        // a file in its `content`, and the disk can be a local one.
+        // The files of the `upload_file` tool (decision 0032): the tool answers a signed URL of
+        // Panneau, at `{path}/{agents.mcp.path}/upload`, where the agent sends the file with one
+        // `PUT`, which makes a media of a library.
         'uploads' => [
-            // Largest file, in bytes, that the tool takes in its `content`, in base64 in the
-            // call. Never over `uploads.max_size`. A larger file goes to a presigned URL, with
-            // `uploads.enabled`.
-            'max_content_size' => 5 * 1024 * 1024,
+            // Seconds the URL lives. It needs no token, and each `PUT` to it makes a media.
+            'url_ttl' => 900,
+            // Largest file, in bytes, that the route reads: over it, a 413. The `maxSize` of the
+            // file of the library, and the limit of the web server, still apply. Null: no limit.
+            'max_size' => 100 * 1024 * 1024,
         ],
 
         // The MCP server, at `{path}/{agents.mcp.path}`, registered by Panneau::mcpRoutes().
