@@ -159,6 +159,28 @@ class OAuthTest extends OAuthTestCase
 
         // `panneau`: the app's page, which shows its login
         $this->app['config']->set('panneau.auth.mode', 'panneau');
-        $this->get($authorization)->assertRedirect('http://localhost/panneau');
+        $query = $this->authorization($this->registerClient(), 'mcp:use', str_repeat('d', 64));
+        $authorization = '/oauth/authorize?'.http_build_query($query);
+        $response = $this->get($authorization)->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        $this->assertStringStartsWith('http://localhost/panneau?next=', $location);
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $redirect);
+        $this->assertSame($authorization, $redirect['next']);
+        parse_str((string) parse_url($redirect['next'], PHP_URL_QUERY), $carried);
+        $this->assertSame($query, $carried);
+        $this->assertStringStartsWith('http://localhost/oauth/authorize?', (string) session('url.intended'));
+    }
+
+    public function test_following_next_once_logged_in_reaches_the_consent_page(): void
+    {
+        $this->app['config']->set('panneau.auth.mode', 'panneau');
+        $query = $this->authorization($this->registerClient(), 'mcp:use', str_repeat('d', 64));
+        $location = (string) $this->get('/oauth/authorize?'.http_build_query($query))->headers->get('Location');
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $redirect);
+
+        // The app's page ignores `next` on the server
+        $this->withoutVite()->get($location)->assertSuccessful();
+
+        $this->actingAs($this->createOAuthUser())->get($redirect['next'])->assertOk()->assertSee('Claude wants to connect to your account');
     }
 }
