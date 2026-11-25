@@ -10,7 +10,7 @@ Admin panels and content management for Laravel. `folklore/laravel-panneau` is t
 | 1.4 | `v1.4` | 8.0+ | 11 to 13 | Maintenance |
 | 1.3 | `v1.3` | 7.4+ | 7 to 13 | Maintenance |
 
-Panneau 5 is documented in [`docs/`](docs/README.md).
+Panneau 5 is documented in [`docs/`](docs/README.md). To let AI clients use Panneau, see [setting up the MCP server](docs/mcp.md).
 
 ## Installing Panneau 5
 

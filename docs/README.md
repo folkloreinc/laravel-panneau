@@ -18,6 +18,7 @@ This folder covers the Laravel side.
 | [current-state.md](current-state.md) | Audit of `laravel-panneau` v1.3 and v1.4 before Panneau 5 (2026-10-14) |
 | [architecture.md](architecture.md) | How the package implements the protocol: resources, fields, HTTP layer, auth, media, install |
 | [migration.md](migration.md) | Laravel steps to migrate a project from v1 |
+| [mcp.md](mcp.md) | Setting up the MCP server of the agents in an existing project, with Sanctum or Passport, and troubleshooting |
 | [decisions/](decisions/) | Laravel-specific decision records |
 | [roadmap.md](roadmap.md) | The Laravel side of the plan of 5.0 |
 

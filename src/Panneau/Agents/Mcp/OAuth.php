@@ -8,7 +8,9 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Passport\Contracts\AuthorizationViewResponse;
+use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\Passport;
+use LogicException;
 use Panneau\Http\Middleware\ApplyInterfaceLocale;
 use Panneau\Http\Middleware\AuthorizeAgents;
 
@@ -45,6 +47,50 @@ final class OAuth
         $refresh = $config->get('panneau.agents.mcp.oauth.refresh_token_lifetime');
         if (is_numeric($refresh)) {
             Passport::refreshTokensExpireIn(new DateInterval('P'.(int) $refresh.'D'));
+        }
+    }
+
+    /**
+     * The pieces of the setup that fail late without a word when they are missing: the guard of
+     * the MCP server must be a `passport` guard, its users' model must be Passport's, and
+     * `passport.guard` must be the guard the users of Panneau log in on, else Passport's
+     * authorization never sees them logged in.
+     *
+     * @throws LogicException naming the piece that is missing
+     */
+    public static function check(Config $config): void
+    {
+        $guard = $config->get('panneau.agents.mcp.guard');
+        $guard = is_string($guard) && $guard !== '' ? $guard : 'sanctum';
+        $driver = $config->get('auth.guards.'.$guard.'.driver');
+        if ($driver !== 'passport') {
+            throw new LogicException(sprintf(
+                'OAuth for the MCP server of the agents needs a passport guard in panneau.agents.mcp.guard: "%s" %s.',
+                $guard,
+                is_string($driver) ? sprintf('has the "%s" driver', $driver) : 'is not a guard of config/auth.php',
+            ));
+        }
+
+        $provider = $config->get('auth.guards.'.$guard.'.provider');
+        $model = $config->get('auth.providers.'.(is_string($provider) ? $provider : '').'.model');
+        if ($config->get('auth.providers.'.(is_string($provider) ? $provider : '').'.driver') === 'eloquent'
+            && is_string($model) && class_exists($model) && ! is_subclass_of($model, OAuthenticatable::class)) {
+            throw new LogicException(sprintf(
+                'OAuth for the MCP server of the agents needs a user model of laravel/passport: %s must implement %s and use Laravel\\Passport\\HasApiTokens.',
+                $model,
+                OAuthenticatable::class,
+            ));
+        }
+
+        $default = $config->get('auth.defaults.guard');
+        $panneau = $config->get('panneau.auth.guard') ?? $default;
+        $passport = $config->get('passport.guard') ?? $default;
+        if ($panneau !== $passport) {
+            throw new LogicException(sprintf(
+                'passport.guard is "%s", but the users of Panneau log in on "%s": set passport.guard to "%2$s", or Passport\'s authorization never sees them logged in.',
+                is_string($passport) ? $passport : '',
+                is_string($panneau) ? $panneau : '',
+            ));
         }
     }
 
