@@ -5,6 +5,7 @@ namespace Panneau\Repositories;
 use BackedEnum;
 use Closure;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
@@ -777,7 +778,11 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
      */
     protected function applySearch(Builder $builder, string $search, array $fields): void
     {
-        $driver = $builder->getModel()->getConnection()->getDriverName();
+        $connection = $builder->getModel()->getConnection();
+        $driver = $connection->getDriverName();
+        if ($driver === 'sqlite') {
+            $this->registerSqliteSearch($connection);
+        }
         $grammar = $builder->getQuery()->getGrammar();
         $operator = $driver === 'pgsql' ? 'ilike' : 'like';
         $collates = in_array($driver, ['mysql', 'mariadb'], true);
@@ -802,8 +807,9 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
      * - MySQL and MariaDB: the `utf8mb4_unicode_ci` collation, which ignores both;
      * - PostgreSQL: `translate()` of the accented Latin letters to their base letter, under an
      *   `ILIKE` (the `unaccent` extension isn't needed);
-     * - SQLite: the same letters, replaced one by one, under its `LIKE`, which ignores the case
-     *   of ASCII letters;
+     * - SQLite: the same letters, by the `panneau_unaccent()` function that `applySearch()` adds
+     *   to the connection (SQLite has no `translate()`, and its parser refuses that many nested
+     *   `replace()`), under its `LIKE`, which ignores the case of ASCII letters;
      * - others: the column as it is, compared the way its collation does.
      *
      * The letters are the accented Latin ones of `SearchTerms::letters()`. On PostgreSQL and
@@ -824,13 +830,29 @@ class EloquentRepository implements Aggregates, ChunkedQuery, CursorPaginated, D
         return match ($driver) {
             'mysql', 'mariadb' => 'convert('.$column.' using utf8mb4) collate utf8mb4_unicode_ci',
             'pgsql' => sprintf("translate((%s)::text, '%s', '%s')", $column, implode('', array_keys($letters)), implode('', $letters)),
-            'sqlite' => array_reduce(
-                array_keys($letters),
-                fn (string $sql, string $letter): string => sprintf("replace(%s, '%s', '%s')", $sql, $letter, $letters[$letter]),
-                $column,
-            ),
+            'sqlite' => 'panneau_unaccent('.$column.')',
             default => $column,
         };
+    }
+
+    /**
+     * Adds `panneau_unaccent()` to a SQLite connection: its argument without the accents of
+     * `SearchTerms::letters()`.
+     */
+    private function registerSqliteSearch(Connection $connection): void
+    {
+        $unaccent = static fn (mixed $value): ?string => $value === null ? null : SearchTerms::withoutAccents(is_scalar($value) ? (string) $value : '');
+        // SQLITE_DETERMINISTIC, whose constant has a name per version of PHP
+        $flags = 2048;
+        // A query reads on one of them
+        foreach ([$connection->getPdo(), $connection->getReadPdo()] as $pdo) {
+            if (method_exists($pdo, 'createFunction')) {
+                // Pdo\Sqlite, on PHP 8.4 and later
+                $pdo->createFunction('panneau_unaccent', $unaccent, 1, $flags);
+            } else {
+                $pdo->sqliteCreateFunction('panneau_unaccent', $unaccent, 1, $flags);
+            }
+        }
     }
 
     /**
