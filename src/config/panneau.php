@@ -195,6 +195,9 @@ return [
     //         'extends' => 'brand',
     //         'colorScheme' => 'auto',
     //         'tokens' => ['panneau-color-accent' => '#0055ff'],
+    //         // The density of the definition only: users can't choose theirs
+    //         'density' => 'comfortable',
+    //         'lockDensity' => true,
     //     ],
     'theme' => null,
 

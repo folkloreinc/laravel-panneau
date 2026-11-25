@@ -6,6 +6,8 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+- The optional keys of the definition of `@panneau/*` 5.0.0-alpha.51 (#295): `Resource::itemStatus()` names the field that holds the state of items, which relation pickers and cards show as a badge (`itemStatus`, panneau-js decision 0103); `Resource::languageSwitch()` gives the form one language switch for its localized fields (`form.languageSwitch`, panneau-js decision 0108); `Filter::primary()` shows a filter first in the toolbar of the list, or with `false` behind "More filters"; `BlockType::description()` and `BlockType::itemTitle()` describe a block type in the menu of types and title its blocks in their collapsed header (panneau-js decision 0109). None is sent unless set, so definitions don't change. The example of `panneau.theme` in `config/panneau.php` names `lockDensity` (panneau-js decision 0104), which the theme already passed through.
+
 ## [5.0.0-alpha.28] - 2026-11-25
 
 Goes with `@panneau/*` `5.0.0-alpha.51`, whose protocol describes the five tools of agents (panneau-js decisions 0090 and 0106) and the connections of the account (panneau-js decision 0113), and whose account page lists, makes and revokes them when the definition has `agents.mcp`. Earlier versions show no connections: upgrade both together.

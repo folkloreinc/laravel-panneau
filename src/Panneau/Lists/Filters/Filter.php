@@ -16,6 +16,8 @@ abstract class Filter
 
     protected mixed $default = null;
 
+    protected ?bool $primary = null;
+
     public function __construct(protected string $id) {}
 
     public static function make(string $id): static
@@ -56,6 +58,18 @@ abstract class Filter
     }
 
     /**
+     * Shown first, in the toolbar of the list, while the others are behind "More filters".
+     * Without any filter that sets it, the first 3 are shown first; `false` always puts a filter
+     * behind "More filters". A filter with a value always shows it, as a chip.
+     */
+    public function primary(bool $primary = true): static
+    {
+        $this->primary = $primary;
+
+        return $this;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toDefinition(): array
@@ -66,6 +80,9 @@ abstract class Filter
         }
         if ($this->hasDefault) {
             $definition['default'] = $this->default;
+        }
+        if ($this->primary !== null) {
+            $definition['primary'] = $this->primary;
         }
 
         return array_merge($definition, $this->typeDefinition());

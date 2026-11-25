@@ -2,6 +2,7 @@
 
 namespace Panneau\Fields;
 
+use InvalidArgumentException;
 use Panneau\Resources\RequestCache;
 
 /**
@@ -10,6 +11,10 @@ use Panneau\Resources\RequestCache;
 final class BlockType
 {
     private ?string $icon = null;
+
+    private ?string $description = null;
+
+    private ?string $itemTitle = null;
 
     /**
      * @param  list<Field>  $fields
@@ -61,6 +66,33 @@ final class BlockType
     }
 
     /**
+     * What the block is for, under its label in the menu of types (panneau-js decision 0109).
+     */
+    public function description(string $description): self
+    {
+        $this->description = $description;
+        RequestCache::forgetInRequest($this);
+
+        return $this;
+    }
+
+    /**
+     * The title of a block of this type in its collapsed header, in place of the repeater's
+     * `settings.itemTitle` (panneau-js decision 0109): a field name (`heading`), or a template of
+     * field names in braces (`{name} ({role})`).
+     */
+    public function itemTitle(string $itemTitle): self
+    {
+        if ($itemTitle === '') {
+            throw new InvalidArgumentException(sprintf('The itemTitle of the block type "%s" is empty.', $this->id));
+        }
+        $this->itemTitle = $itemTitle;
+        RequestCache::forgetInRequest($this);
+
+        return $this;
+    }
+
+    /**
      * The block type in the protocol's definition, built once per request and locale (#246): a
      * block type given to several repeaters, such as those of each type of a resource or of the
      * blocks that hold blocks, is built once.
@@ -81,6 +113,8 @@ final class BlockType
             'id' => $this->id,
             'label' => $this->label,
             'icon' => $this->icon,
+            'description' => $this->description,
+            'itemTitle' => $this->itemTitle,
             'fields' => array_map(fn (Field $field): array => $field->toDefinition(), $this->fields),
         ], fn (mixed $value): bool => $value !== null);
     }
