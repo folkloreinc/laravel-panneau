@@ -501,7 +501,7 @@ final class DefinitionBuilder
             $definition['kind'] = $resource->kind();
         }
         $definition['label'] = ['singular' => $resource->singularLabel(), 'plural' => $resource->pluralLabel()];
-        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'parent' => $resource->parent(), 'itemTitle' => $resource->itemTitle(), 'itemSubtitle' => $resource->itemSubtitle(), 'itemImage' => $resource->itemImage()] as $key => $value) {
+        foreach (['description' => $resource->description(), 'icon' => $resource->icon(), 'parent' => $resource->parent(), 'itemTitle' => $resource->itemTitle(), 'itemSubtitle' => $resource->itemSubtitle(), 'itemImage' => $resource->itemImage(), 'itemStatus' => $resource->itemStatus()] as $key => $value) {
             if ($value !== null) {
                 $definition[$key] = $value;
             }
@@ -523,9 +523,16 @@ final class DefinitionBuilder
             $definition['types'] = array_map(fn (ResourceType $type): array => $this->resourceType($resource, $type, $user), $types);
         }
 
+        $form = [];
         $layout = $resource->formLayout();
         if (count($layout) > 0) {
-            $definition['form'] = ['layout' => array_map(fn (Node $node): array => $node->toDefinition(), $layout)];
+            $form['layout'] = array_map(fn (Node $node): array => $node->toDefinition(), $layout);
+        }
+        if ($resource->languageSwitch()) {
+            $form['languageSwitch'] = true;
+        }
+        if (count($form) > 0) {
+            $definition['form'] = $form;
         }
 
         $list = $this->resources->list($resource)->toDefinition(

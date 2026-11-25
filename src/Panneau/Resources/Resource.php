@@ -187,6 +187,17 @@ abstract class Resource
     }
 
     /**
+     * The field that holds the state of an item (Draft, Archived), usually a `select` whose
+     * options have tones: relation pickers and cards show the label of its option as a badge in
+     * its tone, next to the item's title (panneau-js decision 0103). It can name a field of the
+     * resource's types.
+     */
+    public function itemStatus(): ?string
+    {
+        return null;
+    }
+
+    /**
      * The repository: a class or contract resolved from the container. It implements
      * `ResourceRepository`, or a contract with a registered adapter.
      *
@@ -226,6 +237,17 @@ abstract class Resource
     public function layout(): array
     {
         return [];
+    }
+
+    /**
+     * Whether the form has one language switch above its fields, which sets the language of
+     * every localized field at once (panneau-js decision 0108). The app shows it when the form
+     * has localized fields and `panneau.locales` more than one. Off by default: each localized
+     * field has its own switch.
+     */
+    public function languageSwitch(): bool
+    {
+        return false;
     }
 
     /**
