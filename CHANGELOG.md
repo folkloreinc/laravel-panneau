@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+**To upgrade:** a published `config/panneau.php` that lists `agents.tools` adds `Panneau\Agents\Tools\UploadFile::class` to get the new tool. A project with the MCP server enabled and without direct uploads gets the `panneau_uploads` table on its next `php artisan migrate`, and schedules `panneau:prune-uploads`.
+
+- Agents upload files: the `upload_file` tool gives the upload that a file field, or the file of a media, takes in `save_item` (`{ "upload": "upl_…" }`). A small file is sent in the call, in base64 (`panneau.agents.uploads.max_content_size`, 5 MB by default); a larger one goes to a presigned URL with one `PUT`, then the tool completes it, with `panneau.uploads.enabled`. The tool is served to a token with `panneau:write`, and authorized by the `uploadPanneauFiles` gate. Without direct uploads, on a local disk, a project gets files in the call: values reference uploads as soon as the MCP server is enabled. `describe` gives the example of the value of a file field (#303, [decisions/0032](docs/decisions/0032-upload-file-tool.md), [docs/mcp.md](docs/mcp.md#files)).
+
 ## [5.0.0-alpha.29] - 2026-11-25
 
 Goes with `@panneau/*` `5.0.0-alpha.52`, whose account page shows the details of a connection to the MCP server on several lines, so they stay readable on a phone, with a French wording that agrees with a personal token as with an app; its protocol is that of `5.0.0-alpha.51`, so the API and the definition don't change. Upgrade both together: the optional keys of the definition need `@panneau/*` 5.0.0-alpha.51 or later.

@@ -2,7 +2,7 @@
 
 This guide turns on the MCP server of the agents in an existing Laravel project that runs Panneau 5. AI clients (Claude, ChatGPT, Cursor, an IDE…) then read and change the content of Panneau as one of its users, with that user's permissions.
 
-How the server works is in [architecture.md](architecture.md#agents) and in decisions [0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md) and [0025](decisions/0025-five-tools-read-first.md) to [0030](decisions/0030-next-for-the-oauth-guest.md). This page is the order of the steps.
+How the server works is in [architecture.md](architecture.md#agents) and in decisions [0022](decisions/0022-agents-on-laravel-mcp-and-laravel-ai.md), [0025](decisions/0025-five-tools-read-first.md) to [0030](decisions/0030-next-for-the-oauth-guest.md) and [0032](decisions/0032-upload-file-tool.md). This page is the order of the steps.
 
 There are two ways for a client to sign in:
 
@@ -83,7 +83,7 @@ A user makes their own tokens in their account, in the **Connections** section o
 php artisan panneau:agent-token ada@example.com
 ```
 
-It prints the address of the server, the abilities, the expiry and the token, once. `--write` lets the token use the tools that write (`save_item` and `run_action`), `--days=30` sets its lifetime (`0`: never), `--name` its name. With a [context](architecture.md#current-context), the address is followed by its values, as the command shows: `/panneau/mcp/season/2026`.
+It prints the address of the server, the abilities, the expiry and the token, once. `--write` lets the token use the tools that write (`save_item`, `run_action` and `upload_file`), `--days=30` sets its lifetime (`0`: never), `--name` its name. With a [context](architecture.md#current-context), the address is followed by its values, as the command shows: `/panneau/mcp/season/2026`.
 
 ### Connect a client
 
@@ -107,7 +107,7 @@ curl https://example.com/panneau/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-A token that reads gets `describe`, `find_items` and `get_item`; with `--write`, `save_item` and `run_action` too. Without a token, the answer is a `401`. In the app, the account lists the token under **Connections**, where the user revokes it.
+A token that reads gets `describe`, `find_items` and `get_item`; with `--write`, `save_item`, `run_action` and `upload_file` too. Without a token, the answer is a `401`. In the app, the account lists the token under **Connections**, where the user revokes it.
 
 ## 2. OAuth with Passport
 
@@ -207,6 +207,38 @@ curl https://example.com/.well-known/oauth-authorization-server
 ```
 
 Every address must be the public address of the site, with `https`, and `scopes_supported` is `["mcp:use","panneau:write"]`. Once the user has authorized a client, the account lists it under **Connections**, beside the personal tokens, and revoking it ends its tokens.
+
+## Files
+
+An agent sets a file field, or creates a media, with the `upload_file` tool ([decision 0032](decisions/0032-upload-file-tool.md)): it sends a file, and gets the value of the field, `{ "upload": "upl_…" }`, to give `save_item`. Three things to set up, with either way of signing in:
+
+1. **The gate.** The tool is for a token that writes, whose user passes the `uploadPanneauFiles` gate, the one of [direct uploads](architecture.md#uploads). Without the gate, the tool answers a `403`, unless the project called `Panneau::allowWithoutPolicies()`.
+
+   ```php
+   Gate::define('uploadPanneauFiles', fn (User $user): bool => $user->isEditor());
+   ```
+
+2. **The table.** The files are kept as uploads, in the `panneau_uploads` table. With the server on, its migration is loaded: run `php artisan migrate`.
+3. **The schedule.** An upload is temporary (`panneau.uploads.lifetime`, a day by default): the file field copies it when the item is saved. Remove the expired ones, used or not:
+
+   ```php
+   Schedule::command('panneau:prune-uploads')->hourly();
+   ```
+
+How the agent sends the file depends on the disk of the uploads (`panneau.uploads.disk`, else the default disk):
+
+- **With direct uploads** (`panneau.uploads.enabled`, on an S3-compatible disk), the agent sends a small file in the call, in base64, and a larger one to a presigned URL, with one HTTP `PUT`, then completes the upload with the tool. `panneau.uploads.max_size` bounds both.
+- **On a local disk,** or any disk without direct uploads, the agent sends the file in the call only. Nothing else to set up: the files go under `panneau.uploads.path` on the default disk, or on `panneau.uploads.disk` when it is set. Keep that disk private.
+
+A file in the call is at most `panneau.agents.uploads.max_content_size` bytes, 5 MB by default:
+
+```php
+'agents' => [
+    'uploads' => ['max_content_size' => 2 * 1024 * 1024],
+],
+```
+
+A published `config/panneau.php` that lists `agents.tools` doesn't get the tool by itself: add `Panneau\Agents\Tools\UploadFile::class` to the list. To keep agents away from files, leave it out.
 
 ## Sanctum or Passport
 

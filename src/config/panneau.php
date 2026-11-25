@@ -5,6 +5,7 @@ use Panneau\Agents\Tools\FindItems;
 use Panneau\Agents\Tools\GetItem;
 use Panneau\Agents\Tools\RunAction;
 use Panneau\Agents\Tools\SaveItem;
+use Panneau\Agents\Tools\UploadFile;
 use Panneau\Auth\ResetUserPassword;
 use Panneau\Auth\UpdateUserPassword;
 use Panneau\Auth\UpdateUserProfileInformation;
@@ -369,9 +370,21 @@ return [
     // The agents (decisions 0022 and 0025): tools that a model calls as the signed-in user.
     'agents' => [
         // The tools of the agents, Panneau\Agents\Tool classes resolved by the container. A
-        // project adds its own, or leaves one out. The tools that write, `save_item` and
-        // `run_action`, are only served to a token with `panneau:write`.
-        'tools' => [Describe::class, FindItems::class, GetItem::class, SaveItem::class, RunAction::class],
+        // project adds its own, or leaves one out. The tools that write, `save_item`,
+        // `run_action` and `upload_file`, are only served to a token with `panneau:write`.
+        'tools' => [Describe::class, FindItems::class, GetItem::class, SaveItem::class, RunAction::class, UploadFile::class],
+
+        // The files of the `upload_file` tool (decision 0032), kept as the uploads above: on
+        // `uploads.disk`, under `uploads.path`, for `uploads.lifetime`, with the
+        // `uploadPanneauFiles` gate. They need the `panneau_uploads` table, and
+        // `panneau:prune-uploads` on the schedule. Without `uploads.enabled`, the tool only takes
+        // a file in its `content`, and the disk can be a local one.
+        'uploads' => [
+            // Largest file, in bytes, that the tool takes in its `content`, in base64 in the
+            // call. Never over `uploads.max_size`. A larger file goes to a presigned URL, with
+            // `uploads.enabled`.
+            'max_content_size' => 5 * 1024 * 1024,
+        ],
 
         // The MCP server, at `{path}/{agents.mcp.path}`, registered by Panneau::mcpRoutes().
         // It needs laravel/mcp, and a token guard: laravel/sanctum, or laravel/passport for OAuth.

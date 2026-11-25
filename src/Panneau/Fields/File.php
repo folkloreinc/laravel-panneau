@@ -109,6 +109,17 @@ class File extends Field
         return $this;
     }
 
+    /**
+     * An upload, or a list of them: the `value` that the `upload_file` tool answers. The id
+     * stands for one of the user's own uploads, so this example saves only with a real one.
+     */
+    public function example(): mixed
+    {
+        $entry = ['upload' => 'upl_01jd2x3y4z5a6b7c8d9e0f1g2h'];
+
+        return $this->multiple ? [$entry] : $entry;
+    }
+
     protected function valueRules(ValidationContext $context): array
     {
         return $this->multiple ? ['array', 'list'] : [];

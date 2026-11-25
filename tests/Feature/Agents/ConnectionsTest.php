@@ -108,7 +108,7 @@ class ConnectionsTest extends McpTestCase
             ->assertJsonPath('connection.write', true);
         $this->rpc((string) $writer->json('token'), 'tools/list')
             ->assertOk()
-            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action']);
+            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action', 'upload_file']);
 
         $this->signIn($user);
         $this->getJson('/panneau/api/account/connections')->assertJsonPath('data.*.id', [

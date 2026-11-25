@@ -133,7 +133,8 @@ class ServiceProvider extends BaseServiceProvider
 
         $migrations = __DIR__.'/../../database/migrations';
         $this->publishesMigrations([$migrations => database_path('migrations')], 'panneau-migrations');
-        if ($this->app['config']->get('panneau.uploads.enabled')) {
+        // The uploads of the browser, and those of the `upload_file` tool of agents (decision 0032)
+        if ($this->app['config']->get('panneau.uploads.enabled') || $this->app['config']->get('panneau.agents.mcp.enabled') === true) {
             $this->loadMigrationsFrom($migrations);
         }
 
