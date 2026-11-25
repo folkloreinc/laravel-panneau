@@ -5,6 +5,7 @@ use Panneau\Agents\Tools\FindItems;
 use Panneau\Agents\Tools\GetItem;
 use Panneau\Agents\Tools\RunAction;
 use Panneau\Agents\Tools\SaveItem;
+use Panneau\Agents\Tools\UploadFile;
 use Panneau\Auth\ResetUserPassword;
 use Panneau\Auth\UpdateUserPassword;
 use Panneau\Auth\UpdateUserProfileInformation;
@@ -369,9 +370,20 @@ return [
     // The agents (decisions 0022 and 0025): tools that a model calls as the signed-in user.
     'agents' => [
         // The tools of the agents, Panneau\Agents\Tool classes resolved by the container. A
-        // project adds its own, or leaves one out. The tools that write, `save_item` and
-        // `run_action`, are only served to a token with `panneau:write`.
-        'tools' => [Describe::class, FindItems::class, GetItem::class, SaveItem::class, RunAction::class],
+        // project adds its own, or leaves one out. The tools that write, `save_item`,
+        // `run_action` and `upload_file`, are only served to a token with `panneau:write`.
+        'tools' => [Describe::class, FindItems::class, GetItem::class, SaveItem::class, RunAction::class, UploadFile::class],
+
+        // The files of the `upload_file` tool (decision 0032): the tool answers a signed URL of
+        // Panneau, at `{path}/{agents.mcp.path}/upload`, where the agent sends the file with one
+        // `PUT`, which makes a media of a library.
+        'uploads' => [
+            // Seconds the URL lives. It needs no token, and each `PUT` to it makes a media.
+            'url_ttl' => 900,
+            // Largest file, in bytes, that the route reads: over it, a 413. The `maxSize` of the
+            // file of the library, and the limit of the web server, still apply. Null: no limit.
+            'max_size' => 100 * 1024 * 1024,
+        ],
 
         // The MCP server, at `{path}/{agents.mcp.path}`, registered by Panneau::mcpRoutes().
         // It needs laravel/mcp, and a token guard: laravel/sanctum, or laravel/passport for OAuth.

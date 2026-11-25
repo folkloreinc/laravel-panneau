@@ -13,6 +13,7 @@ use Panneau\Agents\ToolResult;
 use Panneau\Agents\Tools\Describe;
 use Panneau\Agents\Tools\FindItems;
 use Panneau\Agents\Tools\GetItem;
+use Panneau\Agents\Tools\UploadFile;
 use Panneau\Tests\Feature\Http\HttpTestCase;
 
 /**
@@ -63,8 +64,12 @@ class McpServerTest extends HttpTestCase
 
         $this->actingAs(new TokenUser(['id' => 1], ['mcp:use', 'panneau:write']));
         $tools = array_column($this->listTools(), null, 'name');
-        $this->assertSame(['describe', 'find_items', 'get_item', 'save_item', 'run_action'], array_keys($tools));
+        $this->assertSame(['describe', 'find_items', 'get_item', 'save_item', 'run_action', 'upload_file'], array_keys($tools));
         $this->assertFalse($tools['run_action']['annotations']['readOnlyHint']);
+        $upload = $this->app->make(UploadFile::class);
+        $this->assertJsonStringEqualsJsonString((string) json_encode($upload->inputSchema()), (string) json_encode($tools['upload_file']['inputSchema']));
+        $this->assertSame($upload->description(), $tools['upload_file']['description']);
+        $this->assertFalse($tools['upload_file']['annotations']['readOnlyHint']);
     }
 
     public function test_the_annotations_of_the_tools(): void
@@ -82,6 +87,7 @@ class McpServerTest extends HttpTestCase
             'get_item' => $read,
             'save_item' => ['readOnlyHint' => false, 'destructiveHint' => false, 'openWorldHint' => false],
             'run_action' => ['readOnlyHint' => false, 'destructiveHint' => true, 'openWorldHint' => false],
+            'upload_file' => ['readOnlyHint' => false, 'destructiveHint' => false, 'openWorldHint' => false],
         ], $annotations);
     }
 

@@ -41,7 +41,7 @@ class McpRoutesTest extends McpTestCase
 
         $this->rpc($token->plainTextToken, 'tools/list')
             ->assertOk()
-            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action'])
+            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action', 'upload_file'])
             ->assertJsonPath('result.tools.3.annotations.readOnlyHint', false);
 
         $values = ['title' => 'By an agent', 'status' => 'draft', 'preview_password' => 'a long secret'];
@@ -74,7 +74,7 @@ class McpRoutesTest extends McpTestCase
 
         $this->rpc($token, 'tools/list')
             ->assertOk()
-            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action']);
+            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action', 'upload_file']);
     }
 
     public function test_without_oauth_there_is_no_route_of_oauth(): void

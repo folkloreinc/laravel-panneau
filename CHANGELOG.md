@@ -6,6 +6,10 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+**To upgrade:** nothing, unless your published `config/panneau.php` lists `agents.tools`: add `Panneau\Agents\Tools\UploadFile::class` there to get the tool. The new keys `panneau.agents.uploads.url_ttl` and `panneau.agents.uploads.max_size` have defaults.
+
+- A sixth tool for agents, `upload_file`, adds a file to a media library without the file going through the model: it answers a signed URL of Panneau, valid 15 minutes, that the agent sends the file to with one `PUT` (`curl -T file "$url"`), without a token. The file becomes a media as in the admin (policy, accepted types and size, scope, mediatheque ingest), and its `id` is the value of a media field in `save_item`. Served to tokens with `panneau:write`; the route, `PUT {path}/mcp/upload`, is registered by `Panneau::mcpRoutes()`. It doesn't use the direct uploads, and works on a local disk. See [decision 0032](docs/decisions/0032-upload-file-tool.md) (#303).
+
 ## [5.0.0-alpha.29] - 2026-11-25
 
 Goes with `@panneau/*` `5.0.0-alpha.52`, whose account page shows the details of a connection to the MCP server on several lines, so they stay readable on a phone, with a French wording that agrees with a personal token as with an app; its protocol is that of `5.0.0-alpha.51`, so the API and the definition don't change. Upgrade both together: the optional keys of the definition need `@panneau/*` 5.0.0-alpha.51 or later.

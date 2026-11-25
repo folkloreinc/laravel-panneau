@@ -96,12 +96,12 @@ class OAuthTest extends OAuthTestCase
 
         $this->rpc($tokens['access_token'], 'tools/list')
             ->assertOk()
-            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action']);
+            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action', 'upload_file']);
 
         // A token that can write can read
         $this->rpc($this->accessToken($user, 'panneau:write'), 'tools/list')
             ->assertOk()
-            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action']);
+            ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item', 'save_item', 'run_action', 'upload_file']);
     }
 
     public function test_refusing_answers_the_client_and_issues_nothing(): void

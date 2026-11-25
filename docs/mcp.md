@@ -83,7 +83,7 @@ A user makes their own tokens in their account, in the **Connections** section o
 php artisan panneau:agent-token ada@example.com
 ```
 
-It prints the address of the server, the abilities, the expiry and the token, once. `--write` lets the token use the tools that write (`save_item` and `run_action`), `--days=30` sets its lifetime (`0`: never), `--name` its name. With a [context](architecture.md#current-context), the address is followed by its values, as the command shows: `/panneau/mcp/season/2026`.
+It prints the address of the server, the abilities, the expiry and the token, once. `--write` lets the token use the tools that write (`save_item`, `run_action` and `upload_file`), `--days=30` sets its lifetime (`0`: never), `--name` its name. With a [context](architecture.md#current-context), the address is followed by its values, as the command shows: `/panneau/mcp/season/2026`.
 
 ### Connect a client
 
@@ -107,7 +107,7 @@ curl https://example.com/panneau/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-A token that reads gets `describe`, `find_items` and `get_item`; with `--write`, `save_item` and `run_action` too. Without a token, the answer is a `401`. In the app, the account lists the token under **Connections**, where the user revokes it.
+A token that reads gets `describe`, `find_items` and `get_item`; with `--write`, `save_item`, `run_action` and `upload_file` too. Without a token, the answer is a `401`. In the app, the account lists the token under **Connections**, where the user revokes it.
 
 ## 2. OAuth with Passport
 
@@ -207,6 +207,18 @@ curl https://example.com/.well-known/oauth-authorization-server
 ```
 
 Every address must be the public address of the site, with `https`, and `scopes_supported` is `["mcp:use","panneau:write"]`. Once the user has authorized a client, the account lists it under **Connections**, beside the personal tokens, and revoking it ends its tokens.
+
+## Files
+
+An agent adds a file, an image it made for one, with `upload_file`. The tool doesn't take the file: it answers a URL of the site, and the agent sends the file there itself, so the file never goes through the model.
+
+1. The agent calls `upload_file` with the `name` of the file, the `resource` of a media library when the user can create in several, and the other `values` of the media if any.
+2. It gets `{ "method": "PUT", "url": "https://example.com/panneau/mcp/upload?…", "expiresIn": 900 }`, and sends the file as the body of one request: `curl -T cover.png "$url"`.
+3. The answer is the new media, as `get_item` gives it. Its `id` is the value of a media field in `save_item`.
+
+The media is created as in the admin: the policy of the library, the types and the size its file field accepts, its scope, and the ingest of the mediatheque. It needs a media library (a `MediaResource` or a `MediathequeResource`): a plain file field of a resource can't be set by an agent. It doesn't need the direct uploads (`panneau.uploads`), and works on a local disk.
+
+The URL needs no token: it is signed, and what it is for is encrypted in it. It is valid for `panneau.agents.uploads.url_ttl` seconds (900 by default) and can be used again until then, each `PUT` making a media: revoking a connection doesn't revoke the URLs it already got. The route is `PUT {path}/mcp/upload`, registered by `Panneau::mcpRoutes()`; it shares `panneau.agents.rate_limit`, and refuses a body over `panneau.agents.uploads.max_size` (100 MB by default) with a `413`. The web server must let a body of that size through (`client_max_body_size` on nginx), and a proxy must leave the query of the URL as it is. See [decisions/0032](decisions/0032-upload-file-tool.md).
 
 ## Sanctum or Passport
 
