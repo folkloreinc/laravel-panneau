@@ -6,6 +6,9 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+- With Passport and no `api` guard, the connections of the account list the OAuth clients of `POST /oauth/register` that the user authorized, and revoke them: they were missing, and their revocation was a `404` (#298).
+- The OAuth consent page is in the language of the interface the user chose, with the package's translations in English and French (`panneau::oauth`, published with the `panneau-lang` tag) (#298).
+
 ## [5.0.0-alpha.28] - 2026-11-25
 
 Goes with `@panneau/*` `5.0.0-alpha.51`, whose protocol describes the five tools of agents (panneau-js decisions 0090 and 0106) and the connections of the account (panneau-js decision 0113), and whose account page lists, makes and revokes them when the definition has `agents.mcp`. Earlier versions show no connections: upgrade both together.

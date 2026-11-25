@@ -64,6 +64,23 @@ class OAuthTest extends OAuthTestCase
             ->assertJsonPath('result.tools.*.name', ['describe', 'find_items', 'get_item']);
     }
 
+    public function test_the_consent_page_is_in_the_language_the_user_chose(): void
+    {
+        $this->app['config']->set('panneau.interface_locales', ['en' => 'English', 'fr' => 'Français']);
+        $client = $this->registerClient('Claude');
+        $this->actingAs($this->createOAuthUser(), 'web');
+
+        $this->withSession(['panneau.locale' => 'fr'])
+            ->get('/oauth/authorize?'.http_build_query($this->authorization($client, 'mcp:use panneau:write', str_repeat('c', 64))))
+            ->assertOk()
+            ->assertSee('<html lang="fr">', false)
+            ->assertSee('Claude veut se connecter à votre compte')
+            ->assertSee('Il pourra lire et modifier votre contenu.')
+            ->assertSee('Il agira en tant que ada@example.com, avec vos permissions.')
+            ->assertSee('Refuser')
+            ->assertDontSee('wants to connect');
+    }
+
     public function test_a_client_writes_with_panneau_write(): void
     {
         $user = $this->createOAuthUser();

@@ -100,6 +100,8 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'panneau');
         $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/panneau')], 'panneau-views');
+        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'panneau');
+        $this->publishes([__DIR__.'/../resources/lang' => $this->app->langPath('vendor/panneau')], 'panneau-lang');
 
         $this->app->make(Router::class)->aliasMiddleware('panneau.auth', Authenticate::class);
         $this->app->make(Router::class)->aliasMiddleware('panneau.context', ResolveContext::class);
