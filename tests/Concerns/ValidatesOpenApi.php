@@ -18,19 +18,9 @@ trait ValidatesOpenApi
     private const OPENAPI_URI = 'https://github.com/folkloreinc/panneau-js/blob/v5.x/packages/protocol/schema/openapi.json';
 
     /**
-     * The operations the protocol doesn't document yet, checked the same way (decision 0029).
-     */
-    private const PENDING_URI = 'https://github.com/folkloreinc/laravel-panneau/blob/v5.x/tests/protocol/pending.openapi.json';
-
-    /**
      * @var array<string, mixed>|null
      */
     private static ?array $openApi = null;
-
-    /**
-     * @var array<string, mixed>|null
-     */
-    private static ?array $pendingOpenApi = null;
 
     /**
      * @param  TestResponse<Response>  $response
@@ -39,7 +29,7 @@ trait ValidatesOpenApi
     {
         $operation = self::findOperation(strtolower($method), $path);
         Assert::assertNotNull($operation, sprintf('No operation for %s %s in openapi.json.', strtoupper($method), $path));
-        [$template, $definition, $base] = $operation;
+        [$template, $definition] = $operation;
         $label = sprintf('%s %s (%s)', strtoupper($method), $path, $template);
 
         $status = $response->getStatusCode();
@@ -62,7 +52,7 @@ trait ValidatesOpenApi
         }
         Assert::assertNotNull($mediaType, sprintf('%s: content type "%s", expected %s.', $label, $contentType, implode(' or ', array_keys($expected['content']))));
 
-        $schema = self::absoluteRefs($expected['content'][$mediaType]['schema'], $base);
+        $schema = self::absoluteRefs($expected['content'][$mediaType]['schema']);
         $result = self::protocolValidator()->validate(
             json_decode((string) $response->getContent()),
             json_decode((string) json_encode($schema)),
@@ -79,23 +69,20 @@ trait ValidatesOpenApi
 
     /**
      * The operation of a path relative to the API, preferring templates with the fewest
-     * parameters, with the URI of the document it is in: openapi.json, or the pending operations
-     * that the protocol doesn't have yet.
+     * parameters.
      *
-     * @return array{string, array<string, mixed>, string}|null
+     * @return array{string, array<string, mixed>}|null
      */
     private static function findOperation(string $method, string $path): ?array
     {
         $matches = [];
-        foreach ([self::OPENAPI_URI => self::openApi(), self::PENDING_URI => self::pendingOpenApi()] as $base => $document) {
-            foreach ($document['paths'] as $template => $item) {
-                if (! isset($item[$method])) {
-                    continue;
-                }
-                $pattern = '#^'.preg_replace('#\\\\\{[^/]+?\\\\\}#', '[^/]+', preg_quote($template, '#')).'$#';
-                if (preg_match($pattern, $path) === 1) {
-                    $matches[substr_count($template, '{')][] = [$template, $item[$method], $base];
-                }
+        foreach (self::openApi()['paths'] as $template => $item) {
+            if (! isset($item[$method])) {
+                continue;
+            }
+            $pattern = '#^'.preg_replace('#\\\\\{[^/]+?\\\\\}#', '[^/]+', preg_quote($template, '#')).'$#';
+            if (preg_match($pattern, $path) === 1) {
+                $matches[substr_count($template, '{')][] = [$template, $item[$method]];
             }
         }
         if (count($matches) === 0) {
@@ -109,16 +96,16 @@ trait ValidatesOpenApi
     /**
      * Makes the `$ref`s of an inline schema point into its document.
      */
-    private static function absoluteRefs(mixed $schema, string $base = self::OPENAPI_URI): mixed
+    private static function absoluteRefs(mixed $schema): mixed
     {
         if (! is_array($schema)) {
             return $schema;
         }
         foreach ($schema as $key => $value) {
             if ($key === '$ref' && is_string($value) && str_starts_with($value, '#')) {
-                $schema[$key] = $base.$value;
+                $schema[$key] = self::OPENAPI_URI.$value;
             } else {
-                $schema[$key] = self::absoluteRefs($value, $base);
+                $schema[$key] = self::absoluteRefs($value);
             }
         }
 
@@ -131,18 +118,5 @@ trait ValidatesOpenApi
     private static function openApi(): array
     {
         return self::$openApi ??= json_decode((string) file_get_contents(__DIR__.'/../protocol/openapi.json'), true);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function pendingOpenApi(): array
-    {
-        if (self::$pendingOpenApi === null) {
-            self::$pendingOpenApi = json_decode((string) file_get_contents(__DIR__.'/../protocol/pending.openapi.json'), true);
-            self::protocolValidator()->resolver()?->registerFile(self::PENDING_URI, __DIR__.'/../protocol/pending.openapi.json');
-        }
-
-        return self::$pendingOpenApi;
     }
 }

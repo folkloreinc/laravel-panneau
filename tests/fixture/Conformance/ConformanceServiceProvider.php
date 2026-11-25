@@ -33,7 +33,7 @@ use TestApp\Policies\RunPolicy;
 /**
  * The app served to the protocol's conformance kit in CI: the fixture resources, a media library,
  * direct uploads, types that share their blocks, pages and a main menu, a dashboard and a dashboard page, a context with an optional param, the password reset
- * and the email verification of the `panneau` auth mode, behind a bearer token (`Authorization:
+ * and the email verification of the `panneau` auth mode, the MCP server of the agents, behind a bearer token (`Authorization:
  * Bearer conformance`).
  */
 class ConformanceServiceProvider extends ServiceProvider
@@ -78,6 +78,10 @@ class ConformanceServiceProvider extends ServiceProvider
         ]);
         $config->set('panneau.uploads.enabled', true);
         $config->set('panneau.uploads.disk', 'uploads');
+        // The MCP server of the agents (panneau-js decision 0113): the definition has
+        // `agents.mcp`, and the kit lists the connections of the account. The user of the bearer
+        // token has no tokens of its own, so the list is empty
+        $config->set('panneau.agents.mcp.enabled', true);
     }
 
     public function boot(): void
@@ -184,5 +188,6 @@ class ConformanceServiceProvider extends ServiceProvider
                 ->options(['2026' => 'Season 2026', '2025' => 'Season 2025']),
         ]);
         Panneau::routes();
+        Panneau::mcpRoutes();
     }
 }

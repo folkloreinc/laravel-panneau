@@ -180,6 +180,31 @@
                             "type": "null"
                         }
                     ]
+                },
+                "agents": {
+                    "type": "object",
+                    "properties": {
+                        "mcp": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "tokens": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "url"
+                            ],
+                            "additionalProperties": {}
+                        },
+                        "assistant": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": {}
                 }
             },
             "required": [
@@ -260,6 +285,9 @@
                 "itemImage": {
                     "type": "string"
                 },
+                "itemStatus": {
+                    "type": "string"
+                },
                 "open": {
                     "anyOf": [
                         {
@@ -296,6 +324,9 @@
                             "items": {
                                 "$ref": "#/$defs/LayoutNode"
                             }
+                        },
+                        "languageSwitch": {
+                            "type": "boolean"
                         }
                     },
                     "additionalProperties": {}
@@ -1047,6 +1078,13 @@
                 "icon": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
+                "itemTitle": {
+                    "type": "string",
+                    "minLength": 1
+                },
                 "fields": {
                     "type": "array",
                     "items": {
@@ -1265,7 +1303,10 @@
                 "multiple": {
                     "type": "boolean"
                 },
-                "default": {}
+                "default": {},
+                "primary": {
+                    "type": "boolean"
+                }
             },
             "required": [
                 "id",
@@ -2675,6 +2716,9 @@
                         "touch",
                         "auto"
                     ]
+                },
+                "lockDensity": {
+                    "type": "boolean"
                 },
                 "navigation": {
                     "type": "string",

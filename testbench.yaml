@@ -4,6 +4,9 @@ providers:
   - Panneau\ServiceProvider
   # The OAuth provider of the conformance app
   - Laravel\Socialite\SocialiteServiceProvider
+  # The MCP server of the agents, with Sanctum's tokens: the kit lists the connections of the account
+  - Laravel\Mcp\Server\McpServiceProvider
+  - Laravel\Sanctum\SanctumServiceProvider
   - TestApp\Conformance\ConformanceServiceProvider
 
 migrations:

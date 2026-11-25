@@ -3080,6 +3080,197 @@
                 }
             ]
         },
+        "/account/connections": {
+            "get": {
+                "operationId": "listConnections",
+                "summary": "With `agents.mcp`: the connections of the current user to the MCP server, the newest first (decision 0113).",
+                "responses": {
+                    "200": {
+                        "description": "The connections of the current user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConnectionsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/connections/tokens": {
+            "post": {
+                "operationId": "createConnectionToken",
+                "summary": "With `agents.mcp`: makes a personal token of the current user, whose plain text is answered once. A `409` when the account can't make one: `agents.mcp.tokens` isn't true.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConnectionTokenRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "The token, and its connection.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConnectionTokenResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict with a business rule.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid values: messages are in `errors`, keyed by dot path.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ]
+        },
+        "/account/connections/{connection}": {
+            "parameters": [
+                {
+                    "name": "connection",
+                    "in": "path",
+                    "required": true,
+                    "description": "The opaque `id` of the connection.",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "$ref": "#/components/parameters/Context"
+                }
+            ],
+            "delete": {
+                "operationId": "revokeConnection",
+                "summary": "With `agents.mcp`: revokes a connection, which stops working at once. Revoking a client revokes all its tokens for the user. A `404` for an id that is not a connection of the user.",
+                "responses": {
+                    "204": {
+                        "description": "Revoked."
+                    },
+                    "401": {
+                        "description": "Not authenticated.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed. A value of `Panneau-Context` that the user can't use is a problem of type `urn:panneau:problem:context`, with its `param`. With `auth.emailVerification`, a user whose email address isn't verified gets a problem of type `urn:panneau:problem:email-unverified` on every operation but those of the auth. A user who must have two-factor authentication and hasn't set it up gets a problem of type `urn:panneau:problem:two-factor-required` on every operation but those of the auth and of `/account/two-factor`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "The password must be confirmed first (`POST /auth/password/confirm`): a problem of type `urn:panneau:problem:password-confirmation`.",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Problem"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/search": {
             "get": {
                 "operationId": "search",
@@ -4080,7 +4271,17 @@
                         "type": "string"
                     },
                     "icon": {
+                        "description": "The name of a Lucide icon (`quote`, `image`), shown before the label in the menu of types.",
                         "type": "string"
+                    },
+                    "description": {
+                        "description": "What the block is for, under its label in the menu of types.",
+                        "type": "string"
+                    },
+                    "itemTitle": {
+                        "description": "The title of a block of this type in its collapsed header, in place of the repeater's `settings.itemTitle`: a field name (`heading`), or a template of field names in braces (`{name} ({role})`).",
+                        "type": "string",
+                        "minLength": 1
                     },
                     "fields": {
                         "type": "array",
@@ -4161,7 +4362,7 @@
                         "type": "boolean"
                     },
                     "resource": {
-                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027). `link`: the resources of its `page` links (decision 0055).",
+                        "description": "`relation`: id of the related resource. `media`, `image`: id of a resource of kind `media`, or a list of them; without it, every library of the definition (decision 0027). `link`: the resources of its `page` links (decision 0055). `richtext`: the resources whose items its links can point to (decision 0107).",
                         "anyOf": [
                             {
                                 "type": "string",
@@ -4566,6 +4767,105 @@
                 "additionalProperties": {},
                 "description": "The `settings` of a `duration` field. Its value is a whole number of `unit`, zero or more. A day is 24 hours."
             },
+            "DateShortcut": {
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "enum": [
+                            "today",
+                            "yesterday",
+                            "tomorrow"
+                        ],
+                        "description": "Today, yesterday or tomorrow, in the zone of the user, with its label."
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "label": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "The text of the button."
+                            },
+                            "from": {
+                                "description": "The name of a `date` or `datetime` field of the same object (the form, a group or a block) the date starts from: \"a year after the start\". The button is disabled while that field is empty. Without it, the date starts from today.",
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "days": {
+                                "description": "Days added to the date it starts from; negative to go back.",
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                            },
+                            "weeks": {
+                                "description": "Weeks added to the date it starts from; negative to go back.",
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                            },
+                            "months": {
+                                "description": "Months added to the date it starts from; negative to go back.",
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                            },
+                            "years": {
+                                "description": "Years added to the date it starts from; negative to go back.",
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                            }
+                        },
+                        "required": [
+                            "label"
+                        ],
+                        "additionalProperties": false,
+                        "description": "A date worked out from today, or from the field that `from` names: its `years`, `months`, `weeks` and `days` added in that order. A month added to January 31 gives the last day of February."
+                    }
+                ],
+                "description": "A button under a `date` field that fills it with a date."
+            },
+            "DateSettings": {
+                "type": "object",
+                "properties": {
+                    "shortcuts": {
+                        "description": "Buttons under the field that fill it with a date, in this order: `[\"today\", { \"label\": \"A year after the start\", \"from\": \"starts_on\", \"years\": 1 }]`.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DateShortcut"
+                        }
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `date` field: shortcuts to fill it."
+            },
+            "SelectSettings": {
+                "type": "object",
+                "properties": {
+                    "search": {
+                        "description": "With `true`, the dropdown is a combo box whose options are filtered as the user types; with `false`, never. Without it, clients choose: a select with many options is searchable (Panneau: more than 10). Radios and checkboxes (`widget`) have no search.",
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `select` field."
+            },
+            "RepeaterSettings": {
+                "type": "object",
+                "properties": {
+                    "collapsible": {
+                        "description": "With `false`, every item stays expanded. Items collapse under their title by default (decision 0068).",
+                        "type": "boolean"
+                    },
+                    "itemTitle": {
+                        "description": "The title of an item in its header: a field name (`title`), or a template of field names in braces (`{first_name} {last_name}`). A localized value gives the text of the interface's locale, or the first one; a rich text gives its text without tags. When the item has no such value, the label of its type, or `Item 2`, with an excerpt of its first text. A block type's `itemTitle` takes its place for blocks of that type.",
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "additionalProperties": {},
+                "description": "The `settings` of a `repeater` field: how its items collapse and are titled."
+            },
             "LayoutNode": {
                 "type": "object",
                 "properties": {
@@ -4711,7 +5011,11 @@
                     "multiple": {
                         "type": "boolean"
                     },
-                    "default": {}
+                    "default": {},
+                    "primary": {
+                        "description": "Shown first, in the toolbar of the list. The others are behind \"More filters\". Without any filter that sets it, the first 3 are shown first. `false` always puts a filter behind \"More filters\". A filter with a value always shows it, as a chip.",
+                        "type": "boolean"
+                    }
                 },
                 "required": [
                     "id",
@@ -4821,6 +5125,7 @@
                         "maximum": 100
                     },
                     "perPageOptions": {
+                        "description": "The page sizes the user chooses from, with `perPage`. Defaults to 10, 20, 50 and 100. A page size the browser remembers that is no longer offered falls back to `perPage`.",
                         "type": "array",
                         "items": {
                             "type": "integer",
@@ -5278,6 +5583,7 @@
                         "additionalProperties": {}
                     },
                     "description": {
+                        "description": "One sentence that says what the resource holds and when to use it, in the language of the user (decision 0106): for agents, which `describe` answers it to, and for people, where the app shows it.",
                         "type": "string"
                     },
                     "icon": {
@@ -5298,6 +5604,10 @@
                     },
                     "itemImage": {
                         "description": "The field that holds the image of an item (a media, a file or a URL), in search results, pickers, the gallery and the thumbnails of the table. Defaults to the item's `media` in a resource of kind `media` (decision 0061).",
+                        "type": "string"
+                    },
+                    "itemStatus": {
+                        "description": "The field that holds the state of an item (Draft, Archived), usually a `select` whose options have tones: its label, in its option's tone, shows as a badge next to the item's title in relation pickers and cards (decision 0103).",
                         "type": "string"
                     },
                     "open": {
@@ -5338,6 +5648,10 @@
                                 "items": {
                                     "$ref": "#/components/schemas/LayoutNode"
                                 }
+                            },
+                            "languageSwitch": {
+                                "description": "One language switch above the form's fields, which sets the language of every localized field at once, the user's choice remembered by the browser (decision 0108). Without it, or with `false`, each localized field has its own switch only. Clients show it when the form has localized fields and the definition more than one locale.",
+                                "type": "boolean"
                             }
                         },
                         "additionalProperties": {}
@@ -6822,6 +7136,10 @@
                             "auto"
                         ]
                     },
+                    "lockDensity": {
+                        "description": "Whether the density is the definition's only: `true` hides the user's choice of a density (decision 0104).",
+                        "type": "boolean"
+                    },
                     "navigation": {
                         "description": "Where the app shows the `main` menu: `sidebar` (the default), a column on the left, or `dock`, a dock at the bottom of the window (decision 0076).",
                         "type": "string",
@@ -6994,6 +7312,36 @@
                                 "type": "null"
                             }
                         ]
+                    },
+                    "agents": {
+                        "description": "What agents can use (decisions 0090 and 0106). Without it, the Panneau has none.",
+                        "type": "object",
+                        "properties": {
+                            "mcp": {
+                                "description": "The MCP server of the Panneau: the account page lists the connections of the user (`/account/connections`).",
+                                "type": "object",
+                                "properties": {
+                                    "url": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "The URL of the MCP server (Streamable HTTP), which outside clients connect to."
+                                    },
+                                    "tokens": {
+                                        "description": "Whether the user can make a personal token on the account page (`POST /account/connections/tokens`). Without it, clients assume they can't (decision 0113).",
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "url"
+                                ],
+                                "additionalProperties": {}
+                            },
+                            "assistant": {
+                                "description": "The assistant inside Panneau is offered to the user.",
+                                "type": "boolean"
+                            }
+                        },
+                        "additionalProperties": {}
                     }
                 },
                 "required": [
@@ -8218,6 +8566,114 @@
                 ],
                 "additionalProperties": {},
                 "description": "A passkey of the current user."
+            },
+            "Connection": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Opaque: clients send it back to revoke the connection, and never parse it."
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "token",
+                            "client"
+                        ],
+                        "description": "`token`: a personal token of the user. `client`: an OAuth client the user authorized, which stands for all its tokens."
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "write": {
+                        "type": "boolean",
+                        "description": "Whether its agents can use the tools that write."
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "description": "ISO 8601."
+                    },
+                    "lastUsedAt": {
+                        "description": "ISO 8601, or null when it wasn't used yet or the backend doesn't record it.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "expiresAt": {
+                        "description": "ISO 8601, or null for never.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "write",
+                    "createdAt",
+                    "lastUsedAt",
+                    "expiresAt"
+                ],
+                "additionalProperties": {},
+                "description": "A connection of the current user to the MCP server (decision 0113): a personal token, or an OAuth client they authorized."
+            },
+            "ConnectionsResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Connection"
+                        }
+                    }
+                },
+                "required": [
+                    "data"
+                ],
+                "additionalProperties": {},
+                "description": "The connections of the current user, the newest first."
+            },
+            "ConnectionTokenRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "What the user calls the token."
+                    },
+                    "write": {
+                        "description": "Whether its agents can use the tools that write. Defaults to false.",
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "additionalProperties": {},
+                "description": "A new personal token of the current user."
+            },
+            "ConnectionTokenResponse": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The token, in plain text: answered once, never again."
+                    },
+                    "connection": {
+                        "$ref": "#/components/schemas/Connection"
+                    }
+                },
+                "required": [
+                    "token",
+                    "connection"
+                ],
+                "additionalProperties": {},
+                "description": "A new personal token, and its connection."
             },
             "SearchResponse": {
                 "type": "object",
