@@ -125,6 +125,9 @@ class EloquentAggregatesTest extends TestCase
         // A search without search fields finds nothing
         $this->assertSame(0, self::inSql()->aggregate(new ResourceQuery(scope: ['team_id' => 1], search: 'Run'), Measure::count())->total);
         $this->assertSame(4, self::inSql()->aggregate(new ResourceQuery(scope: ['team_id' => 1], search: 'Run', searchFields: ['title']), Measure::count())->total);
+        // Every word, in any field, whatever its case
+        $this->assertSame(1, self::inSql()->aggregate(new ResourceQuery(scope: ['team_id' => 1], search: 'SUCCEEDED run', searchFields: ['title', 'status']), Measure::count())->total);
+        $this->assertSame(0, self::inSql()->aggregate(new ResourceQuery(scope: ['team_id' => 1], search: 'succeeded walk', searchFields: ['title', 'status']), Measure::count())->total);
     }
 
     /**

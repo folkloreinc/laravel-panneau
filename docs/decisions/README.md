@@ -34,3 +34,4 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0028](0028-oauth-for-the-mcp-server.md) | OAuth for the MCP server, with Passport, beside personal tokens | Proposed; amended by [0029](0029-account-connections.md) and [0030](0030-next-for-the-oauth-guest.md) |
 | [0029](0029-account-connections.md) | The connections of the account, and the agents key of the definition | Proposed |
 | [0030](0030-next-for-the-oauth-guest.md) | A guest of the OAuth authorization goes to the app with `next` | Proposed |
+| [0031](0031-search-words.md) | A search finds every word, in any field, whatever its case and its accents | Proposed |

@@ -59,6 +59,15 @@ class SearchEndpointTest extends HttpTestCase
         return $titles;
     }
 
+    public function test_every_word_is_searched_in_any_search_field_whatever_its_accents(): void
+    {
+        $this->createPost(['title' => 'Étude du chien', 'body' => 'Il est noir']);
+        $this->createPost(['title' => 'Étude du chat', 'body' => 'Il est blanc']);
+
+        $this->assertSame(['posts' => ['Étude du chien']], self::titles($this->search(['q' => 'noir etude', 'resources' => 'posts'])));
+        $this->assertSame([], $this->search(['q' => 'noir chat', 'resources' => 'posts']));
+    }
+
     public function test_results_are_grouped_by_resource_in_the_order_of_the_definition(): void
     {
         $this->createPost(['title' => 'Summer in Montreal', 'published_at' => '2026-07-01 10:00:00']);

@@ -79,6 +79,18 @@ class ReadToolsTest extends HttpTestCase
         $this->assertSame(['id', 'version', 'title', 'status', 'published_at'], array_keys($data[0]['items'][0]));
     }
 
+    public function test_find_items_searches_every_word_whatever_its_accents(): void
+    {
+        $this->createPost(['title' => 'Étude du chien', 'body' => 'Il est noir']);
+        $this->createPost(['title' => 'Étude du chat', 'body' => 'Il est blanc']);
+
+        $data = $this->data(FindItems::class, ['q' => 'noir etude', 'limit' => 5])['data'];
+        $this->assertSame(['Étude du chien'], array_column($data[0]['items'], 'title'));
+
+        $data = $this->data(FindItems::class, ['resource' => 'posts', 'q' => 'ETUDE blanc'])['data'];
+        $this->assertSame(['Étude du chat'], array_column($data, 'title'));
+    }
+
     public function test_find_items_lists_the_columns_of_a_resource_without_their_abilities(): void
     {
         $this->createPost(['title' => 'Hello']);
