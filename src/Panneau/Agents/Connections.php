@@ -15,6 +15,7 @@ use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens as PassportTokens;
 use Laravel\Passport\Passport;
 use Laravel\Passport\Token;
+use Laravel\Sanctum\HasApiTokens as SanctumTokens;
 use Laravel\Sanctum\PersonalAccessToken;
 use LogicException;
 use Panneau\Http\Middleware\AuthorizeAgents;
@@ -111,14 +112,14 @@ final class Connections
     }
 
     /**
-     * Whether a personal token can be made for the user: the user's model has `createToken()`,
-     * a lifetime in the config is one its package can store, and with Passport, a personal access
+     * Whether a personal token can be made for the user: the user's model has `createToken()`
+     * of the package of the guard of the MCP server, a lifetime in the config is one its package can store, and with Passport, a personal access
      * client exists for the user's provider, as Passport's `ClientRepository` resolves it. One
      * query with Passport, none with Sanctum: the definition asks it.
      */
     public function canCreateTokens(object $user): bool
     {
-        if (! method_exists($user, 'createToken')) {
+        if (! method_exists($user, 'createToken') || $this->refusedTokens($user) !== null) {
             return false;
         }
         try {
@@ -147,12 +148,17 @@ final class Connections
      * writes. Sanctum stores the expiry; Passport sets the lifetime of its personal tokens
      * itself, so an expiry is refused with a Passport model.
      *
-     * @throws LogicException when the user's model can't make the token
+     * @throws LogicException when the user's model can't make the token, or makes one of the
+     *                        other package than the guard of the MCP server
      */
     public function createToken(object $user, string $name, bool $write = false, ?DateTimeInterface $expiresAt = null): ConnectionToken
     {
         if (! method_exists($user, 'createToken')) {
             throw new LogicException(sprintf('%s has no createToken(): use the HasApiTokens trait of laravel/sanctum (or laravel/passport).', $user::class));
+        }
+        $refused = $this->refusedTokens($user);
+        if ($refused !== null) {
+            throw new LogicException($refused);
         }
         // Sanctum takes the expiry as its third argument; Passport has none
         if ($expiresAt !== null && ! self::takesExpiry($user)) {
@@ -165,8 +171,13 @@ final class Connections
                 ? $user->createToken($name, $abilities)
                 : $user->createToken($name, $abilities, $expiresAt);
         } catch (RuntimeException $exception) {
-            // Passport without a personal access client
-            throw new LogicException($exception->getMessage(), previous: $exception);
+            // Passport without a personal access client: its message, and the command that makes one
+            $message = $exception->getMessage();
+            if ($user instanceof OAuthenticatable) {
+                $message = sprintf('%s (php artisan passport:client --personal --provider=%s)', rtrim($message, '.'), $user->getProviderName());
+            }
+
+            throw new LogicException($message, previous: $exception);
         }
         // Sanctum's NewAccessToken (the model in accessToken), or Passport's
         // PersonalAccessTokenResult (the JWT in accessToken, the model by getToken())
@@ -192,12 +203,44 @@ final class Connections
     }
 
     /**
+     * Why the MCP server would refuse the tokens of the user's model: its `HasApiTokens` is the
+     * other package's than the guard's. Null when nothing says so.
+     */
+    private function refusedTokens(object $user): ?string
+    {
+        $package = $this->package();
+        $traits = class_uses_recursive($user);
+        $other = match (true) {
+            $package === 'sanctum' && in_array(PassportTokens::class, $traits, true) => 'laravel/passport',
+            $package === 'passport' && in_array(SanctumTokens::class, $traits, true) => 'laravel/sanctum',
+            default => null,
+        };
+
+        return $other === null ? null : sprintf(
+            '%s uses the HasApiTokens of %s, but panneau.agents.mcp.guard "%s" is a %s guard: the MCP server would refuse its tokens.',
+            $user::class,
+            $other,
+            $this->guard(),
+            $package,
+        );
+    }
+
+    /**
+     * The guard of the MCP server.
+     */
+    private function guard(): string
+    {
+        $guard = $this->config->get('panneau.agents.mcp.guard');
+
+        return is_string($guard) && $guard !== '' ? $guard : 'sanctum';
+    }
+
+    /**
      * The package of the guard of the MCP server: `sanctum`, `passport`, or null.
      */
     private function package(): ?string
     {
-        $guard = $this->config->get('panneau.agents.mcp.guard');
-        $driver = $this->config->get('auth.guards.'.(is_string($guard) && $guard !== '' ? $guard : 'sanctum').'.driver');
+        $driver = $this->config->get('auth.guards.'.$this->guard().'.driver');
 
         return match (true) {
             $driver === 'passport' && class_exists(Passport::class) => 'passport',

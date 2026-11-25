@@ -225,6 +225,7 @@ class Panneau implements PanneauContract
             if (! class_exists(Passport::class)) {
                 throw new LogicException('OAuth for the MCP server of the agents needs laravel/passport: composer require laravel/passport');
             }
+            OAuth::check($config);
             OAuth::routes($this->container->make(Router::class));
         }
     }
