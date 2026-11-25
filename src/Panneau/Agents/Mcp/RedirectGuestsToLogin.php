@@ -15,8 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * On Passport's authorization: a guest goes to the login of Panneau's auth mode, and the session
  * keeps the authorization as the intended URL. The `external` mode's login brings them back if
- * it redirects to the intended URL; the app's login page, in the `panneau` mode, doesn't yet: the
- * user opens the authorization again. With `prompt=none`, or without a login, Passport answers.
+ * it redirects to the intended URL. In the `panneau` mode, the app's page gets a `next` query
+ * parameter, the path and query of the authorization (relative, same origin), and the app goes
+ * there with a full page load once logged in (decision 0030). With `prompt=none`, or without a
+ * login, Passport answers.
  *
  * @internal
  */
@@ -39,7 +41,7 @@ final class RedirectGuestsToLogin
         }
         $auth = $this->definition->auth();
         $login = $auth['mode'] === 'panneau'
-            ? ($this->router->has('panneau.app') ? $this->url->route('panneau.app') : null)
+            ? ($this->router->has('panneau.app') ? $this->url->route('panneau.app', ['next' => $request->getRequestUri()]) : null)
             : $auth['loginUrl'];
 
         return is_string($login) && $login !== '' ? $this->redirect->guest($login) : $next($request);

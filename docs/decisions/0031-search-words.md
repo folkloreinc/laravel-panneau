@@ -1,4 +1,4 @@
-# 0030: A search finds every word, in any field, whatever its case and its accents
+# 0031: A search finds every word, in any field, whatever its case and its accents
 
 - Status: proposed
 - Date: 2026-11-25

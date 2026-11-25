@@ -31,6 +31,7 @@ Laravel-specific decision records for Panneau 5. Shared decisions (versioning, p
 | [0025](0025-five-tools-read-first.md) | Five tools for agents, built on one operation each, shipped read first | Proposed |
 | [0026](0026-agents-as-built.md) | The agents as built: laravel/mcp 1, Sanctum first, plain JSON Schema, and examples | Proposed; amended by [0027](0027-token-lifetime-and-encrypted-confirmations.md), [0028](0028-oauth-for-the-mcp-server.md) and [0029](0029-account-connections.md) |
 | [0027](0027-token-lifetime-and-encrypted-confirmations.md) | Agent tokens can expire through Sanctum, and confirmations are encrypted by Laravel | Proposed |
-| [0028](0028-oauth-for-the-mcp-server.md) | OAuth for the MCP server, with Passport, beside personal tokens | Proposed; amended by [0029](0029-account-connections.md) |
+| [0028](0028-oauth-for-the-mcp-server.md) | OAuth for the MCP server, with Passport, beside personal tokens | Proposed; amended by [0029](0029-account-connections.md) and [0030](0030-next-for-the-oauth-guest.md) |
 | [0029](0029-account-connections.md) | The connections of the account, and the agents key of the definition | Proposed |
-| [0030](0030-search-words.md) | A search finds every word, in any field, whatever its case and its accents | Proposed |
+| [0030](0030-next-for-the-oauth-guest.md) | A guest of the OAuth authorization goes to the app with `next` | Proposed |
+| [0031](0031-search-words.md) | A search finds every word, in any field, whatever its case and its accents | Proposed |
