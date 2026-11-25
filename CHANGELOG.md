@@ -6,6 +6,18 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.29] - 2026-11-25
+
+Goes with `@panneau/*` `5.0.0-alpha.52`, whose account page shows the details of a connection to the MCP server on several lines, so they stay readable on a phone, with a French wording that agrees with a personal token as with an app; its protocol is that of `5.0.0-alpha.51`, so the API and the definition don't change. Upgrade both together: the optional keys of the definition need `@panneau/*` 5.0.0-alpha.51 or later.
+
+The MCP server, set up and checked: OAuth connections with Passport without an `api` guard, a consent page in the user's language, a guide to set it up ([docs/mcp.md](docs/mcp.md)), and an error at boot, instead of a `401`, when the OAuth setup is incomplete.
+
+**Breaking change:**
+
+- **OAuth setup checked** (#300): with `panneau.agents.mcp.oauth.enabled`, `Panneau::mcpRoutes()` throws a `LogicException` that names the missing piece when `panneau.agents.mcp.guard` isn't a `passport` guard, when the users' model isn't Passport's (`OAuthenticatable`), or when `passport.guard` isn't the guard of Panneau's users. To upgrade: nothing for a project whose OAuth sign-in works; otherwise follow the message, or [docs/mcp.md](docs/mcp.md#troubleshooting).
+
+**To upgrade:** the optional keys of the definition (#295) are sent only when set, so definitions don't change. To get the translated consent page (#298), publish the translations again with the `panneau-lang` tag if you published them.
+
 - A guide to set up the MCP server in an existing project, with Sanctum's personal tokens, then OAuth with Passport, and troubleshooting by symptom: [docs/mcp.md](docs/mcp.md) (#300).
 - With OAuth on, `Panneau::mcpRoutes()` throws a `LogicException` that names the missing piece when `panneau.agents.mcp.guard` isn't a `passport` guard, when the users' model isn't Passport's (`OAuthenticatable`), or when `passport.guard` isn't the guard of Panneau's users, instead of a `401` or a login that never comes back to the consent page (#300).
 - `panneau:agent-token` and the account make no personal token that the MCP server would refuse: with Passport's `HasApiTokens` on a `sanctum` guard, or Sanctum's on a `passport` guard, the command fails with the reason and the account offers no button. Without Passport's personal access client, the error names the command that makes it (#300).
