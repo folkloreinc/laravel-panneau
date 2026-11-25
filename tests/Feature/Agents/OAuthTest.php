@@ -10,6 +10,7 @@ use Laravel\Passport\Http\Responses\SimpleViewResponse;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
 use Orchestra\Testbench\Attributes\WithMigration;
 use Panneau\Http\Problem;
+use TestApp\Models\OAuthUserEntity;
 
 /**
  * OAuth for the MCP server (#286): the metadata with both scopes, the consent page, the flow of
@@ -199,5 +200,33 @@ class OAuthTest extends OAuthTestCase
         $this->withoutVite()->get($location)->assertSuccessful();
 
         $this->actingAs($this->createOAuthUser())->get($redirect['next'])->assertOk()->assertSee('Claude wants to connect to your account');
+    }
+
+    public function test_the_external_login_gets_the_authorization_in_its_parameter(): void
+    {
+        $this->app['config']->set('panneau.auth.login_url', '/login?locale=fr');
+        $this->app['config']->set('panneau.auth.login_redirect_parameter', 'next');
+        $query = $this->authorization($this->registerClient(), 'mcp:use panneau:write', str_repeat('e', 64));
+        $authorization = '/oauth/authorize?'.http_build_query($query);
+
+        $location = (string) $this->get($authorization)->assertRedirect()->headers->get('Location');
+
+        $this->assertStringStartsWith('http://localhost/login?locale=fr&next=', $location);
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $redirect);
+        $this->assertSame($authorization, $redirect['next']);
+        // The intended URL stays, for a login that follows it
+        $this->assertStringStartsWith('http://localhost/oauth/authorize?', (string) session('url.intended'));
+    }
+
+    public function test_the_consent_page_names_a_user_that_is_not_a_model(): void
+    {
+        $client = $this->registerClient('Claude');
+        $user = $this->createOAuthUser();
+        $entity = new OAuthUserEntity($user);
+
+        $this->actingAs($entity, 'web')
+            ->get('/oauth/authorize?'.http_build_query($this->authorization($client, 'mcp:use', str_repeat('f', 64))))
+            ->assertOk()
+            ->assertSee('It will act as ada@example.com, with your permissions.');
     }
 }

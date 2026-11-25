@@ -16,6 +16,11 @@ use TestApp\Models\User;
  */
 abstract class McpTestCase extends HttpTestCase
 {
+    /**
+     * Whether setUp() registers the routes of the server, else a provider of the test does.
+     */
+    protected bool $registersMcpRoutes = true;
+
     protected function getPackageProviders($app): array
     {
         return [...parent::getPackageProviders($app), McpServiceProvider::class, SanctumServiceProvider::class];
@@ -37,7 +42,9 @@ abstract class McpTestCase extends HttpTestCase
     {
         parent::setUp();
 
-        Panneau::mcpRoutes();
+        if ($this->registersMcpRoutes) {
+            Panneau::mcpRoutes();
+        }
         $this->app['router']->getRoutes()->refreshNameLookups();
         // Clients come with a token, not the session of HttpTestCase
         $this->app['auth']->forgetGuards();

@@ -98,17 +98,23 @@ final class OAuth
      * The routes of laravel/mcp, with Panneau's metadata over its own: same URIs and names, with
      * both scopes.
      */
-    public static function routes(Router $router): void
+    public static function routes(Router $router, Application $app): void
     {
         Mcp::oauthRoutes();
 
         // Guests of Passport's authorization go to the login of Panneau's auth mode, and its
-        // consent page is in the language of the interface the user chose
-        foreach ($router->getRoutes()->getRoutes() as $route) {
-            if ($route->getName() === 'passport.authorizations.authorize') {
-                $route->middleware([RedirectGuestsToLogin::class, ApplyInterfaceLocale::class]);
+        // consent page is in the language of the interface the user chose. Once the providers
+        // have booted too: Passport registers its routes in its own boot, which can come after
+        // the project's routes (#305).
+        $attach = function () use ($router): void {
+            foreach ($router->getRoutes()->getRoutes() as $route) {
+                if ($route->getName() === 'passport.authorizations.authorize' && ! in_array(RedirectGuestsToLogin::class, $route->middleware(), true)) {
+                    $route->middleware([RedirectGuestsToLogin::class, ApplyInterfaceLocale::class]);
+                }
             }
-        }
+        };
+        $attach();
+        $app->booted($attach);
 
         $router->get('.well-known/oauth-protected-resource', [OAuthMetadata::class, 'protectedResource'])
             ->name('mcp.oauth.protected-resource');

@@ -732,6 +732,7 @@ class UpgradeCommandTest extends TestCase
             'mode' => 'external',
             'guard' => null,
             'login_url' => '/login',
+            'login_redirect_parameter' => null,
             'logout_url' => null,
             'password_reset' => false,
             'passwords' => null,

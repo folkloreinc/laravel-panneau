@@ -4,7 +4,8 @@
     $ids = array_map(fn ($scope) => $scope->id, $scopes);
     $writes = in_array(\Panneau\Http\Middleware\AuthorizeAgents::WRITE, $ids, true);
     $others = array_filter($scopes, fn ($scope) => ! in_array($scope->id, \Panneau\Agents\Mcp\OAuthMetadata::SCOPES, true));
-    $panneau = app(\Panneau\Definition\DefinitionBuilder::class)->name();
+    $definition = app(\Panneau\Definition\DefinitionBuilder::class);
+    $panneau = $definition->name();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -45,7 +46,7 @@
                 @endforeach
             </ul>
         @endif
-        <p class="muted">{{ __('panneau::oauth.user', ['user' => $user->email ?? $user->getAuthIdentifier()]) }}</p>
+        <p class="muted">{{ __('panneau::oauth.user', ['user' => $definition->userLabel($user)]) }}</p>
         <div class="buttons">
             <form method="post" action="{{ route('passport.authorizations.deny') }}">
                 @csrf

@@ -87,6 +87,12 @@ return [
         // "external" mode: where guests are sent to log in.
         'login_url' => '/login',
 
+        // "external" mode: a query parameter of login_url that says where to go once logged in,
+        // as `next` in a login that answers in JSON. Panneau sets it to the relative path of the
+        // OAuth authorization of an agent. Null: the site's login follows the intended URL of the
+        // session (`redirect()->intended()`).
+        'login_redirect_parameter' => null,
+
         // "external" mode: where the browser goes to log out, the site's own logout. It has to
         // accept a GET navigation (a route that logs out and redirects). Null: the app has no
         // "Log out" button.
