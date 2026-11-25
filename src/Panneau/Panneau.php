@@ -204,6 +204,10 @@ class Panneau implements PanneauContract
         if (! class_exists(McpServer::class)) {
             throw new LogicException('The MCP server of the agents needs laravel/mcp: composer require laravel/mcp');
         }
+        $tools = $config->get('panneau.agents.tools');
+        if (! is_array($tools) || $tools === []) {
+            throw new LogicException('panneau.agents.tools is empty: the MCP server would serve no tools. Remove the key from config/panneau.php to get the tools of Panneau, or list the tools.');
+        }
         $guard = $config->get('panneau.agents.mcp.guard');
         $domain = $config->get('panneau.domain');
         $prefix = trim((string) $config->get('panneau.path', 'panneau'), '/').'/'.trim((string) $config->get('panneau.agents.mcp.path', 'mcp'), '/');
@@ -246,7 +250,7 @@ class Panneau implements PanneauContract
                 throw new LogicException('OAuth for the MCP server of the agents needs laravel/passport: composer require laravel/passport');
             }
             OAuth::check($config);
-            OAuth::routes($this->container->make(Router::class));
+            OAuth::routes($this->container->make(Router::class), $this->container->make(Application::class));
         }
     }
 

@@ -6,6 +6,14 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+**To upgrade:** nothing, unless your published `config/panneau.php` sets `agents.tools` to an empty list: `Panneau::mcpRoutes()` now refuses it, so remove the key or list the tools. The new key `panneau.auth.login_redirect_parameter` has a default.
+
+- `php artisan panneau:install --agents` sets up the MCP server in an existing project: Sanctum or Passport from the users, the packages, the guard, the `agents` keys of `config/panneau.php` written in place, `Panneau::mcpRoutes()`, the migrations (with one from the `oauth_clients` table of Passport 12 to that of Passport 13 that keeps the ids of the clients), the keys and the personal client of Passport, the checks of [docs/mcp.md](docs/mcp.md), and a checklist with the `claude mcp add` command. Idempotent, and works with `--no-interaction` (#305).
+- The `agents` key of a published `config/panneau.php` is merged deeply with the package's, so a project gets the new keys without republishing; a list (`tools`) is still replaced whole. An empty `agents.tools` makes `Panneau::mcpRoutes()` throw a `LogicException` instead of serving no tools (#305).
+- `Panneau::mcpRoutes()` adds the login to Passport's `oauth/authorize` route even when it is called before Passport's provider boots (#305).
+- `panneau.auth.login_redirect_parameter`: in the `external` mode, the query parameter of the login that gets the URL of the authorization to come back to, for a login that doesn't use `redirect()->intended()`; null by default (#305).
+- The consent page names a user that isn't an Eloquent model (its email, else its name, else its id) (#305).
+
 ## [5.0.0-alpha.30] - 2026-11-25
 
 Goes with `@panneau/*` `5.0.0-alpha.52`: the protocol doesn't change, so the API and the definition stay as they were.

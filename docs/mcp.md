@@ -17,6 +17,25 @@ Both need `laravel/mcp`. A project uses one token package for the server: see [S
 - The users of Panneau log in on a session guard (`panneau.auth.guard`).
 - `APP_URL` is the URL of the site: `panneau:agent-token` prints the address of the server from it. Over HTTP, the addresses that Panneau and the OAuth metadata give follow the request: behind a load balancer or a proxy, [trust it](https://laravel.com/docs/requests#configuring-trusted-proxies) so that they have the right scheme and host.
 
+## The short way: `panneau:install --agents`
+
+```bash
+php artisan panneau:install --agents
+```
+
+The command does the steps of this guide that it can, and prints the others. It picks the token package from the users: Passport when the model has its `HasApiTokens` trait or the guard returns an `OAuthenticatable` user (or with `--oauth`), Sanctum otherwise. Then it:
+
+- installs `laravel/mcp` and the token package, after asking; without interaction it prints the `composer require` to run, and stops;
+- adds the guard of the server to `config/auth.php` when there is none, and writes the `agents` keys in `config/panneau.php`, in place; a value the file computes (`env()`) is left as is, and printed;
+- adds `Panneau::mcpRoutes()` to `routes/panneau.php`;
+- publishes the migrations of the tokens; with the `oauth_clients` table of Passport 12 or earlier, it publishes a migration to the schema of Passport 13 that keeps the ids of the clients, so their tokens stay valid;
+- runs the migrations, `passport:keys` and `passport:client --personal`, after asking; without interaction it runs the keys and the client only when the tables are there, and prints the migrations to run;
+- checks what this guide checks by hand: the users' model, a client model that skips the consent page, a default scope without `mcp:use`, the external login.
+
+It ends with what is left to do by hand, the address of the server and the `claude mcp add` command. Run it again after a change: it keeps what is set. With `--no-interaction`, pass `--user=` the id or email of a user when the provider doesn't return Eloquent models, to check what the guard returns.
+
+The rest of this page is what it does, step by step.
+
 ## 1. Personal tokens with Sanctum
 
 ### Install
@@ -279,8 +298,12 @@ The user is found, and refused. The body is a problem that says why:
 
 - `passport.guard` isn't the guard of Panneau's users: Passport never sees them logged in. `Panneau::mcpRoutes()` now refuses this setup with a `LogicException`; with an older version, check it.
 - In the `panneau` mode, `panneau.middleware` must keep `web`: without the session, the login answers but doesn't last, and the next request is a guest again.
-- In the `external` mode, the site's login must redirect to the intended URL (`redirect()->intended()`); Panneau stores the authorization there.
+- In the `external` mode, the site's login must redirect to the intended URL (`redirect()->intended()`); Panneau stores the authorization there. A login that takes the URL to come back to in a query parameter instead (`?next=`) gets it there with `panneau.auth.login_redirect_parameter`.
 - In the `panneau` mode, `@panneau/app` 5.0.0-alpha.51 or later follows the `next` parameter. Earlier, the user opens the authorization again from the client.
+
+### The guest isn't sent to the login
+
+`Panneau::mcpRoutes()` adds Panneau's login to Passport's `oauth/authorize` route. When the provider that calls it boots before Passport's, the route doesn't exist yet: Panneau adds the middleware again once every provider has booted. Check it with `php artisan route:list --name=passport.authorizations.authorize -v`.
 
 ### The metadata, or the address of the server, has the wrong URL
 

@@ -18,7 +18,7 @@ use Throwable;
  * Writes what belongs to the project: the config, a service provider with the resources and
  * the `viewPanneau` gate, the routes file, optionally a first resource and its policy, and the
  * JS entry of the app with its Vite input and npm packages. With `--upgrade`, migrates a 1.3 or
- * 1.4 project instead (see Upgrader).
+ * 1.4 project instead (see Upgrader); with `--agents`, sets up the MCP server (see AgentsInstaller).
  *
  * @internal
  */
@@ -29,6 +29,9 @@ final class InstallCommand extends Command
         {--login-url= : Where unauthenticated users are sent}
         {--resource= : An Eloquent model to create a first resource and its policy for}
         {--no-js : Skip the JS entry, the Vite config and the npm packages}
+        {--agents : Set up the MCP server of the agents in a project that runs Panneau}
+        {--oauth : With --agents, OAuth with laravel/passport when the users\' model has no HasApiTokens yet}
+        {--user= : With --agents, a user (id or email) to check what the guard returns}
         {--upgrade : Upgrade a 1.3 or 1.4 project: convert its config, write the 5.x files, and list what to move by hand}
         {--check : With --upgrade, only report what the project has and what each part becomes, without writing anything}
         {--force : Overwrite existing files}';
@@ -47,6 +50,11 @@ final class InstallCommand extends Command
 
     public function handle(): int
     {
+        if ($this->option('agents')) {
+            $user = $this->option('user');
+
+            return (new AgentsInstaller($this, $this->laravel, $this->files, $this->laravel->make(Packages::class), $this->input->isInteractive(), (bool) $this->option('oauth'), is_string($user) && $user !== '' ? $user : null))->install();
+        }
         if ($this->option('upgrade') || $this->option('check')) {
             $upgrader = new Upgrader($this, $this->files, base_path(), (bool) $this->option('force'), $this->input->isInteractive());
 

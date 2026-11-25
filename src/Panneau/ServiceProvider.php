@@ -57,7 +57,7 @@ class ServiceProvider extends BaseServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/panneau.php', 'panneau');
+        $this->mergeConfig();
 
         $this->app->singleton('panneau', fn ($app) => new Panneau($app));
         $this->app->alias('panneau', Contracts\Panneau::class);
@@ -147,6 +147,45 @@ class ServiceProvider extends BaseServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([InstallCommand::class, PruneUploadsCommand::class, RoleCommand::class, AgentTokenCommand::class, ConvertPhonesCommand::class, ConvertMoneyCommand::class, ConvertAddressesCommand::class]);
         }
+    }
+
+    /**
+     * The config of the package under the project's, as `mergeConfigFrom()` does, and `agents`
+     * merged deeply (#305): a project writes only the keys it changes there. A list, as `tools`,
+     * is the project's whole.
+     */
+    private function mergeConfig(): void
+    {
+        if ($this->app->configurationIsCached()) {
+            return;
+        }
+        $config = $this->app->make('config');
+        /** @var array<string, mixed> $defaults */
+        $defaults = require __DIR__.'/../config/panneau.php';
+        $project = $config->get('panneau', []);
+        $project = is_array($project) ? $project : [];
+        $merged = array_merge($defaults, $project);
+        if (is_array($defaults['agents'] ?? null) && is_array($project['agents'] ?? null)) {
+            $merged['agents'] = self::mergeDeeply($defaults['agents'], $project['agents']);
+        }
+        $config->set('panneau', $merged);
+    }
+
+    /**
+     * @param  array<mixed>  $defaults
+     * @param  array<mixed>  $values
+     * @return array<mixed>
+     */
+    private static function mergeDeeply(array $defaults, array $values): array
+    {
+        foreach ($values as $key => $value) {
+            $default = $defaults[$key] ?? null;
+            $defaults[$key] = is_array($value) && is_array($default) && $default !== [] && ! array_is_list($default) && ($value === [] || ! array_is_list($value))
+                ? self::mergeDeeply($default, $value)
+                : $value;
+        }
+
+        return $defaults;
     }
 
     /**

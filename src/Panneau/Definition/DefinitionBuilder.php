@@ -390,6 +390,15 @@ final class DefinitionBuilder
     }
 
     /**
+     * How the user is named to them outside the app, as on the consent page of OAuth: their
+     * email, else their name, else their id, read as `user()` reads them (#305).
+     */
+    public function userLabel(Authenticatable $user): string
+    {
+        return $this->userProperty($user, 'email') ?? $this->userProperty($user, 'name') ?? (string) $user->getAuthIdentifier();
+    }
+
+    /**
      * A property of the user: its attribute (an Eloquent model, `GenericUser`), or
      * its public method without parameters, for users that are entities with
      * methods (`name()`, `email()`), as the users of laravel-folklore.
