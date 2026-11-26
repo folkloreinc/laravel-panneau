@@ -50,6 +50,9 @@
                 "name": {
                     "type": "string"
                 },
+                "logo": {
+                    "type": "string"
+                },
                 "locale": {
                     "type": "string",
                     "minLength": 2

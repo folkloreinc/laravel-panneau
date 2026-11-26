@@ -7176,6 +7176,10 @@
                     "name": {
                         "type": "string"
                     },
+                    "logo": {
+                        "description": "URL of the image of the site's logo, a path or an absolute URL: the shell draws it in the square of the logo, on the accent color, instead of the first letter of `name`. A square image, such as an SVG, fits best.",
+                        "type": "string"
+                    },
                     "locale": {
                         "type": "string",
                         "minLength": 2,
