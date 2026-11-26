@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use LogicException;
 use Panneau\Exceptions\ItemInUseException;
+use Panneau\Query\Sort;
 use Panneau\Repositories\SoftDeletingEloquentRepository;
 use Panneau\Resources\Duplication;
 use Panneau\Resources\MediaResource;
@@ -234,6 +235,19 @@ class MediathequeRepository extends SoftDeletingEloquentRepository
     protected function scoped(array $scope): Builder
     {
         return parent::scoped($scope)->with('mediaFiles');
+    }
+
+    /**
+     * The `createdAt` sort is on the creation column of the media.
+     */
+    protected function applySort(Builder $builder, Sort $sort): void
+    {
+        if ($sort->field === MediathequeResource::CREATED_AT) {
+            $builder->orderBy($builder->getModel()->getQualifiedCreatedAtColumn(), $sort->direction->value);
+
+            return;
+        }
+        parent::applySort($builder, $sort);
     }
 
     /**
