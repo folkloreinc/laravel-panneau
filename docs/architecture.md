@@ -522,6 +522,14 @@ Credits::make('credits')->people(PeopleResource::class)->roles(RolesResource::cl
 - **`Credits`**: `name`, the name of the person as text; with `people()`, `person`, a `Relation` to the resource of the people, and `name` for a person who isn't in it (shown when `person` is empty, `names(false)` removes it); `roles`, text, or a multiple `Relation` with `roles()`; `featured`; then the fields of `append()`. The `credits` plugin of `@panneau/fields` lays them out, and lists show `Ada Lovelace (Director), Jane Doe`.
 - **`Sessions`**, above.
 - **The publication** isn't a field: its fields stay at the top of the resource, where lists filter and sort them. `Layout\Publication::make([Field::make('published'), Field::make('published_at')])` frames them with the `publication` component of `@panneau/forms`, under the state of the item; `fields(published:, publishedAt:, status:)` names other fields. A `Layout\Component` takes children too, which the app shows without the component's plugin.
+- **Panels of the sidebar.** A `Sidebar` node is a panel of the form's aside. `Sidebar::panel()` names the component that renders it ([panneau-js decision 0075](https://github.com/folkloreinc/panneau-js/blob/v5.x/docs/decisions/0075-panels-of-a-form-sidebar.md)): `save` (the state of the form and its Save button), `errors`, `publication` (the state of the item, its fields and a Publish / Unpublish button that saves) and `actions` (those of the item), or a panel of a JS plugin. Its label is its title, its children are given to the component, and `props()` are the props of the component. Without the component, the app shows the children. `label()` titles a sidebar without a panel.
+
+  ```php
+  Sidebar::panel('save'),
+  Sidebar::panel('publication', 'Publication', [Field::make('published'), Field::make('publishedAt')])
+      ->props(['publishedAt' => 'publishedAt']), // fields other than published, published_at and status
+  Sidebar::panel('actions'),
+  ```
 
 ### Addresses
 

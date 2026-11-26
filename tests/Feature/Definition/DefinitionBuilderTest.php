@@ -172,7 +172,12 @@ class DefinitionBuilderTest extends TestCase
             ['type' => 'section', 'label' => 'SEO', 'collapsible' => true, 'children' => [['type' => 'field', 'name' => 'seo']]],
             $layout[0]['children'][1]['children'][0],
         );
-        $this->assertSame('sidebar', $layout[1]['type']);
+        $this->assertSame(
+            ['type' => 'sidebar', 'panel' => 'publication', 'label' => 'Publication', 'props' => ['draftStatus' => 'draft'], 'children' => [['type' => 'field', 'name' => 'published_at']]],
+            $layout[1],
+        );
+        $this->assertSame('sidebar', $layout[2]['type']);
+        $this->assertSame(['type' => 'sidebar', 'panel' => 'save', 'children' => []], $layout[3]);
     }
 
     public function test_a_resource_without_layout_has_no_form(): void
