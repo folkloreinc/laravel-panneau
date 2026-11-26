@@ -383,6 +383,27 @@ class FormTest extends TestCase
         );
     }
 
+    public function test_blocks_keep_their_order_when_a_nested_typed_repeater_starts_with_a_media(): void
+    {
+        $fields = [Repeater::make('blocks')->types([
+            BlockType::make('text', 'Text', [Text::make('body')]),
+            BlockType::make('cards', 'Cards', [Repeater::make('cards')->types([
+                BlockType::make('card', 'Card', [Media::make('images')->multiple()]),
+                BlockType::make('quote', 'Quote', [Text::make('body')]),
+            ])]),
+        ])];
+
+        $blocks = [
+            ['type' => 'text', 'body' => 'A'],
+            ['type' => 'cards', 'cards' => [['type' => 'card', 'images' => [['id' => 'med_1']]]]],
+            ['type' => 'text', 'body' => 'B'],
+        ];
+        $this->assertSame(['blocks' => $blocks], $this->validate($fields, ['blocks' => $blocks]));
+
+        $blocks[1]['cards'][] = ['type' => 'quote', 'body' => 'Q'];
+        $this->assertSame(['blocks' => $blocks], $this->validate($fields, ['blocks' => $blocks]));
+    }
+
     public function test_media(): void
     {
         $fields = [

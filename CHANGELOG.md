@@ -13,6 +13,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - `Panneau::mcpRoutes()` adds the login to Passport's `oauth/authorize` route even when it is called before Passport's provider boots (#305).
 - `panneau.auth.login_redirect_parameter`: in the `external` mode, the query parameter of the login that gets the URL of the authorization to come back to, for a login that doesn't use `redirect()->intended()`; null by default (#305).
 - The consent page names a user that isn't an Eloquent model (its email, else its name, else its id) (#305).
+- A form keeps the order of the blocks and items it receives: a block whose nested typed repeater started with a media was moved after the others on save (#310).
 
 ## [5.0.0-alpha.30] - 2026-11-25
 
