@@ -6,6 +6,12 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 
 ## [Unreleased]
 
+## [5.0.0-alpha.31] - 2026-11-26
+
+Goes with `@panneau/*` `5.0.0-alpha.53`: the protocol doesn't change, so the API and the definition stay as they were.
+
+`panneau:install --agents` to set up the MCP server, named panels of a form's sidebar (`Sidebar::panel()`, with the Publish / Unpublish button), and the order of blocks kept on save.
+
 **To upgrade:** nothing, unless your published `config/panneau.php` sets `agents.tools` to an empty list: `Panneau::mcpRoutes()` now refuses it, so remove the key or list the tools. The new key `panneau.auth.login_redirect_parameter` has a default.
 
 - `php artisan panneau:install --agents` sets up the MCP server in an existing project: Sanctum or Passport from the users, the packages, the guard, the `agents` keys of `config/panneau.php` written in place, `Panneau::mcpRoutes()`, the migrations (with one from the `oauth_clients` table of Passport 12 to that of Passport 13 that keeps the ids of the clients), the keys and the personal client of Passport, the checks of [docs/mcp.md](docs/mcp.md), and a checklist with the `claude mcp add` command. Idempotent, and works with `--no-interaction` (#305).
