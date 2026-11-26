@@ -129,7 +129,9 @@ class PostsResource extends Resource
                 Tab::make('Sharing', [Section::make('SEO', [Field::make('seo')])->collapsible()]),
                 Tab::make('Details', [Field::make('details')]),
             ]),
-            Sidebar::make([Field::make('slug'), Field::make('published_at'), Field::make('author'), Field::make('tags')]),
+            Sidebar::panel('publication', 'Publication', [Field::make('published_at')])->props(['draftStatus' => 'draft']),
+            Sidebar::make([Field::make('slug'), Field::make('author'), Field::make('tags')]),
+            Sidebar::panel('save'),
         ];
     }
 

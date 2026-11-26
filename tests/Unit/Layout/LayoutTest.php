@@ -51,7 +51,26 @@ class LayoutTest extends TestCase
             Section::make('SEO')->description('Sharing')->collapsible(collapsed: true)->toDefinition(),
         );
         $this->assertSame(['type' => 'sidebar', 'children' => [['type' => 'field', 'name' => 'a']]], Sidebar::make([Field::make('a')])->toDefinition());
+        $this->assertSame(['type' => 'sidebar', 'label' => 'Files', 'children' => []], Sidebar::make()->label('Files')->toDefinition());
         $this->assertSame(12, Field::make('a')->width(20)->toDefinition()['width']);
+    }
+
+    public function test_named_sidebar_panels(): void
+    {
+        $this->assertSame(['type' => 'sidebar', 'panel' => 'save', 'children' => []], Sidebar::panel('save')->toDefinition());
+
+        $publication = Sidebar::panel('publication', 'Publication', [Field::make('published'), Field::make('publishedAt')])
+            ->props(['publishedAt' => 'publishedAt'])
+            ->visibleWhen(['field' => 'type', 'equals' => 'page']);
+        $this->assertSame([
+            'type' => 'sidebar',
+            'panel' => 'publication',
+            'label' => 'Publication',
+            'props' => ['publishedAt' => 'publishedAt'],
+            'visibleWhen' => ['field' => 'type', 'equals' => 'page'],
+            'children' => [['type' => 'field', 'name' => 'published'], ['type' => 'field', 'name' => 'publishedAt']],
+        ], $publication->toDefinition());
+        $this->assertSame(['published', 'publishedAt'], $publication->fieldNames());
     }
 
     public function test_components_with_children_and_the_publication(): void
