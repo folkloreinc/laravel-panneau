@@ -14,6 +14,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 - `panneau.auth.login_redirect_parameter`: in the `external` mode, the query parameter of the login that gets the URL of the authorization to come back to, for a login that doesn't use `redirect()->intended()`; null by default (#305).
 - The consent page names a user that isn't an Eloquent model (its email, else its name, else its id) (#305).
 - `Sidebar::panel('publication', 'Publication', [...])` names a panel of a form's sidebar (panneau-js decision 0075): `save`, `errors`, `publication` with its Publish / Unpublish button, `actions`, or one of a plugin, with `props()` for its component. `label()` titles a `Sidebar` (#308).
+- A form keeps the order of the blocks and items it receives: a block whose nested typed repeater started with a media was moved after the others on save (#310).
 
 ## [5.0.0-alpha.30] - 2026-11-25
 

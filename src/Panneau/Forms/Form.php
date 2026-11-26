@@ -41,7 +41,29 @@ final class Form
             ->make($input, $rules->rules(), $rules->messages(), $rules->attributes())
             ->validate();
 
-        return self::extract($fields, $validated, $context, $layout);
+        return self::extract($fields, self::inOrderOf($validated, $input), $context, $layout);
+    }
+
+    /**
+     * Puts the validated values back in the order of the input. Laravel rebuilds them in the
+     * order of the rules, which puts a block whose nested rules come first before the others.
+     *
+     * @param  array<array-key, mixed>  $validated
+     * @param  array<array-key, mixed>  $input
+     * @return array<array-key, mixed>
+     */
+    private static function inOrderOf(array $validated, array $input): array
+    {
+        $ordered = [];
+        foreach ($input as $key => $value) {
+            if (array_key_exists($key, $validated)) {
+                $ordered[$key] = is_array($validated[$key]) && is_array($value)
+                    ? self::inOrderOf($validated[$key], $value)
+                    : $validated[$key];
+            }
+        }
+
+        return $ordered + $validated;
     }
 
     /**
