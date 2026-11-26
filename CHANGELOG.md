@@ -7,6 +7,7 @@ All notable changes to `folklore/laravel-panneau` 5.x are documented in this fil
 ## [Unreleased]
 
 - A library on the mediatheque (`MediathequeResource`) can be sorted by the date a media was added, `createdAt`, the newest first by default: the media picker and the library page open on the latest media instead of the oldest. A list that declares its own default sort keeps it. `ResourceList::addSorts()` adds sorts besides those of `sorts()` or the columns, and `getDefaultSort()` reads the default one.
+- `panneau.logo`: the URL of an image of the site's logo, sent as the definition's `logo`. The admin draws it in the square of the logo, in the sidebar and the top bar, instead of the first letter of the name (#314).
 
 ## [5.0.0-alpha.31] - 2026-11-26
 
