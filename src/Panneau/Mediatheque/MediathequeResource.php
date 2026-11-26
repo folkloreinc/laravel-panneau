@@ -19,6 +19,7 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Panneau\Fields\File;
+use Panneau\Lists\ResourceList;
 use Panneau\Media\MediaTransform;
 use Panneau\Media\MediaTypes;
 use Panneau\Resources\MediaResource;
@@ -50,9 +51,27 @@ abstract class MediathequeResource extends MediaResource
      */
     protected const THUMBNAIL_WIDTH = 480;
 
+    /**
+     * The sort by the date a media was added, the newest first by default.
+     */
+    public const CREATED_AT = 'createdAt';
+
     public function repository(): ?string
     {
         return MediathequeRepository::class;
+    }
+
+    /**
+     * The list of `list()`, which can also be sorted by the date a media was added
+     * (`createdAt`), the newest first unless it declares another default sort.
+     *
+     * @internal Override `list()`.
+     */
+    public function makeList(): ResourceList
+    {
+        $list = parent::makeList()->addSorts([self::CREATED_AT]);
+
+        return $list->getDefaultSort() === null ? $list->defaultSort('-'.self::CREATED_AT) : $list;
     }
 
     public function itemClass(): ?string

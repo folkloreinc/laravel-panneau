@@ -493,6 +493,23 @@ class MediathequeLibraryTest extends HttpTestCase
         $this->assertSoftDeleted(Media::query()->withTrashed()->where('uid', $image)->firstOrFail());
     }
 
+    public function test_lists_are_sorted_by_the_date_media_were_added_the_newest_first(): void
+    {
+        $this->travelTo(now()->subDay());
+        $older = $this->create(['file' => ['upload' => $this->upload('a.png', self::png(), 'image/png')]])->json('data.id');
+        $this->travelBack();
+        $newer = $this->create(['file' => ['upload' => $this->upload('b.png', self::png(), 'image/png')]])->json('data.id');
+
+        $list = collect($this->getJson(self::API.'/definition')->json('resources'))->firstWhere('id', 'media-library')['list'];
+        $this->assertContains('createdAt', $list['sorts']);
+        $this->assertSame('-createdAt', $list['defaultSort']);
+
+        $ids = fn (string $query = ''): array => array_column($this->getJson(self::API.'/resources/media-library'.$query)->assertOk()->json('data'), 'id');
+        $this->assertSame([$newer, $older], $ids());
+        $this->assertSame([$older, $newer], $ids('?sort=createdAt'));
+        $this->assertSame([$newer, $older], $ids('?sort=-createdAt'));
+    }
+
     /**
      * A model uses the media, as `HasMedias` records it.
      */

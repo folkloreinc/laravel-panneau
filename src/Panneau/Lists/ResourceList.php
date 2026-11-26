@@ -30,6 +30,11 @@ final class ResourceList
     private ?array $sorts = null;
 
     /**
+     * @var list<string>
+     */
+    private array $addedSorts = [];
+
+    /**
      * The fields the list can sort by when it doesn't declare its sorts.
      *
      * @var list<Field>
@@ -133,6 +138,19 @@ final class ResourceList
     }
 
     /**
+     * Sorts the list has besides those of `sorts()` or its columns, unless `sorts([])` turns
+     * sorting off: the built-in sorts of a kind of resource, like the date of a media.
+     *
+     * @param  list<string>  $sorts
+     */
+    public function addSorts(array $sorts): self
+    {
+        $this->addedSorts = [...$this->addedSorts, ...$sorts];
+
+        return $this;
+    }
+
+    /**
      * The fields the list can sort by when it doesn't declare its sorts: those of the resource
      * that its repository can sort by. The registry gives them.
      *
@@ -182,6 +200,13 @@ final class ResourceList
                 $sorts[] = $field;
             }
         }
+        if ($this->sorts !== []) {
+            foreach ($this->addedSorts as $sort) {
+                if (! in_array($sort, $sorts, true)) {
+                    $sorts[] = $sort;
+                }
+            }
+        }
 
         return $sorts;
     }
@@ -194,6 +219,11 @@ final class ResourceList
         $this->defaultSort = $sort;
 
         return $this;
+    }
+
+    public function getDefaultSort(): ?string
+    {
+        return $this->defaultSort;
     }
 
     /**

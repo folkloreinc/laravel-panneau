@@ -172,4 +172,13 @@ class ResourceListTest extends TestCase
         $this->assertSame(['title', 'rank'], $list->getSorts());
         $this->assertSame(['title', 'rank'], $list->queryOptions(false, null, 20, 100)->sorts);
     }
+
+    public function test_added_sorts_follow_the_others_unless_sorting_is_off(): void
+    {
+        $list = (new ResourceList)->columns(['title'])->sorts(['title'])->addSorts(['createdAt', 'title']);
+        $this->assertSame(['title', 'createdAt'], $list->getSorts());
+        $this->assertSame([], (new ResourceList)->sorts([])->addSorts(['createdAt'])->getSorts());
+        $this->assertNull($list->getDefaultSort());
+        $this->assertSame('-createdAt', $list->defaultSort('-createdAt')->getDefaultSort());
+    }
 }
