@@ -91,6 +91,17 @@ class DefinitionBuilderTest extends TestCase
         $this->assertSame('en', $definition['locale']);
         $this->assertSame(['fr', 'en'], $definition['locales']);
         $this->assertSame(['baseUrl' => '/panneau/api'], $definition['api']);
+        $this->assertArrayNotHasKey('logo', $definition);
+    }
+
+    public function test_the_logo(): void
+    {
+        $this->app['config']->set('panneau.logo', '/images/logo.svg');
+
+        $definition = $this->definition();
+
+        $this->assertSame('/images/logo.svg', $definition['logo']);
+        $this->assertValidDefinition($definition);
     }
 
     public function test_the_global_search(): void

@@ -69,9 +69,12 @@ final class DefinitionBuilder
      */
     public function build(?Authenticatable $user = null): array
     {
+        $logo = $this->logo();
         $definition = [
             'protocol' => self::PROTOCOL_VERSION,
             'name' => $this->name(),
+            // Left out without a logo, so that definitions stay as they were
+            ...($logo !== null ? ['logo' => $logo] : []),
             'locale' => $this->app->getLocale(),
             'locales' => $this->locales(),
             'api' => ['baseUrl' => $this->apiBaseUrl()],
@@ -425,6 +428,17 @@ final class DefinitionBuilder
         $name = $this->config->get('panneau.name') ?? $this->config->get('app.name');
 
         return is_string($name) ? $name : 'Panneau';
+    }
+
+    /**
+     * The URL of the image of the site's logo, which the shell draws instead of the first letter
+     * of the name: `panneau.logo`, a path or an absolute URL.
+     */
+    public function logo(): ?string
+    {
+        $logo = $this->config->get('panneau.logo');
+
+        return is_string($logo) && $logo !== '' ? $logo : null;
     }
 
     /**

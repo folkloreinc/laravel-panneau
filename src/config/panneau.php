@@ -15,6 +15,11 @@ return [
     // Name of the admin, in the definition. Defaults to the app's name.
     'name' => null,
 
+    // URL of the image of the site's logo, a path (`/images/logo.svg`) or an absolute URL. The
+    // admin draws it in the square of the logo, instead of the first letter of the name. A square
+    // image fits best, such as an SVG with its own margins.
+    'logo' => null,
+
     // Locales of localized fields. Defaults to the app's locale.
     'locales' => null,
 
